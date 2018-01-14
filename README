@@ -1,0 +1,62 @@
+First of all, this program is designed and tested for Linux. The download history on SourceForge shows that this program is downloaded predominately by Mac and Windows. While it could theoretically run on both, there is a lot of porting to be done. If you have extensive knowledge of Mac or Windows, give it a whirl and let me know how you make out. If you are looking for an accounting system for those two platforms, just get Quickbooks or Gnucash or ... 
+
+This accounting system is for people who refuse to be tied to platforms that don't care about the user. If you don't know what means, just spend your valuable time doing something else.
+
+About the name PyGtk Posting
+
+It stands for PYthon + GTK + POSTgresql. The postgresql part has been modified to Posting (an action of posting to an account). The name has nothing to do with PYGTK which is a Python abstraction library based on Gtk2. PyGtk Posting actually uses the newer style GObject Introspection, which allows Python to access any function, procedure, object or whatever within the Gtk platform.
+
+Special credits
+
+py3o is used for all reports and printouts. It has the most lowly job there is and is not appreciated half enough. Without py3o, PyGtk Posting would be worthless. Since it is not in the program name it deserves a special credit here.
+
+Helping
+
+Python/Gtk programmers are in high demand! Even if you feel you are very poor at Python/Gtk, I will teach you.
+SQL programmers are also appreciated. There is a lot of SQL code that should have JOINs and so forth to reduce network latency. I started PyGtk Posting with no experience in SQL, Python, or Gtk. The SQL has obviously received the least attention over time.
+As there are no preparations for a donation account, donating is not very easy. 
+Suggestions/feature requests are wanted in the worst way. What do you wish other accounting apps had? What features do you use day by day? 
+And of course testing/bug reports are welcome anytime. Do you know of a place to create awareness of this app? Let me hear about it as I want to build this accounting app in a community fashion.
+
+Dependencies 
+
+Gtk+ 3.16 or higher
+gir1.2-poppler-0.18
+gir1.2-gtkspell3-3.0
+python3-xlsxwriter
+python3-xlrd
+python3-sane
+python3-genshi
+python3-apsw
+python3-psycopg2
+python3-tk
+python3-matplotlib
+python3-cairocffi
+python3-uno
+PostgreSQL server somewhere on the network or locally
+unoconv
+LibreOffice (recommended) or OpenOffice
+Linux Mint 18 (recommended OS)
+
+postgresql-client needs to be installed to backup/restore databases
+
+Reason for existence
+
+My personal need for an accounting system that is small business friendly. It is inspired by GnuAccounting. I wanted a standalone app (not web based) that relies on open source community driven software. While all open source projects need financing to go somewhere, I despise programs that are *free* but require a payment to *unlock* the really useful features.
+
+Install
+
+No need to install PyGtk Posting, just extract the folder somewhere and run the run.sh.
+
+Problems 
+
+Send me the log.txt that is created when you try to run the run.sh. Better yet, figure out what went wrong and tell me where I need to improve :)
+
+Hacking
+
+Install Anjuta, then open the 'pygtk_posting.anjuta' file with Anjuta. As of this time there are almost no *good* tutorials available for Anjuta. So you are on your own. A very nice polite email to me with a specific question will probably generate a response.
+
+After Hacking 
+
+Create a folder named 'oldsrc' beside the src folder and copy all the /src files you got originally into the 'oldsrc'. Run the create_diff.sh and send the posting.diff to me. Remember you are doing this for your own benefit. If you do not backport your changes, and I release the next version and you use it, it will break your database possibly leading to corruption. Please alert me if you made database changes, as the diff file does not take care of that (properly). An SQL command will do the trick for my end.
+

@@ -1,0 +1,42 @@
+
+
+Here are some basic Postgresql setup instructions. If you already have Postgres set up locally or on your network, there is no need to do the following to get PyGtk Posting running. You will need the computers admin password.
+
+So let's start with installing Postgres. In most cases, installing Postgres from your favorite package manager is best. Installing from source is difficult, so we will not address that here. 
+
+Synaptic:
+Find and install postgresql and postgresql-client
+
+Command line :
+sudo apt-get install postgresql postgresql-client
+
+After this is successful, we need to set the Postgres password. Postgres comes default without a password and PyGtk Posting requires a password.
+
+In a commandline: 
+
+sudo -i
+sudo -i -u postgres
+psql
+
+And then execute this command replacing the word your_new_secure_password with your password of course. Watch that you leave the single quotes there, these are required.
+
+ALTER USER postgres WITH PASSWORD 'your_new_secure_password';
+
+This should have came back with:
+	
+ALTER ROLE
+
+And then:
+
+\q
+/etc/init.d/postgresql restart
+
+This will restart postgresql and you should be ready to fire up PyGtk Posting and enter the proper credentials. At this point Postgresql will still not be network ready (it will only be accessible by the computer it runs on). Networking Postgresql will be covered in an other tutorial when motivation, time or money find me. And not neccesarily in that order.
+
+
+Should you like these instructions or find an error, my email is pygtk.posting@gmail.com
+
+
+
+
+

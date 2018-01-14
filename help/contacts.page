@@ -1,0 +1,53 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="contacts">
+
+  <info>
+  <link type="seealso" xref="tax_exemptions"/>
+  <link type="guide" xref="index"/>
+  </info>
+
+  <title>Contacts</title>
+
+  <section>
+  <title>Adding a contact</title>
+  <steps>
+    <item>
+      <p>Click New.</p>
+    </item>
+    <item>
+      <p>Fill in all the fields that pertain to the new contact.</p>
+    </item>
+    <item>
+      <p>Select whether the contact is a vendor, customer, employee, or combination of the three. Vendors will be available for Purchase orders. Customers will be available when creating Invoices. Employees will be available in the Time Clock.</p>
+    </item>
+    <item>
+      <p>Click Save to save the contact.</p>
+    </item>
+    <item>
+      <p>Click New to start a new contact.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section>
+  <title>Editing a contact</title>
+  <steps>
+    <item>
+      <p>Select an existing contact.</p>
+    </item>
+    <item>
+      <p>Edit the fields.</p>
+    </item>
+    <item>
+      <p>Click Save to save the changes.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section id="contacts_tips">
+  <title>Tips</title>
+  <p>Tax exemptions are only available for contacts that are already saved in <app>PyGtk Posting</app>.</p>
+  </section>
+
+</page>

@@ -1,0 +1,2 @@
+psycopg2.ProgrammingError: more than one row returned by a subquery used as an expression
+

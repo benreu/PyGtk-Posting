@@ -1,0 +1,96 @@
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 222, in invoice_row_changed
+    self.load_purchase_order_items ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in load_purchase_order_items
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/reports/vendor_history.py", line 247, in <genexpr>
+    args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list) 
+TypeError: not all arguments converted during string formatting

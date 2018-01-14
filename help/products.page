@@ -1,0 +1,60 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="products">
+
+  <info>
+  <link type="seealso" xref="invoice"/>
+  <link type="guide" xref="index"/>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Products</title>
+
+  <section>
+  <title>Adding a product</title>
+  <steps>
+    <item>
+      <p>Click New.</p>
+    </item>
+    <item>
+      <p>Fill in all the fields that pertain to the new product.</p>
+    </item>
+    <item>
+      <p>Select whether the product is Sellable, Purchasable, or Manufactured. Sellable products will be available when creating Invoices. Purchasable products will be available when creating Purchase orders. Manufactured products will be available in the Manufacturing window. A product cannot be Purchasable and Manufactured at the same time.</p>
+    </item>
+    <item>
+      <p>Enter the cost and markup percentages (Press the Enter key to calculate prices).</p>
+    </item>
+    <item>
+      <p>Click Save to save the product.</p>
+    </item>
+    <item>
+      <p>Click New to create a new product.</p>
+    </item>
+   </steps>
+  </section>
+
+  <section>
+  <title>Editing a product</title>
+  <steps>
+    <item>
+      <p>Select an existing product.</p>
+    </item>
+    <item>
+      <p>Edit the values.</p>
+    </item>
+    <item>
+      <p>Click Save to save the changes.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section id="products_tips">
+  <title>Tips</title>
+  <p>Marking a product Not Exemptible will force an invoice to charge tax for that product no matter what the customer tax exemption status is.</p>
+  </section>
+
+</page>

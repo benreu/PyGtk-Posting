@@ -1,0 +1,19 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="index">
+
+  <info>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>PyGtk Posting</title>
+
+  <section id="pygtk_posting_tips">
+  <title>PyGtk Posting Tips</title>
+  <p>On some Linux distributions, focus does not follow the mouse. You need to click on a window to focus it. Since PyGtk Posting heavily relies on focus to reload data from the database, it is advisable to turn on the setting for the focus to follow the mouse. On Linux Mint it is something like Preferences>Windows>Window focus mode (mouse).</p>
+  </section>
+
+</page>

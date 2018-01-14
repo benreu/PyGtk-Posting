@@ -1,0 +1,47 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="tax_exemptions">
+
+  <info>
+  <link type="guide" xref="index"/>
+  </info>
+
+  <title>Tax Exemptions</title>
+
+  <section>
+  <title>Adding a new Tax Exemption</title>
+  <steps>
+    <item>
+      <p>Add a name for the tax exemption in the Tax exemption name textbox.</p>
+    </item>
+    <item>
+      <p>Click add. The exemption will be automatically applied to the current contact, and be available in the Invoice window.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section>
+  <title>Deleting a Tax Exemption</title>
+  <steps>
+    <item>
+      <p>Select an exemption applied to the current contact.</p>
+    </item>
+    <item>
+      <p>Click the Delete arrow. After no more contacts are using the exemption, it will be deleted permanently.</p>
+    </item>
+   </steps>
+  </section>
+
+  <section>
+  <title>Using an existing Tax Exemption</title>
+  <steps>
+    <item>
+      <p>Select an existing exemption from the available exemptions.</p>
+    </item>
+    <item>
+      <p>Click the Add arrow. This tax exemption will now be available in the Invoice window.</p>
+    </item>
+  </steps>
+  </section>
+
+</page>

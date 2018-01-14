@@ -1,0 +1,23 @@
+syntax error at or near "1.00"
+LINE 1: SELECT product_id FROM 1.00 WHERE id = 8
+                               ^
+
+
+(pygtk_posting.py:28586): Gtk-CRITICAL **: gtk_entry_set_text: assertion 'GTK_IS_ENTRY (entry)' failed
+
+(pygtk_posting.py:28586): Gtk-CRITICAL **: gtk_editable_set_position: assertion 'GTK_IS_EDITABLE (editable)' failed
+./src/pygtk_posting.py:509: Warning: invalid (NULL) pointer instance
+  Gtk.main()
+./src/pygtk_posting.py:509: Warning: g_signal_handler_unblock: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed
+  Gtk.main()
+
+(pygtk_posting.py:28586): Gtk-CRITICAL **: gtk_entry_set_text: assertion 'GTK_IS_ENTRY (entry)' failed
+
+(pygtk_posting.py:28586): Gtk-CRITICAL **: gtk_editable_set_position: assertion 'GTK_IS_EDITABLE (editable)' failed
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 456, in destroy
+    self.cursor.execute("UNLISTEN products")
+psycopg2.DatabaseError: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+

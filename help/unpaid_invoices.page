@@ -1,0 +1,55 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="unpaid_invoices">
+
+  <info>
+  <link type="guide" xref="index"/>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Unpaid Invoices</title>
+
+  <section >
+  <title>Applying a payment to an invoice</title>
+  <steps>
+    <item>
+      <p>Select an invoice in the Unpaid Invoices window.</p>
+    </item>
+    <item>
+      <p>Click Mark as paid, which will open the Payment Options window with the customer and invoice selected.</p>
+    </item>
+    <item>
+      <p>Select the payment type.</p>
+    </item>
+    <item>
+      <p>Enter any information like check numbers, credit card confirmation, etc.</p>
+    </item>
+    <item>
+      <p>Click Post payment.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section id="unpaid_invoice_tips">
+  <title>Editing an existing invoice</title>
+  <steps>
+    <item>
+      <p>Select an invoice in the Unpaid Invoices window.</p>
+    </item>
+    <item>
+      <p>Click Edit as new, which will open the New Invoice window with the invoice information.</p>
+    </item>
+    <item>
+      <p>Apply the changes.</p>
+    </item>
+    <item>
+      <p>Click Post invoice, which will cancel the imported invoice.</p>
+    </item>
+  </steps>
+
+  </section>
+
+</page>

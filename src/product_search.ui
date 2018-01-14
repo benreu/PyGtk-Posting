@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.18.3 -->
+<interface>
+  <requires lib="gtk+" version="3.12"/>
+  <object class="GtkEntryCompletion" id="entrycompletion1">
+    <child>
+      <object class="GtkCellRendererText" id="cellrenderertext7"/>
+    </child>
+  </object>
+  <object class="GtkLabel" id="label1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="tooltip_text" translatable="yes">Stocked</property>
+    <property name="label" translatable="yes">S</property>
+  </object>
+  <object class="GtkLabel" id="label2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="tooltip_text" translatable="yes">Sellable</property>
+    <property name="label" translatable="yes">S</property>
+  </object>
+  <object class="GtkLabel" id="label3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="tooltip_text" translatable="yes">Purchasable</property>
+    <property name="label" translatable="yes">P</property>
+  </object>
+  <object class="GtkLabel" id="label4">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="tooltip_text" translatable="yes">Manufactured</property>
+    <property name="label" translatable="yes">M</property>
+  </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="product_hub_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkListStore" id="product_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name product_name -->
+      <column type="gchararray"/>
+      <!-- column-name ext_name -->
+      <column type="gchararray"/>
+      <!-- column-name barcode -->
+      <column type="gchararray"/>
+      <!-- column-name vendor -->
+      <column type="gchararray"/>
+      <!-- column-name order_number -->
+      <column type="gchararray"/>
+      <!-- column-name vendor_barcode -->
+      <column type="gchararray"/>
+      <!-- column-name deleted -->
+      <column type="gboolean"/>
+      <!-- column-name stock -->
+      <column type="gboolean"/>
+      <!-- column-name sellable -->
+      <column type="gboolean"/>
+      <!-- column-name purchasable -->
+      <column type="gboolean"/>
+      <!-- column-name manufactured -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkTreeModelFilter" id="filtered_product_store">
+    <property name="child_model">product_store</property>
+  </object>
+  <object class="GtkWindow" id="window1">
+    <property name="can_focus">False</property>
+    <property name="border_width">10</property>
+    <property name="title" translatable="yes">Product Search</property>
+    <property name="window_position">center</property>
+    <property name="default_width">500</property>
+    <property name="default_height">400</property>
+    <property name="icon">PyGtk_Posting.svg</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
+    <child>
+      <object class="GtkBox" id="box1">
+        <property name="width_request">700</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="border_width">0</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox" id="box2">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkSearchEntry" id="searchentry1">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">10</property>
+                <property name="max_width_chars">0</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search Product name</property>
+                <signal name="search-changed" handler="any_search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="searchentry2">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">0</property>
+                <property name="max_width_chars">10</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search Ext name</property>
+                <signal name="search-changed" handler="any_search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="searchentry3">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">0</property>
+                <property name="max_width_chars">10</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search barcode</property>
+                <signal name="search-changed" handler="any_search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="searchentry4">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">0</property>
+                <property name="max_width_chars">10</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search vendor</property>
+                <signal name="search-changed" handler="any_search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="searchentry5">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">0</property>
+                <property name="max_width_chars">10</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search Order number</property>
+                <signal name="search-changed" handler="any_search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="searchentry6">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">0</property>
+                <property name="max_width_chars">10</property>
+                <property name="primary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Search Vendor barcode</property>
+                <signal name="search-changed" handler="any_search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="scrolledwindow1">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="shadow_type">in</property>
+            <child>
+              <object class="GtkTreeView" id="treeview1">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="model">filtered_product_store</property>
+                <property name="enable_grid_lines">both</property>
+                <property name="activate_on_single_click">True</property>
+                <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
+                <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection" id="treeview-selection1"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                    <property name="sizing">autosize</property>
+                    <property name="min_width">100</property>
+                    <property name="title" translatable="yes">Product name</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <signal name="clicked" handler="product_name_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext1">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                    <property name="sizing">autosize</property>
+                    <property name="min_width">100</property>
+                    <property name="title" translatable="yes">Ext name</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <signal name="clicked" handler="ext_name_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext2">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                    <property name="sizing">autosize</property>
+                    <property name="min_width">100</property>
+                    <property name="title" translatable="yes">Barcode</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <signal name="clicked" handler="barcode_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext3">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                    <property name="sizing">autosize</property>
+                    <property name="min_width">100</property>
+                    <property name="title" translatable="yes">Vendor</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <signal name="clicked" handler="vendor_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext4">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">4</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                    <property name="sizing">autosize</property>
+                    <property name="min_width">100</property>
+                    <property name="title" translatable="yes">Order number</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <signal name="clicked" handler="order_number_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext5">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">5</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="sizing">autosize</property>
+                    <property name="min_width">100</property>
+                    <property name="title" translatable="yes">Vendor barcode</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <signal name="clicked" handler="vendor_barcode_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext6">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">6</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                    <property name="title" translatable="yes">S</property>
+                    <property name="clickable">True</property>
+                    <property name="widget">label1</property>
+                    <signal name="clicked" handler="stock_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererToggle" id="cellrenderertoggle1"/>
+                      <attributes>
+                        <attribute name="active">8</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                    <property name="title" translatable="yes">S</property>
+                    <property name="clickable">True</property>
+                    <property name="widget">label2</property>
+                    <signal name="clicked" handler="sellable_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererToggle" id="cellrenderertoggle2"/>
+                      <attributes>
+                        <attribute name="active">9</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                    <property name="title" translatable="yes">P</property>
+                    <property name="clickable">True</property>
+                    <property name="widget">label3</property>
+                    <signal name="clicked" handler="purchasable_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererToggle" id="cellrenderertoggle3"/>
+                      <attributes>
+                        <attribute name="active">10</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                    <property name="title" translatable="yes">M</property>
+                    <property name="clickable">True</property>
+                    <property name="widget">label4</property>
+                    <signal name="clicked" handler="manufactured_column_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererToggle" id="cellrenderertoggle4"/>
+                      <attributes>
+                        <attribute name="active">11</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="checkbutton1">
+            <property name="label" translatable="yes">Update external windows when product selection changes</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="xalign">0</property>
+            <property name="draw_indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

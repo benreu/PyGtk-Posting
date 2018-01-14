@@ -1,0 +1,52 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="invoice">
+
+  <info>
+  <link type="seealso" xref="tax_exemptions"/>
+  <link type="seealso" xref="products"/>
+  <link type="guide" xref="index"/>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+  <title>Invoice</title>
+
+  <section id="invoice_add_product">
+  <title>Adding a product to the invoice</title>
+   <steps>
+     <item>
+       <p>Click <gui style="button">New Item</gui> to add a new line item, or press F2 on your keyboard.</p>
+     </item>
+     <item>
+       <p>Edit the qty and press Tab to move to the product.</p>
+     </item>
+     <item>
+       <p>Select your product with the dropdown or type into the entry to search for a product.</p>
+     </item>
+   </steps>
+  </section>
+
+  <section>
+   <title>Deleting a product from the invoice</title>
+   <steps>
+    <item>
+      <p>Click Delete Item to delete the selected line item, or press F3 on your keyboard.</p>
+    </item>
+   </steps>
+  </section>
+
+  <section id="invoice_tips">
+  <title>Tips</title>
+  <p>To open the Product window click the Product header (the place above the top line item that says Product).</p>
+  <p>Reselect the customer after adding an exemption.</p>
+  </section>
+
+  <section id="keyboard_shortcuts">
+  <title>Keyboard Shortcuts</title>
+  <p>Press Tab to move through the entries when entering product information.</p>
+  <p>Select a contact from the dropdown or type into the entry to search.</p>
+  </section>
+
+</page>

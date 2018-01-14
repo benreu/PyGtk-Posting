@@ -1,0 +1,73 @@
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 625, in product_treeview_cursor_changed
+    self.select_product()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 665, in select_product
+    "FROM products WHERE id = (%s)", (self.product_id,))
+psycopg2.ProgrammingError: column "invoice_serial_numbers" does not exist
+LINE 1: ...e_account, income_account, manufacturer_sku, job, invoice_se...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "products.enforce_serial_numbers".
+
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 209, in vendor_combo_changed
+    (vendor_id, self.product_id))
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 309, in focus_in_populate_comboboxes
+    self.populate_account_combos ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 315, in populate_account_combos
+    self.cursor.execute("SELECT id, name FROM tax_rates ORDER BY name")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 309, in focus_in_populate_comboboxes
+    self.populate_account_combos ()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 315, in populate_account_combos
+    self.cursor.execute("SELECT id, name FROM tax_rates ORDER BY name")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 818, in save
+    enforce_serial, self.product_id))
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 368, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/unpaid_invoices.py", line 126, in focus
+    self.treeview_populate()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/unpaid_invoices.py", line 143, in treeview_populate
+    self.cursor.execute("SELECT i.id, i.name, amount_due, c.name, c.id, "
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 368, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/unpaid_invoices.py", line 126, in focus
+    self.treeview_populate()
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/unpaid_invoices.py", line 143, in treeview_populate
+    self.cursor.execute("SELECT i.id, i.name, amount_due, c.name, c.id, "
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 368, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 368, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 456, in destroy
+    self.cursor.execute("UNLISTEN products")
+psycopg2.InternalError: current transaction is aborted, commands ignored until end of transaction block
+

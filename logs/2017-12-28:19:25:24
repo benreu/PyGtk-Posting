@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 792, in save
+    enforce_serial))
+IndexError: tuple index out of range
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 792, in save
+    enforce_serial))
+IndexError: tuple index out of range
+Traceback (most recent call last):
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/products.py", line 792, in save
+    enforce_serial))
+IndexError: tuple index out of range

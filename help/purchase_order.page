@@ -1,0 +1,53 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="purchase_order">
+
+  <info>
+  <link type="seealso" xref="products"/>
+  <link type="guide" xref="index"/>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Purchase Order</title>
+
+  <section id="purchase_order_add_product">
+  <title>Adding a product to the purchase order</title>
+  <steps>
+    <item>
+      <p>Click New Item to add a new line item, or press F2 on your keyboard.</p>
+    </item>
+    <item>
+      <p>Edit the qty and press Tab to move to the product.</p>
+    </item>
+    <item>
+      <p>Select your product with the dropdown or type into the entry to search for a product.</p>
+      <p>You can also type in a custom product number and then press enter to save it. This custom number will not be saved as a permanent product however.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section>
+  <title>Deleting a product from the purchase order</title>
+  <steps>
+    <item>
+      <p>Click Delete Item to delete the selected line item, or press F3 on your keyboard.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section id="purchase_order_tips">
+  <title>Tips</title>
+  <p>To open the Product window click the Product header (the place above the top line item that says Product).</p>
+  <p>Purchase orders are saved automatically, therefore you can close the New Purchase Order window and add/edit the purchase order later. A Purchase Order will always be attached to a specific vendor.</p>
+  <p>When a product is selected that has a vendor order number, the vendor order number will be put in the product column. The product name will then be put in the remarks column.</p>
+  </section>
+
+  <section id="keyboard_shortcuts">
+  <title>Keyboard Shortcuts</title>
+  <p>Press Tab to move through the entries when entering product information.</p>
+  </section>
+
+</page>

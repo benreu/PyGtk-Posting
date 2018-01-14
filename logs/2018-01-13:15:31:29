@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 489, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.DatabaseError: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 98, in listen_postgres
+    self.db.poll()
+psycopg2.InterfaceError: connection already closed
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 489, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InterfaceError: cursor already closed
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 489, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InterfaceError: cursor already closed
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 489, in focus
+    self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+psycopg2.InterfaceError: cursor already closed
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 447, in open_invoices
+    open_invoices.OpenInvoicesGUI(self)
+  File "/media/reuben/nas/pygtk_posting-0.3.1/src/open_invoices.py", line 32, in __init__
+    self.cursor = self.db.cursor()
+psycopg2.InterfaceError: connection already closed
+Traceback (most recent call last):
+  File "./src/pygtk_posting.py", line 584, in destroy
+    self.cursor.execute("UNLISTEN products")
+psycopg2.InterfaceError: cursor already closed

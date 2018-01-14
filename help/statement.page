@@ -1,0 +1,62 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="statements">
+
+  <info>
+  <link type="guide" xref="index"/>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Statements</title>
+
+  <section >
+  <title>Applying a payment to an invoice</title>
+  <steps>
+    <item>
+      <p>Select a customer from the dropdown.</p>
+    </item>
+    <item>
+      <p>Click Add payment and the Payment Options window will open.</p>
+    </item>
+    <item>
+      <p>Select an invoice from the dropdown.</p>
+    </item>
+    <item>
+      <p>Select the payment type.</p>
+    </item>
+    <item>
+      <p>Enter any information like check numbers, credit card confirmation, etc.</p>
+    </item>
+    <item>
+      <p>Click Post payment. The invoice and payment will not be visible in the Statements window. The invoice will no longer be visible in the Unpaid Invoices window.</p>
+    </item>
+  </steps>
+  </section>
+
+  <section>
+  <title>Applying a payment that does not match an invoice</title>
+  <steps>
+    <item>
+      <p>Select a customer from the dropdown.</p>
+    </item>
+    <item>
+      <p>Click Add payment and the Payment Options window will open.</p>
+    </item>
+    <item>
+      <p>Enter the amount of the payment in the Payment amount entry. Do not select an invoice or you will have to post that invoice amount.</p>
+    </item>
+    <item>
+      <p>Press the Enter key to validate the payment.</p>
+    </item>
+    <item>
+      <p>Click Post payment. The invoice and payment will be visible in the Statements window.</p>
+    </item>
+   </steps>
+  </section>
+
+  <p>To add a payment that does not match an invoice, open Customer Payment from the home screen or Add Payment from the Statements window.</p>
+
+</page>

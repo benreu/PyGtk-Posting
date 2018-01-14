@@ -1,0 +1,142 @@
+# product_transactions.py
+#
+# Copyright (C) 2017 - reuben
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk, GLib, GObject
+from dateutils import datetime_to_text, calendar_to_text,\
+					calendar_to_datetime, set_calendar_from_datetime
+
+UI_FILE = "src/reports/product_transactions.ui"
+
+
+
+class ProductTransactionsGUI:
+	def __init__(self, db, product_id = None):
+		self.builder = Gtk.Builder()
+		self.builder.add_from_file(UI_FILE)
+		self.builder.connect_signals(self)
+
+		self.db = db
+		self.cursor = db.cursor()
+
+		self.product_store = self.builder.get_object('product_store')
+		self.customer_transaction_store = self.builder.get_object('customer_transaction_store')
+		self.vendor_transaction_store = self.builder.get_object('vendor_transaction_store')
+		product_completion = self.builder.get_object('product_completion')
+		product_completion.set_match_func(self.product_match_func)
+
+		self.exists = True
+		self.populate_product_store ()
+		if product_id != None:
+			self.product_id = product_id
+			self.select_product()
+		
+		self.window = self.builder.get_object('window1')
+		self.window.show_all()
+
+	def destroy (self, window):
+		self.exists = False
+
+	def product_match_func(self, completion, key, tree_iter):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.product_store[tree_iter][1].lower():
+				return False
+		return True
+
+	def populate_product_store (self):
+		self.cursor.execute("SELECT id, name FROM products "
+							"ORDER BY name")
+		for row in self.cursor.fetchall():
+			product_id = row[0]
+			product_name = row[1]
+			self.product_store.append([str(product_id), product_name])
+
+	def product_match_selected(self, completion, model, iter_):
+		self.product_id = self.product_store[iter_][0]
+		self.select_product ()
+
+	def product_combo_changed (self, combo):
+		product_id = combo.get_active_id()
+		if product_id != None:
+			self.product_id = product_id
+			self.select_product ()
+
+	def select_product (self):
+		self.builder.get_object('combobox1').set_active_id(str(self.product_id))
+		self.customer_transaction_store.clear()
+		qty_total = 0
+		self.cursor.execute("SELECT i.id, i.name, p.name, qty, i.date_created, "
+							"c.name, price FROM invoice_line_items AS ili "
+							"JOIN invoices AS i "
+							"ON i.id = ili.invoice_id "
+							"JOIN contacts AS c "
+							"ON c.id = i.customer_id "
+							"JOIN products AS p "
+							"ON p.id = ili.product_id "
+							"WHERE (product_id, i.canceled, ili.canceled) = "
+							"(%s, False, False) "
+							"ORDER BY i.id", 
+							(self.product_id,))
+		for row in self.cursor.fetchall():
+			invoice_id = row[0]
+			invoice_name = row[1]
+			product_name = row[2]
+			qty = row[3]
+			date = row[4]
+			date_formatted = datetime_to_text(date)
+			contact_name = row[5]
+			qty_total += qty
+			price = row[6]
+			self.customer_transaction_store.append([invoice_id, qty, str(date), 
+								date_formatted, contact_name, invoice_name, price])
+		self.builder.get_object('label3').set_label(str(qty_total))
+		self.vendor_transaction_store.clear()
+		qty_total = 0
+		self.cursor.execute("SELECT po.id, po.name, p.name, qty, po.date_created, "
+							"c.name, price FROM purchase_order_line_items AS pli "
+							"JOIN purchase_orders AS po "
+							"ON po.id = pli.purchase_order_id "
+							"JOIN contacts AS c "
+							"ON c.id = po.vendor_id "
+							"JOIN products AS p "
+							"ON p.id = pli.product_id "
+							"WHERE (product_id, po.canceled, pli.canceled) = "
+							"(%s, False, False) "
+							"ORDER BY po.id", 
+							(self.product_id,))
+		for row in self.cursor.fetchall():
+			po_id = row[0]
+			po_name = row[1]
+			product_name = row[2]
+			qty = row[3]
+			date = row[4]
+			date_formatted = datetime_to_text(date)
+			contact_name = row[5]
+			qty_total += qty
+			price = row[6]
+			self.vendor_transaction_store.append([po_id, qty, str(date), 
+								date_formatted, contact_name, po_name, price])
+		self.builder.get_object('label5').set_label(str(qty_total))
+
+
+
+
+
+
+		
