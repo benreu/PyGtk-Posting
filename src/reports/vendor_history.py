@@ -240,21 +240,21 @@ class VendorHistoryGUI:
 								"ORDER BY name ")
 		else:
 			selection = self.builder.get_object('treeview-selection1')
-			model, path = selection.get_selected_rows ()
+			model, paths = selection.get_selected_rows ()
 			id_list = []
-			for row in path:
-				id_list.append(str(row[0]))
+			for path in paths:
+				id_list.append(model[path][0])
 			if len(id_list) > 1:
-				args = ','.join(self.cursor.mogrify("%s", x).decode('utf-8') for x in id_list)
+				args = str(tuple(id_list))
 			else:
-				args =  id_list[0] # single variables do not work in mogrify
+				args = "(%s)" % id_list[0] # single variables do not work in tuple > SQL
 			self.cursor.execute("SELECT poli.id, poli.qty,  "
 								"product_id, name, ext_name, poli.price, "
 								"poli.ext_price, remark, order_number "
 								"FROM purchase_order_line_items AS poli "
 								"JOIN products "
 								"ON products.id = poli.product_id "
-								"WHERE purchase_order_id IN (%s)" % args)
+								"WHERE purchase_order_id IN " + args)
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			qty = row[1]

@@ -33,6 +33,7 @@ python_PYTHON = time_clock_project.ui \
 	contact_transactions.ui \
 	vendor_history.py \
 	vendor_history.ui \
-	product_account_relationship.py
+	product_account_relationship.py \
+	product_account_relationship.ui
 
 uidir = $(pkgdatadir)/reports/ui
