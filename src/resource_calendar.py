@@ -16,16 +16,12 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
-import os, sys
+from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from dateutils import calendar_to_datetime, set_calendar_from_datetime 
-from dateutils import datetime_to_text, DateTimeCalendar
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
+
 UI_FILE = "src/resource_calendar.ui"
-#UI_FILE = "/usr/local/share/pygtk_calendar/ui/pygtk_calendar.ui"
 
 
 class ResourceCalendarGUI:
@@ -39,10 +35,6 @@ class ResourceCalendarGUI:
 		self.cursor = db.cursor()
 
 		self.date_time = datetime.today ()
-		self.edit_calendar = DateTimeCalendar (self.db)
-		self.builder.get_object('box2').pack_start(self.edit_calendar,False,False,0)
-		#self.edit_calendar.set_relative_to (widget)
-		self.edit_calendar.connect('day-selected', self.edit_calendar_day_selected)
 		
 		self.day_detail_store = self.builder.get_object('day_detail_store')
 		self.tag_store = self.builder.get_object('tag_store')
@@ -260,9 +252,6 @@ class ResourceCalendarGUI:
 							"WHERE id = %s", (notes, resource_id))
 		self.db.commit()
 
-	def date_entry_icon_released (self, entry, position, button):
-		self.edit_calendar.show()
-
 	def edit_calendar_day_selected (self, calendar):
 		selection = self.builder.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()
@@ -357,9 +346,6 @@ class ResourceCalendarGUI:
 			self.day_detail_store.append([row_id, subject, contact_id, 
 											contact_name, tag_id, tag_name, 
 											rgba])
-		date_text = datetime_to_text (self.date_time)
-		self.builder.get_object('entry1').set_text(date_text)
-		self.edit_calendar.set_datetime (self.date_time)
 		
 	def day_detail_activated (self, treeview, path, treeviewcolumn):
 		self.resource_id = self.day_detail_store[path][0]
