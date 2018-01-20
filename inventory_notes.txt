@@ -1,3 +1,0 @@
-serial numbers
-inventory center with on order, on hand, reserved for assembly 
-
