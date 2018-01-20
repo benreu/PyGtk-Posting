@@ -1,3 +1,0 @@
-The 0.1.9 release will be the final 0.1 version. The next release will be 0.2.0. This release will be a major database cleanup. A lot of integrity checks will be implemented and superfluous columns removed. A few none backward compatible features may be implemented depending on ambition. 
-
-Double entry accounting may see quite a bit of changes to better fulfill GAAP (generally accepted accounting practices) Anyone with knowledge of how double entry accounting databases work would be very much appreciated.
