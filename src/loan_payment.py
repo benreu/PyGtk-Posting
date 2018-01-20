@@ -55,7 +55,8 @@ class LoanPaymentGUI:
 
 	def populate_stores (self):
 		self.cursor.execute("SELECT id, name, c_o FROM contacts "
-							"WHERE deleted = False ORDER BY name")
+							"WHERE (deleted, service_provider) = (False, True) "
+							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			contact_id = row[0]
 			contact_name = row[1]

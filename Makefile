@@ -328,10 +328,8 @@ dist_doc_DATA = \
 	db_settings \
 	src/PyGtk_Posting.svg \
 	run.sh \
-	create_diff.sh \
 	pygtk_posting.anjuta \
-	POSTGRES_README \
-	TO_DO
+	POSTGRES_README 
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive

@@ -17,8 +17,7 @@ dist_doc_DATA = \
 	src/PyGtk_Posting.svg \
 	run.sh \
 	pygtk_posting.anjuta \
-	POSTGRES_README \
-	TO_DO
+	POSTGRES_README 
 
 
 

@@ -26,7 +26,6 @@ class TaxRateGUI:
 		self.builder.connect_signals(self)
 		self.db = db
 		self.cursor = self.db.cursor()
-		self.new ()
 		
 		self.tax_store = self.builder.get_object("tax_store")
 		self.account_store = self.builder.get_object("tax_received_account_store")
@@ -36,7 +35,8 @@ class TaxRateGUI:
 		
 		self.populate_tax_rates_store ()
 		self.populate_account_store ()
-
+		self.new ()
+		
 	def destroy(self, window):
 		return True
 
@@ -52,9 +52,9 @@ class TaxRateGUI:
 	def populate_tax_rates_store(self):
 		self.tax_store.clear()
 		self.cursor.execute("SELECT tr.id, tr.name, rate, standard, exemption, "
-							"tax_letter, gl_accounts.name "
+							"tax_letter, COALESCE(gl_accounts.name, '') "
 							"FROM tax_rates AS tr "
-							"JOIN gl_accounts "
+							"LEFT JOIN gl_accounts "
 							"ON gl_accounts.number = tr.tax_received_account "
 							"WHERE deleted = False "
 							"ORDER BY tr.name")
@@ -134,6 +134,7 @@ class TaxRateGUI:
 		self.builder.get_object('spinbutton5').set_value(10.00)
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('filechooserbutton1').unselect_all()
+		self.builder.get_object('combobox1').set_active(1)
 
 	def save(self, widget):		
 		name = self.builder.get_object('entry3').get_text()
@@ -144,8 +145,6 @@ class TaxRateGUI:
 		tax_account = self.builder.get_object('combobox1').get_active_id()
 		if exemption == False:
 			file_path = None
-			#self.cursor.execute("DELETE FROM customer_tax_exemptions "
-			#					"WHERE tax_rate_id = %s", (self.serial_number,))
 		if self.serial_number == 0:
 			self.cursor.execute("INSERT INTO tax_rates (name, rate, standard, "
 								"exemption, exemption_template_path, deleted, "
@@ -165,11 +164,17 @@ class TaxRateGUI:
 		self.populate_tax_rates_store ()
 			
 	def delete(self, widget):
-		return
-		self.cursor.execute("UPDATE tax_rates SET deleted = True "
-							"WHERE (standard, id) = (False, %s)",
-							[self.serial_number])
-		self.db.commit()
+		try:
+			self.cursor.execute("DELETE FROM tax_rates WHERE id = %s",
+												(self.serial_number,))
+			self.db.commit()
+		except Exception as e:
+			print (e)
+			self.builder.get_object('label5').set_label(str(e))
+			dialog = self.builder.get_object('dialog1')
+			dialog.run()
+			dialog.hide()
+			self.db.rollback()
 		self.populate_tax_rates_store ()
 	
 

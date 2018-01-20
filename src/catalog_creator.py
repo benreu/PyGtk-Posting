@@ -21,8 +21,7 @@ import uno, unohelper
 from com.sun.star.connection import NoConnectException
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
-from com.sun.star.uno import XComponentContext
-from com.sun.star.awt import Size
+from com.sun.star.awt.FontWeight import BOLD, NORMAL
 
 UI_FILE = "src/catalog_creator.ui"
 
@@ -36,7 +35,7 @@ class CatalogCreatorGUI:
 		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
-		#main.connect("products_changed", self.populate_products)
+		main.connect("products_changed", self.populate_products)
 		self.product_store = self.builder.get_object('product_store')
 		self.populate_products ()
 		product_completion = self.builder.get_object('product_completion')
@@ -44,9 +43,7 @@ class CatalogCreatorGUI:
 		self.catalog_store = self.builder.get_object('catalog_store')
 		self.populate_catalog_store ()
 		
-		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
-		#dnd = ('text/uri-list', Gtk.TargetFlags(1), 129)
-		#self.treeview.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, [], Gdk.DragAction.COPY)	
+		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)	
 		treeview = self.builder.get_object('treeview1')
 		treeview.drag_source_set( Gdk.ModifierType.BUTTON1_MASK ,[dnd], Gdk.DragAction.MOVE)
 		
@@ -175,14 +172,53 @@ class CatalogCreatorGUI:
 	def generate_catalog_clicked (self, button):
 		self.get_office_socket_connection ()
 		start_time = time.time ()
+		self.cursor.execute("SELECT name, phone, street, "
+							"city||' '||state||' '||zip FROM company_info")
+		for row in self.cursor.fetchall():
+			company_name = row[0]
+			company_phone = row[1]
+			company_street = row[2]
+			company_city_zip = row[3]
 		doc = self.desktop.loadComponentFromURL( "private:factory/swriter","_blank", 0, () )
 		currentStyle = doc.CurrentController.getViewCursor().PageStyleName
 		styleName = doc.getStyleFamilies().getByName("PageStyles").getByName(currentStyle)
 		styleName.TopMargin = 1000
-		styleName.BottomMargin = 1250
-		#styleName.Width = 20000
+		styleName.BottomMargin = 1000
+		styleName.FooterIsOn = True
+		styleName.FooterHeight  = 900
+		#styleName.FooterMargin = 1000
+		FooterText = styleName.FooterText
+		cursor = FooterText.createTextCursor()
+		table = doc.createInstance("com.sun.star.text.TextTable")
+		table.initialize(2, 2)
+		FooterText.insertTextContent(cursor, table, 0)
+		table.TopMargin = 2500
+		oBorder = table.TableBorder
+		line = oBorder.TopLine
+		line.OuterLineWidth = 0
+		line.InnerLineWidth = 0
+		line.LineDistance = 0
+		oBorder.RightLine = line
+		oBorder.TopLine = line
+		oBorder.LeftLine = line
+		oBorder.BottomLine = line
+		oBorder.HorizontalLine = line
+		oBorder.VerticalLine = line
+		table.TableBorder = oBorder
+		table.getCellByName("A1").setString(company_name)
+		cursor = table.getCellByName("A2").createTextCursor()
+		cursor.CharWeight = BOLD
+		cursor.ParaAdjust = 3
+		cursor.setString(company_phone)
+		cursor = table.getCellByName("B1").createTextCursor()
+		cursor.CharWeight = NORMAL
+		cursor.setString(company_street)
+		cursor = table.getCellByName("B2").createTextCursor()
+		cursor.ParaAdjust = 3
+		cursor.setString(company_city_zip)
 		text = doc.Text
 		cursor = text.createTextCursor()
+		self.builder.get_object("window1").present()
 		self.cursor.execute("SELECT p.id, barcode, p.name, ext_name, description, "
 							"price, image FROM products AS p "
 							"JOIN products_terms_prices AS ptp "
@@ -204,7 +240,6 @@ class CatalogCreatorGUI:
 			table = doc.createInstance( "com.sun.star.text.TextTable" )
 			table.initialize( 2,3)
 			text.insertTextContent( cursor, table, 0 )
-			#table.Width = 500
 			columns = table.TableColumnSeparators
 			columns[0].Position = 2400
 			columns[1].Position = 8500
@@ -223,17 +258,18 @@ class CatalogCreatorGUI:
 			table.getCellByName("C1").setString('${:,.2f}'.format(price))
 			table.getCellByName("B2").setString(description)
 
-			imageURL = '/tmp/%s.jpg' % p_id
-			with open(imageURL, 'wb') as f:
-				f.write(image_string)
-			img = doc.createInstance('com.sun.star.text.TextGraphicObject') 
-			img.GraphicURL = "file://%s"%imageURL 
-			img.AnchorType = AS_CHARACTER
-			img.Width = 4000
-			img.Height = 4000
-			imageCell = table.getCellByName("A1")
-			cellCursor = imageCell.createTextCursor()
-			imageCell.insertTextContent(cellCursor, img, False)
+			if image_string != None:
+				imageURL = '/tmp/%s.jpg' % p_id
+				with open(imageURL, 'wb') as f:
+					f.write(image_string)
+				img = doc.createInstance('com.sun.star.text.TextGraphicObject') 
+				img.GraphicURL = "file://%s"%imageURL 
+				img.AnchorType = AS_CHARACTER
+				img.Width = 4000
+				img.Height = 4000
+				imageCell = table.getCellByName("A1")
+				cellCursor = imageCell.createTextCursor()
+				imageCell.insertTextContent(cellCursor, img, False)
 
 			progress = float(index+1) / rows
 			self.builder.get_object("progressbar1").set_fraction(progress)

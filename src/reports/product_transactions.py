@@ -104,12 +104,14 @@ class ProductTransactionsGUI:
 			qty_total += qty
 			price = row[6]
 			self.customer_transaction_store.append([invoice_id, qty, str(date), 
-								date_formatted, contact_name, invoice_name, price])
+												date_formatted, contact_name, 
+												invoice_name, price])
 		self.builder.get_object('label3').set_label(str(qty_total))
 		self.vendor_transaction_store.clear()
 		qty_total = 0
 		self.cursor.execute("SELECT po.id, po.name, p.name, qty, po.date_created, "
-							"c.name, price FROM purchase_order_line_items AS pli "
+							"c.name, price, order_number "
+							"FROM purchase_order_line_items AS pli "
 							"JOIN purchase_orders AS po "
 							"ON po.id = pli.purchase_order_id "
 							"JOIN contacts AS c "
@@ -130,8 +132,10 @@ class ProductTransactionsGUI:
 			contact_name = row[5]
 			qty_total += qty
 			price = row[6]
+			order_number = row[7]
 			self.vendor_transaction_store.append([po_id, qty, str(date), 
-								date_formatted, contact_name, po_name, price])
+												date_formatted, contact_name, 
+												po_name, price, order_number])
 		self.builder.get_object('label5').set_label(str(qty_total))
 
 

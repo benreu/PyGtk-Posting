@@ -413,7 +413,9 @@ pygtk_posting_PYTHON = \
 	open_purchase_orders.py \
 	open_purchase_orders.ui \
 	miscellaneous_revenue.py \
-	miscellaneous_revenue.ui
+	miscellaneous_revenue.ui \
+	accounts_overview.py \
+	accounts_overview.ui
 
 EXTRA_DIST = $(ui_DATA)
 SUBDIRS = \

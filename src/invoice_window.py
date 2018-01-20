@@ -187,6 +187,10 @@ class InvoiceGUI:
 						self.calculate_row_taxes(row)
 						break
 
+	def serial_number_window_delete_event (self, window, event):
+		window.hide()
+		return True
+
 	def barcode_entry_activate (self, entry):
 		self.check_invoice_id()
 		barcode = entry.get_text()
@@ -326,8 +330,8 @@ class InvoiceGUI:
 		x_size = self.window.get_size()[0]
 		x = int(x) + int(x_size)
 		window = self.builder.get_object('document_list_window')
-		window.show_all()
 		window.move(x , int(y))
+		window.show_all()
 
 	def populate_document_list (self):
 		selection = self.builder.get_object('treeview-selection4')
@@ -710,8 +714,8 @@ class InvoiceGUI:
 		x_size = self.window.get_size()[0]
 		x = int(x) + int(x_size)
 		window = self.builder.get_object('serial_number_window')
-		window.show_all()
 		window.move(x , int(y))
+		window.show_all()
 		selection = self.builder.get_object('treeview-selection5')
 		selection.select_path(0)
 

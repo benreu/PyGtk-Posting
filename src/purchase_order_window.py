@@ -370,7 +370,8 @@ class PurchaseOrderGUI:
 
 	def contacts_window(self, widget):
 		import contacts
-		contacts.GUI(self.main, True)
+		c = contacts.GUI(self.main)
+		c.builder.get_object('radiobutton2').set_active(True)
 	
 	def vendor_match_func(self, completion, key, iter):
 		if key in self.vendor_store[iter][1].lower(): 

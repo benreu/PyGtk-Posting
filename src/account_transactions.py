@@ -205,16 +205,13 @@ class GUI:
 				self.account_treestore.set_value(tree_parent, 4, account_amount)
 				yield account_number, account_amount
 		else:
-			self.cursor.execute("SELECT SUM(debits - credits + start) AS total FROM "
+			self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
 									"(SELECT COALESCE(SUM(amount),0.00) AS debits "
 									"FROM gl_entries "
 									"WHERE debit_account = %s) d, "
 									"(SELECT COALESCE(SUM(amount),0.00) AS credits "
 									"FROM gl_entries "
-									"WHERE credit_account= %s) c, "
-									"(SELECT start_balance AS start "
-									"FROM gl_accounts "
-									"WHERE number = %s) a", 
+									"WHERE credit_account= %s) c", 
 								(parent_account, parent_account, 
 								parent_account))
 			for row in self.cursor.fetchall():

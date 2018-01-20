@@ -65,10 +65,12 @@ class ProductsGUI:
 		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
+		self.repopulated = False
 		self.populating = True
 		self.handler_id = main.connect("products_changed", self.populate_product_store)
 		self.builder.get_object('combobox1').set_model(main.product_expense_acc)
 		self.builder.get_object('combobox2').set_model(main.product_revenue_acc)
+		self.builder.get_object('combobox3').set_model(main.product_inventory_acc)
 
 		textview = self.builder.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
@@ -510,6 +512,9 @@ class ProductsGUI:
 				sell_spin.set_value(sell_price)
 			
 	def populate_product_store (self, widget = None, d=None):
+		if self.repopulated == True: #block auto-repopulating if we just saved and repopulated
+			self.repopulated = False
+			return
 		self.populating = True
 		self.product_store.clear()
 		if self.builder.get_object('radiobutton1').get_active() == True:
@@ -641,6 +646,8 @@ class ProductsGUI:
 								"WHERE number = default_expense_account), ''), "
 								"COALESCE ((SELECT name FROM gl_accounts "
 								"WHERE number = products.revenue_account), ''), "
+								"COALESCE ((SELECT name FROM gl_accounts "
+								"WHERE number = products.inventory_account), ''), "
 							"manufacturer_sku, job, invoice_serial_numbers "
 							"FROM products WHERE id = (%s)", (self.product_id,))
 		for row in self.cursor.fetchall():
@@ -663,9 +670,11 @@ class ProductsGUI:
 			self.builder.get_object('combobox-entry').set_text(expense_account_name)
 			revenue_account_name = row[16]
 			self.builder.get_object('combobox-entry1').set_text(revenue_account_name)
-			self.builder.get_object('entry13').set_text(row[17])
-			self.builder.get_object('checkbutton6').set_active(row[18])
-			self.builder.get_object('checkbutton7').set_active(row[19])
+			inventory_account_name = row[17]
+			self.builder.get_object('combobox-entry4').set_text(inventory_account_name)
+			self.builder.get_object('entry13').set_text(row[18])
+			self.builder.get_object('checkbutton6').set_active(row[19])
+			self.builder.get_object('checkbutton7').set_active(row[20])
 		
 		vendor_combo = self.builder.get_object('comboboxtext2')
 		if vendor_combo.get_active() == -1:
@@ -715,6 +724,14 @@ class ProductsGUI:
 		if account_number == None or self.product_id == 0:
 			return
 		self.cursor.execute("UPDATE products SET revenue_account = %s "
+							"WHERE id = %s", (account_number, self.product_id))
+		self.db.commit()
+
+	def inventory_account_combo_changed (self, combo):
+		account_number = combo.get_active_id()
+		if account_number == None or self.product_id == 0:
+			return
+		self.cursor.execute("UPDATE products SET inventory_account = %s "
 							"WHERE id = %s", (account_number, self.product_id))
 		self.db.commit()
 
@@ -823,7 +840,8 @@ class ProductsGUI:
 								locator_visible))
 		self.builder.get_object('spinbutton1').emit("value-changed")
 		self.db.commit()
-		#self.populate_product_store ()
+		self.populate_product_store ()
+		self.repopulated = True
 		self.update_vendor_product_info ()
 		
 
@@ -870,7 +888,9 @@ class ProductsGUI:
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton2').set_active(True)
 		
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE revenue_account = True ORDER BY number LIMIT 1")
+		self.cursor.execute("SELECT number, name FROM gl_accounts "
+							"WHERE revenue_account = True "
+							"ORDER BY number LIMIT 1")
 		for row in self.cursor.fetchall():
 			self.new_revenue_account = row[0]
 			self.builder.get_object('combobox-entry1').set_text(row[1])
@@ -879,7 +899,6 @@ class ProductsGUI:
 			raise Exception("No revenue accounts available")
 		self.cursor.execute("SELECT id FROM tax_rates WHERE standard = True ")
 		default_id = self.cursor.fetchone()[0]
-		print (default_id)
 		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
 
 		self.set_price_listbox_to_default ()

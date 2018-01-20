@@ -261,7 +261,13 @@ python_PYTHON = time_clock_project.ui \
 	deposits.py \
 	deposits.ui \
 	sales_tax_report.py \
-	sales_tax_report.ui
+	sales_tax_report.ui \
+	contact_transactions.py \
+	contact_transactions.ui \
+	vendor_history.py \
+	vendor_history.ui \
+	product_account_relationship.py \
+	product_account_relationship.ui
 
 uidir = $(pkgdatadir)/reports/ui
 all: all-am

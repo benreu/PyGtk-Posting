@@ -34,6 +34,7 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
+		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.contact_id = contact_id
@@ -53,7 +54,7 @@ class GUI:
 		self.tax_exempt_number_widget = self.builder.get_object('entry10')
 		self.misc_widget = self.builder.get_object('entry11')
 		self.vendor_widget = self.builder.get_object('checkbutton2')
-		self.customer_widget = self.builder.get_object('checkbutton3') 
+		self.customer_widget = self.builder.get_object('checkbutton3')
 		self.employee_widget = self.builder.get_object('checkbutton4')
 		self.service_provider_widget = self.builder.get_object('checkbutton1')
 		self.custom1_widget = self.builder.get_object("entry16")
@@ -209,11 +210,25 @@ class GUI:
 			self.builder.get_object('comboboxtext3').append(str(files[0]), 
 																files[3])
 
-	def delete_file(self, widget):
-		file_id = self.builder.get_object('comboboxtext3').get_active_id()
-		self.cursor.execute("DELETE FROM files WHERE id = (%s)", (file_id, ))
-		self.db.commit ()
-		self.file_combobox_populate ()
+	def delete_file_clicked (self, widget):
+		dialog = self.builder.get_object('dialog1')
+		combo = self.builder.get_object('comboboxtext3')
+		if self.main.admin == False:
+			self.builder.get_object('button17').set_sensitive(False)
+			self.builder.get_object('label17').set_label("You are not admin !")
+		else:
+			file_name = combo.get_active_text()
+			self.builder.get_object('button17').set_sensitive(True)
+			self.builder.get_object('label17').set_label("Are you sure you "
+														"want to delete '%s' ?"
+														%file_name)
+		result = dialog.run()
+		if result == Gtk.ResponseType.ACCEPT:
+			file_id = combo.get_active_id ()
+			self.cursor.execute("DELETE FROM files WHERE id = (%s)", (file_id,))
+			self.db.commit ()
+			self.file_combobox_populate ()
+		dialog.hide()
 
 	def select_file_clicked (self, widget):
 		dialog = self.builder.get_object('filechooserdialog1')

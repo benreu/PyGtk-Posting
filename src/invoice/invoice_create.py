@@ -1,4 +1,4 @@
-# invoice_utility.py
+# invoice_create.py
 #
 # Copyright (C) 2016 - reuben
 #
@@ -165,7 +165,10 @@ class Setup(XCloseListener, unohelper.Base):
 		t.render(self.data) #the self.data holds all the info of the invoice
 
 	def save (self):
-		self.invoice_doc.save()
+		try:
+			self.invoice_doc.save()
+		except Exception as e:
+			print (e, 'document no longer exists')
 
 	def view(self):
 		if self.invoice_doc:

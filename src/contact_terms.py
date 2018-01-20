@@ -68,7 +68,7 @@ class ContactTermsGUI:
 			paid_in_days = row[5]
 			paid_by_day_of_month_active = row[6]
 			paid_by_day_of_month = row[7]
-			standard = row[8]
+			default = row[8]
 			plus_date = row[9]
 			text1 = row[10]
 			text2 = row[11]
@@ -82,7 +82,7 @@ class ContactTermsGUI:
 			self.builder.get_object('spinbutton2').set_text(str(paid_in_days))
 			self.builder.get_object('radiobutton2').set_active(paid_by_day_of_month_active)
 			self.builder.get_object('spinbutton3').set_text(str(paid_by_day_of_month))
-			self.builder.get_object('button1').set_sensitive(not standard)
+			self.builder.get_object('button1').set_sensitive(not default)
 			self.builder.get_object('spinbutton5').set_value(plus_date)
 			self.builder.get_object('entry2').set_text(text1)
 			self.builder.get_object('entry3').set_text(text2)

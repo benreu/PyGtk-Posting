@@ -244,10 +244,13 @@ class VendorHistoryGUI:
 			id_list = []
 			for path in paths:
 				id_list.append(model[path][0])
-			if len(id_list) > 1:
+			rows = len(id_list)
+			if rows == 0:
+				return						 #nothing selected
+			elif rows > 1:
 				args = str(tuple(id_list))
-			else:
-				args = "(%s)" % id_list[0] # single variables do not work in tuple > SQL
+			else:				# single variables do not work in tuple > SQL
+				args = "(%s)" % id_list[0] 
 			self.cursor.execute("SELECT poli.id, poli.qty,  "
 								"product_id, name, ext_name, poli.price, "
 								"poli.ext_price, remark, order_number "
