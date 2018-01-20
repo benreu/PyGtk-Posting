@@ -240,7 +240,9 @@ python_PYTHON = database_tools.py \
 	transactor.py \
 	__init__.py \
 	backup_restore.py \
-	backup_restore.ui
+	backup_restore.ui \
+	sql_window.py \
+	sql_window.ui
 
 all: all-am
 

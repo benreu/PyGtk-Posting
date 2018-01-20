@@ -51,7 +51,7 @@ class Utilities:
 			path = backup_window.get_current_folder()
 			full_path = path + "/" + db_name
 			backup_window.destroy()	
-			backup_command = ("pg_dump -C -F c -U%s -h%s -p%s -d%s -f%s" 
+			backup_command = ("pg_dump -C -F c -U%s -h%s -p%s -d%s -f'%s'" 
 				% (sql_user, sql_host, sql_port, database, full_path))
 			p = Popen(backup_command, shell = True, 
 						stdin = PIPE, stdout = PIPE, stderr = PIPE)
@@ -106,7 +106,7 @@ class Utilities:
 				self.parent.status_update("Could not create %s" % db_name)
 				return
 			self.parent.status_update("Created database %s" % db_name)
-			command = ("pg_restore -U%s -h%s -p%s -d %s %s" 
+			command = ("pg_restore -U%s -h%s -p%s -d %s '%s'" 
 						% (sql_user, sql_host, sql_port, db_name, db_file))
 			restore_db = Popen(command , shell = True,
 							stdin = PIPE, stdout = PIPE, stderr = PIPE)
