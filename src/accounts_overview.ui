@@ -1,0 +1,1031 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.18.3 -->
+<interface>
+  <requires lib="gtk+" version="3.10"/>
+  <object class="GtkWindow" id="window1">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Account Overview</property>
+    <property name="window_position">center</property>
+    <property name="default_width">1200</property>
+    <property name="default_height">600</property>
+    <property name="icon">PyGtk_Posting.svg</property>
+    <child>
+      <object class="GtkScrolledWindow" id="scrolledwindow2">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="vexpand">True</property>
+        <property name="shadow_type">in</property>
+        <child>
+          <object class="GtkViewport" id="viewport2">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkEventBox" id="eventbox2">
+                <property name="width_request">900</property>
+                <property name="height_request">428</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
+                <child>
+                  <object class="GtkFixed" id="fixed1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkButton" id="button5">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">This account shows how much customers owe you.</property>
+                      </object>
+                      <packing>
+                        <property name="x">35</property>
+                        <property name="y">62</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button6">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">The place you keep your cash e.g. wallet, cash drawer, or safe.</property>
+                      </object>
+                      <packing>
+                        <property name="x">297</property>
+                        <property name="y">176</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button7">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">Undeposited checks or funds.</property>
+                      </object>
+                      <packing>
+                        <property name="x">268</property>
+                        <property name="y">316</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label10">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Check</property>
+                      </object>
+                      <packing>
+                        <property name="x">124</property>
+                        <property name="y">316</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label11">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Post Invoice</property>
+                      </object>
+                      <packing>
+                        <property name="x">67</property>
+                        <property name="y">22</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label12">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Credit Card</property>
+                      </object>
+                      <packing>
+                        <property name="x">131</property>
+                        <property name="y">246</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label13">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cash</property>
+                      </object>
+                      <packing>
+                        <property name="x">118</property>
+                        <property name="y">176</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button8">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">The bank account that is linked to your credit card machine.</property>
+                      </object>
+                      <packing>
+                        <property name="x">297</property>
+                        <property name="y">246</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button9">
+                        <property name="label" translatable="yes">Selectable bank account</property>
+                        <property name="width_request">200</property>
+                        <property name="height_request">27</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">Multiple checking accounts can be used for paying vendors and/or depositing funds.</property>
+                      </object>
+                      <packing>
+                        <property name="x">601</property>
+                        <property name="y">317</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label14">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Deposit Checks</property>
+                      </object>
+                      <packing>
+                        <property name="x">462</property>
+                        <property name="y">317</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label15">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Post Purchase Order</property>
+                      </object>
+                      <packing>
+                        <property name="x">924</property>
+                        <property name="y">550</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label16">
+                        <property name="width_request">32</property>
+                        <property name="height_request">180</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____________________________________</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">984</property>
+                        <property name="y">188</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label17">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">990</property>
+                        <property name="y">490</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label18">
+                        <property name="width_request">34</property>
+                        <property name="height_request">27</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">125</property>
+                        <property name="y">39</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label19">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">__________</property>
+                      </object>
+                      <packing>
+                        <property name="x">217</property>
+                        <property name="y">311</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label20">
+                        <property name="width_request">60</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_______</property>
+                      </object>
+                      <packing>
+                        <property name="x">124</property>
+                        <property name="y">242</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label21">
+                        <property name="width_request">70</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">______________</property>
+                      </object>
+                      <packing>
+                        <property name="x">195</property>
+                        <property name="y">135</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label22">
+                        <property name="width_request">24</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                      </object>
+                      <packing>
+                        <property name="x">240</property>
+                        <property name="y">242</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label23">
+                        <property name="width_request">60</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____________</property>
+                      </object>
+                      <packing>
+                        <property name="x">377</property>
+                        <property name="y">136</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label24">
+                        <property name="width_request">24</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____</property>
+                      </object>
+                      <packing>
+                        <property name="x">578</property>
+                        <property name="y">313</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label25">
+                        <property name="width_request">120</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_________________</property>
+                      </object>
+                      <packing>
+                        <property name="x">193</property>
+                        <property name="y">170</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label26">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">________</property>
+                      </object>
+                      <packing>
+                        <property name="x">136</property>
+                        <property name="y">170</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label27">
+                        <property name="width_request">50</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_____</property>
+                      </object>
+                      <packing>
+                        <property name="x">456</property>
+                        <property name="y">312</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label28">
+                        <property name="width_request">115</property>
+                        <property name="height_request">20</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                      </object>
+                      <packing>
+                        <property name="x">717</property>
+                        <property name="y">361</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button10">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">This account shows how much you owe vendors.</property>
+                      </object>
+                      <packing>
+                        <property name="x">899</property>
+                        <property name="y">427</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label35">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">990</property>
+                        <property name="y">533</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label36">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Create Invoice</property>
+                      </object>
+                      <packing>
+                        <property name="x">921</property>
+                        <property name="y">472</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button14">
+                        <property name="width_request">206</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">No accounts are used when posting a Purchase Order. 
+This allows editing purchase orders for discrepancies between the order placed and what the vendor sent or had in stock.</property>
+                        <property name="resize_mode">immediate</property>
+                      </object>
+                      <packing>
+                        <property name="x">900</property>
+                        <property name="y">510</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label37">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">989</property>
+                        <property name="y">453</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label38">
+                        <property name="width_request">25</property>
+                        <property name="height_request">120</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">______________________</property>
+                        <property name="angle">90</property>
+                      </object>
+                      <packing>
+                        <property name="x">730</property>
+                        <property name="y">372</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label39">
+                        <property name="width_request">1</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">______________________________________________________</property>
+                      </object>
+                      <packing>
+                        <property name="x">498</property>
+                        <property name="y">171</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label40">
+                        <property name="width_request">86</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cash</property>
+                      </object>
+                      <packing>
+                        <property name="x">742</property>
+                        <property name="y">177</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label41">
+                        <property name="width_request">86</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Check</property>
+                      </object>
+                      <packing>
+                        <property name="x">849</property>
+                        <property name="y">318</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button15">
+                        <property name="label" translatable="yes">Selectable credit card</property>
+                        <property name="width_request">200</property>
+                        <property name="height_request">27</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">Multiple credit card accounts for paying vendors with.</property>
+                      </object>
+                      <packing>
+                        <property name="x">602</property>
+                        <property name="y">243</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label42">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">______</property>
+                      </object>
+                      <packing>
+                        <property name="x">299</property>
+                        <property name="y">84</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label43">
+                        <property name="width_request">116</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Credit Card</property>
+                      </object>
+                      <packing>
+                        <property name="x">839</property>
+                        <property name="y">244</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label44">
+                        <property name="width_request">25</property>
+                        <property name="height_request">52</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">________</property>
+                        <property name="angle">90</property>
+                      </object>
+                      <packing>
+                        <property name="x">976</property>
+                        <property name="y">380</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label45">
+                        <property name="width_request">72</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____________</property>
+                      </object>
+                      <packing>
+                        <property name="x">796</property>
+                        <property name="y">239</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label46">
+                        <property name="width_request">78</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_______________________________________</property>
+                      </object>
+                      <packing>
+                        <property name="x">800</property>
+                        <property name="y">172</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label47">
+                        <property name="width_request">42</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">________________</property>
+                      </object>
+                      <packing>
+                        <property name="x">913</property>
+                        <property name="y">314</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label48">
+                        <property name="width_request">25</property>
+                        <property name="height_request">235</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">________________________________</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">128</property>
+                        <property name="y">132</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label49">
+                        <property name="width_request">71</property>
+                        <property name="height_request">27</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_________</property>
+                      </object>
+                      <packing>
+                        <property name="x">122</property>
+                        <property name="y">310</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button16">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">The account for invoice tax canceled.
+The accounts for invoice tax received are set in the Tax Rates window.</property>
+                      </object>
+                      <packing>
+                        <property name="x">577</property>
+                        <property name="y">36</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label50">
+                        <property name="width_request">124</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Sales Tax Cancelled</property>
+                      </object>
+                      <packing>
+                        <property name="x">404</property>
+                        <property name="y">35</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label51">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_________</property>
+                      </object>
+                      <packing>
+                        <property name="x">170</property>
+                        <property name="y">112</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button17">
+                        <property name="label" translatable="yes">Selectable expense account</property>
+                        <property name="width_request">200</property>
+                        <property name="height_request">27</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">The expense account is set in the products window. 
+When using cash based, the account will be debited when paying the vendor. In accrual the account will be debited when creating the vendor invoice.</property>
+                      </object>
+                      <packing>
+                        <property name="x">466</property>
+                        <property name="y">424</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label52">
+                        <property name="width_request">116</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Vendor Payment</property>
+                      </object>
+                      <packing>
+                        <property name="x">940</property>
+                        <property name="y">363</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label53">
+                        <property name="width_request">81</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cancel Invoice</property>
+                      </object>
+                      <packing>
+                        <property name="x">272</property>
+                        <property name="y">35</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label54">
+                        <property name="width_request">25</property>
+                        <property name="height_request">30</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___</property>
+                        <property name="angle">90</property>
+                      </object>
+                      <packing>
+                        <property name="x">153</property>
+                        <property name="y">123</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label55">
+                        <property name="width_request">80</property>
+                        <property name="height_request">31</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_______________</property>
+                      </object>
+                      <packing>
+                        <property name="x">871</property>
+                        <property name="y">355</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label56">
+                        <property name="width_request">20</property>
+                        <property name="height_request">40</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">______</property>
+                        <property name="angle">90</property>
+                      </object>
+                      <packing>
+                        <property name="x">315</property>
+                        <property name="y">98</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label57">
+                        <property name="width_request">23</property>
+                        <property name="height_request">30</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___</property>
+                        <property name="angle">90</property>
+                      </object>
+                      <packing>
+                        <property name="x">171</property>
+                        <property name="y">82</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button1">
+                        <property name="width_request">200</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">The expense account for customer discounts.</property>
+                      </object>
+                      <packing>
+                        <property name="x">439</property>
+                        <property name="y">142</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label3">
+                        <property name="width_request">115</property>
+                        <property name="height_request">24</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                      </object>
+                      <packing>
+                        <property name="x">301</property>
+                        <property name="y">102</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label2">
+                        <property name="width_request">150</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Customer Discount</property>
+                      </object>
+                      <packing>
+                        <property name="x">246</property>
+                        <property name="y">140</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label4">
+                        <property name="width_request">25</property>
+                        <property name="height_request">50</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                        <property name="angle">270</property>
+                      </object>
+                      <packing>
+                        <property name="x">129</property>
+                        <property name="y">87</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label1">
+                        <property name="width_request">107</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Customer Payment</property>
+                      </object>
+                      <packing>
+                        <property name="x">86</property>
+                        <property name="y">140</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button2">
+                        <property name="label" translatable="yes">Selectable revenue account</property>
+                        <property name="width_request">200</property>
+                        <property name="height_request">27</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">The expense account is set in the products window. 
+In cash based, it gets credited when the customer pays.
+In accrual based it gets credited when the invoice gets posted.</property>
+                      </object>
+                      <packing>
+                        <property name="x">387</property>
+                        <property name="y">105</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label5">
+                        <property name="width_request">66</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cash Based</property>
+                      </object>
+                      <packing>
+                        <property name="x">214</property>
+                        <property name="y">118</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label6">
+                        <property name="width_request">105</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Accrual Based</property>
+                      </object>
+                      <packing>
+                        <property name="x">206</property>
+                        <property name="y">89</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label7">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cash Based</property>
+                      </object>
+                      <packing>
+                        <property name="x">788</property>
+                        <property name="y">363</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label8">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Accrual Based</property>
+                      </object>
+                      <packing>
+                        <property name="x">783</property>
+                        <property name="y">473</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label9">
+                        <property name="name">25</property>
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_____</property>
+                      </object>
+                      <packing>
+                        <property name="x">188</property>
+                        <property name="y">85</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label29">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_________</property>
+                      </object>
+                      <packing>
+                        <property name="x">258</property>
+                        <property name="y">115</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label30">
+                        <property name="width_request">25</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">______________</property>
+                      </object>
+                      <packing>
+                        <property name="x">801</property>
+                        <property name="y">313</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label31">
+                        <property name="width_request">20</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">____________</property>
+                      </object>
+                      <packing>
+                        <property name="x">933</property>
+                        <property name="y">240</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label32">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">________________</property>
+                      </object>
+                      <packing>
+                        <property name="x">657</property>
+                        <property name="y">419</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label33">
+                        <property name="name">2</property>
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_______________</property>
+                      </object>
+                      <packing>
+                        <property name="x">863</property>
+                        <property name="y">467</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label34">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">________</property>
+                      </object>
+                      <packing>
+                        <property name="x">719</property>
+                        <property name="y">469</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label58">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                      </object>
+                      <packing>
+                        <property name="x">501</property>
+                        <property name="y">31</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label59">
+                        <property name="width_request">100</property>
+                        <property name="height_request">25</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___</property>
+                        <property name="angle">90</property>
+                      </object>
+                      <packing>
+                        <property name="x">158</property>
+                        <property name="y">42</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label60">
+                        <property name="width_request">100</property>
+                        <property name="height_request">20</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                      </object>
+                      <packing>
+                        <property name="x">192</property>
+                        <property name="y">32</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label61">
+                        <property name="width_request">100</property>
+                        <property name="height_request">20</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">___________</property>
+                      </object>
+                      <packing>
+                        <property name="x">332</property>
+                        <property name="y">33</property>
+                      </packing>
+                    </child>
+                    <style>
+                      <class name="background-color: white;"/>
+                    </style>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
