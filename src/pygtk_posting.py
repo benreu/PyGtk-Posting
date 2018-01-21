@@ -42,9 +42,9 @@ class GUI (GObject.GObject):
 	product_inventory_acc = Gtk.TreeStore(str, str)
 	product_revenue_acc = Gtk.TreeStore(str, str)
 	admin = False
+	log_file = None
 	def __init__(self):
 		GObject.GObject.__init__(self)
-		self.log_file = None
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
