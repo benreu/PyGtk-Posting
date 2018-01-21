@@ -54,7 +54,7 @@ class LoanPaymentGUI:
 		entry.select_region(0, -1)
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT id, name, c_o FROM contacts "
+		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (deleted, service_provider) = (False, True) "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():

@@ -49,10 +49,10 @@ class StatementsGUI:
 
 	def populate_customer_store (self):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT customer_id, contacts.name, contacts.c_o "
+		self.cursor.execute("SELECT customer_id, contacts.name, contacts.ext_name "
 							"FROM statements JOIN contacts "
 							"ON contacts.id = statements.customer_id "
-							"GROUP BY contacts.name, customer_id, contacts.c_o "
+							"GROUP BY contacts.name, customer_id, contacts.ext_name "
 							"ORDER BY contacts.name ")
 		for row in self.cursor.fetchall():
 			customer_id = row[0]

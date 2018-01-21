@@ -58,14 +58,14 @@ class GUI:
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.customer_store = self.builder.get_object('customer_store')
-		self.cursor.execute("SELECT id, name, c_o FROM contacts "
+		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (customer, deleted) = "
 							"(True, False) ORDER BY name")
 		for customer in self.cursor.fetchall():
 			id_ = customer[0]
 			name = customer[1]
-			c_o = customer[2]
-			self.customer_store.append([str(id_) , name, c_o])
+			ext_name = customer[2]
+			self.customer_store.append([str(id_) , name, ext_name])
 
 		self.vendor_store = self.builder.get_object('vendor_store')
 		self.cursor.execute("SELECT id, name FROM contacts "

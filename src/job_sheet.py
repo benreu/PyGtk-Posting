@@ -372,14 +372,14 @@ class JobSheetGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()	
-		self.cursor.execute("SELECT id, name, c_o FROM contacts "
+		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (deleted, customer) = (False, True) "
 							"ORDER BY name")
 		for i in self.cursor.fetchall():
 			serial = i[0]
 			name = i[1]
-			c_o = i[2]
-			self.customer_store.append([str(serial), name, c_o])
+			ext_name = i[2]
+			self.customer_store.append([str(serial), name, ext_name])
 		
 		
 

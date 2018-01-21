@@ -920,7 +920,6 @@ def check_and_update_version (db, statusbar):
 						"END;"
 						"$$ LANGUAGE plpgsql;")
 		cursor.execute("CREATE TRIGGER after_gl_entries_inserted_trigger AFTER INSERT ON gl_entries FOR EACH ROW EXECUTE PROCEDURE after_gl_entries_inserted();")
-		cursor.execute("UPDATE settings SET version = '092'")
 		cursor.execute("ALTER TABLE gl_accounts DROP COLUMN deleteable")
 		cursor.execute("ALTER TABLE gl_accounts DROP COLUMN dependants")
 		cursor.execute("ALTER TABLE gl_accounts ADD COLUMN inventory_account boolean DEFAULT False")
@@ -931,6 +930,10 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE gl_accounts DROP COLUMN start_balance")
 		cursor.execute("ALTER TABLE gl_accounts DROP COLUMN amount")
 		cursor.execute("CREATE OR REPLACE RULE default_tax_rate_not_deleteable AS ON DELETE TO public.tax_rates WHERE OLD.standard = TRUE DO INSTEAD NOTHING;")
+	if version <= '092':
+		progressbar (92)
+		cursor.execute("ALTER TABLE contacts RENAME c_o TO ext_name")
+		cursor.execute("UPDATE settings SET version = '093'")
 	cursor.close()
 	db.commit()
 

@@ -40,7 +40,7 @@ class GUI:
 		self.contact_id = contact_id
 		
 		self.name_widget = self.builder.get_object('entry1')
-		self.c_o_widget = self.builder.get_object('entry2')
+		self.ext_name_widget = self.builder.get_object('entry2')
 		self.address_widget = self.builder.get_object('entry3')
 		self.city_widget = self.builder.get_object('entry4')
 		self.state_widget = self.builder.get_object('entry5')
@@ -468,25 +468,25 @@ class GUI:
 		self.populating = True
 		self.contact_store.clear()
 		if self.builder.get_object('radiobutton1').get_active() == True:
-			self.cursor.execute("SELECT id, name, c_o FROM contacts "
+			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (customer, deleted) = (True, False) "
 							"ORDER BY name")
 		elif self.builder.get_object('radiobutton2').get_active() == True:
-			self.cursor.execute("SELECT id, name, c_o FROM contacts "
+			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (vendor, deleted) = (True, False) "
 							"ORDER BY name")
 		elif self.builder.get_object('radiobutton3').get_active() == True:
-			self.cursor.execute("SELECT id, name, c_o FROM contacts "
+			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (employee, deleted) = (True, False) "
 							"ORDER BY name")
 		else:
-			self.cursor.execute("SELECT id, name, c_o FROM contacts "
+			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for i in self.cursor.fetchall():
 			serial_number = i[0]
 			name = i[1]
-			c_o = i[2]
-			self.contact_store.append([serial_number, name, c_o])
+			ext_name = i[2]
+			self.contact_store.append([serial_number, name, ext_name])
 		for row in self.contact_store:
 			if row[0] == self.contact_id: # select the contact we had selected before repopulating
 				treeview_selection = self.builder.get_object('treeview-selection')
@@ -520,7 +520,7 @@ class GUI:
 		self.destroy(None)
 
 	def select_contact (self):
-		self.cursor.execute("SELECT name, c_o, address, city, state, zip, "
+		self.cursor.execute("SELECT name, ext_name, address, city, state, zip, "
 							"phone, fax, email, label, tax_number, vendor, "
 							"customer, employee, organization, custom1, "
 							"custom2, custom3, custom4, notes, "
@@ -530,7 +530,7 @@ class GUI:
 							(self.contact_id, ) )
 		for row in self.cursor.fetchall():
 			self.name_widget.set_text(row[0])
-			self.c_o_widget.set_text(row[1])
+			self.ext_name_widget.set_text(row[1])
 			self.address_widget.set_text(row[2])
 			self.city_widget.set_text(row[3])
 			self.state_widget.set_text(row[4])
@@ -614,7 +614,7 @@ class GUI:
 		self.employee_widget.set_active(False)
 		self.customer_widget.set_active(True)#set default to customer to avoid database errors
 		self.service_provider_widget.set_active(False)
-		self.c_o_widget.set_text("")
+		self.ext_name_widget.set_text("")
 		self.city_widget.set_text("")
 		self.state_widget.set_text("")
 		self.zip_code.set_text("")
@@ -708,7 +708,7 @@ class GUI:
 		name = self.name_widget.get_text()
 		if name == "":  #no text! so we exit
 			return
-		c_o = self.c_o_widget.get_text()
+		ext_name = self.ext_name_widget.get_text()
 		address = self.address_widget.get_text()
 		city = self.city_widget.get_text()
 		state = self.state_widget.get_text()
@@ -737,7 +737,7 @@ class GUI:
 		
 		if self.contact_id != 0:   #if the serial number is more than 0 we update the info instead of inserting a new contact
 			self.cursor.execute("UPDATE contacts SET "
-								"(name, c_o, address, city, state, zip, phone, "
+								"(name, ext_name, address, city, state, zip, phone, "
 								"fax, email, label, tax_number, vendor, "
 								"customer, employee, custom1, "
 								"custom2, custom3, custom4, notes, "
@@ -745,7 +745,7 @@ class GUI:
 								"checks_payable_to) = "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s, %s, %s ,%s, %s, %s, %s, %s, %s) "
-								"WHERE id = %s ", (name, c_o, address, city, 
+								"WHERE id = %s ", (name, ext_name, address, city, 
 								state, zip_code, phone, fax, email, misc, 
 								tax_number, vendor, customer, employee, 
 								custom1, custom2, custom3, custom4, notes, 
@@ -753,7 +753,7 @@ class GUI:
 								self.contact_id))
 		else:
 			self.cursor.execute("INSERT INTO contacts " 
-								"(name, c_o, address, city, state, zip, phone, "
+								"(name, ext_name, address, city, state, zip, phone, "
 								"fax, email, label, tax_number, vendor, "
 								"customer, employee, custom1, "
 								"custom2, custom3, custom4, notes, deleted, "
@@ -763,7 +763,7 @@ class GUI:
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s ,%s, %s, %s, %s, %s, False, "
 								"%s, %s, %s) RETURNING id ", 
-								(name, c_o, address, city, state, zip_code, 
+								(name, ext_name, address, city, state, zip_code, 
 								phone, fax, email, misc, tax_number, vendor, 
 								customer, employee, custom1, custom2, 
 								custom3, custom4, notes, term_id, 

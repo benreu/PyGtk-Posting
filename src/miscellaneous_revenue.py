@@ -81,7 +81,7 @@ class MiscellaneousRevenueGUI:
 
 	def populate_contacts (self, m=None, i=None):
 		self.contact_store.clear ()
-		self.cursor.execute("SELECT id, name, c_o FROM contacts "
+		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			contact_id = row[0]

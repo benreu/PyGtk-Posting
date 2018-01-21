@@ -488,16 +488,16 @@ class InvoiceGUI:
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
 		if self.import_customer_id != None:
-			self.cursor.execute("SELECT id, name, c_o "
+			self.cursor.execute("SELECT id, name, ext_name "
 								"FROM contacts WHERE id = %s", 
 								(self.import_customer_id,))
 			for row in self.cursor.fetchall():
 				customer_id = row[0]
 				name = row[1]
-				c_o = row[2]
-				self.customer_store.append([str(customer_id), name, c_o])
+				ext_name = row[2]
+				self.customer_store.append([str(customer_id), name, ext_name])
 		else:
-			self.cursor.execute("SELECT id, name, c_o, "
+			self.cursor.execute("SELECT id, name, ext_name, "
 									"(( SELECT COALESCE(SUM(total), 0.00) "
 									"FROM invoices "
 									"WHERE canceled = False "
@@ -512,10 +512,10 @@ class InvoiceGUI:
 			for row in self.cursor.fetchall():
 				customer_id = row[0]
 				name = row[1]
-				c_o = row[2]
+				ext_name = row[2]
 				unpaid = row[3]
 				unpaid = "Unpaid balance  " + '${:,.2f}'.format(unpaid)
-				self.customer_store.append([str(customer_id),name + "  :  " + unpaid, c_o])
+				self.customer_store.append([str(customer_id),name + "  :  " + unpaid, ext_name])
 		if self.import_customer_id != None:
 			self.builder.get_object('combobox1').set_active(0)
 		
@@ -559,7 +559,7 @@ class InvoiceGUI:
 		exemption_combo.set_active_id(active)
 
 	def customer_selected(self, name_id):
-		self.cursor.execute("SELECT address, c_o, phone FROM contacts "
+		self.cursor.execute("SELECT address, ext_name, phone FROM contacts "
 							"WHERE id = (%s)",(name_id,))
 		for row in self.cursor.fetchall() :
 			self.builder.get_object('entry6').set_text(row[0])

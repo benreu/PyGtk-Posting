@@ -42,8 +42,8 @@
         <col id="2" translatable="yes">treeviewcolumn2</col>
       </row>
       <row>
-        <col id="0" translatable="yes">C/O</col>
-        <col id="1" translatable="yes">c_o</col>
+        <col id="0" translatable="yes">Ext name</col>
+        <col id="1" translatable="yes">ext_name</col>
         <col id="2" translatable="yes">treeviewcolumn3</col>
       </row>
       <row>

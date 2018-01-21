@@ -112,7 +112,7 @@ class DuplicateContactGUI:
 
 	def populate_duplicate_contact_store (self):
 		self.duplicate_contact_store.clear()
-		self.cursor.execute("SELECT id, name, c_o, address, city, state, zip, "
+		self.cursor.execute("SELECT id, name, ext_name, address, city, state, zip, "
 							"fax, phone, email FROM contacts c_outer "
 							"WHERE (SELECT count(%s) FROM contacts c_inner "
 							"WHERE c_inner.%s = c_outer.%s) > 1 "
@@ -122,7 +122,7 @@ class DuplicateContactGUI:
 		for row in self.cursor.fetchall():
 			contact_id = row[0]
 			name = row[1]
-			c_o = row[2]
+			ext_name = row[2]
 			address = row[3]
 			city = row[4]
 			state = row[5]
@@ -130,7 +130,7 @@ class DuplicateContactGUI:
 			fax = row[7]
 			phone = row[8]
 			email = row[9]
-			self.duplicate_contact_store.append([contact_id, name, c_o, address,
+			self.duplicate_contact_store.append([contact_id, name, ext_name, address,
 												city, state, zip, fax, phone, email])
 
 

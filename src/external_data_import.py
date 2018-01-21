@@ -55,7 +55,7 @@ class external_data_import_ui:
 
 	def create_import_template(self,widget):
 		mkd = datetime.date
-		hdngs = ['name', 'c_o', 'address', 'city', 'state', 'zip', 'fax', 'phone', 'email', 'label', 'tax_number', 'vendor', 'customer', 'employee', 'another_role', 'custom1', 'custom2', 'custom3', 'custom4', 'notes', 'active', 'price_level']#,['name', 'c_o', 'address', 'city', 'state', 'zip', 'fax', 'phone', 'email', 'label', 'tax_number', 'vendor', 'customer', 'employee', 'another_role', 'custom1', 'custom2', 'custom3', 'custom4', 'notes', 'active', 'price_level']
+		hdngs = ['name', 'ext_name', 'address', 'city', 'state', 'zip', 'fax', 'phone', 'email', 'label', 'tax_number', 'vendor', 'customer', 'employee', 'another_role', 'custom1', 'custom2', 'custom3', 'custom4', 'notes', 'active', 'price_level']#,['name', 'ext_name', 'address', 'city', 'state', 'zip', 'fax', 'phone', 'email', 'label', 'tax_number', 'vendor', 'customer', 'employee', 'another_role', 'custom1', 'custom2', 'custom3', 'custom4', 'notes', 'active', 'price_level']
 		#kinds =  'date    text          int         price         money    text'.split()
 		#data = [
 		  #  [mkd(2007, 7, 1), 'ABC', 1000, 1.234567, 1234.57, ''],

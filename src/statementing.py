@@ -40,7 +40,7 @@ class Setup():
 			customer.name = row[1]
 			self.customer_id = row[0]
 			name = row[1]
-			customer.c_o = row[2]
+			customer.ext_name = row[2]
 			customer.street = row[3]
 			customer.city = row[4]
 			customer.state = row[5]

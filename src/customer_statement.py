@@ -81,26 +81,26 @@ class GUI:
 				"(SELECT COALESCE(SUM(amount), 0.0)  "
 				"AS payment_totals FROM payments_incoming  "
 				"WHERE (customer_id, misc_income) = (c.id, False)),  "
-				"name, c_o FROM contacts AS c WHERE customer = True ORDER by name) "
+				"name, ext_name FROM contacts AS c WHERE customer = True ORDER by name) "
 				"SELECT  "
 				"id, "
 				"invoice_totals - payment_totals AS balance_due, "
 				"name, "
-				"c_o, "
+				"ext_name, "
 				"(invoice_totals - payment_totals) *.015 AS finance_fee, "
 				"invoice_totals, "
 				"payment_totals "
 				"FROM table2 "
 				"WHERE (invoice_totals-payment_totals) > 0  "
-				"GROUP BY id,name,balance_due,invoice_totals,payment_totals,c_o  "
+				"GROUP BY id,name,balance_due,invoice_totals,payment_totals,ext_name  "
 				"ORDER BY name")
 		for row in self.cursor.fetchall():
 			customer_id = row[0]
 			unpaid = row[1]
 			customer_name = row[2]
-			customer_c_o = row[3]
+			customer_ext_name = row[3]
 			self.customer_store.append([str(customer_id), customer_name, 
-									customer_c_o, 
+									customer_ext_name, 
 									'Balance : ${:,.2f}'.format(unpaid),
 									unpaid])
 

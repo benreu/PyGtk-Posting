@@ -77,7 +77,7 @@ class IncomingInvoiceGUI:
 		combo = self.builder.get_object('combobox1')
 		active_sp = combo.get_active_id()
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id, name, c_o FROM contacts "
+		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE service_provider = True "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():

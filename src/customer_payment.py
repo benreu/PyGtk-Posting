@@ -90,7 +90,7 @@ class GUI:
 		cellrenderer.set_property("text" , str(amount))
 
 	def populate_contacts (self):
-		self.cursor.execute("SELECT id, name, c_o FROM contacts "
+		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE customer = True ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append([str(row[0]), row[1], row[2]])

@@ -46,7 +46,7 @@ class Setup():
 			vendor.name = (string[1])
 			self.vendor_id = (string[0])
 			name = (string[1])
-			vendor.c_o = (string[2])
+			vendor.ext_name = (string[2])
 			vendor.address = (string[3])
 			vendor.city = (string[4])
 			vendor.state = (string[5])
