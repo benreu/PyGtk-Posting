@@ -9,10 +9,7 @@ SUBDIRS = src \
 dist_doc_DATA = \
 	README \
 	COPYING \
-	AUTHORS \
 	ChangeLog \
-	INSTALL \
-	NEWS \
 	db_settings \
 	src/PyGtk_Posting.svg \
 	run.sh \
