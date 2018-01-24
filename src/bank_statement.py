@@ -121,11 +121,7 @@ class GUI:
 		self.populate_treeview ()
 		self.calculate_reconciled_balance ()
 
-	def get_bank_account_total(self, account_number):
-		# beginning balance
-		self.cursor.execute("SELECT start_balance FROM gl_accounts "
-							"WHERE number = %s", (account_number,))
-		bank_account_total = float(self.cursor.fetchone()[0]) 
+	def get_bank_account_total(self, account_number): 
 		self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
 								"(SELECT COALESCE(SUM(amount),0.00) AS debits "
 								"FROM gl_entries "
@@ -134,7 +130,7 @@ class GUI:
 								"FROM gl_entries "
 								"WHERE credit_account= %s) c  ", 
 								(account_number, account_number))
-		bank_account_total += float(self.cursor.fetchone()[0]) 
+		bank_account_total = float(self.cursor.fetchone()[0]) 
 		return bank_account_total
 
 	def populate_treeview(self ):

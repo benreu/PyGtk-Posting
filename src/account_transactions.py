@@ -236,15 +236,7 @@ class GUI:
 		if self.account_number == None:
 			return
 		self.account_treestore.clear()
-		self.cursor.execute("SELECT start_balance "
-							"FROM gl_accounts "
-							"WHERE number = %s ", 
-							(self.account_number,))
-		balance = float(self.cursor.fetchone()[0])
-		color = Gdk.RGBA(0,0,0,1)
-		self.account_treestore.append (None, ['', 'Start balance', 0, 
-											'', balance, balance, '',
-											color, color])
+		balance = 0.00
 		self.cursor.execute("SELECT gtl.id, gtl.date_inserted, ge.amount, debit_account, debits.name, credit_account, credits.name, ge.id "
 							"FROM gl_entries AS ge "
 							"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
