@@ -1349,6 +1349,7 @@
     <property name="comments" translatable="yes">Accounting and business management for Linux</property>
     <property name="authors">Reuben Rissler &lt;pygtk.posting@gmail.com&gt;
 Eli Sauder
+Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
 </property>
     <property name="documenters">Reuben Rissler</property>
     <property name="artists">Reuben Rissler</property>
