@@ -395,8 +395,8 @@ def bank_to_credit_card_transfer(db, bank_account, credit_card_account, amount,
 					"INSERT INTO gl_entries "
 					"(credit_account, debit_account, amount, date_inserted, "
 					"transaction_description, gl_transaction_id) "
-					"VALUES (%s, NULL, %s, %s, (SELECT id FROM new_row)), "
-					"(NULL, %s, %s, %s, (SELECT id FROM new_row))", 
+					"VALUES (%s, NULL, %s, %s, %s, (SELECT id FROM new_row)), "
+					"(NULL, %s, %s, %s, %s, (SELECT id FROM new_row))", 
 					(date, bank_account, amount, date, transaction_number, 
 					credit_card_account, amount, date, transaction_number))
 	cursor.close()
