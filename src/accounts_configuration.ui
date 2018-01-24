@@ -287,9 +287,11 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="tooltip_text" translatable="yes">Press 'Enter' after typing your number.</property>
+                            <property name="xalign">1</property>
                             <property name="adjustment">account_number_adjustment</property>
                             <property name="numeric">True</property>
                             <signal name="changed" handler="new_account_number_changed" swapped="no"/>
+                            <signal name="focus-in-event" handler="spinbutton_focus_in_event" swapped="no"/>
                             <signal name="value-changed" handler="new_account_number_changed" swapped="no"/>
                           </object>
                           <packing>

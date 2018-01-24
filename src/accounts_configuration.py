@@ -42,6 +42,12 @@ class GUI():
 		self.window.show_all()
 		GLib.timeout_add(5, self.select_account_path, 0)
 
+	def spinbutton_focus_in_event (self, spinbutton, event):
+		GLib.idle_add(self.highlight, spinbutton)
+
+	def highlight (self, spinbutton):
+		spinbutton.select_region(0, -1)
+
 	def account_match_func(self, completion, key, iter):
 		split_search_text = key.split()
 		for text in split_search_text:
