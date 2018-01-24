@@ -21,9 +21,10 @@ from decimal import Decimal, ROUND_HALF_UP
 from multiprocessing import Queue, Process
 from queue import Empty
 from subprocess import Popen, PIPE, STDOUT
+from datetime import datetime
 import os, sane, psycopg2
 import purchase_ordering
-from db import transactor
+from db.transactor import post_purchase_order, post_purchase_order_accounts
 
 UI_FILE = "src/unprocessed_po.ui"
 
@@ -216,12 +217,12 @@ class GUI:
 							(self.total, self.total, invoice_number, 
 							self.purchase_order_id))
 		self.populate_po_combobox ()
-		transactor.post_purchase_order (self.db, self.total, 
+		post_purchase_order (self.db, self.total, 
 														self.purchase_order_id)
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		if self.cursor.fetchone()[0] == True:
-			transactor.post_purchase_order_accounts (self.db, 
-														self.purchase_order_id)
+			post_purchase_order_accounts (self.db, self.purchase_order_id, 
+											datetime.today())
 		self.window.hide()
 		self.db.commit()
 

@@ -329,7 +329,7 @@ def post_purchase_order (db, amount, po_id):
 					"%s WHERE id = %s", (gl_entries_id, po_id))
 	cursor.close()
 
-def post_purchase_order_accounts (db, po_id):
+def post_purchase_order_accounts (db, po_id, date):
 	cursor = db.cursor()
 	cursor.execute ("SELECT gl_transactions.id FROM gl_transactions "
 					"JOIN gl_entries "
@@ -352,7 +352,7 @@ def post_purchase_order_accounts (db, po_id):
 						"UPDATE purchase_order_line_items SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s",
 						(amount, expense_account_number, 
-						gl_transaction_id, datetime.today(), row_id))
+						gl_transaction_id, date, row_id))
 	cursor.close()
 
 def vendor_check_payment(db, date, amount, checking_account_number,
