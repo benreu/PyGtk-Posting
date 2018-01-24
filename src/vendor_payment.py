@@ -206,11 +206,11 @@ class GUI:
 	def bank_combo_changed (self, combo):
 		bank_account = combo.get_active_id()
 		if bank_account != None:
-			self.builder.get_object('button1').set_sensitive(True)
 			self.bank_account = bank_account
 			check_number = get_check_number(self.db, bank_account)
 			self.builder.get_object('entry2').set_text(str(check_number))
 			self.builder.get_object('entry4').set_sensitive(True)
+		self.check_cheque_entries_valid ()
 
 	def transaction_number_changed (self, entry):
 		if entry.get_text() == '':
@@ -234,7 +234,7 @@ class GUI:
 			self.builder.get_object('comboboxtext3').set_sensitive(True)
 		else:
 			self.builder.get_object('comboboxtext3').set_sensitive(False)
-			self.builder.get_object('button1').set_sensitive(False)
+			self.check_cheque_entries_valid ()
 		self.checking_total = total
 		self.builder.get_object('entry3').set_text('${:,.2f}'.format(total))
 		self.builder.get_object('entry6').set_text('${:,.2f}'.format(total))
@@ -374,6 +374,19 @@ class GUI:
 		self.builder.get_object ('entry8').set_text(text)
 		self.check_credit_card_entries_valid ()
 
+	def check_cheque_entries_valid (self):
+		button = self.builder.get_object ('button1')
+		button.set_sensitive (False)
+		if self.builder.get_object('comboboxtext3').get_active_id() == None:
+			button.set_label("No bank account selected")
+			return
+		if self.date == None:
+			button.set_label("No date selected")
+			return
+		else:
+			button.set_sensitive (True)
+			button.set_label("Print check")
+
 	def check_credit_card_entries_valid (self):
 		button = self.builder.get_object ('button3')
 		button.set_sensitive (False)
@@ -424,6 +437,7 @@ class GUI:
 		self.builder.get_object('entry1').set_text(day_text)
 		self.check_cash_entries_valid ()
 		self.check_credit_card_entries_valid ()
+		self.check_cheque_entries_valid ()
 
 	def entry_icon_released (self, widget, icon, event):
 		self.calendar.set_relative_to(widget)
