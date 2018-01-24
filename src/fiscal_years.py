@@ -43,7 +43,7 @@ class FiscalYearGUI:
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
 		
-		self.populate_fiscal_years ()
+		self.populate_fiscal_years()
 
 	def populate_fiscal_years (self):
 		self.fiscal_year_store.clear()
@@ -83,10 +83,12 @@ class FiscalYearGUI:
 		if response == Gtk.ResponseType.ACCEPT:
 			fiscal_name = self.builder.get_object('entry1').get_text()
 			self.cursor.execute("INSERT INTO fiscal_years "
-								"name, start_date, end_date, active) "
+								"(name, start_date, end_date, active) "
 								"VALUES (%s, %s, %s, True)", 
 								(fiscal_name, self.start_date, self.end_date))
+			self.db.commit()
 			self.builder.get_object('entry1').set_text('')
+			self.populate_fiscal_years()
 			
 	def start_day_selected (self, calendar):
 		self.start_date = calendar.get_datetime()
