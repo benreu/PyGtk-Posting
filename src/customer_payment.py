@@ -58,7 +58,8 @@ class GUI:
 
 		self.calendar = DateTimeCalendar(self.db)
 		self.calendar.connect('day-selected', self.calendar_day_selected)
-		self.date = None
+		self.calendar.set_today ()
+		self.date = self.calendar.get_date()
 		self.builder.get_object ('combobox1').set_active_id(str(customer_id))
 		
 		self.check_entry = self.builder.get_object('entry3')
