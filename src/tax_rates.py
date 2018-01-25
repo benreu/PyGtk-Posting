@@ -33,9 +33,9 @@ class TaxRateGUI:
 		window = self.builder.get_object('window1')
 		window.show_all()
 		
-		self.populate_tax_rates_store ()
-		self.populate_account_store ()
-		self.new ()
+		self.populate_tax_rates_store()
+		self.populate_account_store()
+		self.new()
 		
 	def destroy(self, window):
 		return True
@@ -165,7 +165,7 @@ class TaxRateGUI:
 			
 	def delete(self, widget):
 		try:
-			self.cursor.execute("DELETE FROM tax_rates WHERE id = %s",
+			self.cursor.execute("UPDATE tax_rates set deleted = true WHERE id = %s",
 												(self.serial_number,))
 			self.db.commit()
 		except Exception as e:
@@ -175,7 +175,7 @@ class TaxRateGUI:
 			dialog.run()
 			dialog.hide()
 			self.db.rollback()
-		self.populate_tax_rates_store ()
+		self.populate_tax_rates_store()
 	
 
 	
