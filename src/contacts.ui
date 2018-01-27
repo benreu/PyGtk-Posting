@@ -15,6 +15,111 @@
   <object class="GtkTreeModelFilter" id="filtered_contact_store">
     <property name="child_model">contact_store</property>
   </object>
+  <object class="GtkListStore" id="duplicate_contact_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name ext_name -->
+      <column type="gchararray"/>
+      <!-- column-name address -->
+      <column type="gchararray"/>
+      <!-- column-name deleted -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkBox" id="box19">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkLabel" id="label18">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Contacts with the same name</property>
+        <attributes>
+          <attribute name="weight" value="bold"/>
+        </attributes>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkTreeView" id="treeview3">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="model">duplicate_contact_store</property>
+        <child internal-child="selection">
+          <object class="GtkTreeSelection" id="treeview-selection3"/>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+            <property name="resizable">True</property>
+            <property name="title" translatable="yes">Name</property>
+            <property name="reorderable">True</property>
+            <property name="sort_column_id">1</property>
+            <child>
+              <object class="GtkCellRendererText" id="cellrenderertext6"/>
+              <attributes>
+                <attribute name="text">1</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+            <property name="resizable">True</property>
+            <property name="title" translatable="yes">Ext name</property>
+            <property name="reorderable">True</property>
+            <property name="sort_column_id">2</property>
+            <child>
+              <object class="GtkCellRendererText" id="cellrenderertext7"/>
+              <attributes>
+                <attribute name="text">2</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+            <property name="resizable">True</property>
+            <property name="title" translatable="yes">Address</property>
+            <property name="reorderable">True</property>
+            <property name="sort_column_id">3</property>
+            <child>
+              <object class="GtkCellRendererText" id="cellrenderertext8"/>
+              <attributes>
+                <attribute name="text">3</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+            <property name="resizable">True</property>
+            <property name="title" translatable="yes">Deleted</property>
+            <property name="reorderable">True</property>
+            <property name="sort_column_id">4</property>
+            <child>
+              <object class="GtkCellRendererToggle" id="cellrenderertoggle3"/>
+              <attributes>
+                <attribute name="active">4</attribute>
+              </attributes>
+            </child>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">True</property>
+        <property name="fill">True</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
   <object class="GtkListStore" id="individual_contact_store">
     <columns>
       <!-- column-name individual_id -->
@@ -322,6 +427,9 @@
                                             <property name="can_focus">True</property>
                                             <property name="has_focus">True</property>
                                             <property name="is_focus">True</property>
+                                            <signal name="changed" handler="name_entry_changed" swapped="no"/>
+                                            <signal name="focus-out-event" handler="name_entry_focus_out_event" swapped="no"/>
+                                            <signal name="icon-release" handler="name_entry_icon_release" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>

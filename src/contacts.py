@@ -62,6 +62,9 @@ class GUI:
 		self.custom3_widget = self.builder.get_object("entry27")
 		self.custom4_widget = self.builder.get_object("entry28")
 		self.note = self.builder.get_object("textbuffer1")
+		self.duplicate_name_popover = Gtk.Popover()
+		box = self.builder.get_object("box19")
+		self.duplicate_name_popover.add(box)
 		
 		self.populate_terms_combo ()
 		if self.contact_id == 0:
@@ -309,7 +312,6 @@ class GUI:
 		subprocess.Popen("soffice --headless -p " + env_file, shell = True)
 		#subprocess.call("libreoffice " + label_file, shell = True)
 
-
 	def open_co_letter_head (self, button):
 		contact = Item()
 		self.cursor.execute("SELECT name, address, city, state, zip, phone, "
@@ -377,6 +379,32 @@ class GUI:
 		t = Template("./templates/contact_label_template.odt", label_file , True)
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.call("libreoffice " + label_file, shell = True)
+
+	def name_entry_changed (self, entry):
+		entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
+
+	def name_entry_focus_out_event (self, entry, event):
+		name = entry.get_text().lower()
+		store = self.builder.get_object('duplicate_contact_store')
+		store.clear()
+		self.cursor.execute("SELECT id, name, ext_name, address, deleted "
+							"FROM contacts WHERE LOWER(name) = %s", (name,))
+		for row in self.cursor.fetchall():
+			c_id = row[0]
+			name = row[1]
+			ext_name = row[2]
+			address = row[3]
+			deleted = row[4]
+			store.append([c_id, name, ext_name, address, deleted])
+		if len(store) > 0 and self.contact_id == 0:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
+		else:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
+		self.duplicate_name_popover.set_relative_to(entry)
+
+	def name_entry_icon_release (self, entry, pos, event):
+		self.duplicate_name_popover.show()
+		self.builder.get_object('treeview-selection3').unselect_all()
 
 	def contact_treeview_cursor_changed (self, treeview):
 		path = treeview.get_cursor().path
