@@ -933,7 +933,18 @@ def check_and_update_version (db, statusbar):
 	if version <= '092':
 		progressbar (92)
 		cursor.execute("ALTER TABLE contacts RENAME c_o TO ext_name")
-		cursor.execute("UPDATE settings SET version = '093'")
+	if version <= '093':
+		progressbar (93)
+		cursor.execute("UPDATE vendor_product_numbers SET vendor_barcode = '' WHERE vendor_barcode IS NULL")
+		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN vendor_barcode SET DEFAULT ''")
+		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN vendor_barcode SET NOT NULL")
+		cursor.execute("UPDATE vendor_product_numbers SET qty = 0 WHERE qty IS NULL")
+		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN qty SET DEFAULT 0")
+		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN qty SET NOT NULL")
+		cursor.execute("UPDATE vendor_product_numbers SET price = 0 WHERE price IS NULL")
+		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN price SET DEFAULT 0")
+		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN price SET NOT NULL")
+		cursor.execute("UPDATE settings SET version = '094'")
 	cursor.close()
 	db.commit()
 
