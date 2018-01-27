@@ -43,8 +43,8 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class InvoiceGUI:
+	
 	def __init__(self, main, invoice_id = None, import_customer_id = None):
-
 		self.import_customer_id = import_customer_id
 		self.invoice_id = invoice_id
 		self.builder = Gtk.Builder()
@@ -364,6 +364,10 @@ class InvoiceGUI:
 
 	def document_list_row_activated (self, treeview, path, column):
 		self.invoice_id = self.document_list_store[path][0]
+		self.cursor.execute("SELECT comments FROM invoices WHERE id = %s",
+														(self.invoice_id,))
+		comments = self.cursor.fetchone()[0]
+		self.builder.get_object("comment_buffer").set_text(comments)
 		self.document_type = self.document_list_store[path][2]
 		self.populate_invoice_line_items()
 
@@ -402,8 +406,20 @@ class InvoiceGUI:
 		self.invoice_id = 0
 		self.invoice_store.clear()
 
+	def comment_textbuffer_changed (self, buf):
+		start = buf.get_start_iter()
+		end = buf.get_end_iter()
+		comment = buf.get_text(start, end, True)
+		self.cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s", 
+													(comment, self.invoice_id))
+		self.db.commit()
+		self.invoice = None  #comments changed, recreate odt file
+
 	def view_invoice(self, widget):
-		comment = self.builder.get_object('entry2').get_text()
+		buf = self.builder.get_object('comment_buffer')
+		start = buf.get_start_iter()
+		end = buf.get_end_iter()
+		comment = buf.get_text(start, end, True)
 		if not self.invoice:
 			self.invoice = invoice_create.Setup(self.db, self.invoice_store, 
 												self.customer_id, comment, 
@@ -412,7 +428,10 @@ class InvoiceGUI:
 		self.invoice.view()
 
 	def post_invoice(self, widget):
-		comment = self.builder.get_object('entry2').get_text()
+		buf = self.builder.get_object('comment_buffer')
+		start = buf.get_start_iter()
+		end = buf.get_end_iter()
+		comment = buf.get_text(start, end, True)
 		if not self.invoice:
 			self.invoice = invoice_create.Setup(self.db, self.invoice_store, 
 												self.customer_id, comment, 
@@ -559,26 +578,31 @@ class InvoiceGUI:
 		exemption_combo.set_active_id(active)
 
 	def customer_selected(self, name_id):
-		self.cursor.execute("SELECT address, ext_name, phone FROM contacts "
+		
+		self.cursor.execute("SELECT address, phone FROM contacts "
 							"WHERE id = (%s)",(name_id,))
 		for row in self.cursor.fetchall() :
 			self.builder.get_object('entry6').set_text(row[0])
-			self.builder.get_object('entry7').set_text(row[1])
-			self.builder.get_object('entry8').set_text(row[2])
+			self.builder.get_object('entry8').set_text(row[1])
 		self.populate_tax_exemption_combo ()
 		if self.import_customer_id != None:
 			return #we are editing an existing invoice
 		self.set_widgets_sensitive ()
-		self.cursor.execute("SELECT id FROM invoices "
+		self.cursor.execute("SELECT id, comments FROM invoices "
 							"WHERE (customer_id, posted) = (%s, False) ", 
 							(name_id,))
 		tupl = self.cursor.fetchall()
 		if len(tupl) > 1:
+			self.invoice_id = 0
 			self.show_document_list_window ()
+			self.builder.get_object("comment_buffer").set_text('')
 		elif len(tupl) == 1:
 			self.invoice_id = tupl[0][0]
+			comments = tupl[0][1]
+			self.builder.get_object("comment_buffer").set_text(comments)
 		else:
 			self.invoice_id = 0
+			self.builder.get_object("comment_buffer").set_text('')
 		self.populate_invoice_line_items()
 
 	################## start qty
@@ -814,6 +838,7 @@ class InvoiceGUI:
 		self.builder.get_object('menuitem6').set_sensitive(True)
 		self.builder.get_object('menuitem7').set_sensitive(True)
 		self.builder.get_object('menuitem8').set_sensitive(True)
+		self.builder.get_object('comment_textview').set_sensitive(True)
 
 	def refresh_all_prices_clicked (self, menuitem):
 		for row in self.invoice_store:
