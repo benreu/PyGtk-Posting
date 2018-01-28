@@ -449,9 +449,7 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">2</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext9">
-                                <property name="editable">True</property>
-                              </object>
+                              <object class="GtkCellRendererText" id="cellrenderertext9"/>
                               <attributes>
                                 <attribute name="text">2</attribute>
                               </attributes>
@@ -465,9 +463,7 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">3</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext11">
-                                <property name="editable">True</property>
-                              </object>
+                              <object class="GtkCellRendererText" id="cellrenderertext11"/>
                               <attributes>
                                 <attribute name="text">3</attribute>
                               </attributes>
@@ -481,9 +477,7 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">4</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext12">
-                                <property name="editable">True</property>
-                              </object>
+                              <object class="GtkCellRendererText" id="cellrenderertext12"/>
                               <attributes>
                                 <attribute name="text">4</attribute>
                               </attributes>
@@ -525,9 +519,7 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">7</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext15">
-                                <property name="editable">True</property>
-                              </object>
+                              <object class="GtkCellRendererText" id="cellrenderertext15"/>
                               <attributes>
                                 <attribute name="text">7</attribute>
                               </attributes>

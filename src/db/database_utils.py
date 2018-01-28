@@ -963,6 +963,6 @@ def lob_example (db):
 	
 	cursor.execute("UPDATE products SET oid = %s WHERE id = %s", (new_oid, id))'''
 
-	#trying out the new branch
+
 		
 		
