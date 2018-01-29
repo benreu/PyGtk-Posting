@@ -427,6 +427,19 @@ def bank_charge(db, bank_account, date, amount, description, account_number):
 				(date, bank_account, account_number, amount, description))
 	cursor.close()
 
+def post_voided_check (db, bank_account, date, cheque_number):
+	cursor = db.cursor()
+	cursor.execute(	"WITH new_row AS "
+						"(INSERT INTO gl_transactions "
+						"(date_inserted) VALUES (%s) RETURNING id) "
+					"INSERT INTO gl_entries "
+					"(debit_account, credit_account, check_number, amount, "
+					"transaction_description, gl_transaction_id) "
+					"VALUES (%s, %s, %s, 0.00, 'Voided check', "
+					"(SELECT id FROM new_row))", 
+					(date, bank_account, bank_account, cheque_number))
+	cursor.close()
+
 def double_entry_transaction (db, date, debit_account, credit_account, 
 													amount, description):
 	cursor = db.cursor()

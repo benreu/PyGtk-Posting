@@ -39,6 +39,10 @@ class GUI:
 		self.calendar = DateTimeCalendar(self.db)
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
+		self.voided_cheque_calendar = DateTimeCalendar(self.db)
+		self.voided_cheque_calendar.connect('day-selected', self.voided_cheque_day_selected)
+		self.voided_cheque_calendar.set_relative_to(self.builder.get_object('entry5'))
+		self.voided_cheque_date = None
 		self.account_number = 0
 		self.bank_transaction_store = self.builder.get_object(
 											'bank_transaction_store')
@@ -62,10 +66,49 @@ class GUI:
 		GLib.idle_add(self.highlight, entry)
 
 	def highlight (self, entry):
-		entry.select_region(0, -1)		
+		entry.select_region(0, -1)
 
 	def view_closed_items(self, check_button):
 		self.populate_treeview ()
+
+	def voided_cheque_activated (self, menuitem):
+		dialog = self.builder.get_object('check_dialog')
+		response = dialog.run()
+		dialog.hide()
+		if response == Gtk.ResponseType.ACCEPT:
+			bank_account = self.builder.get_object('combobox3').get_active_id()
+			cheque_number = self.builder.get_object('entry3').get_text()
+			transactor.post_voided_check(self.db, bank_account, self.voided_cheque_date, cheque_number)
+
+	def voided_cheque_day_selected (self, calendar):
+		self.voided_cheque_date = calendar.get_date()
+		date = calendar.get_text()
+		self.builder.get_object('entry5').set_text(date)
+		self.check_voided_cheque_entries_valid ()
+
+	def voided_cheque_bank_account_changed (self, combobox):
+		self.check_voided_cheque_entries_valid ()
+
+	def voided_cheque_number_changed (self, entry):
+		self.check_voided_cheque_entries_valid ()
+
+	def voided_check_date_entry_icon_released (self, entry, icon, position):
+		self.voided_cheque_calendar.show()
+
+	def check_voided_cheque_entries_valid (self):
+		button = self.builder.get_object('button6')
+		button.set_sensitive(False)
+		if self.builder.get_object('combobox3').get_active_id() == None:
+			button.set_label('No bank account selected')
+			return
+		if self.builder.get_object('entry3').get_text() == '':
+			button.set_label('No check number entered')
+			return
+		if self.voided_cheque_date == None:
+			button.set_label('No date selected')
+			return
+		button.set_sensitive (True)
+		button.set_label('Apply voided check')
 
 	def populate_bank_charge_stores (self):
 		self.expense_store.clear()
