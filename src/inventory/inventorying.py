@@ -69,4 +69,7 @@ def receive (db, purchase_order_store, location_id):
 def transfer (db, transfer_store):
 	cursor = db.cursor()
 
+def manufacture (db, manufacturing_id):
+	cursor = db.cursor()
+
 
