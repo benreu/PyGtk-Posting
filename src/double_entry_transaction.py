@@ -67,7 +67,7 @@ class DoubleEntryTransactionGUI:
 		post_button = self.builder.get_object('button2')
 		post_button.set_sensitive(False)
 		description = self.builder.get_object('entry2').get_text()
-		if self.date == 'None:
+		if self.date == 'None':
 			post_button.set_label ('No date selected')
 			return # no description
 		if description == '':
