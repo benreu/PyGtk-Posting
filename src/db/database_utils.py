@@ -944,7 +944,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("UPDATE vendor_product_numbers SET price = 0 WHERE price IS NULL")
 		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN price SET DEFAULT 0")
 		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN price SET NOT NULL")
-		cursor.execute("UPDATE settings SET version = '094'")
+	if version <= '094':
+		progressbar (94)
+		cursor.execute("ALTER TABLE settings ADD COLUMN cost_decrease_alert numeric(5, 2)")
+		cursor.execute("UPDATE settings SET cost_decrease_alert = 0.25")
+		cursor.execute("UPDATE settings SET version = '095'")
 	cursor.close()
 	db.commit()
 

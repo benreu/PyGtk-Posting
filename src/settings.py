@@ -16,7 +16,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-from datetime import datetime
 from db import transactor
 
 UI_FILE = "src/settings.ui"
@@ -32,23 +31,24 @@ class GUI():
 
 		self.document_type_id = 0
 
-		self.cursor.execute("SELECT print_direct, only_close_zero_statement, close_statement, copy_to_print_statement, email_when_possible, enforce_exact_payment, accrual_based FROM settings")
-		for cell in self.cursor.fetchall():
-			self.builder.get_object('checkbutton1').set_active(cell[0])
-			self.builder.get_object('checkbutton3').set_active(cell[1])
-			close_statement_date = cell[2]
+		self.cursor.execute("SELECT print_direct, only_close_zero_statement, close_statement, copy_to_print_statement, email_when_possible, enforce_exact_payment, accrual_based, cost_decrease_alert FROM settings")
+		for row in self.cursor.fetchall():
+			self.builder.get_object('checkbutton1').set_active(row[0])
+			self.builder.get_object('checkbutton3').set_active(row[1])
+			close_statement_date = row[2]
 			if close_statement_date == 0-1:
 				self.builder.get_object('checkbutton2').set_active(False)
 			else:
 				self.builder.get_object('checkbutton2').set_active(True)
 				self.builder.get_object('spinbutton1').set_text(str(close_statement_date))
-			self.builder.get_object('checkbutton4').set_active(cell[3])
-			self.builder.get_object('checkbutton5').set_active(cell[4])
-			self.builder.get_object('checkbutton6').set_active(cell[5])
-			if cell[6] == False:
+			self.builder.get_object('checkbutton4').set_active(row[3])
+			self.builder.get_object('checkbutton5').set_active(row[4])
+			self.builder.get_object('checkbutton6').set_active(row[5])
+			if row[6] == False:
 				self.builder.get_object('radiobutton1').set_active(True)
 			else:
 				self.builder.get_object('radiobutton2').set_active(True)
+			self.builder.get_object('spinbutton4').set_value(row[7] * 100)
 		self.load_precision()
 		self.document_type_store = Gtk.ListStore(int, str)
 		self.document_type_treeview = self.builder.get_object('treeview4')
@@ -122,6 +122,18 @@ class GUI():
 			self.db.commit()
 			self.load_precision ()
 		dialog.hide()
+
+	def spinbutton_focus_in_event (self, spinbutton, event):
+		GLib.idle_add(self.select_spinbutton_value, spinbutton)
+
+	def select_spinbutton_value (self, spinbutton):
+		spinbutton.select_region(0, -1)
+
+	def cost_decrease_alert_spinbutton_changed (self, spinbutton):
+		percent = spinbutton.get_value()
+		self.cursor.execute("UPDATE settings "
+							"SET cost_decrease_alert = (%s/100)", (percent,))
+		self.db.commit()
 
 	def populate_columns (self):
 		store = self.builder.get_object('invoice_columns_store')
