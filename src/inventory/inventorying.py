@@ -17,11 +17,12 @@
 
 from datetime import datetime
 
+
 def sell (db, invoice_store, location_id, contact_id, date):
 	'''adjust inventory taking in consideration that invoices can be edited afterwards'''
 	cursor = db.cursor()
 	for row in invoice_store:
-		invoice_line_item_id = row[0]
+		invoice_line_id = row[0]
 		qty = row[1]
 		qty -= qty * 2 #create a negative qty because we are selling
 		product_id = row[2]
@@ -29,8 +30,8 @@ def sell (db, invoice_store, location_id, contact_id, date):
 						"FROM products WHERE id = %s", (product_id,))
 		if cursor.fetchone()[0] == True:
 			cursor.execute("SELECT id FROM inventory_transactions "
-							"WHERE invoice_line_item_id = %s", 
-							(invoice_line_item_id,))
+							"WHERE invoice_line_id = %s", 
+							(invoice_line_id,))
 			for row in cursor.fetchall():
 				inventory_transaction_id = row[0]
 				cursor.execute("UPDATE inventory_transactions "
@@ -41,16 +42,16 @@ def sell (db, invoice_store, location_id, contact_id, date):
 				break
 			else:
 				cursor.execute("INSERT INTO inventory_transactions "
-								"(qty, product_id, reason, "
-								"invoice_line_item_id, location_id, "
-								"date_inserted) VALUES (%s, %s, %s, %s, %s, %s)",
-								(qty, product_id, "Sold", invoice_line_item_id, 
+								"(qty_out, product_id, "
+								"invoice_line_id, location_id, "
+								"date_inserted) VALUES (%s, %s, %s, %s, %s)",
+								(qty, product_id, invoice_line_id, 
 								location_id, date))
 				break
 		else:
 			cursor.execute("DELETE FROM inventory_transactions "
-							"WHERE invoice_line_item_id = %s", 
-							(invoice_line_item_id,))
+							"WHERE invoice_line_id = %s", 
+							(invoice_line_id,))
 	db.commit()
 	cursor.close()
 
@@ -62,14 +63,17 @@ def receive (db, purchase_order_store, location_id):
 		t = cursor.fetchone()[0]
 		if t == True:
 			qty = row[1]
-			cursor.execute("INSERT INTO inventory_transactions (qty, product_id, reason, location_id, date_inserted) VALUES (%s, %s, %s, %s, %s)", (qty, product_id, "Bought", location_id, datetime.today()))
+			cursor.execute("INSERT INTO inventory_transactions (qty_in, product_id, location_id, date_inserted) VALUES (%s, %s, %s, %s)", (qty, product_id, location_id, datetime.today()))
 	db.commit()
 	cursor.close()
 
 def transfer (db, transfer_store):
 	cursor = db.cursor()
+	cursor.close()
 
 def manufacture (db, manufacturing_id):
 	cursor = db.cursor()
+	
+	cursor.close()
 
 
