@@ -114,6 +114,7 @@ class ReceiveOrdersGUI:
 							"received = True WHERE id = %s", (po_id,))
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		inventorying.receive(self.db, self.receive_order_store, location_id)
+		self.db.commit()
 		self.populate_purchase_order_combo()
 
 	def check_if_all_products_received (self):

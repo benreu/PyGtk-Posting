@@ -66,7 +66,7 @@ class InventoryAdjustmentGUI:
 			location_id = row[0]
 			location_name = row[1]
 			self.location_store.append([str(location_id), location_name])
-		self.builder.get_object('combobox2').set_active(0)
+		self.builder.get_object('combobox3').set_active(0)
 
 	def product_combo_changed (self, combo):
 		product_id = combo.get_active_id()
@@ -88,7 +88,8 @@ class InventoryAdjustmentGUI:
 			combo.remove_all()
 			combo.append("1","Starting inventory")
 		inventory = 0
-		self.cursor.execute("SELECT SUM(qty) FROM inventory_transactions "
+		self.cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+							"FROM inventory_transactions "
 							"WHERE product_id = %s "
 							"GROUP BY product_id", (product_id,))
 		for row in self.cursor.fetchall():
@@ -102,7 +103,8 @@ class InventoryAdjustmentGUI:
 	def inventory_adjustment_spinbutton_changed(self, spinbutton):
 		adjustment_amount = spinbutton.get_value()
 		inventory = 0
-		self.cursor.execute("SELECT SUM(qty) FROM inventory_transactions "
+		self.cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+							"FROM inventory_transactions "
 							"WHERE product_id = %s", (self.product_id,))
 		for row in self.cursor.fetchall():
 			inventory = row[0]
@@ -119,13 +121,12 @@ class InventoryAdjustmentGUI:
 	def apply_inventory_adjustment_clicked (self, widget):
 		adjustment_amount = self.builder.get_object('spinbutton12').get_text()
 		adjustment_reason = self.builder.get_object('comboboxtext3').get_active_text()
-		location_id = self.builder.get_object('combobox2').get_active_id()
+		location_id = self.builder.get_object('combobox3').get_active_id()
 		self.cursor.execute("INSERT INTO inventory_transactions "
-							"(product_id, qty, reason, date_inserted, "
-							"location_id) VALUES (%s, %s, %s, %s, %s)", 
+							"(product_id, qty_in, date_inserted, "
+							"location_id, price) VALUES (%s, %s, %s, %s, 210)", 
 							(self.product_id, adjustment_amount, 
-							adjustment_reason, datetime.today(), 
-							location_id))
+							datetime.today(), location_id))
 		self.cursor.execute("UPDATE products SET inventory_enabled = True "
 							"WHERE id = %s", (self.product_id,))
 		self.db.commit()
