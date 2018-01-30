@@ -62,8 +62,8 @@ def receive (db, purchase_order_store, location_id):
 			qty = row[1]
 			cursor.execute("INSERT INTO inventory_transactions "
 							"(qty_in, product_id, location_id, date_inserted, price) "
-							"VALUES (%s, %s, %s, %s, %s)", 
-							(qty, product_id, location_id, datetime.today(), price))
+							"VALUES (%s, %s, %s, CURRENT_DATE, %s)", 
+							(qty, product_id, location_id, price))
 	cursor.close()
 
 def transfer (db, transfer_store):
