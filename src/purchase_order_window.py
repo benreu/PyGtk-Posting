@@ -309,8 +309,8 @@ class PurchaseOrderGUI:
 		import product_hub
 		product_hub.ProductHubGUI(self.main, product_id)
 
-	def update_line_item_vendor (self, active_iter, vendor_id):
-		row_id = self.purchase_order_store[active_iter][0]
+	def update_line_item_vendor (self, _iter, vendor_id):
+		row_id = self.purchase_order_store[_iter][0]
 		self.cursor.execute("SELECT id FROM purchase_orders "
 							"WHERE vendor_id = (%s) "
 							"AND (paid, closed, canceled) = "
@@ -340,7 +340,7 @@ class PurchaseOrderGUI:
 			self.cursor.execute("UPDATE purchase_orders "
 								"SET name = %s WHERE id = %s", 
 								(document_name, purchase_order_id))
-		self.purchase_order_store[active_iter][13] = purchase_order_id
+		self.purchase_order_store[_iter][13] = purchase_order_id
 		self.db.commit()
 		
 	def products_activated (self, column):
@@ -617,7 +617,7 @@ class PurchaseOrderGUI:
 	def product_widget_removed (self, combo, path):
 		if self.purchase_order_store[path][4] == True:
 			return
-		active_iter = self.purchase_order_store.get_iter(path)
+		_iter = self.purchase_order_store.get_iter(path)
 		entry = combo.get_child()
 		product_text = entry.get_text()
 		self.populate_account_store ()
