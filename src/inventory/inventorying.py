@@ -55,15 +55,16 @@ def sell (db, invoice_store, location_id, contact_id, date):
 def receive (db, purchase_order_store, location_id):
 	cursor = db.cursor()
 	for row in purchase_order_store:
+		line_id = row[0]
 		product_id = row[2]
 		price = row[7]
 		cursor.execute("SELECT inventory_enabled FROM products WHERE id = %s", (product_id,))
 		if cursor.fetchone()[0] == True:
 			qty = row[1]
 			cursor.execute("INSERT INTO inventory_transactions "
-							"(qty_in, product_id, location_id, date_inserted, price) "
-							"VALUES (%s, %s, %s, CURRENT_DATE, %s)", 
-							(qty, product_id, location_id, price))
+							"(qty_in, product_id, location_id, price, purchase_order_line_id, date_inserted) "
+							"VALUES (%s, %s, %s, %s, %s, CURRENT_DATE)", 
+							(qty, product_id, location_id, price, line_id))
 	cursor.close()
 
 def transfer (db, transfer_store):
