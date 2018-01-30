@@ -64,6 +64,9 @@ class GUI:
 			price_prec = row[1]
 			self.qty_places = Decimal(10) ** -qty_prec
 			self.price_places = Decimal(10) ** -price_prec
+
+		self.cursor.execute("SELECT cost_decrease_alert FROM settings")
+		self.cost_decrease = self.cursor.fetchone()[0]
 		
 		qty_renderer = self.builder.get_object('cellrenderertext1')
 		qty_column = self.builder.get_object('treeviewcolumn1')
@@ -379,13 +382,15 @@ class GUI:
 							"WHERE id = %s", (self.product_id,))
 		current_cost = self.cursor.fetchone()[0]
 		self.builder.get_object('spinbutton1').set_value(current_cost)
-									# set the current cost first and the new cost later
+		# set the current cost first and the new cost later
 		cost_formatted = '${:,.2f}'.format(current_cost)
 		self.builder.get_object('label13').set_label(cost_formatted)
-		if new_cost > current_cost:
+		#check if cost went up by any amount, or down by set percentage
+		if new_cost > current_cost or \
+			new_cost < (current_cost - (current_cost * self.cost_decrease)) :
 			self.load_product_terms_prices()
 			self.builder.get_object('spinbutton1').set_value(new_cost)
-								# set the new cost afterwards to update all the selling prices
+			# set the new cost afterwards to update all the selling prices
 			dialog = self.builder.get_object('cost_update_dialog')
 			result = dialog.run()
 			dialog.hide()
