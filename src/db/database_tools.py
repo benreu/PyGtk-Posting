@@ -17,7 +17,7 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
-import os, sys, subprocess, time, psycopg2, apsw
+import os, sys, subprocess, time, psycopg2, configparser, apsw
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from datetime import datetime
 from db import database_utils
@@ -27,19 +27,33 @@ UI_FILE = "src/db/database_tools.ui"
 
 def get_apsw_cursor ():
 	home = os.path.expanduser('~')
-	#db_file = '%s/.posting/db_settings' % home #for installable version
-	db_file = './db_settings' 
-	cursor_sqlite = apsw.Connection(db_file).cursor()
-	return cursor_sqlite
+	pref_path = os.path.join(home, '.config/posting')
+	if not os.path.exists(pref_path):
+		os.mkdir(pref_path)
+	pref_file = os.path.join(pref_path, 'local_settings')
+	if not os.path.exists(pref_file):
+		con = apsw.Connection(pref_file)
+		cursor = con.cursor()
+		cursor.execute("CREATE TABLE connection "
+												"(user text, password text, "
+												"host text, port text, "
+												"db_name text)")
+		cursor.execute("INSERT INTO connection VALUES "
+												"('postgres', 'None', "
+												"'localhost', '5432', 'None')")
+	else:
+		con = apsw.Connection(pref_file)
+		cursor = con.cursor()
+	return cursor
 
 def check_for_database(db):
 	cursor_sqlite = get_apsw_cursor ()
 	if db == None:
-		for row in cursor_sqlite.execute("SELECT db FROM selected_db;"):
+		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
 	else:
 		sql_database = db
-	for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+	for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 		sql_user = row[0]
 		sql_password = row[1]
 		sql_host = row[2]
@@ -127,7 +141,7 @@ class GUI:
 		
 	def set_active_database (self ):
 		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT db FROM selected_db;"):
+		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
 			self.active_database = sql_database
 		self.builder.get_object('combobox1').set_active_id(sql_database)
@@ -138,7 +152,7 @@ class GUI:
 		db_name_store = self.builder.get_object('db_name_store')
 		db_name_store.clear()
 		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -172,7 +186,7 @@ class GUI:
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			cursor_sqlite = get_apsw_cursor ()
-			for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+			for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 				sql_user = row[0]
 				sql_password = row[1]
 				sql_host = row[2]
@@ -191,7 +205,7 @@ class GUI:
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			cursor_sqlite = get_apsw_cursor ()
-			for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+			for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 				sql_user = row[0]
 				sql_password = row[1]
 				sql_host = row[2]
@@ -201,7 +215,7 @@ class GUI:
 										port = sql_port)
 			self.cursor = self.db.cursor()
 			database_utils.check_and_update_version (self.db, self.statusbar)
-			cursor_sqlite.execute("UPDATE selected_db SET db = '%s'" % (selected))
+			cursor_sqlite.execute("UPDATE connection SET db_name = '%s'" % (selected))
 			self.error = False
 			self.window.close()
 			subprocess.Popen(["./src/pygtk_posting.py", 
@@ -230,7 +244,7 @@ class GUI:
 			self.status_update("No database name!")
 			return
 		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -251,7 +265,7 @@ class GUI:
 
 	def add_tables (self, db_name):
 		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -260,7 +274,7 @@ class GUI:
 								user=sql_user, password = sql_password, 
 								port = sql_port)
 		database_utils.add_new_tables (db, self.statusbar)
-		cursor_sqlite.execute("UPDATE selected_db SET db = ('%s')" % (db_name))
+		cursor_sqlite.execute("UPDATE connection SET db_name = ('%s')" % (db_name))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		GLib.idle_add (self.add_db_done, db_name)
@@ -299,13 +313,13 @@ class GUI:
 
 	def get_postgre_settings(self, widget):
 		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			self.builder.get_object("entry2").set_text(row[0])
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
 			self.builder.get_object("entry5").set_text(row[3])
 
-	def try_connecting(self, widget):
+	def test_connection_clicked (self, widget):
 		sql_user= self.builder.get_object("entry2").get_text()
 		sql_password= self.builder.get_object("entry3").get_text()
 		sql_host= self.builder.get_object("entry4").get_text()
@@ -316,19 +330,21 @@ class GUI:
 										port = sql_port)
 			self.db = pysql # connection successful
 			cursor_sqlite = get_apsw_cursor ()
-			cursor_sqlite.execute("UPDATE postgresql_settings SET user = ('%s')" % (sql_user))
-			cursor_sqlite.execute("UPDATE postgresql_settings SET password = ('%s')" % (sql_password))
-			cursor_sqlite.execute("UPDATE postgresql_settings SET host = ('%s')" % (sql_host))
-			cursor_sqlite.execute("UPDATE postgresql_settings SET port = ('%s')" % (sql_port))
+			cursor_sqlite.execute("UPDATE connection SET user = ('%s')" % (sql_user))
+			cursor_sqlite.execute("UPDATE connection SET password = ('%s')" % (sql_password))
+			cursor_sqlite.execute("UPDATE connection SET host = ('%s')" % (sql_host))
+			cursor_sqlite.execute("UPDATE connection SET port = ('%s')" % (sql_port))
 			self.message_success()
 			self.retrieve_dbs ()
+			self.builder.get_object("textbuffer1").set_text('')
 			self.builder.get_object("button3").set_sensitive(True)
 			self.builder.get_object("button2").set_sensitive(True)
 			self.builder.get_object("button1").set_sensitive(True)
 			self.builder.get_object("button10").set_sensitive(True)
 		except Exception as e:
 			print (e)
-			GLib.timeout_add(10, self.message_error)
+			self.message_error()
+			self.builder.get_object("textbuffer1").set_text(str(e))
 			self.builder.get_object("button3").set_sensitive(False)
 			self.builder.get_object("button2").set_sensitive(False)
 			self.builder.get_object("button1").set_sensitive(False)
@@ -340,5 +356,5 @@ class GUI:
 
 	def message_error(self):
 		self.status_update("Your criteria did not match!")
-		GLib.timeout_add(1000, self.status_update, "Please check the entries and try again")
+		GLib.timeout_add(3000, self.status_update, "Please check the entries and try again")
 
