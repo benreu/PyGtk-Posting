@@ -120,7 +120,7 @@ class InventoryHistoryGUI:
 		location_id = self.builder.get_object('combobox1').get_active_id()
 		self.inventory_transaction_store.clear()
 		if self.product_id != None and all_history == False:	
-			self.cursor.execute("SELECT i_t.id, products.name, qty, reason, "
+			self.cursor.execute("SELECT i_t.id, products.name, (qty_in - qty_out), "
 								"date_inserted, locations.name "
 								"FROM inventory_transactions AS i_t "
 								"JOIN locations "
@@ -131,7 +131,7 @@ class InventoryHistoryGUI:
 								"(%s, %s) ORDER BY locations.name", 
 								(self.product_id, location_id))
 		else:
-			self.cursor.execute("SELECT i_t.id, products.name, qty, reason, "
+			self.cursor.execute("SELECT i_t.id, products.name, (qty_in - qty_out), "
 								"date_inserted, locations.name "
 								"FROM inventory_transactions AS i_t "
 								"JOIN locations "
@@ -145,11 +145,10 @@ class InventoryHistoryGUI:
 			transaction_id = row[0]
 			product_name = row[1]
 			qty = row[2]
-			reason = row[3]
-			date = row[4]
+			date = row[3]
 			date_text = datetime_to_text(date)
-			location_name = row[5]
-			self.inventory_transaction_store.append([transaction_id, date_text, reason, qty, product_name, location_name])
+			location_name = row[4]
+			self.inventory_transaction_store.append([transaction_id, date_text, qty, product_name, location_name])
 
 
 
