@@ -43,12 +43,14 @@ def text_to_datetime (text):
 	return date_time
 
 def datetime_to_text (date_time):
-	if date_time == None:
+	if date_time == None or date_time == '':
 		return ''
 	date_string = datetime.strftime(date_time, PARSE_STRING)
 	return date_string
 
 def calendar_to_text (calendar_date):
+	if calendar_date == None or calendar_date == '':
+		return ''
 	date = calendar_to_datetime (calendar_date)
 	day_text = datetime_to_text (date)
 	return day_text
