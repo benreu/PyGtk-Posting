@@ -960,7 +960,11 @@ def check_and_update_version (db, statusbar):
 		progressbar (95)
 		cursor.execute("ALTER TABLE settings ADD COLUMN cost_decrease_alert numeric(5, 2)")
 		cursor.execute("UPDATE settings SET cost_decrease_alert = 0.25")
-		cursor.execute("UPDATE settings SET version = '096'")
+	if version <= '096':
+		progressbar (96)
+		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT check_foreign_key_not_null CHECK(invoice_line_id IS NOT NULL OR purchase_order_line_id IS NOT NULL OR manufacturing_id IS NOT NULL) ")
+		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT location_id_not_null CHECK(location_id IS NOT NULL) ")
+		cursor.execute("UPDATE settings SET version = '097'")
 	cursor.close()
 	db.commit()
 
