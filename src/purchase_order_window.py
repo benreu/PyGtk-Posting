@@ -95,7 +95,6 @@ class PurchaseOrderGUI:
 		
 		self.populate_vendor_store ()
 		if edit_po_id != None:
-			self.purchase_order_id = edit_po_id
 			self.cursor.execute("SELECT name, vendor_id FROM purchase_orders "
 								"WHERE id = %s", (edit_po_id,))
 			for row in self.cursor.fetchall():
@@ -106,6 +105,7 @@ class PurchaseOrderGUI:
 			self.builder.get_object('button3').set_sensitive(True)
 			self.builder.get_object('menuitem5').set_sensitive(True)
 			self.builder.get_object('menuitem2').set_sensitive(True)
+			self.purchase_order_id = int(edit_po_id)
 			self.products_from_existing_po ()
 
 		qty_column = self.builder.get_object ('treeviewcolumn1')
@@ -197,7 +197,7 @@ class PurchaseOrderGUI:
 		self.db.commit()
 		self.calculate_totals ()
 
-	def products_from_existing_po (self): 
+	def products_from_existing_po (self):
 		self.purchase_order_store.clear()
 		if self.builder.get_object ('checkbutton1').get_active() == True:
 			self.builder.get_object('treeviewcolumn11').set_visible(True)
@@ -348,6 +348,7 @@ class PurchaseOrderGUI:
 		products.ProductsGUI(self.main)
 
 	def populate_vendor_store (self, m=None, i=None):
+		self.populating = True
 		name_combo = self.builder.get_object('combobox1')
 		active_customer = name_combo.get_active() 
 		self.vendor_store.clear()
@@ -369,6 +370,7 @@ class PurchaseOrderGUI:
 				unpaid_balance = unpaid_balance + float(row[1])
 			unpaid = "Unpaid Balance: "+ '${:,.2f}'.format(unpaid_balance)
 			self.vendor_store.append([str(vendor_id),name, po])
+		self.populating = False
 
 	def contacts_window(self, widget):
 		import contacts
@@ -436,7 +438,7 @@ class PurchaseOrderGUI:
 	def vendor_selected(self, vendor_id):
 		self.purchase_order_store.clear()
 		self.builder.get_object ('checkbutton1').set_active(False)
-		if vendor_id != None:
+		if vendor_id != None and self.populating == False:
 			self.vendor_id = vendor_id
 			self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)", 
 								(vendor_id, ))
@@ -799,9 +801,9 @@ class PurchaseOrderGUI:
 	def add_entry (self):
 		self.check_po_id ()
 		self.db.commit()
-		self.purchase_order_store.append([0, 1.0, 0, "Create non-stock item", 
+		self.purchase_order_store.append([0, Decimal(1.0), 0, "Create non-stock item", 
 										False, "Select a stock item" , "", "", 
-										1, 1, True, int(self.vendor_id), '', 
+										Decimal(1), Decimal(1), True, int(self.vendor_id), '', 
 										self.purchase_order_id, False])
 
 	def select_new_entry (self):
