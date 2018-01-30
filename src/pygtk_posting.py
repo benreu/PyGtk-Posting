@@ -62,6 +62,7 @@ class GUI (GObject.GObject):
 			print ("%s when trying to retrieve sys args" % e)
 			database_to_connect = None
 			self.set_admin_menus(True) # started from Anjuta, developer mode
+			database_tools.dev_mode = True
 			self.builder.get_object('menuitem35').set_label("Admin logout")
 
 		self.window = self.builder.get_object('main_window')
