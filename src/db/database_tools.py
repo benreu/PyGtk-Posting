@@ -25,12 +25,18 @@ import log_utils
 
 UI_FILE = "src/db/database_tools.ui"
 
+dev_mode = False
+
 def get_apsw_cursor ():
+	global dev_mode
 	home = os.path.expanduser('~')
 	pref_path = os.path.join(home, '.config/posting')
 	if not os.path.exists(pref_path):
 		os.mkdir(pref_path)
-	pref_file = os.path.join(pref_path, 'local_settings')
+	if dev_mode == True:
+		pref_file = os.path.join(os.getcwd(), 'local_settings')
+	else:
+		pref_file = os.path.join(pref_path, 'local_settings')
 	if not os.path.exists(pref_file):
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()
