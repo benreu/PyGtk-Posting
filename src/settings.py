@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject
+from gi.repository import Gtk, GLib
 from datetime import datetime
 from db import transactor
 
@@ -187,14 +187,17 @@ class GUI():
 		project_text = widget.get_text()
 		if project_text == "":
 			return
-		self.cursor.execute("INSERT INTO time_clock_projects (name, start_date, permanent, active) VALUES (%s, %s, True, True)", (project_text, datetime.today() ))
+		self.cursor.execute("INSERT INTO time_clock_projects "
+							"(name, start_date, permanent, active) VALUES "
+							"(%s, CURRENT_DATE, True, True)", (project_text,))
 		self.db.commit()
 		widget.set_text("")
 		self.populate_time_clock_projects ()
 
 	def populate_time_clock_projects(self):
 		self.time_clock_store.clear()		
-		self.cursor.execute("SELECT * FROM time_clock_projects WHERE (permanent, active) = (True, True)")
+		self.cursor.execute("SELECT * FROM time_clock_projects "
+							"WHERE (permanent, active) = (True, True)")
 		for row in self.cursor.fetchall():
 			project_id = row[0]
 			project_name = row[1]
@@ -205,7 +208,10 @@ class GUI():
 		if path != []:
 			treeiter = model.get_iter(path)
 			project_id = model.get_value(treeiter, 0)
-			self.cursor.execute("UPDATE time_clock_projects SET (active, stop_date) = (False, %s) WHERE id = %s", (datetime.today(), project_id ))
+			self.cursor.execute("UPDATE time_clock_projects "
+								"SET (active, stop_date) = "
+								"(False, CURRENT_DATE) "
+								"WHERE id = %s", (project_id, ))
 			self.db.commit()
 			self.populate_time_clock_projects ()
 
