@@ -946,9 +946,21 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE vendor_product_numbers ALTER COLUMN price SET NOT NULL")
 	if version <= '094':
 		progressbar (94)
+		cursor.execute("ALTER TABLE inventory_transactions DROP COLUMN qty")
+		cursor.execute("ALTER TABLE inventory_transactions DROP COLUMN reason")
+		cursor.execute("ALTER TABLE inventory_transactions DROP COLUMN invoice_line_item_id")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN qty_in integer NOT NULL DEFAULT 0")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN qty_out integer NOT NULL DEFAULT 0")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN invoice_line_id bigint REFERENCES invoice_line_items ON DELETE CASCADE ON UPDATE RESTRICT")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN purchase_order_line_id bigint REFERENCES purchase_order_line_items ON DELETE CASCADE ON UPDATE RESTRICT")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN manufacturing_id bigint REFERENCES purchase_order_line_items ON DELETE CASCADE ON UPDATE RESTRICT")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN price numeric(12, 6) NOT NULL")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN gl_entries_id bigint REFERENCES gl_entries ON DELETE RESTRICT ON UPDATE RESTRICT")
+	if version <= '095':
+		progressbar (95)
 		cursor.execute("ALTER TABLE settings ADD COLUMN cost_decrease_alert numeric(5, 2)")
 		cursor.execute("UPDATE settings SET cost_decrease_alert = 0.25")
-		cursor.execute("UPDATE settings SET version = '095'")
+		cursor.execute("UPDATE settings SET version = '096'")
 	cursor.close()
 	db.commit()
 
