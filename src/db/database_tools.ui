@@ -10,13 +10,14 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkTextBuffer" id="textbuffer1"/>
   <object class="GtkWindow" id="window">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Databases</property>
     <property name="window_position">center</property>
-    <property name="default_width">300</property>
-    <property name="default_height">200</property>
+    <property name="default_width">550</property>
+    <property name="default_height">350</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
@@ -221,154 +222,185 @@
               </packing>
             </child>
             <child>
-              <object class="GtkGrid" id="grid1">
+              <object class="GtkBox" id="box7">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="margin_left">10</property>
-                <property name="margin_right">10</property>
-                <property name="margin_top">10</property>
-                <property name="margin_bottom">10</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkLabel" id="label8">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Type</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label4">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Username</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label5">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Password</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label6">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Server</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label7">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Port</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label9">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">PostgreSQL</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="entry2">
-                    <property name="width_request">300</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="placeholder_text" translatable="yes">Example: postgres</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="entry3">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="visibility">False</property>
-                    <property name="invisible_char">●</property>
-                    <property name="placeholder_text" translatable="yes">Your postgreSQL password</property>
-                    <property name="input_purpose">password</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="entry4">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="placeholder_text" translatable="yes">Example: localhost</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="entry5">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="placeholder_text" translatable="yes">Usually: 5432</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="button4">
-                    <property name="label" translatable="yes">Try connecting</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <signal name="clicked" handler="try_connecting" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkStatusbar" id="statusbar1">
+                  <object class="GtkGrid" id="grid1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="margin_left">10</property>
                     <property name="margin_right">10</property>
-                    <property name="margin_top">6</property>
-                    <property name="margin_bottom">6</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">2</property>
+                    <property name="margin_top">10</property>
+                    <property name="margin_bottom">10</property>
+                    <child>
+                      <object class="GtkLabel" id="label8">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Type</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label4">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="label" translatable="yes">Username</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label5">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Password</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label6">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Server</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label7">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Port</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry2">
+                        <property name="width_request">300</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="placeholder_text" translatable="yes">Example: postgres</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="visibility">False</property>
+                        <property name="invisible_char">●</property>
+                        <property name="placeholder_text" translatable="yes">Your postgreSQL password</property>
+                        <property name="input_purpose">password</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry4">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="placeholder_text" translatable="yes">Example: localhost</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry5">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="placeholder_text" translatable="yes">Usually: 5432</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="box8">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkLabel" id="label9">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">PostgreSQL</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button4">
+                            <property name="label" translatable="yes">Test connection</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <signal name="clicked" handler="test_connection_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">5</property>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="scrolledwindow1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTextView" id="textview1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="wrap_mode">word-char</property>
+                        <property name="cursor_visible">False</property>
+                        <property name="buffer">textbuffer1</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
