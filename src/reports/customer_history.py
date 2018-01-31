@@ -50,9 +50,10 @@ class CustomerHistoryGUI:
 		self.cursor = self.db.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT c.id, c.name FROM contacts AS c "
+							"JOIN invoices ON invoices.customer_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
-							"ORDER BY name")
+							"GROUP BY c.id, c.name ORDER BY name")
 		for customer in self.cursor.fetchall():
 			id_ = customer[0]
 			name = customer[1]
@@ -75,7 +76,7 @@ class CustomerHistoryGUI:
 		self.window.show_all()
 
 	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = '{:,.2f}'.format(model.get_value(iter1, 5))
+		price = '{:,.2f}'.format(model.get_value(iter1, 6))
 		cellrenderer.set_property("text" , price)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
@@ -89,7 +90,8 @@ class CustomerHistoryGUI:
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.invoice_store[path][0]
-		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders WHERE id = %s", (file_id,))
+		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+							"WHERE id = %s", (file_id,))
 		for row in self.cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
@@ -142,7 +144,7 @@ class CustomerHistoryGUI:
 
 	def customer_view_all_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.load_customer_purchase_orders ()
+		self.load_customer_invoices ()
 		if active == True:
 			self.builder.get_object('checkbutton1').set_active(False)
 		
@@ -153,53 +155,56 @@ class CustomerHistoryGUI:
 		self.customer_id = customer_id
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton3').set_active(False)
-		self.load_customer_purchase_orders ()
+		self.load_customer_invoices ()
 
 	def customer_match_selected (self, completion, model, iter):
 		self.customer_id = model[iter][0]
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton3').set_active(False)
-		self.load_customer_purchase_orders ()
+		self.load_customer_invoices ()
 
-	def load_customer_purchase_orders (self):
+	def load_customer_invoices (self):
 		self.invoice_store.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
-			self.cursor.execute("SELECT id, date_created, name, "
-								"COALESCE(total, 0.00) "
-								"FROM invoices "
+			self.cursor.execute("SELECT i.id, dated_for, i.name, c.name, "
+								"comments, COALESCE(total, 0.00) "
+								"FROM invoices AS i "
+								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE canceled =  false "
-								"ORDER BY date_created")
+								"ORDER BY dated_for")
 		else:
-			self.cursor.execute("SELECT id, date_created, name, "
-								"COALESCE(total, 0.00) "
-								"FROM invoices "
+			self.cursor.execute("SELECT i.id, dated_for, i.name, c.name, "
+								"comments, COALESCE(total, 0.00) "
+								"FROM invoices AS i "
+								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE (customer_id, canceled) = "
-								"(%s, False) ORDER BY date_created", 
+								"(%s, False) ORDER BY dated_for", 
 								(self.customer_id,))
 		for row in self.cursor.fetchall():
 			id_ = row[0]
 			date = row[1]
 			date_formatted = dateutils.datetime_to_text(date)
-			name = row[2]
-			remark = ""
-			amount = row[3]
+			i_name = row[2]
+			c_name = row[3]
+			remark = "Comments: " + row[4]
+			amount = row[5]
 			total += amount
-			self.invoice_store.append([id_, str(date), date_formatted, name, 
-														remark, amount])
+			self.invoice_store.append([id_, str(date), date_formatted, i_name, 
+													c_name, remark, amount])
 		self.builder.get_object('label3').set_label(str(total))
 
 	def invoice_row_changed (self, selection):
 		self.builder.get_object('checkbutton1').set_active(False)
-		self.load_purchase_order_items ()
+		self.load_invoice_items ()
 
 	def all_products_togglebutton_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.load_purchase_order_items (load_all = active)
+		self.load_invoice_items (load_all = active)
 		if active == True:
 			self.builder.get_object('checkbutton3').set_active(False)
 
-	def load_purchase_order_items (self, load_all = False):
+	def load_invoice_items (self, load_all = False):
 		store = self.builder.get_object('invoice_items_store')
 		store.clear()
 		if load_all == True:			
