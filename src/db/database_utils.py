@@ -968,7 +968,11 @@ def check_and_update_version (db, statusbar):
 		progressbar (97)
 		cursor.execute("ALTER TABLE invoices ADD COLUMN dated_for date")
 		cursor.execute("UPDATE invoices SET dated_for = date_created")
-		cursor.execute("UPDATE settings SET version = '098'")
+	if version <= '098':
+		progressbar (98)
+		cursor.execute("ALTER TABLE inventory_transactions DROP COLUMN gl_entries_id")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN gl_transactions_id bigint REFERENCES gl_transactions ON DELETE RESTRICT ON UPDATE RESTRICT")
+		cursor.execute("UPDATE settings SET version = '099'")
 	cursor.close()
 	db.commit()
 
