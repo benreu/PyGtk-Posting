@@ -113,8 +113,9 @@ class JobSheetGUI:
 		if row_id == 0:
 			self.cursor.execute("INSERT INTO job_sheet_line_items "
 								"(job_sheet_id, qty, product_id, remark) "
-								"VALUES (%s, %s, %s, %s)", 
+								"VALUES (%s, %s, %s, %s) RETURNING id", 
 								(self.job_id, qty, product_id, remark))
+			line[0] = self.cursor.fetchone()[0] #set the line id to the new id
 		else:
 			self.cursor.execute("UPDATE job_sheet_line_items "
 								"SET (job_sheet_id, qty, product_id, remark) "
