@@ -53,7 +53,7 @@ class CustomerHistoryGUI:
 		self.cursor.execute("SELECT c.id, c.name FROM contacts AS c "
 							"JOIN invoices ON invoices.customer_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
-							"ORDER BY name")
+							"GROUP BY c.id, c.name ORDER BY name")
 		for customer in self.cursor.fetchall():
 			id_ = customer[0]
 			name = customer[1]
