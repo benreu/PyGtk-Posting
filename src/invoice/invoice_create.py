@@ -235,11 +235,11 @@ class Setup(XCloseListener, unohelper.Base):
 		binary = psycopg2.Binary(dat)
 		f.close()
 		self.cursor.execute("UPDATE invoices SET(name, subtotal, tax, total, "
-							"pdf_data, posted, amount_due) "
-							"= ( %s, %s, %s, %s, %s, %s, %s) "
+							"pdf_data, posted, amount_due, dated_for) "
+							"= ( %s, %s, %s, %s, %s, %s, %s, %s) "
 							"WHERE id = %s RETURNING gl_entries_id", 
 							(self.document_name, self.subtotal, self.tax, 
-							self.total, binary, True, self.total, 
+							self.total, binary, True, self.total, self.date, 
 							self.invoice_id))
 		gl_entries_id = self.cursor.fetchone()[0]
 		transactor.post_invoice_receivables(self.db, self.total, self.date, 
