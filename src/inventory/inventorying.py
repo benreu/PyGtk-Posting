@@ -35,8 +35,7 @@ def sell (db, invoice_store, location_id, contact_id, date):
 							"WHERE id = (SELECT id FROM inventory_transactions "
 							"WHERE invoice_line_id = %s) RETURNING id", 
 							(qty, product_id, location_id, 
-							date, inventory_transaction_id, price, 
-							invoice_line_id))
+							date, price, invoice_line_id))
 			for row in cursor.fetchall():
 				break
 			else:
