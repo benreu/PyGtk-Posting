@@ -42,10 +42,18 @@ class JobSheetHistoryGUI:
 		self.job_filter = self.builder.get_object('job_filter')
 		self.job_filter.set_visible_func(self.filter_func)
 
+		qty_column = self.builder.get_object ('treeviewcolumn5')
+		qty_renderer = self.builder.get_object ('cellrenderertext5')
+		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
+
 		self.populate_job_sheet_treeview ()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
+		qty = model.get_value(iter1, 1)
+		cellrenderer.set_property("text" , '{:,.1f}'.format(qty))
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.customer_text.split():

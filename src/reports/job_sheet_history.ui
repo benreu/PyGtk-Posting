@@ -252,7 +252,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Qty</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">1</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5"/>
                       <attributes>
@@ -263,7 +266,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Product</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6"/>
                       <attributes>
@@ -274,7 +280,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Remark</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext7">
                         <property name="editable">True</property>
