@@ -137,7 +137,7 @@ class GUI:
 							"WHERE id =(SELECT MAX(id) FROM statements "
 							"WHERE customer_id = %s)) s "
 							"UNION "
-							"(SELECT name, date_created AS date, "
+							"(SELECT name, dated_for AS date, "
 							"amount_due FROM invoices "
 							"WHERE (canceled, posted, customer_id) = "
 							"(False, True, %s) "

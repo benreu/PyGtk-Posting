@@ -37,14 +37,23 @@ class JobSheetHistoryGUI:
 		self.description_text = ''
 		
 		self.job_sheet_store = self.builder.get_object('job_store')
+		self.job_sort_store = self.builder.get_object('job_sort')
 		self.job_sheet_line_item_store = self.builder.get_object('job_line_item_store')
 		self.job_filter = self.builder.get_object('job_filter')
 		self.job_filter.set_visible_func(self.filter_func)
+
+		qty_column = self.builder.get_object ('treeviewcolumn5')
+		qty_renderer = self.builder.get_object ('cellrenderertext5')
+		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 
 		self.populate_job_sheet_treeview ()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
+		qty = model.get_value(iter1, 1)
+		cellrenderer.set_property("text" , '{:,.1f}'.format(qty))
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.customer_text.split():
@@ -109,7 +118,7 @@ class JobSheetHistoryGUI:
 				Gtk.main_iteration()
 
 	def job_sheet_treeview_activate(self, treeview, path, treeviewcolumn):
-		job_sheet_id = self.job_sheet_store[path][0]
+		job_sheet_id = self.job_sort_store[path][0]
 		self.populate_job_sheet_line_item_treeview(job_sheet_id)
 
 	def populate_job_sheet_line_item_treeview (self, job_sheet_id):
@@ -118,7 +127,8 @@ class JobSheetHistoryGUI:
 							"FROM job_sheet_line_items AS jsli "
 							"JOIN products AS p ON p.id = "
 							"jsli.product_id "
-							"WHERE job_sheet_id = %s", (job_sheet_id,))
+							"WHERE job_sheet_id = %s ORDER BY id",
+							(job_sheet_id,))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			qty = row[1]
