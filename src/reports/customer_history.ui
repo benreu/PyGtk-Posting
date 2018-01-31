@@ -77,7 +77,9 @@
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
       <column type="gchararray"/>
-      <!-- column-name name -->
+      <!-- column-name invoice_name -->
+      <column type="gchararray"/>
+      <!-- column-name customer_name -->
       <column type="gchararray"/>
       <!-- column-name remark -->
       <column type="gchararray"/>
@@ -89,7 +91,7 @@
     <property name="width_request">600</property>
     <property name="height_request">400</property>
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Vendor History</property>
+    <property name="title" translatable="yes">Customer History</property>
     <property name="window_position">center</property>
     <property name="default_width">600</property>
     <property name="default_height">400</property>
@@ -112,7 +114,7 @@
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes"> Vendor </property>
+                <property name="label" translatable="yes"> Customer </property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -173,9 +175,11 @@
             </child>
             <child>
               <object class="GtkLabel" id="label3">
+                <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">0.00 </property>
+                <property name="xalign">1</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -226,6 +230,7 @@
                     <property name="search_column">3</property>
                     <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
+                    <property name="tooltip_column">5</property>
                     <signal name="button-release-event" handler="invoice_treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="row_activated" swapped="no"/>
                     <child internal-child="selection">
@@ -249,9 +254,24 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Number</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext3"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn2">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Name</property>
+                        <property name="title" translatable="yes">Invoice name</property>
+                        <property name="expand">True</property>
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">3</property>
                         <child>
@@ -263,14 +283,14 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Remark</property>
+                        <property name="title" translatable="yes">Customer name</property>
                         <property name="expand">True</property>
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">4</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext4"/>
+                          <object class="GtkCellRendererText" id="cellrenderertext6"/>
                           <attributes>
                             <attribute name="text">4</attribute>
                           </attributes>
@@ -282,13 +302,13 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Amount</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">5</property>
+                        <property name="sort_column_id">6</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext5">
                             <property name="xalign">1</property>
                           </object>
                           <attributes>
-                            <attribute name="text">5</attribute>
+                            <attribute name="text">6</attribute>
                           </attributes>
                         </child>
                       </object>
