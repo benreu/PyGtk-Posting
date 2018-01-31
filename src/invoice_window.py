@@ -103,24 +103,27 @@ class InvoiceGUI:
 		self.populate_customer_store ()
 		self.populate_product_store ()
 		self.builder.get_object('combobox2').set_active(0)
-
-		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
-			self.populate_customer_store ()
-			self.set_widgets_sensitive ()
-			self.populate_invoice_line_items()
-			self.cursor.execute("SELECT customer_id FROM invoices "
-								"WHERE id = %s", (self.invoice_id,))
-			customer_id = self.cursor.fetchone ()[0]
-			self.builder.get_object('combobox1').set_active_id(str(customer_id))
-
-		self.tax = 0
-		self.window.show_all()
-		self.calculate_totals ()
 		
 		self.calendar = DateTimeCalendar(self.db)
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_relative_to(self.builder.get_object('entry1'))
 		self.calendar.set_today()
+
+		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
+			self.populate_customer_store ()
+			self.set_widgets_sensitive ()
+			self.populate_invoice_line_items()
+			self.cursor.execute("SELECT customer_id, dated_for FROM invoices "
+								"WHERE id = %s", (self.invoice_id,))
+			for row in self.cursor.fetchall():
+				customer_id = row[0]
+				date = row[1]
+				self.calendar.set_date(date)
+			self.builder.get_object('combobox1').set_active_id(str(customer_id))
+
+		self.tax = 0
+		self.window.show_all()
+		self.calculate_totals ()
 		
 		GLib.idle_add(self.load_settings)
 
@@ -370,6 +373,9 @@ class InvoiceGUI:
 		self.builder.get_object("comment_buffer").set_text(comments)
 		self.document_type = self.document_list_store[path][2]
 		self.populate_invoice_line_items()
+		self.cursor.execute("SELECT dated_for FROM invoices WHERE id = %s", (self.invoice_id,))
+		date = self.cursor.fetchone()[0]
+		self.calendar.set_date(date)
 
 	def update_invoice_name (self, document_prefix):
 		self.cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
@@ -578,7 +584,6 @@ class InvoiceGUI:
 		exemption_combo.set_active_id(active)
 
 	def customer_selected(self, name_id):
-		
 		self.cursor.execute("SELECT address, phone FROM contacts "
 							"WHERE id = (%s)",(name_id,))
 		for row in self.cursor.fetchall() :
@@ -604,6 +609,13 @@ class InvoiceGUI:
 			self.invoice_id = 0
 			self.builder.get_object("comment_buffer").set_text('')
 		self.populate_invoice_line_items()
+		self.cursor.execute("SELECT dated_for FROM invoices WHERE id = %s", (self.invoice_id,))
+		for row in self.cursor.fetchall():
+			date = row[0]
+			self.calendar.set_date(date)
+			break
+		else:
+			self.calendar.set_today()
 
 	################## start qty
 	

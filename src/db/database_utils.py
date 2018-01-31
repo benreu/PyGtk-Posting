@@ -964,7 +964,11 @@ def check_and_update_version (db, statusbar):
 		progressbar (96)
 		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT check_foreign_key_not_null CHECK(invoice_line_id IS NOT NULL OR purchase_order_line_id IS NOT NULL OR manufacturing_id IS NOT NULL) ")
 		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT location_id_not_null CHECK(location_id IS NOT NULL) ")
-		cursor.execute("UPDATE settings SET version = '097'")
+	if version <= '097':
+		progressbar (97)
+		cursor.execute("ALTER TABLE invoices ADD COLUMN dated_for date")
+		cursor.execute("UPDATE invoices SET dated_for = date_created")
+		cursor.execute("UPDATE settings SET version = '098'")
 	cursor.close()
 	db.commit()
 

@@ -167,19 +167,19 @@ class CustomerHistoryGUI:
 		self.invoice_store.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
-			self.cursor.execute("SELECT i.id, date_created, i.name, c.name, "
+			self.cursor.execute("SELECT i.id, dated_for, i.name, c.name, "
 								"comments, COALESCE(total, 0.00) "
 								"FROM invoices AS i "
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE canceled =  false "
-								"ORDER BY date_created")
+								"ORDER BY dated_for")
 		else:
-			self.cursor.execute("SELECT i.id, date_created, i.name, c.name, "
+			self.cursor.execute("SELECT i.id, dated_for, i.name, c.name, "
 								"comments, COALESCE(total, 0.00) "
 								"FROM invoices AS i "
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE (customer_id, canceled) = "
-								"(%s, False) ORDER BY date_created", 
+								"(%s, False) ORDER BY dated_for", 
 								(self.customer_id,))
 		for row in self.cursor.fetchall():
 			id_ = row[0]

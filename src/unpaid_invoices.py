@@ -155,7 +155,7 @@ class GUI:
 		model.clear()
 		total = Decimal()
 		self.cursor.execute("SELECT i.id, i.name, amount_due, c.name, c.id, "
-							"date_created FROM invoices AS i "
+							"dated_for FROM invoices AS i "
 							"JOIN contacts AS c ON i.customer_id = c.id "
 							"WHERE (canceled, paid, posted) = "
 							"(False, False, True) "
