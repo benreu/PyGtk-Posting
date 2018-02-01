@@ -955,24 +955,21 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN purchase_order_line_id bigint REFERENCES purchase_order_line_items ON DELETE CASCADE ON UPDATE RESTRICT")
 		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN manufacturing_id bigint REFERENCES purchase_order_line_items ON DELETE CASCADE ON UPDATE RESTRICT")
 		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN price numeric(12, 6) NOT NULL")
-		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN gl_entries_id bigint REFERENCES gl_entries ON DELETE RESTRICT ON UPDATE RESTRICT")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN gl_transactions_id bigint REFERENCES gl_transactions ON DELETE RESTRICT ON UPDATE RESTRICT")
+		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN reason varchar")
 	if version <= '095':
 		progressbar (95)
 		cursor.execute("ALTER TABLE settings ADD COLUMN cost_decrease_alert numeric(5, 2)")
 		cursor.execute("UPDATE settings SET cost_decrease_alert = 0.25")
 	if version <= '096':
 		progressbar (96)
-		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT check_foreign_key_not_null CHECK(invoice_line_id IS NOT NULL OR purchase_order_line_id IS NOT NULL OR manufacturing_id IS NOT NULL) ")
+		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT check_transaction_not_null CHECK(invoice_line_id IS NOT NULL OR purchase_order_line_id IS NOT NULL OR manufacturing_id IS NOT NULL OR reason IS NOT NULL) ")
 		cursor.execute("ALTER TABLE inventory_transactions ADD CONSTRAINT location_id_not_null CHECK(location_id IS NOT NULL) ")
 	if version <= '097':
 		progressbar (97)
 		cursor.execute("ALTER TABLE invoices ADD COLUMN dated_for date")
 		cursor.execute("UPDATE invoices SET dated_for = date_created")
-	if version <= '098':
-		progressbar (98)
-		cursor.execute("ALTER TABLE inventory_transactions DROP COLUMN gl_entries_id")
-		cursor.execute("ALTER TABLE inventory_transactions ADD COLUMN gl_transactions_id bigint REFERENCES gl_transactions ON DELETE RESTRICT ON UPDATE RESTRICT")
-		cursor.execute("UPDATE settings SET version = '099'")
+		cursor.execute("UPDATE settings SET version = '098'")
 	cursor.close()
 	db.commit()
 
