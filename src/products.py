@@ -575,10 +575,6 @@ class ProductsGUI:
 		self.builder.get_object('entry2').set_text('')
 		self.save ()
 
-	def inventory_history_clicked (self, widget):
-		from inventory import inventory_history
-		inventory_history.InventoryHistoryGUI(self.db, self.product_id)
-
 	def adjust_inventory_clicked (self, button):
 		from inventory import inventory_adjustment
 		inventory_adjustment.InventoryAdjustmentGUI(self.db, self.product_id)
@@ -671,6 +667,13 @@ class ProductsGUI:
 			revenue_account_name = row[16]
 			self.builder.get_object('combobox-entry1').set_text(revenue_account_name)
 			inventory_account_name = row[17]
+			button = self.builder.get_object('button2')
+			if inventory_account_name == '':
+				button.set_label("No inventory account")
+				button.set_sensitive(False)
+			else:
+				button.set_label("Adjust inventory")
+				button.set_sensitive(True)
 			self.builder.get_object('combobox-entry4').set_text(inventory_account_name)
 			self.builder.get_object('entry13').set_text(row[18])
 			self.builder.get_object('checkbutton6').set_active(row[19])
@@ -733,9 +736,12 @@ class ProductsGUI:
 			return
 		self.cursor.execute("UPDATE products SET inventory_account = %s "
 							"WHERE id = %s", (account_number, self.product_id))
+		button = self.builder.get_object('button2')
+		button.set_label("Adjust inventory")
+		button.set_sensitive(True)
 		self.db.commit()
 
-	def save(self, button = None):
+	def save (self, button = None):
 		name = self.builder.get_object('entry1').get_text()
 		ext_name = self.builder.get_object('entry10').get_text()
 		barcode = self.builder.get_object('entry2').get_text()
