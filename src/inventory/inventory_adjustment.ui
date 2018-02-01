@@ -179,7 +179,6 @@
             <child>
               <object class="GtkComboBoxText" id="comboboxtext3">
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <signal name="changed" handler="inventory_adjustment_combobox_changed" swapped="no"/>

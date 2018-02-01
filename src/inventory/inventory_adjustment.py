@@ -20,7 +20,7 @@ from datetime import datetime
 UI_FILE = "src/inventory/inventory_adjustment.ui"
 
 class InventoryAdjustmentGUI:
-	def __init__(self, db, product_id = None):
+	def __init__(self, db, product_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -33,7 +33,7 @@ class InventoryAdjustmentGUI:
 		product_completion = self.builder.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 
-		self.populate_stores ()
+		self.populate_stores (product_id)
 		if product_id != None:
 			self.product_id = product_id
 			self.builder.get_object('combobox1').set_active_id(str(product_id))
@@ -52,10 +52,10 @@ class InventoryAdjustmentGUI:
 				return False
 		return True
 
-	def populate_stores (self):
+	def populate_stores (self, product_id):
 		self.cursor.execute("SELECT id, name FROM products "
-							"WHERE (deleted, stock) "
-							"= (False, True) ORDER BY name")
+							"WHERE (deleted, stock, id) "
+							"= (False, True, %s) ORDER BY name", (product_id,))
 		for row in self.cursor.fetchall():
 			product_id = row[0]
 			product_name = row[1]
@@ -110,7 +110,6 @@ class InventoryAdjustmentGUI:
 			inventory = row[0]
 		current_inventory = str(inventory + adjustment_amount)
 		self.builder.get_object('label23').set_text(current_inventory)
-		self.builder.get_object('comboboxtext3').set_sensitive(True)
 
 	def inventory_adjustment_combobox_changed(self, widget):
 		if self.product_id != 0:
@@ -119,21 +118,23 @@ class InventoryAdjustmentGUI:
 			self.builder.get_object('button2').set_sensitive(False)
 
 	def apply_inventory_adjustment_clicked (self, widget):
-		adjustment_amount = self.builder.get_object('spinbutton12').get_text()
+		adjustment_amount = self.builder.get_object('spinbutton12').get_value()
 		adjustment_reason = self.builder.get_object('comboboxtext3').get_active_text()
 		location_id = self.builder.get_object('combobox3').get_active_id()
-		self.cursor.execute("INSERT INTO inventory_transactions "
-							"(product_id, qty_in, date_inserted, "
-							"location_id, price) VALUES (%s, %s, %s, %s, 210)", 
-							(self.product_id, adjustment_amount, 
-							datetime.today(), location_id))
+		if adjustment_amount != 0:
+			self.cursor.execute("INSERT INTO inventory_transactions "
+								"(product_id, qty_in, date_inserted, "
+								"location_id, price, reason) "
+								"VALUES (%s, %s, %s, %s, 210, %s)", 
+								(self.product_id, adjustment_amount, 
+								datetime.today(), location_id, adjustment_reason))
 		self.cursor.execute("UPDATE products SET inventory_enabled = True "
 							"WHERE id = %s", (self.product_id,))
 		self.db.commit()
 		self.builder.get_object('spinbutton12').set_value(0)
-		self.builder.get_object('comboboxtext3').set_sensitive(False)
 		self.builder.get_object('comboboxtext3').set_active(0-1)
 		widget.set_sensitive(False)
+		self.builder.get_object('window').destroy() 
 
 	def populate_adjustment_reason_combobox(self):
 		combo = self.builder.get_object('comboboxtext3')
