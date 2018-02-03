@@ -79,6 +79,7 @@ class GUI:
 		self.treeview = self.builder.get_object('treeview1')
 		self.populate_contacts ()
 		self.select_contact ()
+		self.populate_zip_codes ()
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -89,6 +90,34 @@ class GUI:
 		thread.start()
 		
 		GLib.timeout_add(100, self.populate_scanners)
+
+	def populate_zip_codes (self):
+		zip_code_store = self.builder.get_object("zip_code_store")
+		zip_code_store.clear()
+		self.cursor.execute("SELECT zip, city, state FROM contacts "
+							"WHERE deleted = False GROUP BY zip, city, state")
+		for row in self.cursor.fetchall():
+			zip_code = row[0]
+			city = row[1]
+			state = row[2]
+			zip_code_store.append([zip_code, city, state])
+
+	def zip_code_match_selected (self, completion, store, _iter):
+		city = store[_iter][1]
+		state = store[_iter][2]
+		self.builder.get_object("entry4").set_text(city)
+		self.builder.get_object("entry5").set_text(state)
+
+	def zip_activated (self, entry):
+		zip_code = entry.get_text()
+		self.cursor.execute("SELECT city, state FROM contacts "
+							"WHERE (deleted, zip) = (False, %s) "
+							"GROUP BY city, state LIMIT 1", (zip_code,))
+		for row in self.cursor.fetchall():
+			city = row[0]
+			state = row[1]
+			self.builder.get_object("entry4").set_text(city)
+			self.builder.get_object("entry5").set_text(state)
 
 	def populate_scanners(self):
 		try:
@@ -830,6 +859,7 @@ class GUI:
 		self.builder.get_object('combobox3').set_active_id(str(individual_id))
 		self.db.commit()
 		self.populate_contacts ()
+		self.populate_zip_codes ()
 		
 
 
