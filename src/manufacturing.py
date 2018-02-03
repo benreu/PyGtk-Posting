@@ -134,17 +134,17 @@ class ManufacturingGUI:
 				qty = self.builder.get_object('spinbutton1').get_text()
 				manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
 			self.cursor.execute("SELECT COUNT(DISTINCT(employee_id)), "
-								"SUM(start_time), SUM(stop_time) "
+								"ROUND( "
+									"(SUM(stop_time::numeric) - "
+									"SUM(start_time::numeric)) / 3600"
+									", 2) "
 								"FROM time_clock_entries "
 								"WHERE (project_id, state) = "
 								"(%s, 'complete') GROUP BY project_id", 
 								(time_clock_projects_id,))
 			for row in self.cursor.fetchall():
 				employee_count = row[0]
-				start_time_total = row[1]
-				stop_time_total = row[2]
-				total_time = stop_time_total - start_time_total
-				formatted_time = self.convert_seconds (total_time)
+				formatted_time = str(row[1])
 				time_label = self.builder.get_object('label3')
 				time_string = ("%s employee(s) spent "
 								"%s hour(s) on this manufacturing process")\
@@ -225,18 +225,6 @@ class ManufacturingGUI:
 	def product_window(self, column):
 		import products
 		products.ProductsGUI(self.db)
-
-	def convert_seconds(self, start_seconds):
-		leftover_seconds = int(start_seconds) 
-		hours = int(leftover_seconds / 3600)
-		leftover_seconds = (leftover_seconds - (hours * 3600))
-		minutes = int(leftover_seconds / 60)
-		leftover_seconds = (leftover_seconds - (minutes * 60))
-		seconds = int(leftover_seconds)
-		fractional_hours = minutes/6
-		if minutes % 6 != 0 or seconds % 60 != 0 :
-			fractional_hours += 1 #round to the next .1 hour
-		return str(hours) + "." + str(fractional_hours)
 		
 
 
