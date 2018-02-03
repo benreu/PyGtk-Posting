@@ -8,7 +8,7 @@
       <column type="gint"/>
       <!-- column-name contact_name -->
       <column type="gchararray"/>
-      <!-- column-name contact_c_o -->
+      <!-- column-name contact_ext_name -->
       <column type="gchararray"/>
       <!-- column-name contact_address -->
       <column type="gchararray"/>
@@ -26,7 +26,21 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkListStore" id="duplicate_selector_store">
+  <object class="GtkTreeModelFilter" id="duplicate_contact_filter">
+    <property name="child_model">duplicate_contact_store</property>
+  </object>
+  <object class="GtkTreeModelSort" id="duplicate_contact_sort">
+    <property name="model">duplicate_contact_filter</property>
+  </object>
+  <object class="GtkListStore" id="filter_store">
+    <columns>
+      <!-- column-name filter_column -->
+      <column type="gchararray"/>
+      <!-- column-name filter_text -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="sort_store">
     <columns>
       <!-- column-name search -->
       <column type="gchararray"/>
@@ -86,6 +100,7 @@
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Duplicate Contact Finder</property>
+    <property name="window_position">center</property>
     <property name="default_width">1100</property>
     <property name="default_height">700</property>
     <property name="icon">PyGtk_Posting.svg</property>
@@ -93,34 +108,112 @@
       <object class="GtkPaned" id="paned1">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
-        <property name="position">150</property>
+        <property name="position">200</property>
         <property name="position_set">True</property>
         <child>
-          <object class="GtkScrolledWindow" id="scrolledwindow1">
+          <object class="GtkPaned" id="paned2">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="shadow_type">in</property>
+            <property name="orientation">vertical</property>
+            <property name="position">300</property>
+            <property name="position_set">True</property>
             <child>
-              <object class="GtkTreeView" id="treeview1">
+              <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">duplicate_selector_store</property>
-                <signal name="cursor-changed" handler="duplicate_selector_cursor_changed" swapped="no"/>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection1"/>
-                </child>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                    <property name="title" translatable="yes">Column to search</property>
+                  <object class="GtkTreeView" id="treeview1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="model">sort_store</property>
+                    <signal name="cursor-changed" handler="duplicate_selector_cursor_changed" swapped="no"/>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection" id="treeview-selection1"/>
+                    </child>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
-                      <attributes>
-                        <attribute name="text">0</attribute>
-                      </attributes>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                        <property name="title" translatable="yes">Column to sort</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
                     </child>
                   </object>
                 </child>
               </object>
+              <packing>
+                <property name="resize">False</property>
+                <property name="shrink">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkScrolledWindow" id="scrolledwindow3">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="treeview3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">filter_store</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="treeview-selection3"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn11">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Column</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext11"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn12">
+                            <property name="resizable">True</property>
+                            <property name="sizing">autosize</property>
+                            <property name="title" translatable="yes">Filter text</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext12">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="filter_text_edited" object="filter_store" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">True</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -134,6 +227,44 @@
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
             <child>
+              <object class="GtkBox" id="box2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkScrolledWindow" id="scrolledwindow2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -142,7 +273,7 @@
                   <object class="GtkTreeView" id="treeview2">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="model">duplicate_contact_store</property>
+                    <property name="model">duplicate_contact_sort</property>
                     <property name="rubber_banding">True</property>
                     <property name="activate_on_single_click">True</property>
                     <child internal-child="selection">
@@ -153,8 +284,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Name</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">1</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext2"/>
@@ -166,8 +299,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">C/O</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">2</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext3"/>
@@ -179,8 +314,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Address</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">3</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext4"/>
@@ -192,8 +329,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">City</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">4</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext5"/>
@@ -205,8 +344,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">State</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">5</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext6"/>
@@ -218,8 +359,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Zip</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">6</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext7"/>
@@ -231,8 +374,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Fax</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">7</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext8"/>
@@ -244,8 +389,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Phone</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">8</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext9"/>
@@ -257,8 +404,10 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                        <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Email</property>
+                        <property name="reorderable">True</property>
                         <property name="sort_column_id">9</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext10"/>
@@ -274,7 +423,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -339,7 +488,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -392,7 +541,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>

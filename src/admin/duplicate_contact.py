@@ -25,7 +25,23 @@ class DuplicateContactGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
+		self.name_filter = ''
+		self.ext_name_filter = ''
+		self.address_filter = ''
+		self.city_filter = ''
+		self.state_filter = ''
+		self.zip_filter = ''
+		self.fax_filter = ''
+		self.phone_filter = ''
+		self.email_filter = ''
+
+		store = self.builder.get_object('filter_store')
+		for row in [('Name', ''), ('Ext name', ''), ('Address', ''), ('City', ''), ('State', ''), ('Zip', ''), ('Fax', ''), ('Phone', ''), ('Email', '')]:
+			store.append(row)
 		self.duplicate_contact_store = self.builder.get_object('duplicate_contact_store')
+		self.filtered_store = self.builder.get_object(
+													'duplicate_contact_filter')
+		self.filtered_store.set_visible_func(self.filter_func)
 		self.merging = False
 		
 		self.db = db
@@ -33,6 +49,40 @@ class DuplicateContactGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def filter_text_edited (self, store, path, text):
+		store[path][1] = text
+		self.name_filter = store[0][1]
+		self.ext_name_filter = store[1][1]
+		self.address_filter = store[2][1]
+		self.city_filter = store[3][1]
+		self.state_filter = store[4][1]
+		self.zip_filter = store[5][1]
+		self.fax_filter = store[6][1]
+		self.phone_filter = store[7][1]
+		self.email_filter = store[8][1]
+		self.filtered_store.refilter()
+
+	def filter_func(self, model, tree_iter, r):
+		if self.name_filter not in model[tree_iter][1]:
+			return False
+		if self.ext_name_filter not in model[tree_iter][2]:
+			return False
+		if self.address_filter not in model[tree_iter][3]:
+			return False
+		if self.city_filter not in model[tree_iter][4]:
+			return False
+		if self.state_filter not in model[tree_iter][5]:
+			return False
+		if self.zip_filter not in model[tree_iter][6]:
+			return False
+		if self.fax_filter not in model[tree_iter][7]:
+			return False
+		if self.phone_filter not in model[tree_iter][8]:
+			return False
+		if self.email_filter not in model[tree_iter][9]:
+			return False
+		return True
 
 	def duplicate_contact_selection_changed (self, selection):
 		model, path = selection.get_selected_rows()
