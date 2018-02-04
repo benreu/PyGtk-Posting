@@ -52,8 +52,7 @@ class ProductAccountRelationshipGUI:
 			self.product_window = products.ProductsGUI(self.main)
 			self.product_window.builder.get_object('paned1').set_position(0)
 			self.product_window.builder.get_object('window').resize(600, 600)
-		self.product_window.product_id = product_id
-		self.product_window.select_product()
+		self.product_window.select_product(product_id)
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
