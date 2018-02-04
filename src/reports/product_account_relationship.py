@@ -28,6 +28,7 @@ class ProductAccountRelationshipGUI:
 		
 		self.product_text = ''
 		self.account_text = ''
+		self.product_window = None
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -38,6 +39,21 @@ class ProductAccountRelationshipGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 		self.populate_product_account_store ()
+
+	def treeview_row_activated (self, treeview, path, column):
+		model = treeview.get_model()
+		if self.builder.get_object('checkbutton1').get_active() == True:
+			self.show_external_product_window(model, path)
+
+	def show_external_product_window (self, model, path):
+		product_id = model[path][0]
+		if self.product_window == None or not self.product_window.exists:
+			import products
+			self.product_window = products.ProductsGUI(self.main)
+			self.product_window.builder.get_object('paned1').set_position(0)
+			self.product_window.builder.get_object('window').resize(600, 600)
+		self.product_window.product_id = product_id
+		self.product_window.select_product()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
