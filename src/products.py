@@ -105,8 +105,7 @@ class ProductsGUI:
 		window = self.builder.get_object('window')
 		window.show_all()
 		if product_id != None:
-			self.product_id = product_id
-			self.select_product()
+			self.select_product(product_id)
 
 	def destroy(self, window):
 		self.main.disconnect(self.handler_id)
@@ -599,8 +598,8 @@ class ProductsGUI:
 		path = treeview.get_cursor().path
 		if path == None:
 			return
-		self.product_id = self.filtered_product_store[path][0]
-		self.select_product()
+		product_id = self.filtered_product_store[path][0]
+		self.select_product(product_id)
 
 	def product_exemptible_toggled(self, widget):
 		if widget.get_active() == True:
@@ -633,7 +632,8 @@ class ProductsGUI:
 			self.builder.get_object('entry12').set_text('')
 			self.builder.get_object('checkbutton1').set_active(False)
 		
-	def select_product (self):
+	def select_product (self, product_id):
+		self.product_id = product_id
 		self.cursor.execute("SELECT name, description, barcode, unit, "
 							"cost, tax_rate_id, sellable, purchasable, "
 							"min_inventory, reorder_qty, tax_exemptible, "

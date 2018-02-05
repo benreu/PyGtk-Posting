@@ -45,8 +45,7 @@ class ProductHubGUI:
 	def edit_product_clicked (self, button):
 		import products
 		p = products.ProductsGUI (self.main)
-		p.product_id = self.product_id
-		p.select_product ()
+		p.select_product (self.product_id)
 		self.window.destroy()
 
 	def product_location_clicked (self, button):

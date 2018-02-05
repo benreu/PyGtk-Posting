@@ -31,6 +31,10 @@ class MainReportsGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def manufacturing_history_clicked (self, button):
+		from reports import manufacturing_history
+		manufacturing_history.ManufacturingHistoryGUI(self.main)
+
 	def product_account_relationship_clicked (self, button):
 		from reports import product_account_relationship
 		product_account_relationship.ProductAccountRelationshipGUI(self.main)

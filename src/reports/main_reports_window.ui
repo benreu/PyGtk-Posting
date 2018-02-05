@@ -186,10 +186,11 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="button9">
-                        <property name="label" translatable="yes"> </property>
+                        <property name="label" translatable="yes"> Manufacturing history</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="clicked" handler="manufacturing_history_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>

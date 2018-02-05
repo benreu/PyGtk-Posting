@@ -439,7 +439,7 @@ class GUI (GObject.GObject):
 
 	def manufacturing_window (self, widget):
 		import manufacturing
-		manufacturing.ManufacturingGUI(self.db)
+		manufacturing.ManufacturingGUI(self)
 
 	def accounts_overview_activated (self, menuitem):
 		import accounts_overview
