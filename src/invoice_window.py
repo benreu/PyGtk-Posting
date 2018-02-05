@@ -190,10 +190,6 @@ class InvoiceGUI:
 						self.calculate_row_taxes(row)
 						break
 
-	def serial_number_window_delete_event (self, window, event):
-		window.hide()
-		return True
-
 	def barcode_entry_activate (self, entry):
 		self.check_invoice_id()
 		barcode = entry.get_text()
@@ -628,7 +624,7 @@ class InvoiceGUI:
 
 	def qty_edited(self, widget, path, text):
 		if self.invoice_store[path][12] == True:
-			self.invoice_store[path][1] = int(text)
+			self.invoice_store[path][1] = int(text) # only allow whole numbers for inventory
 		else:
 			self.invoice_store[path][1] = round(float(text), 1)
 		line = self.invoice_store[path]
@@ -688,6 +684,11 @@ class InvoiceGUI:
 		self.product_selected (product_id, path)
 
 	def product_selected (self, product_id, path):
+		invoice_line_id = self.invoice_store[path][0]
+		self.cursor.execute("UPDATE serial_numbers "
+							"SET invoice_line_item_id = NULL "
+							"WHERE invoice_line_item_id = %s", 
+							(invoice_line_id,))
 		self.cursor.execute("SELECT products.name, ext_name, tax_letter, "
 							"invoice_serial_numbers "
 							"FROM products JOIN tax_rates "
@@ -706,36 +707,48 @@ class InvoiceGUI:
 			self.invoice_store[path][12] = serial_number
 			if serial_number == True:
 				self.builder.get_object('treeviewcolumn13').set_visible(True)
-				qty = int(self.invoice_store[path][1])
+				qty = int(self.invoice_store[path][1]) 
 				self.invoice_store[path][1] = qty
 			self.set_product_price (path)
+			self.set_serial_number_box_state(serial_number)
 		self.check_serial_numbers ()
+		self.populate_serial_numbers ()
 
-	def check_serial_numbers (self):
+	def populate_serial_numbers (self):
 		serial_number_store = self.builder.get_object('serial_number_store')
 		serial_number_store.clear()
+		selection = self.builder.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return # no row selected
+		invoice_line_id = model[path][0]
+		product_id = model[path][2]
+		product_name = model[path][3]
+		self.cursor.execute("SELECT id, serial_number FROM serial_numbers "
+							"WHERE invoice_line_item_id = %s", 
+							(invoice_line_id,))
+		for row in self.cursor.fetchall():
+			id_ = row[0]
+			serial_number = row[1]
+			serial_number_store.append([product_id, invoice_line_id, product_name, serial_number, id_])
+
+	def check_serial_numbers (self):
 		mismatch = False
+		box = self.builder.get_object('box4')
 		for row in self.invoice_store:
 			if row[12] == True:
+				box.set_visible(True)
 				invoice_line_id = row[0]
 				qty = int(row[1])
 				product_id = row[2]
 				product_name = row[3]
-				self.cursor.execute("SELECT id, serial_number "
-									"FROM serial_numbers "
-									"WHERE (invoice_line_item_id, "
-									"product_id) = (%s, %s)", 
-									(invoice_line_id, product_id))
-				tupl = self.cursor.fetchall()
-				ser_qty = len(tupl)
+				self.cursor.execute("SELECT COUNT(id) FROM serial_numbers "
+									"WHERE invoice_line_item_id = %s", 
+									(invoice_line_id,))
+				ser_qty = self.cursor.fetchone()[0]
 				if qty != ser_qty:
 					mismatch = True
-				for row in tupl:
-					id_ = row[0]
-					serial_number = row[1]
-					serial_number_store.append([product_id, invoice_line_id, product_name, serial_number, id_])
-				for i in range (qty - ser_qty):
-					serial_number_store.append([product_id, invoice_line_id, product_name, '', 0])
+					break
 		button = self.builder.get_object('button2')
 		if mismatch == True:
 			button.set_label('Qty/serial number mismatch')
@@ -744,65 +757,90 @@ class InvoiceGUI:
 			button.set_label('Post invoice')
 			button.set_sensitive(True)
 
-	def serial_number_window_activated (self, menuitem):
-		pos = self.window.get_position()
-		x, y = pos[0], pos[1]
-		x_size = self.window.get_size()[0]
-		x = int(x) + int(x_size)
-		window = self.builder.get_object('serial_number_window')
-		window.move(x , int(y))
-		window.show_all()
-		selection = self.builder.get_object('treeview-selection5')
-		selection.select_path(0)
+	def invoice_item_row_activated (self, treeview, path, column):
+		store = treeview.get_model()
+		invoice_item_id = store[path][0]
+		if invoice_item_id == 0:
+			return # no valid invoice item yet
+		enforce_serial_numbers = store[path][12]
+		self.set_serial_number_box_state(enforce_serial_numbers)
+		product_id = store[path][2]
+		self.check_serial_numbers()
+		self.populate_serial_numbers ()
+
+	def set_serial_number_box_state (self, sensitive):
+		box = self.builder.get_object('box4')
+		box.set_sensitive(sensitive)
 
 	def serial_number_entry_activated (self, entry):
 		serial_number = entry.get_text()
-		serial_number_store = self.builder.get_object('serial_number_store')
-		label = self.builder.get_object('label15')
-		for row in serial_number_store:
-			if row[3] == serial_number:
-				label.set_label('Serial number in use')
-				return True
-		selection = self.builder.get_object('treeview-selection5')
-		model, path = selection.get_selected_rows()
+		item_selection = self.builder.get_object('treeview-selection')
+		model, path = item_selection.get_selected_rows()
 		if path == []:
-			label.set_label('Select a row')
-			return True
-		model[path][3] = serial_number
-		product_id = model[path][0]
-		invoice_line_id = model[path][1]
-		product_serial_number_id = row[4]
-		if product_serial_number_id == 0:
-			self.cursor.execute("INSERT INTO serial_numbers "
-								"(product_id, serial_number, "
-								"date_inserted, invoice_line_item_id) "
-								"VALUES (%s, %s, %s, %s)", 
-								(product_id, serial_number, 
-								self.datetime, invoice_line_id))
+			self.show_serial_number_error ("No invoice item selected!")
+			return # no invoice item selected
+		invoice_line_id = model[path][0]
+		product_id = model[path][2]
+		self.cursor.execute("SELECT c.name, i.id FROM serial_numbers AS sn "
+							"JOIN invoice_line_items AS ili "
+							"ON ili.id = sn.invoice_line_item_id "
+							"JOIN invoices AS i ON i.id = ili.invoice_id "
+							"JOIN contacts AS c ON c.id = i.customer_id "
+							"WHERE (sn.product_id, sn.serial_number) = (%s, %s) ",
+							(product_id, serial_number))
+		for row in self.cursor.fetchall():
+			customer_name = row[0]
+			invoice_number = row[1]
+			error = "Serial number %s is in use on invoice number %s, "\
+			"customer name %s.\n Most likely you entered the serial number "\
+			"twice or maybe the serial number\n got entered wrong now, or "\
+			"sometime before today."\
+			%(serial_number, invoice_number, customer_name)
+			self.show_serial_number_error(error)
+			return  # serial number is in use
+		self.cursor.execute("UPDATE serial_numbers "
+							"SET invoice_line_item_id = %s "
+							"WHERE (product_id, serial_number) = (%s, %s) "
+							"AND invoice_line_item_id IS NULL RETURNING id", 
+							(invoice_line_id, product_id, serial_number ))
+		for row in self.cursor.fetchall():
+			product_serial_number_id = row[0]
+			break
 		else:
-			self.cursor.execute("UPDATE serial_numbers SET "
-								"serial_number = %s WHERE id = %s", 
-								(serial_number, product_serial_number_id))
+			error = ("That serial number was not found in the system.\n "
+			"This means it was not manufactured or received yet.\n "
+			"If you want to add it manually, you can go to\n "
+			"General>Serial Numbers on the main window.")
+			self.show_serial_number_error(error)
+			return  # no serial number found in the system
 		self.db.commit()
-		selection.select_path(path[0][0] + 1)
-		label.set_label('')
+		self.check_serial_numbers ()
+		self.populate_serial_numbers ()
 		entry.select_region(0, -1)
 		entry.grab_focus()
+
+	def show_serial_number_error (self, error):
+		self.builder.get_object('label2').set_label(error)
+		dialog = self.builder.get_object('serial_number_error_dialog')
+		dialog.run()
+		dialog.hide()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		entry = self.builder.get_object('entry11')
 		entry.select_region(0, -1)
 		entry.grab_focus()
 
-	def delete_serial_number_clicked (self, button):
+	def remove_serial_number_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection5')
 		model, path = selection.get_selected_rows()
 		if path != []:
 			product_serial_number_id = model[path][4]
-			self.cursor.execute("DELETE FROM product_serial_numbers "
+			self.cursor.execute("UPDATE serial_numbers "
+								"SET invoice_line_item_id = NULL "
 								"WHERE id = %s", (product_serial_number_id,))
 			self.db.commit()
 		self.check_serial_numbers ()
+		self.populate_serial_numbers ()
 		
 	def populate_product_store(self, m=None, i=None):
 		self.product_store.clear()
@@ -844,7 +882,7 @@ class InvoiceGUI:
 		self.builder.get_object('button1').set_sensitive(True)
 		self.builder.get_object('button2').set_sensitive(True)
 		self.builder.get_object('button3').set_sensitive(True)
-		self.builder.get_object('button4').set_sensitive(True)
+		self.builder.get_object('menuitem14').set_sensitive(True)
 		self.builder.get_object('entry9').set_sensitive(True)
 		self.builder.get_object('menuitem2').set_sensitive(True)
 		self.builder.get_object('menuitem6').set_sensitive(True)
@@ -944,8 +982,9 @@ class InvoiceGUI:
 					treeview.set_cursor(index , c, True)
 					break
 		self.check_invoice_id()
+		self.set_serial_number_box_state(False)
 
-	def delete_entry(self, widget):
+	def delete_line_item_activated (self, menuitem):
 		model, path = self.builder.get_object("treeview-selection").get_selected_rows ()
 		if path == []:
 			return
