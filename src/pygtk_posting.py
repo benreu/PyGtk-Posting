@@ -651,7 +651,7 @@ class GUI (GObject.GObject):
 
 	def payment_window(self, widget):
 		import customer_payment
-		customer_payment.GUI(self.db)
+		customer_payment.GUI(self)
 
 	def products_window(self, widget):
 		import products

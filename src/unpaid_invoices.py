@@ -27,7 +27,7 @@ class GUI:
 	def __init__(self, main):
 		Figure = None
 
-		self.parent = main
+		self.main = main
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -64,7 +64,7 @@ class GUI:
 		cellrenderer.set_property("text" , str(amount))
 
 	def destroy(self, window):
-		self.parent.unpaid_invoices_window = None
+		self.main.unpaid_invoices_window = None
 		self.cursor.close()
 
 	def invoice_chart_clicked (self, button):
@@ -147,7 +147,7 @@ class GUI:
 		invoice_id = model[path][0]
 		contact_id = model[path][2]
 		import invoice_window
-		invoice_window.InvoiceGUI(self.parent, invoice_id, contact_id)
+		invoice_window.InvoiceGUI(self.main, invoice_id, contact_id)
 
 	def treeview_populate(self):
 		treeview_selection = self.builder.get_object('treeview-selection')
@@ -195,7 +195,7 @@ class GUI:
 			return
 		customer_id = model[path][2]
 		import customer_payment
-		customer_payment.GUI(self.db, customer_id)
+		customer_payment.GUI(self.main, customer_id)
 
 	def new_statement (self, widget):
 		new_statement.GUI(self.db)

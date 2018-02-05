@@ -25,7 +25,7 @@ from db import transactor
 UI_FILE = "src/customer_payment.ui"
 
 class GUI:
-	def __init__(self, db, customer_id = None):
+	def __init__(self, main, customer_id = None):
 
 		self.customer_id = customer_id
 		self.payment_type_id = 0
@@ -33,19 +33,28 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.cursor.execute ("SELECT enforce_exact_payment FROM settings")
 		self.exact_payment = self.cursor.fetchone()[0]
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		self.accrual = self.cursor.fetchone()[0]
 
+		self.expense_accounts = main.expense_acc
+
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
 		self.invoice_store = self.builder.get_object ('unpaid_invoice_store')
 		self.customer_store = self.builder.get_object ('customer_store')
-		self.account_store = self.builder.get_object ('account_store')
+		self.cash_account_store = self.builder.get_object ('cash_account_store')
+		self.cursor.execute("SELECT number, name FROM gl_accounts "
+								"WHERE (is_parent, cash_account) = "
+								"(False, True)")
+		for row in self.cursor.fetchall():
+			number = row[0]
+			name = row[1]
+			self.cash_account_store.append([str(number), name])
 		self.populate_contacts ()
 
 		total_column = self.builder.get_object ('treeviewcolumn3')
@@ -417,21 +426,14 @@ class GUI:
 		
 	def discount_cash_back_amount_changed (self, spinbutton):
 		self.check_amount_totals_validity ()
-		self.account_store.clear()
 		amount  = spinbutton.get_value()
+		combobox = self.builder.get_object('combobox2')
 		if amount == 0.00:
 			return
 		elif amount < 0.00:
-			self.cursor.execute("SELECT number, name FROM gl_accounts "
-								"WHERE type = 3 AND is_parent = False")
+			combobox.set_model(self.expense_accounts)
 		elif amount > 0.00:
-			self.cursor.execute("SELECT number, name FROM gl_accounts "
-								"WHERE (is_parent, cash_account) = "
-								"(False, True)")
-		for row in self.cursor.fetchall():
-			number = row[0]
-			name = row[1]
-			self.account_store.append([str(number), name])
+			combobox.set_model(self.cash_account_store)
 
 	def check_number_changed (self, entry):
 		self.check_amount_totals_validity ()
