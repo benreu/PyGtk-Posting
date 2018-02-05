@@ -24,7 +24,7 @@ UI_FILE = "src/manufacturing.ui"
 
 
 class ManufacturingGUI:
-	def __init__(self, db):
+	def __init__(self, main):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -34,8 +34,9 @@ class ManufacturingGUI:
 		product_completion.set_match_func(self.product_match_func)
 
 		self.product_id = None
-		
-		self.db = db
+
+		self.main = main
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		
 		self.populate_stores ()
@@ -224,7 +225,7 @@ class ManufacturingGUI:
 
 	def product_window(self, column):
 		import products
-		products.ProductsGUI(self.db)
+		products.ProductsGUI(self.main)
 		
 
 
