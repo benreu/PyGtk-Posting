@@ -145,8 +145,6 @@ class GUI:
 		if cash_only == True:
 			for row in self.cursor.fetchall():
 				tax = row[0]
-				total = row[1]
-				self.builder.get_object('spinbutton1').set_value(total)
 				self.builder.get_object('label4').set_label("Not applicable")
 				self.builder.get_object('label9').set_label("Not applicable")
 		elif pay_in_days_active == True:
@@ -160,10 +158,6 @@ class GUI:
 				self.builder.get_object('label9').set_label(due_date_text)
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))
-				if date_difference <= timedelta(pay_in_days):
-					self.builder.get_object('spinbutton1').set_value(discounted_amount)
-				else:
-					self.builder.get_object('spinbutton1').set_value(self.total)
 		elif pay_by_day_of_month_active == True:
 			for row in self.cursor.fetchall():
 				invoice_id = row[0]
@@ -175,10 +169,6 @@ class GUI:
 				self.builder.get_object('label9').set_label(due_date_text)
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))
-				if self.date <= discount_date:
-					self.builder.get_object('spinbutton1').set_value(discounted_amount)
-				else:
-					self.builder.get_object('spinbutton1').set_value(self.total)
 		else:
 			raise Exception("the terms_and_discounts table has invalid entries")
 
@@ -238,12 +228,40 @@ class GUI:
 			total += model[row][4]
 		if len(path) == 1:
 			invoice_id = model[path][0]
+			amount_due = model[path][5]
+			self.builder.get_object('spinbutton1').set_value(amount_due)
 			self.calculate_invoice_discount (invoice_id)
 		else:
 			self.builder.get_object('label9').set_label('Select one invoice')
 			self.builder.get_object('label4').set_label('Select one invoice')
-		self.builder.get_object('spinbutton1').set_value(total)
+		#self.builder.get_object('spinbutton1').set_value(total)
 		self.builder.get_object('label22').set_label('{:,.2f}'.format(total, 2))
+
+	def invoice_treeview_button_release_event (self, treeview, event):
+		if event.button == 3:
+			menu = self.builder.get_object('menu1')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+
+	def apply_discount_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		amount = model[path][5]
+		self.builder.get_object('spinbutton3').set_value(amount)
+		dialog = self.builder.get_object('invoice_discount_dialog')
+		result = dialog.run()
+		dialog.hide()
+		invoice_id = model[path][0]
+		discounted_amount = self.builder.get_object('spinbutton3').get_value()
+		if result == Gtk.ResponseType.ACCEPT:
+			self.cursor.execute("UPDATE invoices SET amount_due = %s "
+								"WHERE id = %s", (discounted_amount, invoice_id))
+			self.db.commit()
+			self.builder.get_object('spinbutton1').set_value(discounted_amount)
+			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
+			#self.populate_invoices ()
 
 	def check_btn_toggled(self, widget):
 		self.check_entry.set_sensitive(True)
@@ -267,6 +285,12 @@ class GUI:
 	def post_payment_clicked (self, widget):
 		comments = 	self.builder.get_object('entry2').get_text()
 		self.payment = transactor.CustomerInvoicePayment(self.db, self.date, self.total)
+		#offset = self.builder.get_object('spinbutton2').get_value()
+		#account_number = self.builder.get_object('combobox2').get_active_id()
+		#if offset > 0.00: 
+		#	self.payment.post_offset (account_number, offset )
+		#elif offset < 0.00:
+		#	self.payment.post_offset (account_number, abs(offset))
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -310,12 +334,6 @@ class GUI:
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
 			self.payment.cash (self.payment_id, self.discount)
-		offset = self.builder.get_object('spinbutton2').get_value()
-		account_number = self.builder.get_object('combobox2').get_active_id()
-		if offset > 0.00: 
-			self.payment.post_offset (account_number, offset )
-		elif offset < 0.00:
-			self.payment.post_offset (account_number, abs(offset))
 		self.db.commit()
 		self.cursor.close()
 		self.window.destroy ()
@@ -495,7 +513,7 @@ class GUI:
 			return
 		invoice_totals = Decimal()
 		for row in path:
-			invoice_totals += model[row][4]
+			invoice_totals += model[row][5]
 		final_pay = round(payment, 2) - round(offset, 2)
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(final_pay))
 		if float(invoice_totals) != payment - offset:
