@@ -862,16 +862,16 @@ class InvoiceGUI:
 		self.calculate_row_taxes (line)
 		return
 		
-		self.cursor.execute("SELECT terms_and_discounts_id FROM contacts WHERE id = %s", (self.customer_id, ))
-		term_id = self.cursor.fetchone()[0]
-		self.cursor.execute("SELECT price FROM products_terms_prices WHERE (product_id, term_id) = (%s, %s)", (product_id, term_id))
+		self.cursor.execute("SELECT markup_percent_id FROM contacts WHERE id = %s", (self.customer_id, ))
+		markup_id = self.cursor.fetchone()[0]
+		self.cursor.execute("SELECT price FROM products_markup_prices WHERE (product_id, markup_id) = (%s, %s)", (product_id, markup_id))
 		for row in self.cursor.fetchall():
 			price = float(row[0])
 			break
 		else:
 			self.cursor.execute("SELECT cost FROM products WHERE id = %s", (product_id,))
 			cost = float(self.cursor.fetchone()[0])
-			self.cursor.execute("SELECT markup_percent FROM terms_and_discounts WHERE id = %s", (term_id,))
+			self.cursor.execute("SELECT markup_percent FROM customer_markup_percent WHERE id = %s", (markup_id,))
 			markup = float(self.cursor.fetchone()[0])
 			margin = (markup / 100) * cost
 			price = margin + cost

@@ -421,7 +421,7 @@ class GUI:
 		listbox = self.builder.get_object('listbox2')
 		cost_spinbutton = self.builder.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
-		self.cursor.execute("SELECT id, name, markup_percent FROM terms_and_discounts ORDER BY name")
+		self.cursor.execute("SELECT id, name, markup_percent FROM customer_markup_percent ORDER BY name")
 		for row in self.cursor.fetchall():
 			terms_id = row[0]
 			terms_name = row[1]
@@ -460,7 +460,7 @@ class GUI:
 		sell_adjustment.set_lower(cost)
 		sell_spin.set_value(selling_price)
 
-	def sell_changed (self, sell_spin, markup_spin, term_id):
+	def sell_changed (self, sell_spin, markup_spin, markup_id):
 		cost = self.builder.get_object('spinbutton1').get_text()
 		cost = float(cost)
 		sell_price = sell_spin.get_value ()
@@ -491,7 +491,7 @@ class GUI:
 			sell_spin = widget_list[3]
 			sell_adjustment = sell_spin.get_adjustment()
 			sell_adjustment.set_lower(cost)
-			self.cursor.execute("SELECT price FROM products_terms_prices WHERE (product_id, term_id) = (%s, %s)", (self.product_id, terms_id))
+			self.cursor.execute("SELECT price FROM products_markup_prices WHERE (product_id, markup_id) = (%s, %s)", (self.product_id, terms_id))
 			for row in self.cursor.fetchall():
 				sell_price = float(row[0])
 				sell_spin.set_value(sell_price)
@@ -500,7 +500,7 @@ class GUI:
 				markup_spin.set_value(markup)
 				break
 			else:
-				self.cursor.execute("SELECT markup_percent FROM terms_and_discounts WHERE id = %s", (terms_id,))
+				self.cursor.execute("SELECT markup_percent FROM customer_markup_percent WHERE id = %s", (terms_id,))
 				markup = float(self.cursor.fetchone()[0])
 				markup_spin.set_value(markup)
 				margin = (markup / 100) * cost
@@ -520,13 +520,13 @@ class GUI:
 			terms_id = terms_id_label.get_label()
 			sell_spin = widget_list[3]
 			sell_price = sell_spin.get_value()
-			self.cursor.execute("SELECT id FROM products_terms_prices WHERE (product_id, term_id) = (%s, %s)", (self.product_id, terms_id))
+			self.cursor.execute("SELECT id FROM products_markup_prices WHERE (product_id, markup_id) = (%s, %s)", (self.product_id, terms_id))
 			for row in self.cursor.fetchall():
 				_id_ = row[0]
-				self.cursor.execute("UPDATE products_terms_prices SET price = %s WHERE id = %s", (sell_price, _id_))
+				self.cursor.execute("UPDATE products_markup_prices SET price = %s WHERE id = %s", (sell_price, _id_))
 				break
 			else:
-				self.cursor.execute("INSERT INTO products_terms_prices (product_id, term_id, price) VALUES (%s, %s, %s)", (self.product_id, terms_id, sell_price))
+				self.cursor.execute("INSERT INTO products_markup_prices (product_id, markup_id, price) VALUES (%s, %s, %s)", (self.product_id, terms_id, sell_price))
 		self.db.commit()
 
 	def attach_button_clicked (self, button):

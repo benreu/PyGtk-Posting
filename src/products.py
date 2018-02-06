@@ -155,20 +155,20 @@ class ProductsGUI:
 			label.name= row[0]
 			label.description = row[1]
 			barcode = row[2]
-		self.cursor.execute("SELECT id FROM terms_and_discounts "
+		self.cursor.execute("SELECT id FROM customer_markup_percent "
 							"WHERE standard = True")
-		default_term_id = self.cursor.fetchone()[0]
-		self.cursor.execute("SELECT price FROM products_terms_prices "
-							"WHERE (product_id, term_id) = (%s, %s)", 
-							(self.product_id, default_term_id))
+		default_markup_id = self.cursor.fetchone()[0]
+		self.cursor.execute("SELECT price FROM products_markup_prices "
+							"WHERE (product_id, markup_id) = (%s, %s)", 
+							(self.product_id, default_markup_id))
 		for row in self.cursor.fetchall():
 			label.price = '${:,.2f}'.format(row[0])
 			break
 		else:
 			cost = self.builder.get_object('spinbutton1').get_value()
 			self.cursor.execute("SELECT markup_percent "
-								"FROM terms_and_discounts WHERE id = %s", 
-								(term_id,))
+								"FROM customer_markup_percent WHERE id = %s", 
+								(markup_id,))
 			markup = float(self.cursor.fetchone()[0])
 			margin = (markup / 100) * cost
 			label.price = '${:,.2f}'.format(margin + cost)
@@ -380,7 +380,7 @@ class ProductsGUI:
 		cost_spinbutton = self.builder.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
 		self.cursor.execute("SELECT id, name, markup_percent "
-							"FROM terms_and_discounts ORDER BY name")
+							"FROM customer_markup_percent ORDER BY name")
 		for row in self.cursor.fetchall():
 			terms_id = row[0]
 			terms_name = row[1]
@@ -423,7 +423,7 @@ class ProductsGUI:
 		#					"WHERE id = %s", (cost, self.product_id))
 		#self.db.commit()
 
-	def sell_changed (self, sell_spin, markup_spin, term_id):
+	def sell_changed (self, sell_spin, markup_spin, markup_id):
 		cost = self.builder.get_object('spinbutton1').get_value()
 		sell_price = sell_spin.get_value ()
 		margin = sell_price - cost
@@ -431,18 +431,18 @@ class ProductsGUI:
 		markup_spin.set_value(markup)
 		if self.product_id == 0 or self.populating == True:
 			return
-		#print ('update price', self.product_id, sell_price, term_id)
-		self.cursor.execute("UPDATE products_terms_prices SET price = %s "
-							"WHERE (product_id, term_id) = (%s, %s) "
+		#print ('update price', self.product_id, sell_price, markup_id)
+		self.cursor.execute("UPDATE products_markup_prices SET price = %s "
+							"WHERE (product_id, markup_id) = (%s, %s) "
 							"RETURNING id", 
-							(sell_price, self.product_id, term_id))
+							(sell_price, self.product_id, markup_id))
 		for row in self.cursor.fetchall():
 			break
 		else:
-			self.cursor.execute("INSERT INTO products_terms_prices "
-								"(product_id, term_id, price) "
+			self.cursor.execute("INSERT INTO products_markup_prices "
+								"(product_id, markup_id, price) "
 								"VALUES (%s, %s, %s)", 
-								(self.product_id, term_id, sell_price))
+								(self.product_id, markup_id, sell_price))
 		self.db.commit()
 
 	def markup_changed(self, markup_spin, sell_spin, terms_id):
@@ -468,7 +468,7 @@ class ProductsGUI:
 			sell_adjustment = sell_spin.get_adjustment()
 			sell_adjustment.set_lower(cost)
 			self.cursor.execute("SELECT markup_percent "
-								"FROM terms_and_discounts WHERE id = %s", 
+								"FROM customer_markup_percent WHERE id = %s", 
 								(terms_id,))
 			markup = float(self.cursor.fetchone()[0])
 			markup_spin.set_value(markup)
@@ -490,8 +490,8 @@ class ProductsGUI:
 			sell_spin = widget_list[3]
 			sell_adjustment = sell_spin.get_adjustment()
 			sell_adjustment.set_lower(cost)
-			self.cursor.execute("SELECT price FROM products_terms_prices "
-								"WHERE (product_id, term_id) = (%s, %s)", 
+			self.cursor.execute("SELECT price FROM products_markup_prices "
+								"WHERE (product_id, markup_id) = (%s, %s)", 
 								(self.product_id, terms_id))
 			for row in self.cursor.fetchall():
 				sell_price = float(row[0])
@@ -502,7 +502,7 @@ class ProductsGUI:
 				break
 			else:
 				self.cursor.execute("SELECT markup_percent "
-									"FROM terms_and_discounts WHERE id = %s", 
+									"FROM customer_markup_percent WHERE id = %s", 
 									(terms_id,))
 				markup = float(self.cursor.fetchone()[0])
 				markup_spin.set_value(markup)

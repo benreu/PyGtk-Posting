@@ -969,7 +969,17 @@ def check_and_update_version (db, statusbar):
 		progressbar (97)
 		cursor.execute("ALTER TABLE invoices ADD COLUMN dated_for date")
 		cursor.execute("UPDATE invoices SET dated_for = date_created")
-		cursor.execute("UPDATE settings SET version = '098'")
+	if version <= '098':
+		progressbar (98)
+		cursor.execute("CREATE TABLE customer_markup_percent (id serial PRIMARY KEY, name varchar NOT NULL, markup_percent integer NOT NULL, standard boolean DEFAULT FALSE NOT NULL, deleted boolean DEFAULT FALSE NOT NULL)")
+		cursor.execute("ALTER TABLE public.products_terms_prices DROP CONSTRAINT products_terms_prices_term_id_fkey;")
+		cursor.execute("INSERT INTO customer_markup_percent SELECT id, name, markup_percent, standard FROM terms_and_discounts ORDER BY id")
+		cursor.execute("ALTER TABLE contacts ADD markup_percent_id integer REFERENCES customer_markup_percent(id) ON DELETE RESTRICT;")
+		cursor.execute("UPDATE contacts SET markup_percent_id = terms_and_discounts_id")
+		cursor.execute("ALTER TABLE public.products_terms_prices RENAME term_id TO markup_id;")
+		cursor.execute("ALTER TABLE products_terms_prices ADD FOREIGN KEY (markup_id) REFERENCES customer_markup_percent(id) ON DELETE RESTRICT;")
+		cursor.execute("ALTER TABLE public.products_terms_prices RENAME TO products_markup_prices;")
+		cursor.execute("UPDATE settings SET version = '099'")
 	cursor.close()
 	db.commit()
 

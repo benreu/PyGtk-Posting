@@ -18,7 +18,6 @@ from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-import customer_tax_exemptions, contact_terms
 
 dev = None
 
@@ -49,6 +48,7 @@ class GUI:
 		self.fax_widget = self.builder.get_object('entry8')
 		self.email_widget = self.builder.get_object('entry9')
 		self.terms_store = self.builder.get_object('terms_store')
+		self.markup_percent_store = self.builder.get_object('markup_percent_store')
 		
 		#self.tax_exempt_widget = self.builder.get_object('checkbutton1')
 		self.tax_exempt_number_widget = self.builder.get_object('entry10')
@@ -90,6 +90,13 @@ class GUI:
 		thread.start()
 		
 		GLib.timeout_add(100, self.populate_scanners)
+
+	def customer_markup_percent_clicked (self, button):
+		if self.main.check_admin() == False:
+			return
+		self.window.present()
+		import customer_markup_percent
+		customer_markup_percent.CustomerMarkupPercentGUI(self.main)
 
 	def populate_zip_codes (self):
 		zip_code_store = self.builder.get_object("zip_code_store")
@@ -192,6 +199,10 @@ class GUI:
 		self.populate_tax_exemptions ()
 
 	def terms_clicked (self, button):
+		if self.main.check_admin() == False:
+			return
+		self.window.present()
+		import contact_terms
 		contact_terms.ContactTermsGUI(self.db)
 
 	def file_name_changed(self, widget):
@@ -487,6 +498,7 @@ class GUI:
 
 	def tax_exemption_window(self, widget):
 		if self.contact_id != 0:
+			import customer_tax_exemptions
 			customer_tax_exemptions.CustomerTaxExemptionsGUI(self.window,
 												self.db, self.contact_id)
 
@@ -506,6 +518,15 @@ class GUI:
 			term_name = row[1]
 			self.terms_store.append([str(term_id), term_name])
 		self.builder.get_object('combobox1').set_active_id(active_term_id)
+		active_markup_id = self.builder.get_object('combobox4').get_active_id()
+		self.markup_percent_store.clear()
+		self.cursor.execute("SELECT id, name FROM customer_markup_percent "
+									"WHERE deleted = False ORDER BY name")
+		for row in self.cursor.fetchall():
+			markup_id = row[0]
+			markup_name = row[1]
+			self.markup_percent_store.append([str(markup_id), markup_name])
+		self.builder.get_object('combobox4').set_active_id(active_markup_id)
 
 	def contact_filter_func(self, model, tree_iter, r):
 		for text in self.contact_filter_list:
@@ -581,8 +602,8 @@ class GUI:
 							"phone, fax, email, label, tax_number, vendor, "
 							"customer, employee, organization, custom1, "
 							"custom2, custom3, custom4, notes, "
-							"terms_and_discounts_id, service_provider, "
-							"checks_payable_to "
+							"terms_and_discounts_id::text, service_provider, "
+							"checks_payable_to, markup_percent_id::text "
 							"FROM contacts WHERE id = (%s)", 
 							(self.contact_id, ) )
 		for row in self.cursor.fetchall():
@@ -605,9 +626,10 @@ class GUI:
 			self.custom3_widget.set_text(row[17])
 			self.custom4_widget.set_text(row[18])
 			self.note.set_text(row[19])
-			self.builder.get_object('combobox1').set_active_id(str(row[20]))
+			self.builder.get_object('combobox1').set_active_id(row[20])
 			self.service_provider_widget.set_active(row[21])
 			self.builder.get_object('entry13').set_text(row[22])
+			self.builder.get_object('combobox4').set_active_id(row[23])
 
 		# clear the individual contact entries
 		self.builder.get_object('combobox-entry').set_text("")
@@ -682,6 +704,10 @@ class GUI:
 							"WHERE standard = True")
 		default_term = self.cursor.fetchone()[0]
 		self.builder.get_object('combobox1').set_active_id(str(default_term))
+		self.cursor.execute("SELECT id FROM customer_markup_percent "
+							"WHERE standard = True AND deleted = False")
+		default_markup = self.cursor.fetchone()[0]
+		self.builder.get_object('combobox4').set_active_id(str(default_markup))
 		self.misc_widget.set_text("")
 		self.tax_exempt_number_widget.set_text("")
 		self.builder.get_object('entry13').set_text('')
@@ -776,6 +802,7 @@ class GUI:
 		term_id = self.builder.get_object('combobox1').get_active_id() 
 		misc = self.misc_widget.get_text()
 		checks_payable_to = self.builder.get_object('entry13').get_text()
+		markup_id = self.builder.get_object('combobox4').get_active_id() 
 		if checks_payable_to == '':
 			checks_payable_to = name
 		tax_number = self.tax_exempt_number_widget.get_text()
@@ -799,15 +826,15 @@ class GUI:
 								"customer, employee, custom1, "
 								"custom2, custom3, custom4, notes, "
 								"terms_and_discounts_id, service_provider, "
-								"checks_payable_to) = "
-								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+								"checks_payable_to, markup_percent_id) = "
+								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s, %s, %s ,%s, %s, %s, %s, %s, %s) "
 								"WHERE id = %s ", (name, ext_name, address, city, 
 								state, zip_code, phone, fax, email, misc, 
 								tax_number, vendor, customer, employee, 
 								custom1, custom2, custom3, custom4, notes, 
 								term_id, service_provider, checks_payable_to,
-								self.contact_id))
+								markup_id, self.contact_id))
 		else:
 			self.cursor.execute("INSERT INTO contacts " 
 								"(name, ext_name, address, city, state, zip, phone, "
@@ -815,16 +842,17 @@ class GUI:
 								"customer, employee, custom1, "
 								"custom2, custom3, custom4, notes, deleted, "
 								"terms_and_discounts_id, service_provider, "
-								"checks_payable_to) "
+								"checks_payable_to, markup_percent_id) "
 								"VALUES "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s ,%s, %s, %s, %s, %s, False, "
-								"%s, %s, %s) RETURNING id ", 
+								"%s, %s, %s, %s) RETURNING id ", 
 								(name, ext_name, address, city, state, zip_code, 
 								phone, fax, email, misc, tax_number, vendor, 
 								customer, employee, custom1, custom2, 
 								custom3, custom4, notes, term_id, 
-								service_provider, checks_payable_to))
+								service_provider, checks_payable_to, 
+								markup_id))
 			self.contact_id = self.cursor.fetchone()[0]
 		# all the individual contact info
 		individual_id = self.builder.get_object('combobox3').get_active_id()

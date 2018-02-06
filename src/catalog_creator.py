@@ -83,10 +83,10 @@ class CatalogCreatorGUI:
 		self.catalog_store.clear()
 		self.cursor.execute("SELECT p.id, barcode, p.name, ext_name, description, "
 							"price FROM products AS p "
-							"JOIN products_terms_prices AS ptp "
-							"ON ptp.product_id = p.id "
-							"JOIN terms_and_discounts AS tad "
-							"ON tad.id = ptp.term_id "
+							"JOIN products_markup_prices AS pmp "
+							"ON pmp.product_id = p.id "
+							"JOIN customer_markup_percent AS cmp "
+							"ON cmp.id = pmp.markup_id "
 							"WHERE (catalog, standard) = (True, True) "
 							"ORDER BY catalog_order")
 		for row in self.cursor.fetchall():
@@ -221,10 +221,10 @@ class CatalogCreatorGUI:
 		self.builder.get_object("window1").present()
 		self.cursor.execute("SELECT p.id, barcode, p.name, ext_name, description, "
 							"price, image FROM products AS p "
-							"JOIN products_terms_prices AS ptp "
-							"ON ptp.product_id = p.id "
-							"JOIN terms_and_discounts AS tad "
-							"ON tad.id = ptp.term_id "
+							"JOIN products_markup_prices AS pmp "
+							"ON pmp.product_id = p.id "
+							"JOIN customer_markup_percent AS cmp "
+							"ON cmp.id = pmp.markup_id "
 							"WHERE (catalog, standard) = (True, True) "
 							"ORDER BY catalog_order")
 		tupl = self.cursor.fetchall()
