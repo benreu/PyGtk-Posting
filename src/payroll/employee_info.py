@@ -59,12 +59,12 @@ class EmployeeInfoGUI:
 		self.builder.get_object("button5").set_label("No scanner selected")
 		self.builder.get_object("button5").set_sensitive(False)
 
-		self.data_queue = Queue()
-		self.scanner_store = self.builder.get_object("scanner_store")
-		thread = Process(target=self.get_scanners)
-		thread.start()
+		#self.data_queue = Queue()
+		#self.scanner_store = self.builder.get_object("scanner_store")
+		#thread = Process(target=self.get_scanners)
+		#thread.start()
 		
-		GLib.timeout_add(100, self.populate_scanners)
+		#GLib.timeout_add(100, self.populate_scanners)
 
 	def populate_scanners(self):
 		try:
@@ -150,7 +150,7 @@ class EmployeeInfoGUI:
 		self.state_withholding_store.clear()
 		self.federal_withholding_store.clear()
 		self.cursor.execute("SELECT id, date_inserted "
-							"FROM payroll.employee_pdf_archive "
+							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND s_s_medicare_exemption_pdf IS NOT NULL "
 							"ORDER BY id", 
@@ -160,7 +160,7 @@ class EmployeeInfoGUI:
 			date_formatted = date_to_user_format(row[1])
 			self.s_s_medicare_store.append([id, date_formatted])
 		self.cursor.execute("SELECT id, date_inserted "
-							"FROM payroll.employee_pdf_archive "
+							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND state_withholding_pdf IS NOT NULL "
 							"ORDER BY id", 
@@ -170,7 +170,7 @@ class EmployeeInfoGUI:
 			date_formatted = date_to_user_format(row[1])
 			self.state_withholding_store.append([id, date_formatted])
 		self.cursor.execute("SELECT id, date_inserted "
-							"FROM payroll.employee_pdf_archive "
+							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND fed_withholding_pdf IS NOT NULL "
 							"ORDER BY id", 
@@ -184,7 +184,7 @@ class EmployeeInfoGUI:
 		model = treeview.get_model()
 		id = model[path][0]
 		self.cursor.execute("SELECT s_s_medicare_exemption_pdf "
-							"FROM payroll.employee_pdf_archive "
+							"FROM payroll.emp_pdf_archive "
 							"WHERE id = %s",
 							(id ,))
 		for row in self.cursor.fetchall():
@@ -199,7 +199,7 @@ class EmployeeInfoGUI:
 		model = treeview.get_model()
 		id = model[path][0]
 		self.cursor.execute("SELECT fed_withholding_pdf "
-							"FROM payroll.employee_pdf_archive "
+							"FROM payroll.emp_pdf_archive "
 							"WHERE id = %s",
 							(id ,))
 		for row in self.cursor.fetchall():
@@ -214,7 +214,7 @@ class EmployeeInfoGUI:
 		model = treeview.get_model()
 		id = model[path][0]
 		self.cursor.execute("SELECT state_withholding_pdf "
-							"FROM payroll.employee_pdf_archive "
+							"FROM payroll.emp_pdf_archive "
 							"WHERE id = %s",
 							(id ,))
 		for row in self.cursor.fetchall():
@@ -362,12 +362,12 @@ class EmployeeInfoGUI:
 		file_data = f.read()
 		binary = psycopg2.Binary(file_data)
 		f.close()
-		self.cursor.execute("UPDATE payroll.employee_pdf_archive "
+		self.cursor.execute("UPDATE payroll.emp_pdf_archive "
 							"SET archived = True "
 							"WHERE employee_id = %s "
 							"AND " + column + " IS NOT NULL" ,
 							(self.employee_id,))
-		self.cursor.execute("INSERT INTO payroll.employee_pdf_archive "
+		self.cursor.execute("INSERT INTO payroll.emp_pdf_archive "
 						"( " + column + ", employee_id, date_inserted) "
 						"VALUES (%s, %s, %s)", 
 						(binary, self.employee_id, datetime.today()))
@@ -377,7 +377,7 @@ class EmployeeInfoGUI:
 	def state_button_release_event (self, button, event):
 		if event.button == 1:
 			self.cursor.execute("SELECT state_withholding_pdf "
-								"FROM payroll.employee_pdf_archive "
+								"FROM payroll.emp_pdf_archive "
 								"WHERE (employee_id, archived) = (%s, False) "
 								"AND state_withholding_pdf IS NOT NULL",
 								(self.employee_id ,))
@@ -401,7 +401,7 @@ class EmployeeInfoGUI:
 	def s_s_m_button_release_event (self, button, event):
 		if event.button == 1:
 			self.cursor.execute("SELECT s_s_medicare_exemption_pdf "
-								"FROM payroll.employee_pdf_archive "
+								"FROM payroll.emp_pdf_archive "
 								"WHERE (employee_id, archived) = (%s, False) "
 								"AND s_s_medicare_exemption_pdf IS NOT NULL",
 								(self.employee_id ,))
@@ -425,7 +425,7 @@ class EmployeeInfoGUI:
 	def fed_button_release_event (self, button, event):
 		if event.button == 1:
 			self.cursor.execute("SELECT fed_withholding_pdf "
-								"FROM payroll.employee_pdf_archive "
+								"FROM payroll.emp_pdf_archive "
 								"WHERE (employee_id, archived) = (%s, False) "
 								"AND fed_withholding_pdf IS NOT NULL",
 								(self.employee_id ,))
