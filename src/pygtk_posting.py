@@ -312,6 +312,8 @@ class GUI (GObject.GObject):
 		self.builder.get_object('menuitem74').set_sensitive(value)
 		self.builder.get_object('menuitem76').set_sensitive(value)
 		self.builder.get_object('menuitem64').set_sensitive(value)
+		self.builder.get_object('menuitem49').set_sensitive(value)
+		self.builder.get_object('menuitem80').set_sensitive(value)
 		self.admin = value
 
 	def blank_clicked (self, button):
@@ -512,6 +514,10 @@ class GUI (GObject.GObject):
 		import settings
 		settings.GUI(self.db)
 
+	def customer_markup_percent_activated (self, menuitem):
+		import customer_markup_percent
+		customer_markup_percent.CustomerMarkupPercentGUI(self)
+
 	def process_po(self, widget):
 		import unprocessed_po
 		unprocessed_po.GUI(self)
@@ -519,6 +525,18 @@ class GUI (GObject.GObject):
 	def receive_orders_clicked (self, button):
 		import receive_orders
 		receive_orders.ReceiveOrdersGUI(self.db)
+
+	def check_admin (self):
+		if self.admin == False:
+			dialog = self.builder.get_object('dialog2')
+			result = dialog.run()
+			dialog.hide()
+			text = self.builder.get_object('entry3').get_text()
+			if result == Gtk.ResponseType.ACCEPT and text == 'admin':
+				self.set_admin_menus (True)
+				return True #updated to admin
+			return False #not admin, and not updated
+		return True #admin already to begin with
 
 	def employee_time (self, widget):
 		import employee_payment
