@@ -1252,11 +1252,10 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="button18">
-                            <property name="label" translatable="yes"> Pay stub</property>
+                            <property name="label" translatable="yes"> </property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <signal name="clicked" handler="pay_stub_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>

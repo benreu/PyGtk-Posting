@@ -525,7 +525,7 @@ class GUI (GObject.GObject):
 		employee_payment.EmployeePaymentGUI (self.db)
 
 	def pay_stub_clicked (self, button):
-		import pay_stub
+		from payroll import pay_stub
 		pay_stub.PayStubGUI(self.db)
 
 	def pay_stub_history (self, widget):
