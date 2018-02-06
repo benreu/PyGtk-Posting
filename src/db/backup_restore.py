@@ -36,7 +36,7 @@ class Utilities:
 
 	def backup_gui (self, database):
 		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_host = row[2]
 			sql_port = row[3]
@@ -78,7 +78,7 @@ class Utilities:
 		restore_window.destroy()
 		if response == Gtk.ResponseType.ACCEPT:
 			cursor_sqlite = get_apsw_cursor ()
-			for row in cursor_sqlite.execute("SELECT * FROM postgresql_settings;"):
+			for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 				sql_user = row[0]
 				sql_password = row[1]
 				sql_host = row[2]
