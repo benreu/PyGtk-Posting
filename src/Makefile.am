@@ -44,7 +44,6 @@ pygtk_posting_PYTHON = \
 	Code128.py \
 	customer_statement.py \
 	printing.py \
-	pay_stub.py \
 	dateutils.py \
 	contact_terms.py \
 	pricing.py \
@@ -83,7 +82,6 @@ pygtk_posting_PYTHON = \
 	locations.ui \
 	statements_to_print.ui \
 	customer_statement.ui \
-	pay_stub.ui \
 	contact_terms.ui \
 	incoming_invoice.ui \
 	product_search.py \
@@ -127,7 +125,8 @@ pygtk_posting_PYTHON = \
 	miscellaneous_revenue.py \
 	miscellaneous_revenue.ui \
 	accounts_overview.py \
-	accounts_overview.ui
+	accounts_overview.ui \
+	customer_markup_percent.py
 
 
 EXTRA_DIST = $(ui_DATA)
