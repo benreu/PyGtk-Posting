@@ -76,11 +76,11 @@ class GUI (GObject.GObject):
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		result, db_connection, db_name = check_for_database(database_to_connect)
+		result, db_connection, self.db_name = check_for_database(database_to_connect)
 		if result == True:
 			self.db = db_connection
 			self.cursor = self.db.cursor()
-			self.window.set_title('PyGtk Posting (%s)' % db_name)
+			self.window.set_title('PyGtk Posting (%s)' % self.db_name)
 			self.window.connect("focus-in-event", self.focus) #connect the focus signal only if we successfully connect
 			self.cursor.execute("LISTEN products")
 			self.cursor.execute("LISTEN contacts")
@@ -549,9 +549,29 @@ class GUI (GObject.GObject):
 	def job_sheet_history (self, widget):
 		from reports import job_sheet_history
 		job_sheet_history.JobSheetHistoryGUI(self.db)
+
+	def backup_window (self):
+		from db import backup_restore
+		u = backup_restore.Utilities(self)
+		u.backup_gui (self.db_name)
+
+	def to_do_row_activated (self, treeview, path, column):
+		selection = treeview.get_selection()
+		model, path = selection.get_selected_rows()
+		function = model[path][1]
+		function()
+
+	def populate_to_do_treeview (self):
+		store = self.builder.get_object('to_do_store')
+		store.clear()
+		self.cursor.execute("SELECT date_trunc( 'month', "
+								"(SELECT statement_finish_date FROM settings)) "
+								"= date_trunc('month', CURRENT_DATE)")
+		if self.cursor.fetchone()[0] == False:
+			store.append(["Print statements", self.statement_window])
 		
 	def focus (self, widget = None, d = None):
-		#return
+		self.populate_to_do_treeview()
 		self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
 		unpaid_invoices = 0
 		for row in self.cursor.fetchall():
@@ -577,11 +597,6 @@ class GUI (GObject.GObject):
 		for row in self.cursor.fetchall():
 			unreceived_po = row[0]
 		self.builder.get_object('button12').set_label("Receive Orders\n          (%s)" % unreceived_po)
-		self.cursor.execute("SELECT COUNT(id) FROM statements WHERE printed = False")	
-		unprinted_statements = 0
-		for row in self.cursor.fetchall():
-			unprinted_statements = row[0]
-		self.builder.get_object('button11').set_label("Statements to print\n              (%s)" % unprinted_statements)
 		self.cursor.execute("SELECT COUNT(invoices.id) FROM invoices, "
 							"LATERAL (SELECT product_id FROM invoice_line_items "
 								"WHERE invoice_line_items.invoice_id = "
@@ -651,7 +666,7 @@ class GUI (GObject.GObject):
 		self.cursor.execute("UNLISTEN contacts")
 		self.db.close ()
 
-	def statement_window(self, widget):
+	def statement_window(self, widget = None):
 		import customer_statement
 		customer_statement.GUI(self.db)
 
