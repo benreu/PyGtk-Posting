@@ -982,7 +982,10 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.terms_and_discounts ADD COLUMN deleted boolean DEFAULT False;")
 		cursor.execute("UPDATE public.terms_and_discounts SET deleted = False;")
 		cursor.execute("ALTER TABLE public.terms_and_discounts ALTER COLUMN deleted SET NOT NULL;")
-		cursor.execute("UPDATE settings SET version = '099'")
+	if version <= '099':
+		progressbar (99)
+		cursor.execute("ALTER TABLE incoming_invoices ADD COLUMN attached_pdf bytea")
+		cursor.execute("UPDATE settings SET version = '100'")
 	cursor.close()
 	db.commit()
 
