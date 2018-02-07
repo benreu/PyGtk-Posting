@@ -17,7 +17,6 @@
 
 from gi.repository import Gtk, GLib
 import subprocess
-from datetime import datetime
 import barcode_generator
 
 UI_FILE = "src/manufacturing.ui"
@@ -79,7 +78,7 @@ class ManufacturingGUI:
 								"(product_id, date_inserted, serial_number, "
 								"manufacturing_id) "
 								"VALUES (%s, CURRENT_DATE, %s, %s)", 
-								(self.product_id, barcode, self.m_project_id))
+								(self.product_id, barcode, self.project_id))
 		serial = print_qty + serial_start
 		self.cursor.execute("UPDATE products SET serial_number = %s "
 							"WHERE id = %s", (serial, self.product_id))
@@ -102,6 +101,7 @@ class ManufacturingGUI:
 		product_name = self.cursor.fetchone()[0]
 		manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
 		self.builder.get_object('entry1').set_text(manufacturing_name_string)
+		self.builder.get_object('entry2').set_text(manufacturing_name_string)
 		self.builder.get_object('label6').set_label(str(qty))
 		
 	def product_selected (self):
@@ -114,14 +114,16 @@ class ManufacturingGUI:
 		self.builder.get_object('serial_adjustment').set_lower(int(serial_number))
 		self.builder.get_object('label2').set_label(" units of '%s'" % product_name)
 		self.builder.get_object('combobox-entry').set_text(product_name)
-		self.cursor.execute("SELECT id, time_clock_projects_id, qty "
+		self.cursor.execute("SELECT id, name, time_clock_projects_id, qty "
 							"FROM manufacturing_projects "
 							"WHERE (product_id, active) = (%s, True)", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
-			self.m_project_id = row[0]
-			time_clock_projects_id = row[1]
-			project_qty = row[2]
+			self.project_id = row[0]
+			manufacturing_name = row[1]
+			time_clock_projects_id = row[2]
+			project_qty = row[3]
+			self.builder.get_object('entry2').set_text(manufacturing_name)
 			self.builder.get_object('spinbutton1').set_value(project_qty)
 			self.cursor.execute("SELECT name FROM time_clock_projects "
 								"WHERE id = %s", (time_clock_projects_id,))
@@ -162,50 +164,81 @@ class ManufacturingGUI:
 			self.builder.get_object('checkbutton1').set_active(True)
 			self.builder.get_object('spinbutton1').set_value(0)
 			manufacturing_name_string = "Manufacturing : %s [0]" % product_name
+			self.builder.get_object('entry2').set_text(manufacturing_name_string)
 			self.builder.get_object('entry1').set_text(manufacturing_name_string)
 
 	def new_clicked (self, button):
 		qty = self.builder.get_object('spinbutton1').get_text()
+		manufacturing_name = self.builder.get_object('entry2').get_text()
 		project_name = self.builder.get_object('entry1').get_text()
 		if self.builder.get_object('checkbutton1').get_active() == True:
 			# this manufacturing project is time tracked
 			self.cursor.execute("INSERT INTO time_clock_projects "
 								"(name, start_date, active, permanent) "
-								"VALUES (%s, %s, True, False) RETURNING id", 
-								(project_name, datetime.today()))
+								"VALUES (%s, CURRENT_DATE, True, False) "
+								"RETURNING id", 
+								(project_name, ))
 			time_clock_projects_id = self.cursor.fetchone()[0]
 			self.cursor.execute("INSERT INTO manufacturing_projects "
-								"(product_id, qty, time_clock_projects_id, "
-								"active) VALUES (%s, %s, %s, True) "
+								"(product_id, name, qty, time_clock_projects_id, "
+								"active) VALUES (%s, %s, %s, %s, True) "
 								"RETURNING id", 
-								(self.product_id, qty, time_clock_projects_id))
+								(self.product_id, manufacturing_name, 
+								qty, time_clock_projects_id))
 		else:
 			self.cursor.execute("INSERT INTO manufacturing_projects "
-								"(product_id, qty, active) "
-								"VALUES (%s, %s, True) RETURNING id", 
-								(self.product_id, qty))
-		self.m_project_id = self.cursor.fetchone()[0]
+								"(product_id, name, qty, active) "
+								"VALUES (%s, %s, %s, True) RETURNING id", 
+								(self.product_id, manufacturing_name, qty))
+		self.project_id = self.cursor.fetchone()[0]
 		self.db.commit()
 		self.product_selected ()
+
+	def update_clicked (self, button):
+		qty = self.builder.get_object('spinbutton1').get_text()
+		manufacturing_name = self.builder.get_object('entry2').get_text()
+		project_name = self.builder.get_object('entry1').get_text()
+		time_clock_active = self.builder.get_object('checkbutton1').get_active()
+		self.cursor.execute("UPDATE manufacturing_projects SET "
+							"(name, qty) = (%s, %s) WHERE id = %s", 
+							(manufacturing_name, qty, self.project_id))
+		self.cursor.execute("UPDATE time_clock_projects "
+							"SET (name, active, stop_date) = "
+							"(%s, %s, CURRENT_TIMESTAMP) WHERE id = "
+								"(SELECT time_clock_projects_id "
+								"FROM manufacturing_projects WHERE id = %s) "
+								"RETURNING id",
+							(project_name, time_clock_active, self.project_id))
+		for row in self.cursor.fetchall():
+			break  # updated successfully
+		else:
+			if time_clock_active == True: # create new time clock project
+				self.cursor.execute("WITH cte AS (INSERT INTO time_clock_projects "
+										"(name, start_date, active, permanent) "
+										"VALUES (%s, CURRENT_DATE, True, False) "
+										"RETURNING *) "
+									"UPDATE manufacturing_projects "
+									"SET time_clock_projects_id = (SELECT id FROM cte) "
+									"WHERE id = %s", 
+									(project_name, self.project_id))
+		self.db.commit()
 
 	def post_as_completed_clicked(self, button):
 		self.cursor.execute("SELECT id, time_clock_projects_id "
 							"FROM manufacturing_projects WHERE (id, active) = "
-							"(%s, True)", (self.m_project_id,))
+							"(%s, True)", (self.project_id,))
 		for row in self.cursor.fetchall():
 			time_clock_projects_id = row[1]
 			self.cursor.execute("UPDATE manufacturing_projects "
 								"SET active = False WHERE id = %s",
-								(self.m_project_id,))
+								(self.project_id,))
 			self.cursor.execute("UPDATE time_clock_projects "
-								"SET (active, stop_date) = (False, %s) "
+								"SET (active, stop_date) = "
+								"(False, CURRENT_DATE) "
 								"WHERE id = %s",
-								(datetime.today(), time_clock_projects_id))
+								(time_clock_projects_id,))
 		self.db.commit()
 		self.product_selected()
-
-	def update_clicked (self, button):
-		pass
 
 	def destroy(self, window):
 		self.cursor.close()
@@ -222,6 +255,10 @@ class ManufacturingGUI:
 			product_id = row[0]
 			product_name = row[1]
 			self.product_store.append([str(product_id), product_name])
+
+	def project_name_entry_icon_released (self, entry, icon_position, event):
+		project_name = entry.get_text()
+		self.builder.get_object('entry2').set_text(project_name)
 
 	def product_window(self, column):
 		import products

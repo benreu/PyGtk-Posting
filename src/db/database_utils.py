@@ -997,6 +997,7 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE settings DROP COLUMN close_statement, DROP COLUMN only_close_zero_statement, DROP COLUMN copy_to_print_statement")
 		cursor.execute("ALTER TABLE settings ADD COLUMN statement_day_of_month interval")
 		cursor.execute("UPDATE settings SET statement_day_of_month = '1:00:00'")
+		cursor.execute("UPDATE manufacturing_projects SET name = ''")
 		cursor.execute("UPDATE settings SET version = '102'")
 	cursor.close()
 	db.commit()
