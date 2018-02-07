@@ -35,40 +35,58 @@ class Utilities:
 		self.parent = parent
 
 	def backup_gui (self, database):
+		self.database = database
+		backup_window = self.builder.get_object('backupdialog')
+		backup_window.set_transient_for(self.parent_window)
+		day = time.strftime("%Y-%m-%d-%H:%M")
+		backup_window.set_current_name(database + "_" + day +".pbk")
+		result = backup_window.run()
+		if result == Gtk.ResponseType.ACCEPT:
+			self.backup_database ()
+		else:
+			backup_window.destroy()
+		return self.result
+
+	def backup_database (self):
 		cursor_sqlite = get_apsw_cursor ()
 		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_host = row[2]
 			sql_port = row[3]
 		backup_window = self.builder.get_object('backupdialog')
-		backup_window.set_transient_for(self.parent_window)
-		day = time.strftime("%Y-%m-%d-%H:%M")
-		backup_window.set_current_name(database + "_" + day +".pbk")
-		response = backup_window.run()	
-		if response == Gtk.ResponseType.ACCEPT:
-			self.parent.status_update("Back up running...")
-			db_name = backup_window.get_current_name()
-			path = backup_window.get_current_folder()
-			full_path = path + "/" + db_name
-			backup_window.destroy()	
-			backup_command = ("pg_dump -C -F c -U%s -h%s -p%s -d%s -f'%s'" 
-				% (sql_user, sql_host, sql_port, database, full_path))
-			p = Popen(backup_command, shell = True, 
-						stdin = PIPE, stdout = PIPE, stderr = PIPE)
-			while p.poll() == None:
-				while Gtk.events_pending():
-					Gtk.main_iteration()
-				self.parent.progressbar.pulse()
-				time.sleep(.05)
-			stderr, stdout = p.communicate()
-			stdout = stdout.decode(encoding="utf-8", errors="strict")
-			if stdout != '':
-				self.show_error_message(stdout)
-			else:
-				self.parent.progressbar.set_fraction(1.0)
-				self.parent.status_update("Backed up successfully to %s/%s" 
-															% (path,db_name))
-				
+		progressbar = self.builder.get_object('progressbar1')
+		progressbar.set_text("Back up running...")
+		db_name = backup_window.get_current_name()
+		path = backup_window.get_current_folder()
+		full_path = path + "/" + db_name
+		backup_command = ("pg_dump -C -F c -U%s -h%s -p%s -d%s -f'%s'" 
+															% (sql_user, 
+															sql_host, 
+															sql_port, 
+															self.database, 
+															full_path))
+		p = Popen(backup_command, shell = True, 
+					stdin = PIPE, stdout = PIPE, stderr = PIPE)
+		while p.poll() == None:
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+			progressbar.pulse()
+			time.sleep(.05)
+		stderr, stdout = p.communicate()
+		stdout = stdout.decode(encoding="utf-8", errors="strict")
+		if stdout != '':
+			self.show_error_message(stdout)
+			self.result = False
+		else:
+			progressbar.set_fraction(1.0)
+			progressbar.set_text("Backed up successfully to %s/%s" 
+														% (path,db_name))
+			self.builder.get_object('button6').set_visible(True)
+			self.result = True
+		self.builder.get_object('button2').set_visible(False)
+			
+	def done_clicked (self, dialog):
+		dialog.destroy()
 
 	def restore_gui(self, db_name, parent):
 		restore_window = self.builder.get_object('restoredialog')

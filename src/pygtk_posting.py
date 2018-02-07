@@ -553,7 +553,10 @@ class GUI (GObject.GObject):
 	def backup_window (self):
 		from db import backup_restore
 		u = backup_restore.Utilities(self)
-		u.backup_gui (self.db_name)
+		result = u.backup_gui (self.db_name)
+		if result == True:
+			self.cursor.execute("UPDATE settings SET last_backup = CURRENT_DATE")
+			self.db.commit()
 
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()
@@ -564,11 +567,22 @@ class GUI (GObject.GObject):
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
 		store.clear()
-		self.cursor.execute("SELECT date_trunc( 'month', "
-								"(SELECT statement_finish_date FROM settings)) "
-								"= date_trunc('month', CURRENT_DATE)")
-		if self.cursor.fetchone()[0] == False:
+		self.cursor.execute("SELECT CURRENT_DATE > date_trunc( 'month', "
+								"(SELECT statement_finish_date FROM settings) + "
+								"INTERVAL'1 month') + "
+								"(SELECT statement_day_of_month FROM settings) -"
+								"INTERVAL '1 day'")
+		if self.cursor.fetchone()[0] == True:
 			store.append(["Print statements", self.statement_window])
+		self.cursor.execute("SELECT "
+								"date_trunc('day', "
+									"(SELECT last_backup FROM settings)) < "
+								"date_trunc('day', "
+									"CURRENT_DATE - "
+										"(SELECT backup_frequency_days "
+										"FROM settings))")
+		if self.cursor.fetchone()[0] == True:
+			store.append(['Backup database', self.backup_window])
 		
 	def focus (self, widget = None, d = None):
 		self.populate_to_do_treeview()
