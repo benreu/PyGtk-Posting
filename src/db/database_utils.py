@@ -998,7 +998,13 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE settings ADD COLUMN statement_day_of_month interval")
 		cursor.execute("UPDATE settings SET statement_day_of_month = '1:00:00'")
 		cursor.execute("UPDATE manufacturing_projects SET name = ''")
-		cursor.execute("UPDATE settings SET version = '102'")
+	if version <= '102':
+		progressbar (102)
+		cursor.execute("CREATE TABLE public.mailing_lists (id bigint PRIMARY KEY, name varchar NOT NULL, active boolean NOT NULL DEFAULT true, date_inserted timestamp with time zone DEFAULT now()")
+		cursor.execute("CREATE TABLE public.mailing_list_register (id bigint PRIMARY KEY, contact_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, active boolean NOT NULL DEFAULT true, mailing_list_id bigint REFERENCES mailing_lists ON DELETE RESTRICT, date_inserted date NOT NULL DEFAULT now())")
+		cursor.execute("CREATE OR REPLACE RULE on_list_delete_set_list_register_false AS ON UPDATE TO mailing_lists WHERE new.active = false DO INSTEAD UPDATE mailing_list_register SET active = false WHERE mailing_list_register.mailing_list_id = old.id; ")
+		cursor.execute("UPDATE settings SET version = '103'")
+
 	cursor.close()
 	db.commit()
 
