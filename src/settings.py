@@ -31,24 +31,19 @@ class GUI():
 
 		self.document_type_id = 0
 
-		self.cursor.execute("SELECT print_direct, only_close_zero_statement, close_statement, copy_to_print_statement, email_when_possible, enforce_exact_payment, accrual_based, cost_decrease_alert FROM settings")
+		self.cursor.execute("SELECT print_direct, statement_day_of_month, "
+							"email_when_possible, enforce_exact_payment, "
+							"accrual_based, cost_decrease_alert FROM settings")
 		for row in self.cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
-			self.builder.get_object('checkbutton3').set_active(row[1])
-			close_statement_date = row[2]
-			if close_statement_date == 0-1:
-				self.builder.get_object('checkbutton2').set_active(False)
-			else:
-				self.builder.get_object('checkbutton2').set_active(True)
-				self.builder.get_object('spinbutton1').set_text(str(close_statement_date))
-			self.builder.get_object('checkbutton4').set_active(row[3])
-			self.builder.get_object('checkbutton5').set_active(row[4])
-			self.builder.get_object('checkbutton6').set_active(row[5])
-			if row[6] == False:
+			self.builder.get_object('spinbutton1').set_value(row[1].days)
+			self.builder.get_object('checkbutton5').set_active(row[2])
+			self.builder.get_object('checkbutton6').set_active(row[3])
+			if row[4] == False:
 				self.builder.get_object('radiobutton1').set_active(True)
 			else:
 				self.builder.get_object('radiobutton2').set_active(True)
-			self.builder.get_object('spinbutton4').set_value(row[7] * 100)
+			self.builder.get_object('spinbutton4').set_value(row[5] * 100)
 		self.load_precision()
 		self.document_type_store = Gtk.ListStore(int, str)
 		self.document_type_treeview = self.builder.get_object('treeview4')
@@ -72,14 +67,14 @@ class GUI():
 		self.stack = Gtk.Stack()
 		box.pack_start(self.stack, True, True, 0)
 		self.company = self.builder.get_object('company')
-		self.invoice = self.builder.get_object('invoice')
+		self.general = self.builder.get_object('general')
 		self.time_clock = self.builder.get_object('time_clock')
 		self.document_types = self.builder.get_object('document_types')
 		self.accounting = self.builder.get_object('accounting')
 		self.window_columns = self.builder.get_object('window_columns')
 		
 		self.stack.add_named(self.company, "company" )
-		self.stack.add_named(self.invoice, "invoice" )
+		self.stack.add_named(self.general, "general" )
 		self.stack.add_named(self.time_clock, "time_clock" )
 		self.stack.add_named(self.document_types, "document_types" )
 		self.stack.add_named(self.accounting, "accounting" )
@@ -258,41 +253,11 @@ class GUI():
 														[widget.get_active()])	
 		self.db.commit()
 
-	def enter_new_line_toggled(self, widget):		
-		self.cursor.execute("UPDATE settings SET enter_new_line = %s", 
-														[widget.get_active()])		
-		self.db.commit()
-		
-	def enter_submit_toggled(self, widget):		
-		self.cursor.execute("UPDATE settings SET enter_save = %s", 
-														[widget.get_active()])		
-		self.db.commit()
-
-	def close_nonzero_statement(self, widget):
-		
-		self.cursor.execute("UPDATE settings SET only_close_zero_statement = %s", 
-														(widget.get_active(),))
-		self.db.commit()
-
-	def close_statements_changed(self, widget):		
-		statement_active = self.builder.get_object('checkbutton2').get_active()
-		self.builder.get_object('checkbutton3').set_sensitive(statement_active)
-		#self.builder.get_object('checkbutton4').set_sensitive(statement_active)
-		if statement_active == True:
-			days_button = self.builder.get_object('spinbutton1')
-			days_button.set_sensitive(True)
-			days = days_button.get_value()
-			self.cursor.execute("UPDATE settings SET close_statement = %s", [days])			
-		else:
-			self.cursor.execute("UPDATE settings SET close_statement = %s ", ["-1"])
-			self.builder.get_object('spinbutton1').set_sensitive(False)
-		#self.cursor.execute("UPDATE settings SET update_statement = %s", [days])
-		self.db.commit()
-
-	def add_to_statements_print_toggled (self, widget):
-		copy_to_statements_to_print = widget.get_active ()
-		self.cursor.execute("UPDATE settings SET copy_to_print_statement = %s", 
-												(copy_to_statements_to_print,))
+	def statement_date_changed (self, spinbutton):
+		day_of_month = spinbutton.get_value()
+		day_of_month = "%s:00:00" % day_of_month
+		self.cursor.execute("UPDATE settings SET statement_day_of_month = %s", 
+																(day_of_month,))
 		self.db.commit()
 
 	def save_company_info(self, widget):

@@ -127,7 +127,7 @@ def check_and_update_version (db, statusbar):
 	cursor = db.cursor()
 	cursor.execute("SELECT version FROM settings")
 	version = cursor.fetchone()[0]
-	COMPLETE_PROGRESS = 91.00
+	COMPLETE_PROGRESS = 101.00
 	progressbar (1)
 	if version <= "016":
 		progressbar (16)
@@ -985,7 +985,19 @@ def check_and_update_version (db, statusbar):
 	if version <= '099':
 		progressbar (99)
 		cursor.execute("ALTER TABLE incoming_invoices ADD COLUMN attached_pdf bytea")
-		cursor.execute("UPDATE settings SET version = '100'")
+	if version <= '100':
+		progressbar (100)
+		cursor.execute("ALTER TABLE settings DROP COLUMN last_backup")
+		cursor.execute("ALTER TABLE settings ADD COLUMN last_backup date")
+		cursor.execute("UPDATE settings SET last_backup = CURRENT_DATE")
+		cursor.execute("ALTER TABLE settings ADD COLUMN backup_frequency_days interval")
+		cursor.execute("UPDATE settings SET backup_frequency_days = '07:00:00'")
+	if version <= '101':
+		progressbar (101)
+		cursor.execute("ALTER TABLE settings DROP COLUMN close_statement, DROP COLUMN only_close_zero_statement, DROP COLUMN copy_to_print_statement")
+		cursor.execute("ALTER TABLE settings ADD COLUMN statement_day_of_month interval")
+		cursor.execute("UPDATE settings SET statement_day_of_month = '1:00:00'")
+		cursor.execute("UPDATE settings SET version = '102'")
 	cursor.close()
 	db.commit()
 

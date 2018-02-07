@@ -15,7 +15,7 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
-  <object class="GtkBox" id="invoice">
+  <object class="GtkBox" id="general">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="margin_left">10</property>
@@ -36,7 +36,7 @@
       </object>
       <packing>
         <property name="expand">False</property>
-        <property name="fill">True</property>
+        <property name="fill">False</property>
         <property name="position">0</property>
       </packing>
     </child>
@@ -52,7 +52,7 @@
       </object>
       <packing>
         <property name="expand">False</property>
-        <property name="fill">True</property>
+        <property name="fill">False</property>
         <property name="position">1</property>
       </packing>
     </child>
@@ -68,12 +68,9 @@
       </object>
       <packing>
         <property name="expand">False</property>
-        <property name="fill">True</property>
+        <property name="fill">False</property>
         <property name="position">2</property>
       </packing>
-    </child>
-    <child>
-      <placeholder/>
     </child>
     <child>
       <object class="GtkLabel" id="label12">
@@ -88,8 +85,8 @@
       </object>
       <packing>
         <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">5</property>
+        <property name="fill">False</property>
+        <property name="position">4</property>
       </packing>
     </child>
     <child>
@@ -97,34 +94,33 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
-          <object class="GtkCheckButton" id="checkbutton2">
-            <property name="label" translatable="yes">Close statements on the</property>
+          <object class="GtkLabel" id="label43">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">False</property>
-            <property name="xalign">0</property>
-            <property name="draw_indicator">True</property>
-            <signal name="toggled" handler="close_statements_changed" swapped="no"/>
+            <property name="can_focus">False</property>
+            <property name="label" translatable="yes">Show statement reminder on the </property>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
+            <property name="fill">False</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
           <object class="GtkSpinButton" id="spinbutton1">
             <property name="visible">True</property>
-            <property name="sensitive">False</property>
             <property name="can_focus">True</property>
+            <property name="max_length">2</property>
             <property name="width_chars">2</property>
+            <property name="max_width_chars">2</property>
+            <property name="xalign">1</property>
             <property name="adjustment">adjustment2</property>
+            <property name="numeric">True</property>
             <property name="value">1</property>
-            <signal name="value-changed" handler="close_statements_changed" swapped="no"/>
+            <signal name="value-changed" handler="statement_date_changed" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
+            <property name="fill">False</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -136,49 +132,15 @@
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
+            <property name="fill">False</property>
             <property name="position">2</property>
           </packing>
         </child>
       </object>
       <packing>
         <property name="expand">False</property>
-        <property name="fill">True</property>
+        <property name="fill">False</property>
         <property name="position">5</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkCheckButton" id="checkbutton3">
-        <property name="label" translatable="yes">Only close statement when balance is $0.00</property>
-        <property name="visible">True</property>
-        <property name="sensitive">False</property>
-        <property name="can_focus">True</property>
-        <property name="receives_default">False</property>
-        <property name="margin_left">15</property>
-        <property name="xalign">0</property>
-        <property name="draw_indicator">True</property>
-        <signal name="toggled" handler="close_nonzero_statement" swapped="no"/>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">6</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkCheckButton" id="checkbutton4">
-        <property name="label" translatable="yes">Add to 'Statements To Print' when closing statement</property>
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="receives_default">False</property>
-        <property name="xalign">0</property>
-        <property name="draw_indicator">True</property>
-        <signal name="toggled" handler="add_to_statements_print_toggled" swapped="no"/>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">7</property>
       </packing>
     </child>
   </object>
@@ -1407,8 +1369,8 @@ column visibility.</property>
         <col id="1" translatable="yes">document_types</col>
       </row>
       <row>
-        <col id="0" translatable="yes">Invoice</col>
-        <col id="1" translatable="yes">invoice</col>
+        <col id="0" translatable="yes">General</col>
+        <col id="1" translatable="yes">general</col>
       </row>
       <row>
         <col id="0" translatable="yes">Time clock</col>
