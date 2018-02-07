@@ -81,6 +81,10 @@ class GUI:
 		self.select_contact ()
 		self.populate_zip_codes ()
 
+		self.mailing_list_popover = Gtk.Popover()
+		self.mailing_list_popover.add(self.builder.get_object("box18"))	
+		self.initiate_mailing_info()
+		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
@@ -629,8 +633,8 @@ class GUI:
 			self.builder.get_object('combobox1').set_active_id(row[20])
 			self.service_provider_widget.set_active(row[21])
 			self.builder.get_object('entry13').set_text(row[22])
-			self.builder.get_object('combobox4').set_active_id(row[23])
-
+		
+		self.initiate_mailing_info()
 		# clear the individual contact entries
 		self.builder.get_object('combobox-entry').set_text("")
 		self.builder.get_object('entry18').set_text("")
@@ -726,6 +730,7 @@ class GUI:
 		self.builder.get_object('entry24').set_text("")
 		self.builder.get_object('entry25').set_text("")
 		self.builder.get_object('entry12').set_text("")
+		self.initiate_mailing_info ()
 
 	def populate_individual_store (self):
 		self.individual_contact_store.clear()
@@ -880,5 +885,60 @@ class GUI:
 		self.populate_contacts ()
 		self.populate_zip_codes ()
 		
+#*******************************************************************************
+	#mailing list code
+	
+	def initiate_mailing_info(self):
+		if self.contact_id == 0:
+			self.builder.get_object("entry14").set_text("No Contact Selected")
+			return
+		set_entry14__text = "Not on any list"
+		self.cursor.execute("SELECT ml.name FROM mailing_list_register AS mlr "
+							"JOIN mailing_lists AS ml "
+								"ON mlr.mailing_list_id = ml.id "
+							"WHERE (contact_id, ml.active, mlr.active) = "
+							"(%s, True, True)",
+							(self.contact_id, )) 
+		t =""  
+		for i in self.cursor.fetchall():
+			t = t + ".." + str(i[0])
+			set_entry14__text = "On list: " + t
+		self.builder.get_object("entry14").set_text(set_entry14__text)
 
+	def mailing_list_icon_release (self, widget, icon, event):
+		if self.contact_id == 0:
+			return
+		self.mailing_list_store = self.builder.get_object("mailing_list_store")
+		entry14 = self.builder.get_object('entry14')
+		self.mailing_list_store.clear()
+		self.cursor.execute("SELECT ml.id, ml.name, COALESCE(mlr.active, False) "
+							"FROM mailing_lists AS ml "
+							"LEFT JOIN mailing_list_register AS mlr "
+							"ON ml.id = mlr.mailing_list_id "
+							"AND mlr.contact_id = %s AND mlr.active = True",
+							(self.contact_id,))
+		for item in self.cursor.fetchall():
+			list_id = item[0]
+			list_name = item[1]
+			active = item[2]
+			self.mailing_list_store.append([list_id, list_name, active])
+		self.mailing_list_popover.set_relative_to(entry14)
+		self.mailing_list_popover.show_all ()
+
+	def active_toggled (self, cell_renderer, path):
+		row_id = self.mailing_list_store[path][0]
+		set_state = not cell_renderer.get_active()
+		if set_state == True: # new
+			self.cursor.execute("INSERT INTO mailing_list_register "
+								"(contact_id, mailing_list_id) "
+								"VALUES (%s,%s) ",
+								(self.contact_id, row_id))
+		elif set_state == False:
+			self.cursor.execute("UPDATE mailing_list_register SET active = False "
+								"WHERE (mailing_list_id,contact_id) = (%s,%s) ",
+								(row_id, self.contact_id))
+		self.db.commit()
+		self.mailing_list_store[path][2] = set_state
+
+		
 
