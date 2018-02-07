@@ -292,15 +292,7 @@ class GUI (GObject.GObject):
 			self.set_admin_menus (False)
 			menuitem.set_label("Admin login")
 			return
-		dialog = self.builder.get_object('admin_dialog')
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			password_entry = self.builder.get_object('entry2')
-			if password_entry.get_text() == "admin":
-				self.set_admin_menus (True)
-				menuitem.set_label("Admin logout")
-				password_entry.set_text("")
-		dialog.hide()
+		self.check_admin (False)
 
 	def set_admin_menus (self, value):
 		self.builder.get_object('menuitem10').set_sensitive(value)
@@ -526,12 +518,16 @@ class GUI (GObject.GObject):
 		import receive_orders
 		receive_orders.ReceiveOrdersGUI(self.db)
 
-	def check_admin (self):
+	def check_admin (self, external = True):
+		"check for admin, external option to show extra alert for not being admin"
 		if self.admin == False:
-			dialog = self.builder.get_object('dialog2')
+			dialog = self.builder.get_object('admin_dialog')
+			self.builder.get_object('label21').set_visible(external)
 			result = dialog.run()
 			dialog.hide()
-			text = self.builder.get_object('entry3').get_text()
+			text = self.builder.get_object('entry2').get_text().lower()
+			self.builder.get_object('entry2').set_text('')
+			self.builder.get_object('menuitem35').set_label("Admin logout")
 			if result == Gtk.ResponseType.ACCEPT and text == 'admin':
 				self.set_admin_menus (True)
 				return True #updated to admin

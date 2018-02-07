@@ -1440,6 +1440,19 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
           </packing>
         </child>
         <child>
+          <object class="GtkLabel" id="label21">
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+            <property name="margin_bottom">10</property>
+            <property name="label" translatable="yes">You are not logged in as admin!</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkGrid" id="grid1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -1494,7 +1507,7 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
@@ -1502,90 +1515,6 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
     <action-widgets>
       <action-widget response="-6">button21</action-widget>
       <action-widget response="-3">button20</action-widget>
-    </action-widgets>
-  </object>
-  <object class="GtkDialog" id="dialog2">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Admin required</property>
-    <property name="window_position">center</property>
-    <property name="default_width">320</property>
-    <property name="default_height">260</property>
-    <property name="icon">PyGtk_Posting.svg</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">main_window</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button24">
-                <property name="label" translatable="yes">Ok</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button25">
-                <property name="label" translatable="yes">Login</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="label21">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">You are not logged in as admin!</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkEntry" id="entry3">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="tooltip_text" translatable="yes">Enter the admin password</property>
-            <property name="visibility">False</property>
-            <property name="invisible_char">●</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-6">button24</action-widget>
-      <action-widget response="-3">button25</action-widget>
     </action-widgets>
   </object>
   <object class="GtkDialog" id="module_help_dialog">
