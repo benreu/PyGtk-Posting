@@ -414,7 +414,8 @@ pygtk_posting_PYTHON = \
 	miscellaneous_revenue.ui \
 	accounts_overview.py \
 	accounts_overview.ui \
-	customer_markup_percent.py
+	customer_markup_percent.py \
+	customer_markup_percent.ui
 
 EXTRA_DIST = $(ui_DATA)
 SUBDIRS = \
