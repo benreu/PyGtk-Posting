@@ -512,7 +512,7 @@ class GUI:
 		active_term_id = self.builder.get_object('combobox1').get_active_id()
 		self.terms_store.clear()
 		self.cursor.execute("SELECT id, name FROM terms_and_discounts "
-									"ORDER BY name")
+							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			term_id = row[0]
 			term_name = row[1]

@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -15,13 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject
-from datetime import datetime
+from gi.repository import Gtk, GLib
 
 UI_FILE = "src/contact_terms.ui"
-
-#UI_FILE = "/usr/local/share/pygtk_accounting/ui/pygtk_accounting.ui"
-
 
 class ContactTermsGUI:
 	def __init__(self, db):
@@ -41,10 +37,14 @@ class ContactTermsGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def term_combo_changed (self, combo):
+		self.builder.get_object('button4').set_sensitive(True)
+
 	def populate_terms_store (self):
 		self.terms_store.clear()
-		self.cursor.execute("SELECT id, name, standard FROM "
-							"terms_and_discounts ORDER BY name")
+		self.cursor.execute("SELECT id::text, name, standard FROM "
+							"terms_and_discounts WHERE deleted = False "
+							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			term_id = row[0]
 			term_name = row[1]
@@ -53,7 +53,7 @@ class ContactTermsGUI:
 
 	def terms_row_activated (self, treeview, path, treeview_column):
 		self.terms_id = self.terms_store[path][0]
-		self.cursor.execute("SELECT name, cash_only, markup_percent,"
+		self.cursor.execute("SELECT name, cash_only, "
 							"discount_percent, pay_in_days_active, "
 							"pay_in_days, pay_by_day_of_month_active, "
 							"pay_by_day_of_month, standard, plus_date, text1, "
@@ -62,26 +62,24 @@ class ContactTermsGUI:
 		for row in self.cursor.fetchall():
 			name = row[0]
 			cash_only = row[1]
-			markup_percent = row[2]
-			discount_percent = row[3]
-			paid_in_days_active = row[4]
-			paid_in_days = row[5]
-			paid_by_day_of_month_active = row[6]
-			paid_by_day_of_month = row[7]
-			default = row[8]
-			plus_date = row[9]
-			text1 = row[10]
-			text2 = row[11]
-			text3 = row[12]
-			text4 = row[13]
+			discount_percent = row[2]
+			paid_in_days_active = row[3]
+			paid_in_days = row[4]
+			paid_by_day_of_month_active = row[5]
+			paid_by_day_of_month = row[6]
+			default = row[7]
+			plus_date = row[8]
+			text1 = row[9]
+			text2 = row[10]
+			text3 = row[11]
+			text4 = row[12]
 			self.builder.get_object('entry1').set_text(name)
 			self.builder.get_object('checkbutton3').set_active(cash_only)
-			self.builder.get_object('spinbutton4').set_text(str(markup_percent))
-			self.builder.get_object('spinbutton1').set_text(str(discount_percent))
+			self.builder.get_object('spinbutton1').set_value(discount_percent)
 			self.builder.get_object('radiobutton1').set_active(paid_in_days_active)
-			self.builder.get_object('spinbutton2').set_text(str(paid_in_days))
+			self.builder.get_object('spinbutton2').set_value(paid_in_days)
 			self.builder.get_object('radiobutton2').set_active(paid_by_day_of_month_active)
-			self.builder.get_object('spinbutton3').set_text(str(paid_by_day_of_month))
+			self.builder.get_object('spinbutton3').set_value(paid_by_day_of_month)
 			self.builder.get_object('button1').set_sensitive(not default)
 			self.builder.get_object('spinbutton5').set_value(plus_date)
 			self.builder.get_object('entry2').set_text(text1)
@@ -102,13 +100,40 @@ class ContactTermsGUI:
 		self.builder.get_object('spinbutton2').set_sensitive(active)
 
 	def delete_button_clicked (self, button):
-		pass
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		term_id = model[path][0]
+		try:
+			self.cursor.execute("DELETE FROM terms_and_discounts "
+								"WHERE id = %s", (term_id,))
+			self.db.rollback()
+			self.cursor.execute("UPDATE terms_and_discounts "
+								"SET deleted = True "
+								"WHERE id = %s", (term_id,))
+		except Exception as e:
+			self.db.rollback()
+			self.builder.get_object('label6').set_label(str(e))
+			dialog = self.builder.get_object('dialog1')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.ACCEPT:
+				new_term_id = self.builder.get_object('combobox1').get_active_id()
+				self.cursor.execute("UPDATE contacts "
+									"SET terms_and_discounts_id = %s "
+									"WHERE terms_and_discounts_id = %s",
+									(new_term_id, term_id))
+				self.cursor.execute("UPDATE terms_and_discounts "
+									"SET deleted = True "
+									"WHERE id = %s", (term_id,))
+		self.db.commit()
+		self.populate_terms_store()
 
 	def new_button_clicked (self, button = None):
 		self.terms_id = 0
 		self.builder.get_object('entry1').set_text("New term & discount")
 		self.builder.get_object('spinbutton1').set_text("2")
-		self.builder.get_object('spinbutton4').set_text("35")
 		self.builder.get_object('radiobutton1').set_active(True)
 		self.builder.get_object('spinbutton2').set_text("30")
 		self.builder.get_object('spinbutton3').set_text("0")
@@ -116,7 +141,6 @@ class ContactTermsGUI:
 	def save_button_clicked (self, button):
 		term_name = self.builder.get_object('entry1').get_text()
 		cash_only = self.builder.get_object('checkbutton3').get_active()
-		markup = self.builder.get_object('spinbutton4').get_value()
 		discount = self.builder.get_object('spinbutton1').get_value()
 		paid_in_days_active = self.builder.get_object('radiobutton1').get_active()
 		paid_in_days = self.builder.get_object('spinbutton2').get_value()
@@ -129,30 +153,30 @@ class ContactTermsGUI:
 		text4 = self.builder.get_object('entry5').get_text()
 		if self.terms_id == 0:
 			self.cursor.execute("INSERT INTO terms_and_discounts "
-								"(name, cash_only, markup_percent, "
+								"(name, cash_only, "
 								"discount_percent, pay_in_days_active, "
 								"pay_in_days, pay_by_day_of_month_active, "
 								"pay_by_day_of_month, standard, plus_date, "
 								"text1, text2, text3, text4) VALUES "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-								"%s, %s, %s, %s)"
+								"%s, %s, %s)"
 								"RETURNING id", (term_name, cash_only, 
-								markup, discount, paid_in_days_active, 
+								discount, paid_in_days_active, 
 								paid_in_days, paid_by_day_month_active, 
 								paid_by_day_month, False, plus_date, 
 								text1, text2, text3, text4))
 			self.terms_id = self.cursor.fetchone()[0]
 		else:
 			self.cursor.execute("UPDATE terms_and_discounts "
-								"SET (name, cash_only, markup_percent, "
+								"SET (name, cash_only, "
 								"discount_percent, pay_in_days_active, "
 								"pay_in_days, pay_by_day_of_month_active, "
 								"pay_by_day_of_month, plus_date, text1, text2, "
 								"text3, text4) = "
-								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s) "
 								"WHERE id = %s", (term_name, cash_only, 
-								markup, discount, paid_in_days_active, 
+								discount, paid_in_days_active, 
 								paid_in_days, paid_by_day_month_active, 
 								paid_by_day_month, plus_date, 
 								text1, text2, text3, text4, self.terms_id))
