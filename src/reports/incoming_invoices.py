@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -17,6 +17,7 @@
 
 
 from gi.repository import Gtk
+import subprocess
 from dateutils import datetime_to_text 
 
 UI_FILE = "src/reports/incoming_invoices.ui"
@@ -40,6 +41,28 @@ class IncomingInvoiceGUI:
 
 		window = self.builder.get_object('window1')
 		window.show_all()
+
+	def treeview_button_release_event (self, treeview, event):
+		if event.button == 3:
+			menu = self.builder.get_object('menu1')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+
+	def view_attachment_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		file_id = model[path][0]
+		self.cursor.execute("SELECT attached_pdf FROM incoming_invoices "
+							"WHERE id = %s", (file_id,))
+		for row in self.cursor.fetchall():
+			file_name = "/tmp/Attachment.pdf"
+			file_data = row[0]
+			if file_data == None:
+				return
+			f = open(file_name,'wb')
+			f.write(file_data)
+			subprocess.call("xdg-open %s" % file_name, shell = True)
+			f.close()
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()

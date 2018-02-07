@@ -49,6 +49,11 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkFileFilter" id="filefilter1">
+    <patterns>
+      <pattern>*.pdf</pattern>
+    </patterns>
+  </object>
   <object class="GtkMenu" id="menu1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -1089,6 +1094,7 @@
           <object class="GtkFileChooserButton" id="filechooserbutton1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="filter">filefilter1</property>
             <signal name="file-set" handler="filechooser_file_set" swapped="no"/>
           </object>
           <packing>
