@@ -8,12 +8,15 @@
       <column type="gint"/>
       <!-- column-name contact_name -->
       <column type="gchararray"/>
-      <!-- column-name contact_co -->
+      <!-- column-name contact_ext_name -->
       <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkTreeModelFilter" id="filtered_contact_store">
     <property name="child_model">contact_store</property>
+  </object>
+  <object class="GtkTreeModelSort" id="sorted_contact_store">
+    <property name="model">filtered_contact_store</property>
   </object>
   <object class="GtkListStore" id="duplicate_contact_store">
     <columns>
@@ -362,7 +365,7 @@
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
                         <property name="is_focus">True</property>
-                        <property name="model">filtered_contact_store</property>
+                        <property name="model">sorted_contact_store</property>
                         <property name="reorderable">True</property>
                         <property name="search_column">1</property>
                         <property name="activate_on_single_click">True</property>
@@ -372,11 +375,12 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Name</property>
                             <property name="expand">True</property>
                             <property name="clickable">True</property>
-                            <property name="sort_indicator">True</property>
-                            <signal name="clicked" handler="contact_column_clicked" swapped="no"/>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext2"/>
                               <attributes>
@@ -387,7 +391,10 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn5">
-                            <property name="title" translatable="yes">C/O</property>
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Ext name</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">2</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext5"/>
                               <attributes>
@@ -483,7 +490,7 @@
                                           <object class="GtkLabel" id="label6">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="label" translatable="yes">C/O</property>
+                                            <property name="label" translatable="yes">Ext name</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">2</property>

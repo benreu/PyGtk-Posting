@@ -727,15 +727,6 @@ class GUI:
 		self.builder.get_object('entry25').set_text("")
 		self.builder.get_object('entry12').set_text("")
 
-	def contact_column_clicked (self, treeview_column):
-		sort_type = treeview_column.get_sort_order ()
-		if sort_type == Gtk.SortType.DESCENDING:
-			treeview_column.set_sort_order(Gtk.SortType.ASCENDING )
-			self.contact_store.set_sort_column_id (1, Gtk.SortType.ASCENDING )
-		else:
-			treeview_column.set_sort_order(Gtk.SortType.DESCENDING )
-			self.contact_store.set_sort_column_id (1, Gtk.SortType.DESCENDING )
-
 	def populate_individual_store (self):
 		self.individual_contact_store.clear()
 		self.cursor.execute("SELECT id, name FROM contact_individuals "
