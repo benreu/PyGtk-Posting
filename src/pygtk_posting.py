@@ -674,7 +674,7 @@ class GUI (GObject.GObject):
 		else:
 			self.unpaid_invoices_window.present()
 
-	def destroy(self, window):
+	def destroy(self, widget):
 		Gtk.main_quit()
 		self.cursor.execute("UNLISTEN products")
 		self.cursor.execute("UNLISTEN contacts")
