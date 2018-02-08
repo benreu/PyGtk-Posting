@@ -990,13 +990,13 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE settings DROP COLUMN last_backup")
 		cursor.execute("ALTER TABLE settings ADD COLUMN last_backup date")
 		cursor.execute("UPDATE settings SET last_backup = CURRENT_DATE")
-		cursor.execute("ALTER TABLE settings ADD COLUMN backup_frequency_days interval")
-		cursor.execute("UPDATE settings SET backup_frequency_days = '07:00:00'")
+		cursor.execute("ALTER TABLE settings ADD COLUMN backup_frequency_days integer")
+		cursor.execute("UPDATE settings SET backup_frequency_days = 7")
 	if version <= '101':
 		progressbar (101)
 		cursor.execute("ALTER TABLE settings DROP COLUMN close_statement, DROP COLUMN only_close_zero_statement, DROP COLUMN copy_to_print_statement")
-		cursor.execute("ALTER TABLE settings ADD COLUMN statement_day_of_month interval")
-		cursor.execute("UPDATE settings SET statement_day_of_month = '1:00:00'")
+		cursor.execute("ALTER TABLE settings ADD COLUMN statement_day_of_month integer")
+		cursor.execute("UPDATE settings SET statement_day_of_month = 1")
 		cursor.execute("UPDATE manufacturing_projects SET name = ''")
 	if version <= '102':
 		progressbar (102)
