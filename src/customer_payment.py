@@ -161,8 +161,7 @@ class GUI:
 		elif pay_by_day_of_month_active == True:
 			for row in self.cursor.fetchall():
 				invoice_id = row[0]
-				self.total = row[1]
-				total = float(self.total)
+				total = float(row[1])
 				date_created = row[2]
 				discount_date = date_created.replace(day=pay_by_day_of_month)
 				due_date_text = date_to_text (discount_date)
@@ -225,7 +224,7 @@ class GUI:
 		total = Decimal()
 		model, path = selection.get_selected_rows ()
 		for row in path:
-			total += model[row][4]
+			total += model[row][5]
 		if len(path) == 1:
 			invoice_id = model[path][0]
 			amount_due = model[path][5]
@@ -234,7 +233,7 @@ class GUI:
 		else:
 			self.builder.get_object('label9').set_label('Select one invoice')
 			self.builder.get_object('label4').set_label('Select one invoice')
-		#self.builder.get_object('spinbutton1').set_value(total)
+			self.builder.get_object('spinbutton1').set_value(total)
 		self.builder.get_object('label22').set_label('{:,.2f}'.format(total, 2))
 
 	def invoice_treeview_button_release_event (self, treeview, event):
@@ -285,12 +284,6 @@ class GUI:
 	def post_payment_clicked (self, widget):
 		comments = 	self.builder.get_object('entry2').get_text()
 		self.payment = transactor.CustomerInvoicePayment(self.db, self.date, self.total)
-		#offset = self.builder.get_object('spinbutton2').get_value()
-		#account_number = self.builder.get_object('combobox2').get_active_id()
-		#if offset > 0.00: 
-		#	self.payment.post_offset (account_number, offset )
-		#elif offset < 0.00:
-		#	self.payment.post_offset (account_number, abs(offset))
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -339,7 +332,7 @@ class GUI:
 		self.window.destroy ()
 		
 	def update_invoices_paid (self):
-		self.discount = 0.00
+		self.discount = Decimal()
 		self.cursor.execute("(SELECT id, total - amount_due AS discount FROM "
 							"(SELECT id, total, amount_due, SUM(amount_due) "
 							"OVER (ORDER BY date_created, id) invoice_totals "
@@ -359,7 +352,7 @@ class GUI:
 			invoice_id = row[0]
 			discount = row[1]
 			if float(discount) != 0.00:
-				self.discount += float(discount)
+				self.discount += discount
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
 				transactor.post_invoice_accounts (self.db, self.date, invoice_id)
@@ -383,7 +376,6 @@ class GUI:
 		self.check_amount_totals_validity ()
 
 	def payment_amount_value_changed (self, spinbutton):
-		self.total = spinbutton.get_value ()
 		self.check_amount_totals_validity ()
 
 	def update_invoice_amounts_due (self):
@@ -480,48 +472,40 @@ class GUI:
 		button.set_sensitive (False)
 		label = self.builder.get_object('label20')
 		label.set_visible (True)
-		offset = self.builder.get_object('spinbutton2').get_value()
 		payment = self.builder.get_object('spinbutton1').get_value()
 		if payment == 0.00:
 			button.set_label ("Amount is 0.00")
 			return
-		invoice_totals = Decimal()
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
+		invoice_amount_due_totals = Decimal()
+		self.total = Decimal()
 		for row in path:
-			invoice_totals += model[row][4]
-		final_pay = payment - offset
-		self.builder.get_object('label23').set_label ('{:,.2f}'.format(final_pay))
-		if float(invoice_totals) == payment - offset:
+			invoice_amount_due_totals += model[row][5]
+			self.total += model[row][4]
+		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
+		if float(invoice_amount_due_totals) == payment :
 			label.set_visible (False) #hide the off balance alert
-		account = self.builder.get_object('combobox2').get_active()
-		if account == -1 and offset != 0.00:
-			button.set_label ('No account selected')
-			return
 		button.set_sensitive (True)
 		button.set_label('Post payment')
 
 	def check_amount_totals_absolute (self):
 		button = self.builder.get_object('button1')
 		button.set_sensitive (False)
-		offset = self.builder.get_object('spinbutton2').get_value()
 		payment = self.builder.get_object('spinbutton1').get_value()
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if len(path) == 0:
 			button.set_label ('No invoices selected')
 			return
-		invoice_totals = Decimal()
+		invoice_amount_due_totals = Decimal()
+		self.total = Decimal()
 		for row in path:
-			invoice_totals += model[row][5]
-		final_pay = round(payment, 2) - round(offset, 2)
-		self.builder.get_object('label23').set_label ('{:,.2f}'.format(final_pay))
-		if float(invoice_totals) != payment - offset:
+			invoice_amount_due_totals += model[row][5]
+			self.total += model[row][4]
+		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
+		if float(invoice_amount_due_totals) != payment :
 			button.set_label ("Totals do not match")
-			return
-		account = self.builder.get_object('combobox2').get_active()
-		if account == -1 and offset != 0.00:
-			button.set_label ('No account selected')
 			return
 		button.set_label ('Post payment')
 		button.set_sensitive (True)
