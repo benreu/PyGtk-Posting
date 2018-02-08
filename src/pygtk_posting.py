@@ -567,20 +567,21 @@ class GUI (GObject.GObject):
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
 		store.clear()
-		self.cursor.execute("SELECT CURRENT_DATE > date_trunc( 'month', "
-								"(SELECT statement_finish_date FROM settings) + "
-								"INTERVAL'1 month') + "
-								"(SELECT statement_day_of_month FROM settings) -"
-								"INTERVAL '1 day'")
+		self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
+								"(SELECT statement_finish_date FROM settings) "
+								"+ INTERVAL'1 month') "
+								"+ ((SELECT statement_day_of_month FROM settings) "
+									"* INTERVAL '1 day') "
+								"- INTERVAL '1 day'")
 		if self.cursor.fetchone()[0] == True:
 			store.append(["Print statements", self.statement_window])
 		self.cursor.execute("SELECT "
 								"date_trunc('day', "
-									"(SELECT last_backup FROM settings)) < "
+									"(SELECT last_backup FROM settings)) <= "
 								"date_trunc('day', "
 									"CURRENT_DATE - "
-										"(SELECT backup_frequency_days "
-										"FROM settings))")
+										"((SELECT backup_frequency_days "
+										"FROM settings) * INTERVAL '1 day'))")
 		if self.cursor.fetchone()[0] == True:
 			store.append(['Backup database', self.backup_window])
 		
