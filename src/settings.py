@@ -33,10 +33,11 @@ class GUI():
 
 		self.cursor.execute("SELECT print_direct, statement_day_of_month, "
 							"email_when_possible, enforce_exact_payment, "
-							"accrual_based, cost_decrease_alert FROM settings")
+							"accrual_based, cost_decrease_alert, "
+							"backup_frequency_days FROM settings")
 		for row in self.cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
-			self.builder.get_object('spinbutton1').set_value(row[1].days)
+			self.builder.get_object('spinbutton1').set_value(row[1])
 			self.builder.get_object('checkbutton5').set_active(row[2])
 			self.builder.get_object('checkbutton6').set_active(row[3])
 			if row[4] == False:
@@ -44,6 +45,7 @@ class GUI():
 			else:
 				self.builder.get_object('radiobutton2').set_active(True)
 			self.builder.get_object('spinbutton4').set_value(row[5] * 100)
+			self.builder.get_object('spinbutton5').set_value(row[6])
 		self.load_precision()
 		self.document_type_store = Gtk.ListStore(int, str)
 		self.document_type_treeview = self.builder.get_object('treeview4')
@@ -253,11 +255,16 @@ class GUI():
 														[widget.get_active()])	
 		self.db.commit()
 
+	def backup_days_spinbutton_changed (self, spinbutton):
+		days = spinbutton.get_value_as_int()
+		self.cursor.execute("UPDATE settings "
+							"SET backup_frequency_days = %s", (days,))
+		self.db.commit()
+
 	def statement_date_changed (self, spinbutton):
-		day_of_month = spinbutton.get_value()
-		day_of_month = "%s:00:00" % day_of_month
-		self.cursor.execute("UPDATE settings SET statement_day_of_month = %s", 
-																(day_of_month,))
+		day_of_month = spinbutton.get_value_as_int()
+		self.cursor.execute("UPDATE settings "
+							"SET statement_day_of_month = %s", (day_of_month,))
 		self.db.commit()
 
 	def save_company_info(self, widget):
