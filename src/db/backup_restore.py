@@ -36,6 +36,7 @@ class Utilities:
 
 	def backup_gui (self, database):
 		self.database = database
+		self.result = False
 		backup_window = self.builder.get_object('backupdialog')
 		backup_window.set_transient_for(self.parent_window)
 		day = time.strftime("%Y-%m-%d-%H:%M")
@@ -83,6 +84,7 @@ class Utilities:
 														% (path,db_name))
 			self.builder.get_object('button6').set_visible(True)
 			self.result = True
+		self.builder.get_object('button1').set_visible(False)
 		self.builder.get_object('button2').set_visible(False)
 			
 	def done_clicked (self, dialog):
