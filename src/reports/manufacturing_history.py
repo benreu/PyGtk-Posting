@@ -28,6 +28,7 @@ class ManufacturingHistoryGUI:
 		self.cursor = self.db.cursor()
 		
 		self.product_text = ''
+		self.name_text = ''
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -84,14 +85,19 @@ class ManufacturingHistoryGUI:
 											time,
 											employee_count])
 
-	def product_filter_changed (self, entry):
+	def filter_changed (self, entry):
+		entry = self.builder.get_object('searchentry1')
 		self.product_text = entry.get_text().lower()
+		entry = self.builder.get_object('searchentry2')
+		self.name_text = entry.get_text().lower()
 		self.filtered_store.refilter()
 
 	def filter_func (self, model, tree_iter, r):
-		if self.product_text in model[tree_iter][2].lower():
-			return True
-		return False
+		if self.name_text not in model[tree_iter][1].lower():
+			return False
+		if self.product_text not in model[tree_iter][2].lower():
+			return False
+		return True
 
 
 
