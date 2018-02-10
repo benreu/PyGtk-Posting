@@ -18,6 +18,7 @@ from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
+from main import Connection, Admin
 
 dev = None
 
@@ -26,8 +27,9 @@ UI_FILE = "src/contacts.ui"
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
-class GUI:
+class GUI(Connection, Admin):
 	def __init__(self, main, contact_id = 0):
+		#Connection.__init__(self)
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -35,7 +37,7 @@ class GUI:
 
 		self.main = main
 		self.db = main.db
-		self.cursor = self.db.cursor()
+		self.cursor = self.cursor()
 		self.contact_id = contact_id
 		
 		self.name_widget = self.builder.get_object('entry1')
@@ -96,7 +98,7 @@ class GUI:
 		GLib.timeout_add(100, self.populate_scanners)
 
 	def customer_markup_percent_clicked (self, button):
-		if self.main.check_admin() == False:
+		if self.get_admin() == False:
 			return
 		self.window.present()
 		import customer_markup_percent
@@ -203,7 +205,7 @@ class GUI:
 		self.populate_tax_exemptions ()
 
 	def terms_clicked (self, button):
-		if self.main.check_admin() == False:
+		if self.get_admin() == False:
 			return
 		self.window.present()
 		import contact_terms
@@ -260,7 +262,7 @@ class GUI:
 	def delete_file_clicked (self, widget):
 		dialog = self.builder.get_object('dialog1')
 		combo = self.builder.get_object('comboboxtext3')
-		if self.main.admin == False:
+		if self.get_admin() == False:
 			self.builder.get_object('button17').set_sensitive(False)
 			self.builder.get_object('label17').set_label("You are not admin !")
 		else:
@@ -578,9 +580,7 @@ class GUI:
 		self.populating = False
 		
 	def destroy(self, window):
-		self.builder.get_object('window1').destroy()
 		self.cursor.close()
-		return True
 
 	def tax_exempt_clicked(self, widget):
 		sense = widget.get_active() 

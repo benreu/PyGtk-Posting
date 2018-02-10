@@ -22,7 +22,8 @@ from gi.repository import Gtk, GLib, GObject
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
-from db.database_tools import check_for_database
+from main import Connection, Admin, dev_mode
+#from db.database_tools import check_for_database
 
 UI_FILE = "src/pygtk_posting.ui"
 
@@ -30,7 +31,7 @@ invoice_window = None
 ccm = None
 
 
-class GUI (GObject.GObject):
+class MainGUI (GObject.GObject, Connection, Admin):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
@@ -45,6 +46,7 @@ class GUI (GObject.GObject):
 	log_file = None
 	def __init__(self):
 		GObject.GObject.__init__(self)
+		global dev_mode
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -62,7 +64,7 @@ class GUI (GObject.GObject):
 			print ("%s when trying to retrieve sys args" % e)
 			database_to_connect = None
 			self.set_admin_menus(True) # started from Anjuta, developer mode
-			database_tools.dev_mode = True
+			dev_mode = True
 			self.builder.get_object('menuitem35').set_label("Admin logout")
 
 		self.window = self.builder.get_object('main_window')
@@ -76,7 +78,7 @@ class GUI (GObject.GObject):
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		result, db_connection, self.db_name = check_for_database(database_to_connect)
+		result, db_connection, self.db_name = self.connect_to_db(database_to_connect)
 		if result == True:
 			self.db = db_connection
 			self.cursor = self.db.cursor()
@@ -307,6 +309,7 @@ class GUI (GObject.GObject):
 		self.builder.get_object('menuitem49').set_sensitive(value)
 		self.builder.get_object('menuitem80').set_sensitive(value)
 		self.admin = value
+		self.set_admin(value)
 
 	def blank_clicked (self, button):
 		pass
@@ -726,12 +729,14 @@ class GUI (GObject.GObject):
 			import invoice_window
 		invoice_window.InvoiceGUI (self)
 
+GObject.type_register(MainGUI)
 
-def main():
+def main_gui():
 	
-	app = GUI()
+	app = MainGUI()
 	Gtk.main()
 
 		
 if __name__ == "__main__":	
-	sys.exit(main())
+	sys.exit(main_gui())
+

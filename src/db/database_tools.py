@@ -16,62 +16,15 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
-import os, sys, subprocess, time, psycopg2, configparser, apsw
+from gi.repository import Gtk, GLib
+import os, subprocess, time, psycopg2, apsw
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from datetime import datetime
 from db import database_utils
+from main import get_apsw_cursor
 import log_utils
 
 UI_FILE = "src/db/database_tools.ui"
 
-dev_mode = False
-
-def get_apsw_cursor ():
-	global dev_mode
-	home = os.path.expanduser('~')
-	pref_path = os.path.join(home, '.config/posting')
-	if not os.path.exists(pref_path):
-		os.mkdir(pref_path)
-	if dev_mode == True:
-		pref_file = os.path.join(os.getcwd(), 'local_settings')
-	else:
-		pref_file = os.path.join(pref_path, 'local_settings')
-	if not os.path.exists(pref_file):
-		con = apsw.Connection(pref_file)
-		cursor = con.cursor()
-		cursor.execute("CREATE TABLE connection "
-												"(user text, password text, "
-												"host text, port text, "
-												"db_name text)")
-		cursor.execute("INSERT INTO connection VALUES "
-												"('postgres', 'None', "
-												"'localhost', '5432', 'None')")
-	else:
-		con = apsw.Connection(pref_file)
-		cursor = con.cursor()
-	return cursor
-
-def check_for_database(db):
-	cursor_sqlite = get_apsw_cursor ()
-	if db == None:
-		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
-			sql_database = row[0]
-	else:
-		sql_database = db
-	for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-		sql_user = row[0]
-		sql_password = row[1]
-		sql_host = row[2]
-		sql_port = row[3]
-	try:
-		db = psycopg2.connect ( dbname = sql_database, host = sql_host, 
-								user = sql_user, password = sql_password, 
-								port = sql_port)
-		return True, db, sql_database
-	except psycopg2.OperationalError as e:
-		print (e.args)
-		return False, None, None
 
 class GUI:
 	def __init__(self, db, error):
@@ -267,15 +220,8 @@ class GUI:
 			if (e.pgcode == "42P04"):
 				self.status_update("Database already exists!")
 			return
-		GLib.idle_add (self.add_tables, db_name)
-
-	def add_tables (self, db_name):
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		db = psycopg2.connect( database= db_name, host= sql_host, 
 								user=sql_user, password = sql_password, 
 								port = sql_port)
