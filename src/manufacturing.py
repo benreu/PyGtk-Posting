@@ -123,8 +123,8 @@ class ManufacturingGUI:
 			manufacturing_name = row[1]
 			time_clock_projects_id = row[2]
 			project_qty = row[3]
-			self.builder.get_object('entry2').set_text(manufacturing_name)
 			self.builder.get_object('spinbutton1').set_value(project_qty)
+			self.builder.get_object('entry2').set_text(manufacturing_name)
 			self.cursor.execute("SELECT name FROM time_clock_projects "
 								"WHERE id = %s", (time_clock_projects_id,))
 			for row in self.cursor.fetchall():
@@ -165,6 +165,7 @@ class ManufacturingGUI:
 			self.builder.get_object('spinbutton1').set_value(0)
 			manufacturing_name_string = "Manufacturing : %s [0]" % product_name
 			self.builder.get_object('entry2').set_text(manufacturing_name_string)
+			#print (manufacturing_name_string)
 			self.builder.get_object('entry1').set_text(manufacturing_name_string)
 
 	def new_clicked (self, button):
