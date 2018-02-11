@@ -22,8 +22,7 @@ from gi.repository import Gtk, GLib, GObject
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
-from main import Connection, Admin, dev_mode
-#from db.database_tools import check_for_database
+from main import Connection, Admin, Accounts, dev_mode
 
 UI_FILE = "src/pygtk_posting.ui"
 
@@ -31,17 +30,12 @@ invoice_window = None
 ccm = None
 
 
-class MainGUI (GObject.GObject, Connection, Admin):
+class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
 	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
-	expense_acc = Gtk.TreeStore(int, str)
-	revenue_acc = Gtk.TreeStore(int, str)
-	product_expense_acc = Gtk.TreeStore(str, str)
-	product_inventory_acc = Gtk.TreeStore(str, str)
-	product_revenue_acc = Gtk.TreeStore(str, str)
 	admin = False
 	log_file = None
 	def __init__(self):
@@ -112,147 +106,6 @@ class MainGUI (GObject.GObject, Connection, Admin):
 			elif "account" in notify.payload:
 				self.populate_accounts()
 		return True
-
-	def populate_accounts (self):
-		self.expense_acc.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
-							"AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
-			number = row[0]
-			name = row[1]
-			parent = self.expense_acc.append(None,[number, name])
-			self.populate_child_expense(number, parent)
-		#################################################
-		self.product_expense_acc.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
-							"AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
-			number = str(row[0])
-			name = row[1]
-			show = False
-			parent = self.product_expense_acc.append(None,[number, name])
-			if self.populate_child_product_expense(number, parent) == True:
-				show = True
-			if show == False:
-				self.product_expense_acc.remove(parent)
-		##################################################
-		self.product_revenue_acc.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
-							"AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
-			number = str(row[0])
-			name = row[1]
-			show = False
-			parent = self.product_revenue_acc.append(None,[number, name])
-			if self.populate_child_product_revenue (number, parent) == True:
-				show = True
-			if show == False:
-				self.product_revenue_acc.remove(parent)
-		##################################################
-		self.revenue_acc.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
-							"AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
-			number = row[0]
-			name = row[1]
-			parent = self.revenue_acc.append(None,[number, name])
-			self.populate_child_revenue (number, parent)
-		##################################################
-		self.product_inventory_acc.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 1 "
-							"AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
-			number = str(row[0])
-			name = row[1]
-			show = False
-			parent = self.product_inventory_acc.append(None,[number, name])
-			if self.populate_child_product_inventory(number, parent) == True:
-				show = True
-			if show == False:
-				self.product_inventory_acc.remove(parent)
-			
-	def populate_child_product_inventory (self, number, parent):
-		show = False
-		self.cursor.execute("SELECT number, name, inventory_account, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
-		for row in self.cursor.fetchall():
-			number = str(row[0])
-			name = row[1]
-			if row[2] == True:
-				show = True
-				self.product_inventory_acc.append(parent,[number, name])
-			elif row[3] == True:
-				p = self.product_inventory_acc.append(parent,[number, name])
-				c_show = False
-				if self.populate_child_product_inventory(number, p) == True:
-					show = True
-					c_show = True
-				if c_show == False:
-					self.product_inventory_acc.remove(p)
-		return show
-			
-	def populate_child_revenue (self, number, parent):
-		show = False
-		self.cursor.execute("SELECT number, name, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
-		for row in self.cursor.fetchall():
-			number = row[0]
-			name = row[1]
-			p = self.revenue_acc.append(parent,[number, name])
-			self.populate_child_revenue(number, p)
-			
-	def populate_child_product_revenue (self, number, parent):
-		show = False
-		self.cursor.execute("SELECT number, name, revenue_account, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
-		for row in self.cursor.fetchall():
-			number = str(row[0])
-			name = row[1]
-			if row[2] == True:
-				show = True
-				self.product_revenue_acc.append(parent,[number, name])
-			elif row[3] == True:
-				p = self.product_revenue_acc.append(parent,[number, name])
-				c_show = False
-				if self.populate_child_product_revenue(number, p) == True:
-					show = True
-					c_show = True
-				if c_show == False:
-					self.product_revenue_acc.remove(p)
-		return show
-			
-	def populate_child_product_expense (self, number, parent):
-		show = False
-		self.cursor.execute("SELECT number, name, expense_account, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
-		for row in self.cursor.fetchall():
-			number = str(row[0])
-			name = row[1]
-			if row[2] == True:
-				p = self.product_expense_acc.append(parent,[number, name])
-				show = True
-			elif row[3] == True:
-				p = self.product_expense_acc.append(parent,[number, name])
-				c_show = False
-				if self.populate_child_product_expense(number, p) == True:
-					show = True
-					c_show = True
-				if c_show == False:
-					self.product_expense_acc.remove(p)
-		return show
-			
-	def populate_child_expense (self, number, parent):
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE "
-							"parent_number = %s", (number,))
-		for row in self.cursor.fetchall():
-			number = row[0]
-			name = row[1]
-			p = self.expense_acc.append(parent,[number, name])
-			self.populate_child_expense(number, p)
 
 	def populate_modules (self):
 		import importlib.util as i_utils
