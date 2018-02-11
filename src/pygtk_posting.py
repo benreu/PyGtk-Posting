@@ -22,7 +22,7 @@ from gi.repository import Gtk, GLib, GObject
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
-from main import Connection, Admin, dev_mode
+from main import Connection, Admin
 #from db.database_tools import check_for_database
 
 UI_FILE = "src/pygtk_posting.ui"
@@ -46,7 +46,6 @@ class MainGUI (GObject.GObject, Connection, Admin):
 	log_file = None
 	def __init__(self):
 		GObject.GObject.__init__(self)
-		global dev_mode
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -64,7 +63,8 @@ class MainGUI (GObject.GObject, Connection, Admin):
 			print ("%s when trying to retrieve sys args" % e)
 			database_to_connect = None
 			self.set_admin_menus(True) # started from Anjuta, developer mode
-			dev_mode = True
+			import main
+			main.dev_mode = True
 			self.builder.get_object('menuitem35').set_label("Admin logout")
 
 		self.window = self.builder.get_object('main_window')
@@ -553,7 +553,7 @@ class MainGUI (GObject.GObject, Connection, Admin):
 		from reports import job_sheet_history
 		job_sheet_history.JobSheetHistoryGUI(self.db)
 
-	def backup_window (self):
+	def backup_window (self, n):
 		from db import backup_restore
 		u = backup_restore.Utilities(self)
 		result = u.backup_gui (self.db_name)
@@ -564,8 +564,9 @@ class MainGUI (GObject.GObject, Connection, Admin):
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()
 		model, path = selection.get_selected_rows()
-		function = model[path][1]
-		function()
+		id_ = model[path][1]
+		function = model[path][2]
+		function(id_)
 
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
@@ -577,7 +578,7 @@ class MainGUI (GObject.GObject, Connection, Admin):
 									"* INTERVAL '1 day') "
 								"- INTERVAL '1 day'")
 		if self.cursor.fetchone()[0] == True:
-			store.append(["Print statements", self.statement_window])
+			store.append(["Print statements", 0, self.statement_window])
 		self.cursor.execute("SELECT "
 								"date_trunc('day', "
 									"(SELECT last_backup FROM settings)) <= "
@@ -586,7 +587,21 @@ class MainGUI (GObject.GObject, Connection, Admin):
 										"((SELECT backup_frequency_days "
 										"FROM settings) * INTERVAL '1 day'))")
 		if self.cursor.fetchone()[0] == True:
-			store.append(['Backup database', self.backup_window])
+			store.append(['Backup database', 0, self.backup_window])
+		self.cursor.execute("SELECT rm.id, subject "
+							"FROM resources AS rm "
+							"JOIN resource_tags AS rmt "
+							"ON rmt.id = rm.tag_id "
+							"WHERE finished != True "
+							"AND (diary, to_do) = (False, True)")
+		for row in self.cursor.fetchall():
+			id_ = row[0]
+			subject = row[1]
+			store.append([subject, id_, self.resource_window])
+
+	def resource_window (self, id_):
+		import resource_management
+		resource_management.ResourceManagementGUI(self.db, id_)
 		
 	def focus (self, widget = None, d = None):
 		self.populate_to_do_treeview()
