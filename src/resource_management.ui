@@ -8,6 +8,13 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkButton" id="button5">
+    <property name="label" translatable="yes">No date</property>
+    <property name="visible">True</property>
+    <property name="can_focus">True</property>
+    <property name="receives_default">True</property>
+    <signal name="clicked" handler="no_date_clicked" swapped="no"/>
+  </object>
   <object class="GtkListStore" id="contact_store">
     <columns>
       <!-- column-name contact_id -->
@@ -25,40 +32,6 @@
       <attributes>
         <attribute name="text">1</attribute>
       </attributes>
-    </child>
-  </object>
-  <object class="GtkBox" id="dated_for_box">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="orientation">vertical</property>
-    <child>
-      <object class="GtkCalendar" id="dated_for_calendar">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="year">2017</property>
-        <property name="month">3</property>
-        <property name="day">25</property>
-        <signal name="day-selected" handler="dated_for_calendar_day_selected" swapped="no"/>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">0</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkButton" id="button5">
-        <property name="label" translatable="yes">No date</property>
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="receives_default">True</property>
-        <signal name="clicked" handler="no_date_clicked" swapped="no"/>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">1</property>
-      </packing>
     </child>
   </object>
   <object class="GtkLabel" id="label4">
@@ -97,14 +70,6 @@
       </object>
     </child>
   </object>
-  <object class="GtkCalendar" id="older_than_calendar">
-    <property name="visible">True</property>
-    <property name="can_focus">True</property>
-    <property name="year">2017</property>
-    <property name="month">3</property>
-    <property name="day">25</property>
-    <signal name="day-selected" handler="older_than_date_selected" swapped="no"/>
-  </object>
   <object class="GtkTreeStore" id="resource_store">
     <columns>
       <!-- column-name row_id -->
@@ -135,6 +100,8 @@
       <column type="glong"/>
       <!-- column-name cid_time_formatted -->
       <column type="gchararray"/>
+      <!-- column-name to_do -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkListStore" id="tag_store">
@@ -350,8 +317,10 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Subject</property>
                             <property name="expand">True</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext1">
@@ -368,8 +337,10 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Contact</property>
                             <property name="expand">True</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">3</property>
                             <child>
                               <object class="GtkCellRendererCombo" id="cellrenderercombo2">
@@ -389,7 +360,9 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Timed</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">4</property>
                             <child>
                               <object class="GtkCellRendererToggle" id="cellrenderertoggle1">
@@ -404,7 +377,9 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Time</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">6</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext3"/>
@@ -416,8 +391,10 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Dated for</property>
                             <property name="widget">label4</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">7</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext4">
@@ -432,7 +409,9 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Tag</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">8</property>
                             <child>
                               <object class="GtkCellRendererCombo" id="cellrenderercombo1">
@@ -453,7 +432,9 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Phone number</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">11</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext5">
@@ -467,12 +448,30 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn12">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">CID Date</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">12</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext10"/>
                               <attributes>
                                 <attribute name="text">13</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn13">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">To Do</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">14</property>
+                            <child>
+                              <object class="GtkCellRendererToggle" id="cellrenderertoggle2">
+                                <signal name="toggled" handler="to_do_toggled" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="active">14</attribute>
                               </attributes>
                             </child>
                           </object>

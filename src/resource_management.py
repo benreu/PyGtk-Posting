@@ -17,15 +17,13 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-from dateutils import seconds_to_compact_string, datetime_to_text,\
-						calendar_to_text, text_to_datetime,\
-						set_calendar_from_datetime, calendar_to_datetime,\
-						seconds_to_user_format
+from dateutils import DateTimeCalendar, seconds_to_compact_string, datetime_to_text,\
+						text_to_datetime, seconds_to_user_format
 
 UI_FILE = "src/resource_management.ui"
 
 class ResourceManagementGUI:
-	def __init__(self, db):
+	def __init__(self, db, id_ = None):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -35,27 +33,32 @@ class ResourceManagementGUI:
 		self.cursor = db.cursor()
 		self.editing = False
 		self.timer_timeout = None
-		self.older_than_date = datetime.today()
 		
 		self.resource_store = self.builder.get_object('resource_store')
 		self.contact_store = self.builder.get_object('contact_store')
 		self.contact_completion = self.builder.get_object('contact_completion')
 		self.contact_completion.set_match_func(self.contact_match_func)
 		self.tag_store = self.builder.get_object('tag_store')
+
+		self.dated_for_calendar = DateTimeCalendar()
+		no_date_button = self.builder.get_object('button5')
+		self.dated_for_calendar.pack_start(no_date_button)
+		date_label = self.builder.get_object('treeviewcolumn5').get_widget()
+		self.dated_for_calendar.set_relative_to(date_label)
+		self.dated_for_calendar.connect('day-selected', self.dated_for_calendar_day_selected )
+		
+		self.older_than_calendar = DateTimeCalendar()
+		self.older_than_calendar.set_today()
+		self.older_than_calendar.connect('day-selected', self.older_than_date_selected )
+		self.older_than_calendar.set_today()
 		self.populate_stores()
 		self.populate_resource_store ()
 
-		self.dated_for_calendar = self.builder.get_object('dated_for_calendar')
-		dated_for_box = self.builder.get_object('dated_for_box')
-		self.dated_for_popover = Gtk.Popover()
-		self.dated_for_popover.add(dated_for_box)
-		date_label = self.builder.get_object('treeviewcolumn5').get_widget()
-		self.dated_for_popover.set_relative_to(date_label)
-		
-		older_than_calendar = self.builder.get_object('older_than_calendar')
-		self.older_than_popover = Gtk.Popover()
-		self.older_than_popover.add(older_than_calendar)
-		set_calendar_from_datetime (older_than_calendar, self.older_than_date)
+		if id_ != None:
+			selection = self.builder.get_object('treeview-selection1')
+			for row in self.resource_store:
+				if row[0] == id_:
+					selection.select_path(row.path)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -182,11 +185,9 @@ class ResourceManagementGUI:
 					row[10] = rgba
 
 	def new_top_level_clicked (self, button):
-		today = datetime.today()
-		date_text = datetime_to_text (today)
 		self.resource_store.append(None,[0, 'New subject', 0, '', False, 0,  '',
-										date_text, 0, '', Gdk.RGBA(0,0,0,1), 
-										'0', 0, ''])
+										'', 0, '', Gdk.RGBA(0,0,0,1), 
+										'0', 0, '', False])
 
 	def child_of_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
@@ -211,11 +212,9 @@ class ResourceManagementGUI:
 		model, path = selection.get_selected_rows()
 		if path != []:
 			tree_iter = model.get_iter(path)
-			today = datetime.today()
-			date_text = datetime_to_text (today)
 			self.resource_store.append(tree_iter,[0, 'New child', 0, '',
-							False, 0, '', date_text, 0, '', Gdk.RGBA(0,0,0,1), 
-							0, 0, ''])
+							False, 0, '', '', 0, '', Gdk.RGBA(0,0,0,1), 
+							0, 0, '', False])
 															
 	def subject_editing_started (self, renderer_entry, entry, path):
 		self.editing = True
@@ -229,8 +228,7 @@ class ResourceManagementGUI:
 		self.editing = False
 
 	def dated_for_calendar_day_selected (self, calendar):
-		date = calendar.get_date()
-		text = calendar_to_text (date)
+		text = calendar.get_text()
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		model[path][7] = text
@@ -242,11 +240,11 @@ class ResourceManagementGUI:
 		model, path = selection.get_selected_rows()
 		text = model[path][7]
 		if text == '':
-			date_time = datetime.now()
+			self.dated_for_calendar.set_today()
 		else:
 			date_time = text_to_datetime (text)
-		set_calendar_from_datetime (self.dated_for_calendar, date_time)
-		self.dated_for_popover.show()
+			self.dated_for_calendar.set_datetime(date_time)
+		self.dated_for_calendar.show()
 
 	def tag_editing_started (self, renderer_combo, combobox, path):
 		self.editing = True
@@ -386,7 +384,7 @@ class ResourceManagementGUI:
 		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
 							"timed_seconds, dated_for, rmt.id, tag, red, "
 							"green, blue, alpha, phone_number, "
-							"call_received_time "
+							"call_received_time, to_do "
 							"FROM resources AS rm "
 							"LEFT JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -417,6 +415,7 @@ class ResourceManagementGUI:
 				rgba.alpha = row[11]
 			phone_number = row[12]
 			call_received_time = row[13]
+			to_do = row[14]
 			c_r_time_formatted = seconds_to_user_format(call_received_time)
 			if contact_id == None:
 				contact_id = 0
@@ -427,13 +426,14 @@ class ResourceManagementGUI:
 										contact_name, False, timed_seconds, 
 										time_formatted, date_formatted, tag_id, 
 										tag_name, rgba, phone_number,
-										call_received_time, c_r_time_formatted])
+										call_received_time, 
+										c_r_time_formatted, to_do])
 
 	def populate_resource_store_threaded (self, row_limit, finished):
 		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
 							"timed_seconds, dated_for, rmt.id, tag, red, "
 							"green, blue, alpha, phone_number, "
-							"call_received_time "
+							"call_received_time, to_do "
 							"FROM resources AS rm "
 							"LEFT JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -464,6 +464,7 @@ class ResourceManagementGUI:
 				rgba.alpha = row[11]
 			phone_number = row[12]
 			call_received_time = row[13]
+			to_do = row[14]
 			c_r_time_formatted = seconds_to_user_format(call_received_time)
 			if contact_id == None:
 				contact_id = 0
@@ -478,14 +479,14 @@ class ResourceManagementGUI:
 													tag_name, rgba, 
 													phone_number,
 													call_received_time,
-													c_r_time_formatted])
+													c_r_time_formatted, to_do])
 			self.add_resource_children (row_id, parent_iter, finished)
 
 	def add_resource_children (self, parent_id, parent_iter, finished):
 		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
 							"timed_seconds, dated_for, rmt.id, tag, red, "
 							"green, blue, alpha, phone_number, "
-							"call_received_time "
+							"call_received_time, to_do "
 							"FROM resources AS rm "
 							"LEFT JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -515,6 +516,7 @@ class ResourceManagementGUI:
 				rgba.alpha = row[11]
 			phone_number = row[12]
 			call_received_time = row[13]
+			to_do = row[14]
 			c_r_time_formatted = seconds_to_user_format(call_received_time)
 			if contact_id == None:
 				contact_id = 0
@@ -534,18 +536,18 @@ class ResourceManagementGUI:
 															tag_name, rgba, 
 															phone_number,
 															call_received_time,
-															c_r_time_formatted])
+															c_r_time_formatted,
+															to_do])
 			self.add_resource_children (row_id, parent, finished)
 		
 	def older_than_entry_icon_released (self, entry, icon, event):
-		self.older_than_popover.set_relative_to(entry)
-		self.older_than_popover.show()
+		self.older_than_calendar.set_relative_to(entry)
+		self.older_than_calendar.show()
 
 	def older_than_date_selected (self, calendar):
-		calendar_date = calendar.get_date ()
-		date_text = calendar_to_text (calendar_date)
+		date_text = calendar.get_text ()
 		self.builder.get_object('entry1').set_text(date_text)
-		self.older_than_date = calendar_to_datetime (calendar_date)
+		self.older_than_date = calendar.get_date()
 		self.populate_resource_store ()
 
 	def tags_clicked (self, button):
@@ -558,7 +560,15 @@ class ResourceManagementGUI:
 		model[path][7] = ''
 		p = path[0]
 		self.save_row (str(p))
-		self.dated_for_popover.hide()
+		self.dated_for_calendar.hide()
+
+	def to_do_toggled (self, renderer, path):
+		active = not self.resource_store[path][14]
+		self.resource_store[path][14] = active
+		id_ = self.resource_store[path][0]
+		self.cursor.execute("UPDATE resources SET to_do = %s "
+							"WHERE id = %s", (active, id_))
+		self.db.commit()
 
 
 		
