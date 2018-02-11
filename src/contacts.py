@@ -37,7 +37,7 @@ class GUI(Connection, Admin):
 
 		self.main = main
 		self.db = main.db
-		self.cursor = self.cursor()
+		self.cursor = self.get_cursor()
 		self.contact_id = contact_id
 		
 		self.name_widget = self.builder.get_object('entry1')
