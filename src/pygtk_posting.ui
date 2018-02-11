@@ -14,6 +14,8 @@
     <columns>
       <!-- column-name to_do_description -->
       <column type="gchararray"/>
+      <!-- column-name id -->
+      <column type="gint"/>
       <!-- column-name gui_file -->
       <column type="PyObject"/>
     </columns>

@@ -1003,7 +1003,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("CREATE TABLE public.mailing_lists (id serial PRIMARY KEY, name varchar NOT NULL, active boolean NOT NULL DEFAULT true, date_inserted date DEFAULT now());")
 		cursor.execute("CREATE TABLE public.mailing_list_register (id serial PRIMARY KEY, contact_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, active boolean NOT NULL DEFAULT true, mailing_list_id bigint REFERENCES mailing_lists ON DELETE RESTRICT, date_inserted date NOT NULL DEFAULT now());")
 		cursor.execute("CREATE OR REPLACE RULE on_list_delete_set_list_register_false AS ON UPDATE TO mailing_lists WHERE new.active = false DO INSTEAD UPDATE mailing_list_register SET active = false WHERE mailing_list_register.mailing_list_id = old.id; ")
-		cursor.execute("UPDATE settings SET version = '103'")
+	if version <= '103':
+		progressbar (103)
+		cursor.execute("ALTER TABLE resources ADD COLUMN to_do BOOLEAN")
+		cursor.execute("ALTER TABLE public.resources ALTER COLUMN to_do SET DEFAULT False")
+		cursor.execute("UPDATE settings SET version = '104'")
 
 	cursor.close()
 	db.commit()
