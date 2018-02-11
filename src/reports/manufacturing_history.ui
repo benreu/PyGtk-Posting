@@ -39,14 +39,14 @@
     <property name="border_width">10</property>
     <property name="title" translatable="yes">Manufacturing history</property>
     <property name="window_position">center</property>
-    <property name="default_width">700</property>
-    <property name="default_height">400</property>
+    <property name="default_width">800</property>
+    <property name="default_height">500</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <child>
       <object class="GtkPaned" id="paned1">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
-        <property name="position">500</property>
+        <property name="position">600</property>
         <property name="position_set">True</property>
         <child>
           <object class="GtkBox" id="box1">
@@ -58,6 +58,33 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
+                  <object class="GtkLabel" id="label2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes"> Name </property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSearchEntry" id="searchentry2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="primary_icon_name">edit-find-symbolic</property>
+                    <property name="primary_icon_activatable">False</property>
+                    <property name="primary_icon_sensitive">False</property>
+                    <signal name="search-changed" handler="filter_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkLabel" id="label1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -66,7 +93,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
@@ -76,12 +103,12 @@
                     <property name="primary_icon_name">edit-find-symbolic</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="primary_icon_sensitive">False</property>
-                    <signal name="search-changed" handler="product_filter_changed" swapped="no"/>
+                    <signal name="search-changed" handler="filter_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
               </object>

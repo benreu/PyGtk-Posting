@@ -83,14 +83,15 @@ class ProductsGUI:
 		self.product_store = self.builder.get_object('product_store')
 		self.filtered_product_store = self.builder.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
-		
-		self.product_id = 0
-		self.new_product()
+
+		self.product_id = 0 
 		
 		self.populate_product_store()
 		self.populate_terms_listbox()
 		self.populate_account_combos ()
 		self.set_price_listbox_to_default ()
+		
+		self.new_product()
 		
 		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
 		self.treeview.drag_source_set( Gdk.ModifierType.BUTTON1_MASK ,[dnd], Gdk.DragAction.COPY)
@@ -314,7 +315,8 @@ class ProductsGUI:
 		tax_combobox = self.builder.get_object('comboboxtext4')
 		current_tax = tax_combobox.get_active_id()
 		tax_combobox.remove_all()
-		self.cursor.execute("SELECT id, name FROM tax_rates ORDER BY name")
+		self.cursor.execute("SELECT id, name FROM tax_rates "
+							"WHERE exemption = False ORDER BY name")
 		for item in self.cursor.fetchall():
 			tax_combobox.append(str(item[0]),item[1])
 		if current_tax != None:
@@ -905,8 +907,9 @@ class ProductsGUI:
 			raise Exception("No revenue accounts available")
 		self.cursor.execute("SELECT id FROM tax_rates WHERE standard = True ")
 		default_id = self.cursor.fetchone()[0]
+		print (default_id)
 		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
-
+		print (self.builder.get_object('comboboxtext4').get_active_id())
 		self.set_price_listbox_to_default ()
 		
 		
