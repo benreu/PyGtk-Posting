@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk, GObject, GLib
 from datetime import datetime, date, timedelta
-import time, re
+from main import Connection
+import time
 
 PARSE_STRING = "%b %d %Y"
 USER_FORMAT_DATE_TIME = "%a %b %d %Y %I:%M:%S %p"
@@ -129,26 +130,25 @@ def seconds_to_compact_string (start_seconds):
 
 #### calendar class ####
 
-class DateTimeCalendar (Gtk.Popover):
+class DateTimeCalendar (Gtk.Popover, Connection):
 	'''A Gtk Calendar within a Gtk Popover that recognizes Python datetimes'''
 	__gsignals__ = { 'day_selected': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())}
 	
 	__gtype_name__ = 'DateTimeCalendar'
 	
-	def __init__(self, db, override = False):
+	def __init__(self, override = False):
 		Gtk.Popover.__init__(self)
 		self.calendar = Gtk.Calendar()
 		date_label = Gtk.Label('No date')
 		s = "<span foreground='#d40000'>No fiscal range applicable</span>"
 		fiscal_label = Gtk.Label(s, use_markup = True)
 		fiscal_label.set_no_show_all(True)
-		box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
-		box.pack_start (self.calendar, False, False, 0 )
-		box.pack_start (date_label, False, False, 0 )
-		box.pack_start (fiscal_label, False, False, 0 )
-		box.show_all()
-		self.add (box)
-		self.cursor = db.cursor()
+		self.box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
+		self.box.pack_start (self.calendar, False, False, 0 )
+		self.box.pack_start (date_label, False, False, 0 )
+		self.box.pack_start (fiscal_label, False, False, 0 )
+		self.box.show_all()
+		self.add (self.box)
 		self.timeout = None
 		self.error = False
 		self.calendar.connect('day-selected', self.day_selected, date_label, fiscal_label, override)
@@ -158,6 +158,9 @@ class DateTimeCalendar (Gtk.Popover):
 	@classmethod
 	def new (self):
 		return self
+
+	def pack_start (self, widget):
+		self.box.pack_start(widget, False, False, 0)
 
 	def get_first_d_of_yr (self):
 		date_time = self.get_datetime ()
@@ -227,10 +230,11 @@ class DateTimeCalendar (Gtk.Popover):
 
 	def day_selected (self, calendar, date_label, fiscal_label, override):
 		date_time = self.get_datetime ()
-		self.cursor.execute("SELECT id FROM fiscal_years "
+		cursor = self.get_cursor()
+		cursor.execute("SELECT id FROM fiscal_years "
 							"WHERE active = True AND %s >= start_date "
 							"AND %s <= end_date", (date_time, date_time))
-		if self.cursor.fetchone() == None and override == False:
+		if cursor.fetchone() == None and override == False:
 			fiscal_label.show()
 			date_string = ''
 			date_label.hide()
@@ -247,6 +251,7 @@ class DateTimeCalendar (Gtk.Popover):
 				self.timeout = None		
 		date_label.set_label(str(date_string))
 		self.emit('day-selected')
+		cursor.close()
 
 	def force_show (self):
 		self.show()
