@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
+import psycopg2
 from db import transactor
 from dateutils import DateTimeCalendar, datetime_to_text
 
@@ -28,7 +29,7 @@ class CreditCardStatementGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.c_c_statements_store = self.builder.get_object('c_c_transactions_store')
+		self.transactions_store = self.builder.get_object('transactions_store')
 		self.income_expense_accounts_store = self.builder.get_object(
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
@@ -130,8 +131,40 @@ class CreditCardStatementGUI:
 		self.db.commit()
 		self.populate_statement_treeview ()
 
+	def description_edited (self, renderer, path, text):
+		row_id = self.transactions_store[path][0]
+		self.cursor.execute("UPDATE gl_entries SET transaction_description = %s "
+							"WHERE id = %s", (text, row_id))
+		self.db.commit()
+		self.transactions_store[path][3] = text
+
+	def date_renderer_edited (self, renderer, path, text):
+		row_id = self.transactions_store[path][0]
+		try:
+			self.cursor.execute("UPDATE gl_entries SET date_inserted = %s "
+							"WHERE id = %s RETURNING date_inserted", 
+							(text, row_id))
+			#Postgres has a powerful date resolver, let it figure out the date
+			date = self.cursor.fetchone()[0]
+			date_formatted = datetime_to_text (date)
+		except psycopg2.DataError as e:
+			self.db.rollback()
+			print (e)
+			self.builder.get_object('label10').set_label(str(e))
+			dialog = self.builder.get_object('date_error_dialog')
+			dialog.run()
+			dialog.hide()
+			return
+		self.db.commit()
+		self.transactions_store[path][1] = text
+		self.transactions_store[path][2] = date_formatted
+
+	def date_renderer_editing_started (self, renderer, entry, path):
+		date = self.transactions_store[path][1]
+		entry.set_text(date)
+
 	def populate_statement_treeview (self, widget = None):
-		self.c_c_statements_store.clear()
+		self.transactions_store.clear()
 		self.cursor.execute("SELECT id, transaction_description, amount, "
 							"date_inserted, reconciled, debit_account, "
 							"credit_account "
@@ -149,17 +182,17 @@ class CreditCardStatementGUI:
 			date_formatted = datetime_to_text (date)
 			if str(row[5]) == self.credit_card_account:
 				amount = '{:,.2f}'.format(amount)
-				self.c_c_statements_store.append([row_id, str(date), date_formatted, 
+				self.transactions_store.append([row_id, str(date), date_formatted, 
 											description, amount, '', reconciled])
 			else:
 				amount = '{:,.2f}'.format(amount)
-				self.c_c_statements_store.append([row_id, str(date), date_formatted, 
+				self.transactions_store.append([row_id, str(date), date_formatted, 
 											description, '', amount, reconciled])
 
 	def reconcile_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
-		row_id = self.c_c_statements_store[path][0]
-		self.c_c_statements_store[path][6] = active
+		row_id = self.transactions_store[path][0]
+		self.transactions_store[path][6] = active
 		self.cursor.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
 							(active, row_id))
