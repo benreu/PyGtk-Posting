@@ -133,11 +133,13 @@ class ResourceManagementGUI:
 		self.editing = False
 		contact_id = model[iter][0]
 		contact_name = model[iter][1]
+		contact_phone = model[iter][3]
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path != []:
 			model[path][2] = int(contact_id)
 			model[path][3] = contact_name
+			model[path][11] = contact_phone
 		self.save_row (str(path[0]))
 
 	def contact_editing_started (self, renderer_combo, combobox, path):
@@ -148,8 +150,10 @@ class ResourceManagementGUI:
 	def contact_changed (self, renderer_combo, path, tree_iter):
 		contact_id = self.contact_store[tree_iter][0]
 		contact_name = self.contact_store[tree_iter][1]
+		contact_phone = self.contact_store[tree_iter][3]
 		self.resource_store[path][2] = int(contact_id)
 		self.resource_store[path][3] = contact_name
+		self.resource_store[path][11] = contact_phone
 		self.editing = False
 		self.save_row (path)
 
@@ -161,12 +165,14 @@ class ResourceManagementGUI:
 
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name, phone FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			contact_id = row[0]
 			contact_name = row[1]
-			self.contact_store.append([str(contact_id), contact_name])
+			ext_name = row[2]
+			contact_phone = row[3]
+			self.contact_store.append([contact_id, contact_name, ext_name, contact_phone])
 		self.tag_store.clear()
 		self.cursor.execute("SELECT id, tag, red, green, blue, alpha "
 							"FROM resource_tags "
@@ -343,6 +349,7 @@ class ResourceManagementGUI:
 		time_seconds = line[5]
 		dated_for = line[7]
 		tag_id = line[8]
+		phone_number = line[11]
 		if tag_id == 0:
 			tag_id = None
 		if contact_id == 0:
@@ -354,20 +361,22 @@ class ResourceManagementGUI:
 		if row_id == 0:
 			self.cursor.execute("INSERT INTO resources "
 								"(subject, contact_id, timed_seconds, "
-								"date_created, dated_for, tag_id, parent_id) "
-								"VALUES (%s, %s, %s, %s, %s, %s, %s) "
+								"date_created, dated_for, tag_id, parent_id, "
+								"phone_number) "
+								"VALUES (%s, %s, %s, CURRENT_DATE, "
+								"%s, %s, %s, %s) "
 								"RETURNING id", 
 								(subject, contact_id, time_seconds, 
-								date.today(), dated_for, tag_id, parent_id))
+								dated_for, tag_id, parent_id, phone_number))
 			line[0] = self.cursor.fetchone()[0]
 		else:
 			self.cursor.execute("UPDATE resources "
 								"SET (subject, contact_id, timed_seconds, "
-								"dated_for, tag_id) = "
-								"(%s, %s, %s, %s, %s) "
+								"dated_for, tag_id, phone_number) = "
+								"(%s, %s, %s, %s, %s, %s) "
 								"WHERE id = %s", 
 								(subject, contact_id, time_seconds, 
-								dated_for, tag_id, row_id))
+								dated_for, tag_id, phone_number, row_id))
 		self.save_notes ()
 		self.db.commit()
 
