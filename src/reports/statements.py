@@ -121,7 +121,8 @@ class StatementsGUI:
 								"contacts.id, s.name, amount, printed "
 								"FROM statements AS s "
 								"JOIN contacts "
-								"ON contacts.id = s.customer_id ")
+								"ON contacts.id = s.customer_id "
+								"ORDER BY date_inserted, s.id")
 		else:
 			if self.customer_id == None:
 				return # no customer selected
@@ -130,7 +131,9 @@ class StatementsGUI:
 								"FROM statements AS s "
 								"JOIN contacts "
 								"ON contacts.id = s.customer_id "
-								"WHERE customer_id = %s", (self.customer_id, ))
+								"WHERE customer_id = %s "
+								"ORDER BY date_inserted, s.id", 
+								(self.customer_id, ))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			date = row[1]
