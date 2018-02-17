@@ -346,21 +346,27 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem51">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Count inventory</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="count_inventory_activated" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkMenuItem" id="menuitem24">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">_Main report window</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="main_reports_window" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem51">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Count inventory</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="count_inventory_activated" swapped="no"/>
                       </object>
                     </child>
                     <child>
