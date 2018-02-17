@@ -240,6 +240,10 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		import resource_management
 		resource_management.ResourceManagementGUI(self.db)
 
+	def invoice_history (self, widget):
+		from reports import invoice_history
+		invoice_history.InvoiceHistoryGUI(self)
+
 	def statements_clicked (self, widget):
 		from reports import statements
 		statements.StatementsGUI (self.db)

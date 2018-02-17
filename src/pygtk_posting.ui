@@ -153,6 +153,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem65">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Invoice history</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="invoice_history" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="imagemenuitem5">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
