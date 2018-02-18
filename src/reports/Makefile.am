@@ -19,8 +19,6 @@ python_PYTHON = time_clock_project.ui \
 	payments_received.py \
 	payments_received.ui \
 	loan_payments.py \
-	invoice_amounts.py \
-	invoice_amounts.ui \
 	__init__.py \
 	loan_payments.ui \
 	incoming_invoices.py \
@@ -38,6 +36,8 @@ python_PYTHON = time_clock_project.ui \
 	customer_history.py \
 	customer_history.ui \
 	manufacturing_history.py \
-	manufacturing_history.ui
+	manufacturing_history.ui \
+	invoice_history.py \
+	invoice_history.ui
 
 uidir = $(pkgdatadir)/reports/ui
