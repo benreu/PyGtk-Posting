@@ -1,4 +1,4 @@
-# customer_history.py
+# invoice_history.py
 #
 # Copyright (C) 2016 - reuben
 #
@@ -21,9 +21,9 @@ from decimal import Decimal
 import subprocess
 import dateutils
 
-UI_FILE = "src/reports/customer_history.ui"
+UI_FILE = "src/reports/invoice_history.ui"
 
-class CustomerHistoryGUI:
+class InvoiceHistoryGUI:
 	def __init__(self, main):
 
 		self.search_iter = 0
