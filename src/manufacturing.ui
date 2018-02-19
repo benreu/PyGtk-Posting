@@ -2,11 +2,6 @@
 <!-- Generated with glade 3.18.3 -->
 <interface>
   <requires lib="gtk+" version="3.10"/>
-  <object class="GtkAdjustment" id="adjustment1">
-    <property name="upper">100000</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="adjustment2">
     <property name="upper">100000</property>
     <property name="step_increment">1</property>
@@ -56,8 +51,19 @@
       </attributes>
     </child>
   </object>
+  <object class="GtkAdjustment" id="qty_adjustment">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="serial_adjustment">
-    <property name="upper">1000000</property>
+    <property name="upper">100000</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="units_adjustment">
+    <property name="lower">1</property>
+    <property name="upper">100000</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -129,7 +135,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
-                    <property name="adjustment">adjustment1</property>
+                    <property name="adjustment">units_adjustment</property>
                     <property name="numeric">True</property>
                     <signal name="value-changed" handler="qty_spinbutton_changed" swapped="no"/>
                   </object>
@@ -211,7 +217,7 @@
                   <object class="GtkLabel" id="label4">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Print </property>
+                    <property name="label" translatable="yes">Print serial numbers </property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -220,10 +226,15 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label6">
+                  <object class="GtkSpinButton" id="spinbutton4">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">0</property>
+                    <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">How many serial numbers to print for each number.
+This is useful to print one label for the product and another for the container, etc.</property>
+                    <property name="xalign">1</property>
+                    <property name="adjustment">qty_adjustment</property>
+                    <property name="numeric">True</property>
+                    <property name="value">1</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -235,7 +246,7 @@
                   <object class="GtkLabel" id="label5">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes"> serial numbers starting at </property>
+                    <property name="label" translatable="yes"> each from </property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -253,19 +264,46 @@
               <object class="GtkBox" id="box6">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="spacing">10</property>
                 <child>
                   <object class="GtkSpinButton" id="spinbutton2">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">The starting serial number.
+Usually starts at the last used serial number plus one.</property>
                     <property name="xalign">1</property>
                     <property name="adjustment">serial_adjustment</property>
                     <property name="numeric">True</property>
+                    <signal name="value-changed" handler="start_serial_number_value_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label6">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes"> to </property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label10">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_right">5</property>
+                    <property name="label" translatable="yes"> qty </property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
@@ -279,7 +317,7 @@
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
               </object>
