@@ -135,15 +135,6 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem79">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Customer history</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="customer_history_activated" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkMenuItem" id="menuitem37">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -367,6 +358,15 @@
                       <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem81">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Contact history</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="contact_history" swapped="no"/>
                       </object>
                     </child>
                     <child>

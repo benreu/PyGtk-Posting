@@ -187,10 +187,6 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		from admin import duplicate_contact
 		duplicate_contact.DuplicateContactGUI(self.db)
 
-	def customer_history_activated (self, menuitem):
-		from reports import customer_history
-		customer_history.CustomerHistoryGUI(self)
-
 	def resource_diary_activated (self, menuitem):
 		import resource_diary
 		resource_diary.ResourceDiaryGUI (self.db)
@@ -204,6 +200,10 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		module_help_dialog.set_keep_above(True)
 		module_help_dialog.run()
 		module_help_dialog.hide()
+
+	def contact_history (self, menuitem):
+		from reports import contact_history
+		contact_history.ContactHistoryGUI(self)
 
 	def serial_numbers_activated (self, menuitem):
 		import product_serial_numbers
