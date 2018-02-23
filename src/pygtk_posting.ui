@@ -135,6 +135,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem79">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Credit memo</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="credit_memo_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem37">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
