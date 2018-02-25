@@ -113,7 +113,8 @@ class InvoiceGUI:
 			self.populate_customer_store ()
 			self.set_widgets_sensitive ()
 			self.populate_invoice_line_items()
-			self.cursor.execute("SELECT customer_id, dated_for FROM invoices "
+			self.cursor.execute("SELECT customer_id, COALESCE(dated_for, now())"
+								"FROM invoices "
 								"WHERE id = %s", (self.invoice_id,))
 			for row in self.cursor.fetchall():
 				customer_id = row[0]
@@ -605,9 +606,11 @@ class InvoiceGUI:
 			self.invoice_id = 0
 			self.builder.get_object("comment_buffer").set_text('')
 		self.populate_invoice_line_items()
-		self.cursor.execute("SELECT dated_for FROM invoices WHERE id = %s", (self.invoice_id,))
+		self.cursor.execute("SELECT dated_for FROM invoices WHERE id = %s "
+							"AND dated_for IS NOT NULL", (self.invoice_id,))
 		for row in self.cursor.fetchall():
 			date = row[0]
+			print (date)
 			self.calendar.set_date(date)
 			break
 		else:

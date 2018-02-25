@@ -317,7 +317,7 @@ class GUI:
 			self.cursor.execute("UPDATE gl_entries SET check_number = %s "
 								"WHERE id = %s", (text, row_id))
 			self.db.commit()
-			self.bank_transaction_store[path][0] = text
+			self.bank_transaction_store[path][0] = int(text)
 		except psycopg2.DataError as e:
 			self.db.rollback()
 			print (e)

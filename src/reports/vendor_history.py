@@ -111,8 +111,8 @@ class VendorHistoryGUI:
 		treeiter = model.get_iter(path)
 		if self.po_store.iter_has_child(treeiter) == True:
 			return # not an individual line item
-		product_id = model.get_value(treeiter, 3)
-		qty = model.get_value(treeiter, 5)
+		qty = model.get_value(treeiter, 0)
+		product_id = model.get_value(treeiter, 1)
 		data.set_text(str(qty) + ' ' + str(product_id), -1)
 		
 	def row_activated(self, treeview, path, treeviewcolumn):

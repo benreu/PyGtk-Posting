@@ -66,25 +66,26 @@ class ManufacturingGUI:
 
 	def print_serial_number_clicked (self, button):
 		serial_start = self.builder.get_object('spinbutton2').get_value_as_int()
-		print_qty = self.builder.get_object('spinbutton1').get_value_as_int()
-		for i in range(print_qty):
+		serial_number_qty = self.builder.get_object('spinbutton1').get_value_as_int()
+		label_qty = self.builder.get_object('spinbutton4').get_value_as_int()
+		for i in range(serial_number_qty):
 			barcode = serial_start + i
 			self.builder.get_object('serial_adjustment').set_lower(barcode)
 			self.builder.get_object('spinbutton2').set_value (barcode)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
-			self.print_serial_number(barcode)
+			self.print_serial_number(barcode, label_qty)
 			self.cursor.execute("INSERT INTO serial_numbers "
 								"(product_id, date_inserted, serial_number, "
 								"manufacturing_id) "
 								"VALUES (%s, CURRENT_DATE, %s, %s)", 
 								(self.product_id, barcode, self.project_id))
-		serial = print_qty + serial_start
+		serial = serial_number_qty + serial_start + 1
 		self.cursor.execute("UPDATE products SET serial_number = %s "
 							"WHERE id = %s", (serial, self.product_id))
 		self.db.commit()
 
-	def print_serial_number (self, barcode):
+	def print_serial_number (self, barcode, label_qty):
 		bc = barcode_generator.Code128()
 		bc.createImage(str(barcode), 20)
 		from py3o.template import Template
@@ -93,16 +94,25 @@ class ManufacturingGUI:
 		t.set_image_path('staticimage.logo', '/tmp/product_barcode.png')
 		data = dict()
 		t.render(data) #the self.data holds all the info
-		subprocess.call("soffice --headless -p " + label_file, shell = True)
+		for i in range(label_qty):
+			subprocess.call("soffice --headless -p " + label_file, shell = True)
+
+	def start_serial_number_value_changed (self, spinbutton):
+		serial_number = spinbutton.get_value_as_int()
+		qty = self.builder.get_object('spinbutton1').get_value_as_int()
+		self.builder.get_object('label10').set_label(str(qty + serial_number))
 
 	def qty_spinbutton_changed (self,spinbutton):
 		qty = spinbutton.get_value_as_int()
-		self.cursor.execute("SELECT name FROM products WHERE id = %s", (self.product_id,))
-		product_name = self.cursor.fetchone()[0]
+		serial_number = self.builder.get_object('spinbutton2').get_value_as_int()
+		self.cursor.execute("SELECT name FROM products "
+							"WHERE id = %s", (self.product_id,))
+		for row in self.cursor.fetchall():
+			product_name = row[0]
 		manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
 		self.builder.get_object('entry1').set_text(manufacturing_name_string)
 		self.builder.get_object('entry2').set_text(manufacturing_name_string)
-		self.builder.get_object('label6').set_label(str(qty))
+		self.builder.get_object('label10').set_label(str(qty + serial_number))
 		
 	def product_selected (self):
 		self.cursor.execute("SELECT name, serial_number FROM products "
