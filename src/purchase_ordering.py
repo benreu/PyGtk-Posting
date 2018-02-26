@@ -79,7 +79,8 @@ class Setup():
 				item.order_number = row[3]
 				item.product_name = row[5]
 				item.product_ext_name = row[6]
-				item.remark = row[7]
+				if row[7] != '':
+					item.remark = " : " + row[7]
 				item.price = '${:,.2f}'.format(row[8])
 				item.ext_price = '${:,.2f}'.format(row[9])
 				items.append(item)
