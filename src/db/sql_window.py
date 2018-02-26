@@ -32,7 +32,7 @@ class SQLWindowGUI :
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 		button = self.builder.get_object('button1')
-		self.builder.get_object('overlay1').add_overlay(button)
+		#self.builder.get_object('overlay1').add_overlay(button)
 
 	def run_sql_clicked (self, button):
 		sql_buffer = self.builder.get_object('textbuffer1')
