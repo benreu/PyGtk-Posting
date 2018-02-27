@@ -333,22 +333,34 @@ class GUI:
 		
 	def update_invoices_paid (self):
 		self.discount = Decimal()
-		self.cursor.execute("(SELECT id, total - amount_due AS discount FROM "
-							"(SELECT id, total, amount_due, SUM(amount_due) "
-							"OVER (ORDER BY date_created, id) invoice_totals "
-							"FROM invoices WHERE (paid, posted, customer_id) "
-							"= (False, True, %s)) i "
-							"WHERE invoice_totals <= "
-							"(SELECT  payment_totals - invoice_totals FROM "
+		c = self.db.cursor()
+		c_id = self.customer_id
+		c.execute("(SELECT id, total - amount_due AS discount FROM "
+					"(SELECT id, total, amount_due, SUM(amount_due) "
+					"OVER (ORDER BY date_created, id) invoice_totals "
+					"FROM invoices WHERE (paid, posted, customer_id) "
+					"= (False, True, %s)"
+					") i "
+					"WHERE invoice_totals <= "
+						"(SELECT  payment_totals - invoice_totals FROM "
 							"(SELECT COALESCE(SUM(amount_due), 0.0)  "
 							"AS invoice_totals FROM invoices "
-							"WHERE (paid, customer_id) = (True, %s)) i, "
-							"(SELECT COALESCE(SUM(amount), 0.0) "
-							"AS payment_totals FROM payments_incoming "
-							"WHERE (customer_id) = (%s)) p) "
-							"ORDER BY id);", (self.customer_id, 
-							self.customer_id, self.customer_id))
-		for row in self.cursor.fetchall():
+							"WHERE (paid, customer_id) = (True, %s)"
+							") i, "
+							"(SELECT SUM(*) AS payment_totals FROM "
+								"("
+								"(SELECT COALESCE(SUM(amount), 0.0) "
+								"FROM payments_incoming "
+								"WHERE customer_id = %s) "
+								"p "
+								"UNION "
+								"(SELECT COALESCE(SUM(amount_owed), 0.0) "
+								"FROM credit_memos WHERE customer_id = %s)"
+								")"
+							")"
+						")"
+					"ORDER BY id);", (c_id, c_id, c_id, c_id ))
+		for row in c.fetchall():
 			invoice_id = row[0]
 			discount = row[1]
 			if float(discount) != 0.00:
@@ -356,11 +368,12 @@ class GUI:
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
 				transactor.post_invoice_accounts (self.db, self.date, invoice_id)
-			self.cursor.execute("UPDATE invoices "
-								"SET (paid, payments_incoming_id, date_paid) "
-								"= (True, %s, CURRENT_TIMESTAMP) "
-								"WHERE id = %s", 
-								(self.payment_id, invoice_id))
+			c.execute("UPDATE invoices "
+						"SET (paid, payments_incoming_id, date_paid) "
+						"= (True, %s, CURRENT_TIMESTAMP) "
+						"WHERE id = %s", 
+						(self.payment_id, invoice_id))
+		c.close()
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
