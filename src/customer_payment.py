@@ -299,7 +299,8 @@ class GUI:
 
 	def post_payment_clicked (self, widget):
 		comments = 	self.builder.get_object('entry2').get_text()
-		total = self.builder.get_object('spinbutton1').get_value()
+		total = self.builder.get_object('spinbutton1').get_text()
+		total = Decimal(total)
 		self.payment = transactor.CustomerInvoicePayment(self.db, self.date, total)
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
@@ -359,28 +360,26 @@ class GUI:
 					"= (False, True, %s)"
 					") i "
 					"WHERE invoice_totals <= "
-						"(SELECT  payment_totals - invoice_totals FROM "
+						"(SELECT  payment_total - invoice_total FROM "
 							"(SELECT COALESCE(SUM(amount_due), 0.0)  "
-							"AS invoice_totals FROM invoices "
+							"AS invoice_total FROM invoices "
 							"WHERE (paid, customer_id) = (True, %s)"
-							") i, "
-							"(SELECT SUM(*) AS payment_totals FROM "
-								"("
-								"(SELECT COALESCE(SUM(amount), 0.0) "
-								"FROM payments_incoming "
-								"WHERE customer_id = %s) "
-								"p "
-								"UNION "
-								"(SELECT COALESCE(SUM(amount_owed), 0.0) "
-								"FROM credit_memos WHERE customer_id = %s)"
-								")"
-							")"
+							") it, "
+							"(SELECT amount + amount_owed AS payment_total FROM "
+									"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
+									"FROM payments_incoming "
+									"WHERE (customer_id, misc_income) = (%s, False)"
+									") pi, "
+									"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
+									"FROM credit_memos WHERE customer_id = %s"
+									") cm "
+							") pt "
 						")"
 					"ORDER BY id);", (c_id, c_id, c_id, c_id ))
 		for row in c.fetchall():
 			invoice_id = row[0]
 			discount = row[1]
-			if float(discount) != 0.00:
+			if discount != Decimal('0.00'):
 				self.discount += discount
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
