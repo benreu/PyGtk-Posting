@@ -879,49 +879,39 @@
                                             <property name="top_attach">4</property>
                                           </packing>
                                         </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkBox" id="box5">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
                                         <child>
                                           <object class="GtkButton" id="button19">
-                                            <property name="label" translatable="yes">Mailing list</property>
+                                            <property name="label" translatable="yes">Mailing</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
+                                            <property name="tooltip_text" translatable="yes">Mailing lists</property>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
+                                            <property name="left_attach">0</property>
+                                            <property name="top_attach">7</property>
                                           </packing>
                                         </child>
                                         <child>
                                           <object class="GtkEntry" id="entry14">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="tooltip_text" translatable="yes">The mailing lists this contact is receiving</property>
                                             <property name="editable">False</property>
                                             <property name="primary_icon_stock">gtk-find</property>
                                             <signal name="icon-release" handler="mailing_list_icon_release" swapped="no"/>
                                           </object>
                                           <packing>
-                                            <property name="expand">True</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
+                                            <property name="left_attach">1</property>
+                                            <property name="top_attach">7</property>
+                                            <property name="width">3</property>
                                           </packing>
                                         </child>
                                       </object>
                                       <packing>
-                                        <property name="expand">True</property>
+                                        <property name="expand">False</property>
                                         <property name="fill">True</property>
-                                        <property name="position">1</property>
+                                        <property name="position">0</property>
                                       </packing>
                                     </child>
                                   </object>

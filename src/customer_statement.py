@@ -72,29 +72,40 @@ class GUI:
 
 	def customer_combobox_populate(self):
 		self.customer_store.clear()
-		self.cursor.execute("with table2 AS ( "
-				"SELECT "
-				"id,  "
-				"(SELECT COALESCE(SUM(amount_due), 0.0)  " 
-				"AS invoice_totals FROM invoices  "
-				"WHERE (canceled, posted, customer_id) = (False, True, c.id)),  "
-				"(SELECT COALESCE(SUM(amount), 0.0)  "
-				"AS payment_totals FROM payments_incoming  "
-				"WHERE (customer_id, misc_income) = (c.id, False)),  "
-				"name, ext_name FROM contacts AS c WHERE customer = True ORDER by name) "
-				"SELECT  "
-				"id, "
-				"invoice_totals - payment_totals AS balance_due, "
-				"name, "
-				"ext_name, "
-				"(invoice_totals - payment_totals) *.015 AS finance_fee, "
-				"invoice_totals, "
-				"payment_totals "
-				"FROM table2 "
-				"WHERE (invoice_totals-payment_totals) > 0  "
-				"GROUP BY id,name,balance_due,invoice_totals,payment_totals,ext_name  "
-				"ORDER BY name")
-		for row in self.cursor.fetchall():
+		c = self.db.cursor()
+		c.execute("with table2 AS "
+					"( "
+					"SELECT id, "
+						"(SELECT COALESCE(SUM(amount_due), 0.0) " 
+						"AS invoices_total FROM invoices  "
+						"WHERE (canceled, posted, customer_id) = "
+						"(False, True, c.id)),  "
+						"(SELECT amount + amount_owed AS payments_total FROM "
+								"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
+								"FROM payments_incoming "
+								"WHERE (customer_id, misc_income) = (c.id, False)"
+								") pi, "
+								"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
+								"FROM credit_memos WHERE customer_id = c.id"
+								") cm "
+						"), "
+					"name, ext_name FROM contacts AS c "
+					"WHERE customer = True ORDER by name"
+					") "
+					"SELECT  "
+					"id, "
+					"invoices_total - payments_total AS balance_due, "
+					"name, "
+					"ext_name, "
+					"(invoices_total - payments_total) *.015 AS finance_fee, "
+					"invoices_total, "
+					"payments_total "
+					"FROM table2 "
+					"WHERE (invoices_total-payments_total) > 0  "
+					"GROUP BY id,name,balance_due,"
+						"invoices_total,payments_total,ext_name  "
+					"ORDER BY name")
+		for row in c.fetchall():
 			customer_id = row[0]
 			unpaid = row[1]
 			customer_name = row[2]
@@ -103,6 +114,7 @@ class GUI:
 									customer_ext_name, 
 									'Balance : ${:,.2f}'.format(unpaid),
 									unpaid])
+		c.close()
 
 	def focus (self, window, event):
 		self.customer_combobox_populate ()
@@ -131,24 +143,35 @@ class GUI:
 
 	def populate_statement_store (self):
 		self.statement_store.clear()
+		c_id = self.customer_id
 		self.cursor.execute("SELECT * FROM "
-							"(SELECT name, date_inserted AS date, "
-							"amount FROM statements " 
-							"WHERE id =(SELECT MAX(id) FROM statements "
-							"WHERE customer_id = %s)) s "
-							"UNION "
-							"(SELECT name, dated_for AS date, "
-							"amount_due FROM invoices "
-							"WHERE (canceled, posted, customer_id) = "
-							"(False, True, %s) "
-							"AND statement_id IS NULL) "
-							"UNION "
-							"(SELECT payment_info(id), date_inserted AS date, "
-							"amount FROM payments_incoming "
-							"WHERE (customer_id, misc_income) = "
-							"(%s, False) AND statement_id IS NULL) "
+								"(SELECT name, date_inserted AS date, "
+								"amount FROM statements " 
+								"WHERE id =(SELECT MAX(id) FROM statements "
+								"WHERE customer_id = %s)"
+								") s "
+								"UNION "
+								"(SELECT name, dated_for AS date, "
+								"amount_due FROM invoices "
+								"WHERE (canceled, posted, customer_id) = "
+								"(False, True, %s) "
+								"AND statement_id IS NULL"
+								") "
+								"UNION "
+								"(SELECT name, date_created AS date, "
+								"amount_owed FROM credit_memos "
+								"WHERE (posted, customer_id) = "
+								"(True, %s) "
+								"AND statement_id IS NULL"
+								") "
+								"UNION "
+								"(SELECT payment_info(id), date_inserted AS date, "
+								"amount FROM payments_incoming "
+								"WHERE (customer_id, misc_income) = "
+								"(%s, False) AND statement_id IS NULL"
+								") "
 							"ORDER BY date", 
-							(self.customer_id,self.customer_id,self.customer_id))
+							(c_id, c_id, c_id,c_id))
 		for row in self.cursor.fetchall():
 			text = row[0]
 			date = row[1]

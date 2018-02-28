@@ -1049,8 +1049,11 @@ def check_and_update_version (db, statusbar):
 								"LIMIT _quantity"
 								") s;"
 						"$$ language sql;")
-		cursor.execute("UPDATE settings SET version = '105'")
-
+	if version <= '105':
+		progressbar (105)
+		cursor.execute("CREATE TABLE credit_memos (id serial PRIMARY KEY, name varchar, customer_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, date_created date NOT NULL, date_printed date, total numeric(12, 2) DEFAULT 0.00 NOT NULL, tax numeric (12, 2) DEFAULT 0.00 NOT NULL, amount_owed numeric (12, 2) DEFAULT 0.00 NOT NULL, gl_entries_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT, gl_entries_tax_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT, statement_id bigint REFERENCES statements ON DELETE RESTRICT, statement_id bigint REFERENCES statements, posted boolean NOT NULL DEFAULT False)")
+		cursor.execute("CREATE TABLE credit_memo_items (id serial PRIMARY KEY, credit_memo_id bigint NOT NULL REFERENCES credit_memos ON DELETE RESTRICT, qty numeric (12, 1) NOT NULL, invoice_item_id bigint NOT NULL REFERENCES invoice_line_items ON DELETE RESTRICT, price numeric(12, 2) NOT NULL, date_returned date NOT NULL, tax numeric (12, 2) NOT NULL )")
+		cursor.execute("UPDATE settings SET version = '106'")
 	cursor.close()
 	db.commit()
 
