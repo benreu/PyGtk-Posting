@@ -546,7 +546,7 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.account_transaction_lines ALTER COLUMN debit_account TYPE bigint;")
 		cursor.execute("ALTER TABLE public.account_transaction_lines ALTER COLUMN credit_account TYPE bigint;")
 		cursor.execute("ALTER TABLE public.account_flow_settings ALTER COLUMN account TYPE bigint;")
-		cursor.execute("ALTER TABLE accounts ALTER COLUMN type TYPE smallint USING CAST(type as smallint);")
+		cursor.execute("ALTER TABLE accounts ALTER COLUMN type TYPE smallint USING CAST(type AS smallint);")
 		cursor.execute("UPDATE accounts SET type = 1 WHERE number::text LIKE '1%'")
 		cursor.execute("UPDATE accounts SET type = 2 WHERE number::text LIKE '2%'")
 		cursor.execute("UPDATE accounts SET type = 3 WHERE number::text LIKE '3%'")
@@ -1007,7 +1007,49 @@ def check_and_update_version (db, statusbar):
 		progressbar (103)
 		cursor.execute("ALTER TABLE resources ADD COLUMN to_do BOOLEAN")
 		cursor.execute("ALTER TABLE public.resources ALTER COLUMN to_do SET DEFAULT False")
-		cursor.execute("UPDATE settings SET version = '104'")
+	if version <= '104':
+		progressbar (104)
+		cursor.execute("ALTER TABLE public.inventory_transactions ALTER COLUMN qty_in DROP DEFAULT;"
+						"ALTER TABLE public.inventory_transactions ALTER COLUMN qty_in DROP NOT NULL;")
+		cursor.execute("ALTER TABLE public.inventory_transactions ALTER COLUMN qty_out DROP DEFAULT;"
+						"ALTER TABLE public.inventory_transactions ALTER COLUMN qty_out DROP NOT NULL;")
+		cursor.execute("ALTER TABLE public.inventory_transactions ADD CONSTRAINT qty_in_or_qty_out_not_null CHECK (qty_in IS NOT NULL OR qty_out IS NOT NULL);")
+		cursor.execute("ALTER TABLE public.inventory_transactions ADD CONSTRAINT qty_in_or_qty_out_is_null CHECK (qty_in IS NULL OR qty_out IS NULL);")
+		cursor.execute("ALTER TABLE public.inventory_transactions ADD UNIQUE (invoice_line_id);")
+		#https://stackoverflow.com/questions/26948573/how-to-calculate-cost-of-goods-sold
+		cursor.execute("CREATE OR REPLACE FUNCTION get_fifo_cogs(_product_id integer, _quantity int)"
+						"RETURNS TABLE (cogs decimal(12, 2), qty_verified bigint) AS $$ "
+							"WITH inventory AS ("
+								"SELECT "
+									"id, date_inserted, "
+									"generate_series(1, greatest(qty_in, qty_out)), "
+									"price, "
+									"qty_in IS NOT null AS purchased "
+								"FROM inventory_transactions "
+								"WHERE product_id = _product_id"
+							"), inventory_purchased AS ("
+								"SELECT *, row_number() OVER(ORDER BY date_inserted, id) AS rn "
+								"FROM inventory "
+								"WHERE purchased "
+							"), inventory_sold AS ("
+								"SELECT *, row_number() OVER(ORDER BY date_inserted, id) AS rn "
+								"FROM inventory "
+								"WHERE NOT purchased "
+							")"
+							"SELECT SUM(price), COUNT(price) FROM "
+								"("
+								"SELECT price FROM inventory_purchased "
+								"WHERE NOT EXISTS "
+									"("
+									"SELECT 1 "
+									"FROM inventory_sold "
+									"WHERE rn = inventory_purchased.rn"
+									")"
+								"ORDER BY date_inserted, id "
+								"LIMIT _quantity"
+								") s;"
+						"$$ language sql;")
+		cursor.execute("UPDATE settings SET version = '105'")
 
 	cursor.close()
 	db.commit()
