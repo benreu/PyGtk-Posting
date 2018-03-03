@@ -334,11 +334,6 @@ def post_invoice_accounts (db, date, invoice_id):
 							"((SELECT id FROM new_row)) WHERE id = %s", 
 						(revenue, account, transaction_id, date, line_id))
 	cursor.close()
-
-def post_credit_memo (db, date, cedit_memo_id):
-	c = db.cursor()
-	
-	c.close()
 	
 def post_purchase_order (db, amount, po_id):
 	cursor = db.cursor()
