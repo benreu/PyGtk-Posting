@@ -118,8 +118,15 @@ class GUI:
 		cancel_dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
 			transactor.cancel_invoice(self.db, self.date, self.invoice_id)
-			self.cursor.execute("UPDATE invoices SET canceled = True "
-								"WHERE id = %s", [self.invoice_id])
+			self.cursor.execute("(UPDATE invoices SET canceled = True "
+								"WHERE id = %s"
+								";"
+								"UPDATE serial_numbers "
+								"SET invoice_item_id = NULL "
+								"WHERE invoice_item_id IN "
+								"(SELECT id FROM invoice_line_items "
+								"WHERE invoice_id = %s)", 
+								(self.invoice_id, self.invoice_id))
 			self.db.commit()
 			self.treeview_populate ()
 		
