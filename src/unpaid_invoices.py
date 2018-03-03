@@ -17,7 +17,7 @@ from gi.repository import Gtk
 from datetime import datetime
 from decimal import Decimal
 from db import transactor
-from dateutils import datetime_to_text
+from dateutils import DateTimeCalendar, datetime_to_text
 import subprocess
 
 UI_FILE = "src/unpaid_invoices.ui"
@@ -39,22 +39,13 @@ class GUI:
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
 		main.unpaid_invoices_window = self.window
-		
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		if self.cursor.fetchone()[0] == False:
-			self.builder.get_object('button2').set_visible(False)
-			self.builder.get_object('button3').set_visible(True)
-		else:
-			self.builder.get_object('button3').set_visible(False)
-			self.builder.get_object('button2').set_visible(True)
+
+		self.date_calendar = DateTimeCalendar()
+		self.date_calendar.connect("day-selected", self.date_selected)
 		
 		amount_column = self.builder.get_object ('treeviewcolumn3')
 		amount_renderer = self.builder.get_object ('cellrenderertext3')
 		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
-		
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		if self.cursor.fetchone()[0] == True:
-			self.builder.get_object('button3').set_visible(False)
 
 	def present (self):
 		self.window.present()
@@ -104,21 +95,34 @@ class GUI:
 		window.hide()
 		return True
 
-	def cancel_dialog (self, widget):
+	def date_entry_icon_released (self, entry, icon, position):
+		self.date_calendar.set_relative_to(entry)
+		self.date_calendar.show_all()
+
+	def date_selected (self, calendar):
+		self.date = calendar.get_date()
+		button = self.builder.get_object('button6')
+		button.set_sensitive(True)
+		button.set_label("Yes, cancel invoice")
+		entry = self.builder.get_object('entry1')
+		entry.set_text(calendar.get_text())
+		
+	def cancel_dialog (self, widget):		
+		button = self.builder.get_object('button6')
+		button.set_sensitive(False)
+		button.set_label("No date selected")
 		cancel_dialog = self.builder.get_object('dialog1')
 		message = "Do you want to cancel %s ?\nThis is not reversible!" % self.invoice_name
 		self.builder.get_object('label1').set_label(message)
 		response = cancel_dialog.run()
 		cancel_dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
-			print ("cancel invoice is disabled until further work is done on accounts")
-			return
+			transactor.cancel_invoice(self.db, self.date, self.invoice_id)
 			self.cursor.execute("UPDATE invoices SET canceled = True "
-								"WHERE id = %s RETURNING total, tax", 
-								[self.invoice_id])
-			transactor.cancel_invoice(self.db, datetime.today(), self.invoice_id)
+								"WHERE id = %s", [self.invoice_id])
 			self.db.commit()
 			self.treeview_populate ()
+		
 		
 	def view_invoice(self, widget):
 		treeselection = self.builder.get_object('treeview-selection')
@@ -136,18 +140,8 @@ class GUI:
 				subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 				f.close()
 
-	def focus(self, d , f):
+	def focus(self, window, event):
 		self.treeview_populate()
-
-	def edit_invoice(self, widget):
-		selection = self.builder.get_object('treeview-selection')
-		model, path = selection.get_selected_rows()
-		if path == []:
-			return
-		invoice_id = model[path][0]
-		contact_id = model[path][2]
-		import invoice_window
-		invoice_window.InvoiceGUI(self.main, invoice_id, contact_id)
 
 	def treeview_populate(self):
 		treeview_selection = self.builder.get_object('treeview-selection')
@@ -185,7 +179,6 @@ class GUI:
 		self.contact_id = self.store.get_value(treeiter, 2)
 		self.builder.get_object('button1').set_sensitive(True)
 		self.builder.get_object('button2').set_sensitive(True)
-		self.builder.get_object('button3').set_sensitive(True)
 		self.builder.get_object('button4').set_sensitive(True)
 
 	def payment_window (self, widget):

@@ -251,9 +251,30 @@ class VendorPayment :
 						(cash_account_number, self.total, self.date, self.transaction_id))
 
 def cancel_invoice (db, datetime, invoice_id):
-	cursor = db.cursor()
-	
-	cursor.close()
+	c = db.cursor()
+	c.execute("SELECT gt.id FROM gl_transactions AS gt "
+					"JOIN gl_entries AS ge ON ge.gl_transaction_id = gt.id "
+					"JOIN invoices ON invoices.gl_entries_id = ge.id "
+					"WHERE invoices.id = %s", (invoice_id,))
+	t_id = c.fetchone()[0]
+	c.execute("WITH credits AS "
+				"(SELECT amount, credit_account, gl_transaction_id FROM gl_entries "
+				"WHERE gl_transaction_id = %s AND credit_account IS NOT NULL"
+					"), "
+				"debits AS "
+				"(SELECT amount, debit_account, gl_transaction_id FROM gl_entries "
+				"WHERE gl_transaction_id = %s AND debit_account IS NOT NULL"
+					"),"
+				"insert_debits AS "
+				"(INSERT INTO gl_entries "
+					"(amount, debit_account, gl_transaction_id) "
+					"SELECT * FROM credits"
+				") "
+				"INSERT INTO gl_entries "
+					"(amount, credit_account, gl_transaction_id) "
+					"SELECT * FROM debits"
+				, (t_id, t_id))
+	c.close()
 
 def post_invoice_receivables (db, amount, date, invoice_id, gl_entries_id):
 	cursor = db.cursor()
