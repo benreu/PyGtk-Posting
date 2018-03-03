@@ -75,9 +75,11 @@ class CreditMemoGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT id::text, name, ext_name "
-							"FROM contacts WHERE (deleted, customer) = "
-							"(False, True) ORDER BY name")
+		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
+							"FROM contacts AS c "
+							"JOIN invoices AS i ON c.id = i.customer_id "
+							"WHERE (c.deleted, c.customer, i.paid) = "
+							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
 			customer_id = row[0]
 			name = row[1]
@@ -140,7 +142,7 @@ class CreditMemoGUI:
 					"FROM products AS p "
 					"JOIN invoice_line_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
-					"WHERE customer_id = %s "
+					"WHERE (customer_id, paid) = (%s, True) "
 					"ORDER BY p.name", (self.customer_id,))
 		for row in c.fetchall():
 			_id_ = row[0]
@@ -309,7 +311,7 @@ class CreditMemoGUI:
 		self.document_pdf = document.name + ".pdf"
 		self.lock_file = '/tmp/.~lock.' + self.document_odt + '#'
 		self.data = dict(items = items, document = document, contact = customer, company = company)
-		from py3o.template import Template #import for every invoice or there is an error about invalid magic header numbers
+		from py3o.template import Template
 		self.credit_memo_file = "/tmp/" + self.document_odt
 		t = Template("./templates/credit_memo_template.odt", self.credit_memo_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
