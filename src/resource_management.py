@@ -59,6 +59,16 @@ class ResourceManagementGUI:
 			for row in self.resource_store:
 				if row[0] == id_:
 					selection.select_path(row.path)
+			self.editing_buffer = True
+			self.cursor.execute("SELECT notes FROM resources "
+								"WHERE id = %s", (id_,))
+			for row in self.cursor.fetchall():
+				text = row[0]
+				self.builder.get_object('textbuffer1').set_text(text)
+				break
+			else:
+				self.builder.get_object('textbuffer1').set_text('')
+		self.editing_buffer = False
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
