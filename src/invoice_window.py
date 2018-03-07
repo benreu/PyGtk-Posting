@@ -44,8 +44,8 @@ class Item(object):#this is used by py3o library see their example for more info
 
 class InvoiceGUI:
 	
-	def __init__(self, main, invoice_id = None, import_customer_id = None):
-		self.import_customer_id = import_customer_id
+	def __init__(self, main, invoice_id = None):
+		
 		self.invoice_id = invoice_id
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -509,37 +509,25 @@ class InvoiceGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		if self.import_customer_id != None:
-			self.cursor.execute("SELECT id, name, ext_name "
-								"FROM contacts WHERE id = %s", 
-								(self.import_customer_id,))
-			for row in self.cursor.fetchall():
-				customer_id = row[0]
-				name = row[1]
-				ext_name = row[2]
-				self.customer_store.append([str(customer_id), name, ext_name])
-		else:
-			self.cursor.execute("SELECT id, name, ext_name, "
-									"(( SELECT COALESCE(SUM(total), 0.00) "
-									"FROM invoices "
-									"WHERE canceled = False "
-									"AND customer_id = c_outer.id) - "
-									"(SELECT COALESCE(SUM(amount), 0.00) "
-									"FROM payments_incoming "
-									"WHERE (customer_id, misc_income) = "
-									"(c_outer.id, False) ))"
-								"FROM contacts AS c_outer "
-								"WHERE (deleted, customer) = "
-								"(False, True) ORDER BY name")
-			for row in self.cursor.fetchall():
-				customer_id = row[0]
-				name = row[1]
-				ext_name = row[2]
-				unpaid = row[3]
-				unpaid = "Unpaid balance  " + '${:,.2f}'.format(unpaid)
-				self.customer_store.append([str(customer_id),name + "  :  " + unpaid, ext_name])
-		if self.import_customer_id != None:
-			self.builder.get_object('combobox1').set_active(0)
+		self.cursor.execute("SELECT id, name, ext_name, "
+								"(( SELECT COALESCE(SUM(total), 0.00) "
+								"FROM invoices "
+								"WHERE canceled = False "
+								"AND customer_id = c_outer.id) - "
+								"(SELECT COALESCE(SUM(amount), 0.00) "
+								"FROM payments_incoming "
+								"WHERE (customer_id, misc_income) = "
+								"(c_outer.id, False) ))"
+							"FROM contacts AS c_outer "
+							"WHERE (deleted, customer) = "
+							"(False, True) ORDER BY name")
+		for row in self.cursor.fetchall():
+			customer_id = row[0]
+			name = row[1]
+			ext_name = row[2]
+			unpaid = row[3]
+			unpaid = "Unpaid balance  " + '${:,.2f}'.format(unpaid)
+			self.customer_store.append([str(customer_id),name + "  :  " + unpaid, ext_name])
 		
 	def customer_match_selected(self, completion, model, iter):
 		self.customer_id = model[iter][0]
@@ -587,8 +575,6 @@ class InvoiceGUI:
 			self.builder.get_object('entry6').set_text(row[0])
 			self.builder.get_object('entry8').set_text(row[1])
 		self.populate_tax_exemption_combo ()
-		if self.import_customer_id != None:
-			return #we are editing an existing invoice
 		self.set_widgets_sensitive ()
 		self.cursor.execute("SELECT id, comments FROM invoices "
 							"WHERE (customer_id, posted) = (%s, False) ", 
@@ -610,7 +596,6 @@ class InvoiceGUI:
 							"AND dated_for IS NOT NULL", (self.invoice_id,))
 		for row in self.cursor.fetchall():
 			date = row[0]
-			print (date)
 			self.calendar.set_date(date)
 			break
 		else:

@@ -127,7 +127,7 @@ def check_and_update_version (db, statusbar):
 	cursor = db.cursor()
 	cursor.execute("SELECT version FROM settings")
 	version = cursor.fetchone()[0]
-	COMPLETE_PROGRESS = 105.00
+	COMPLETE_PROGRESS = 106.00
 	progressbar (1)
 	if version <= "016":
 		progressbar (16)
@@ -1053,7 +1053,12 @@ def check_and_update_version (db, statusbar):
 		progressbar (105)
 		cursor.execute("CREATE TABLE credit_memos (id serial PRIMARY KEY, name varchar, customer_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, date_created date NOT NULL, date_printed date, total numeric(12, 2) DEFAULT 0.00 NOT NULL, tax numeric (12, 2) DEFAULT 0.00 NOT NULL, amount_owed numeric (12, 2) DEFAULT 0.00 NOT NULL, gl_entries_id bigint REFERENCES gl_entries ON DELETE RESTRICT, gl_entries_tax_id bigint REFERENCES gl_entries ON DELETE RESTRICT, statement_id bigint REFERENCES statements ON DELETE RESTRICT, posted boolean NOT NULL DEFAULT False, dated_for date)")
 		cursor.execute("CREATE TABLE credit_memo_items (id serial PRIMARY KEY, credit_memo_id bigint NOT NULL REFERENCES credit_memos ON DELETE RESTRICT, qty numeric (12, 1) NOT NULL, invoice_item_id bigint NOT NULL REFERENCES invoice_line_items ON DELETE RESTRICT, price numeric(12, 2) NOT NULL, date_returned date NOT NULL, tax numeric (12, 2) NOT NULL)")
-		cursor.execute("UPDATE settings SET version = '106'")
+	if version <= '106':
+		progressbar (106)
+		cursor.execute("ALTER TABLE public.serial_numbers DROP CONSTRAINT serial_numbers_invoice_line_item_id_fkey")
+		cursor.execute("ALTER TABLE public.serial_numbers RENAME invoice_line_item_id TO invoice_item_id;")
+		cursor.execute("ALTER TABLE public.serial_numbers ADD FOREIGN KEY (invoice_item_id) REFERENCES invoice_line_items ON DELETE SET NULL ON UPDATE RESTRICT")
+		cursor.execute("UPDATE settings SET version = '107'")
 	cursor.close()
 	db.commit()
 
