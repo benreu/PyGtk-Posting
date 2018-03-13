@@ -194,7 +194,7 @@ class InvoiceHistoryGUI:
 			total += amount
 			self.invoice_store.append([id_, str(date), date_formatted, i_name, 
 													c_name, remark, amount,
-													date_printed, 
+													str(date_printed), 
 													date_print_formatted])
 		self.builder.get_object('label3').set_label(str(total))
 
