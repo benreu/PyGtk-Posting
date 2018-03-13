@@ -48,18 +48,30 @@ class ContactHistoryGUI:
 			ext_name = row[2]
 			self.contact_store.append([id_ , name, ext_name])
 
+		amount_column = self.builder.get_object ('treeviewcolumn22')
+		amount_renderer = self.builder.get_object ('cellrenderertext25')
+		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func, 3)
+
+		amount_column = self.builder.get_object ('treeviewcolumn15')
+		amount_renderer = self.builder.get_object ('cellrenderertext18')
+		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func, 4)
+
+		amount_column = self.builder.get_object ('treeviewcolumn10')
+		amount_renderer = self.builder.get_object ('cellrenderertext11')
+		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func, 3)
+
 		amount_column = self.builder.get_object ('treeviewcolumn5')
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
-		#amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
+		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func, 5)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
-	def close_transaction_window (self, window):
+	def close_transaction_window (self, window, event):
 		self.cursor.close()
 
-	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = '{:,.2f}'.format(model.get_value(iter1, 6))
+	def amount_cell_func(self, view_column, cellrenderer, model, iter1, column):
+		price = '{:,.2f}'.format(model.get_value(iter1, column))
 		cellrenderer.set_property("text" , price)
 		
 	def invoice_treeview_button_release_event (self, treeview, event):

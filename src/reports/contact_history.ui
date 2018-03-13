@@ -370,7 +370,9 @@
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">3</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext11"/>
+                          <object class="GtkCellRendererText" id="cellrenderertext11">
+                            <property name="xalign">1</property>
+                          </object>
                           <attributes>
                             <attribute name="text">3</attribute>
                           </attributes>
@@ -583,7 +585,9 @@
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">4</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext18"/>
+                          <object class="GtkCellRendererText" id="cellrenderertext18">
+                            <property name="xalign">1</property>
+                          </object>
                           <attributes>
                             <attribute name="text">4</attribute>
                           </attributes>
@@ -747,7 +751,9 @@
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">3</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext25"/>
+                          <object class="GtkCellRendererText" id="cellrenderertext25">
+                            <property name="xalign">1</property>
+                          </object>
                           <attributes>
                             <attribute name="text">3</attribute>
                           </attributes>
