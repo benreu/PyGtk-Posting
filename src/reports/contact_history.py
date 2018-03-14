@@ -39,6 +39,8 @@ class ContactHistoryGUI:
 		self.db = main.db
 		self.cursor = self.db.cursor()
 
+		self.invoice_history = None
+
 		self.contact_store = self.builder.get_object('contact_store')
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
@@ -74,8 +76,23 @@ class ContactHistoryGUI:
 		price = '{:,.2f}'.format(model.get_value(iter1, column))
 		cellrenderer.set_property("text" , price)
 		
+	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
+		model = treeview.get_model()
+		file_id = model[treepath][0]
+		self.cursor.execute("SELECT name, pdf_data FROM invoices WHERE id = %s", 
+																	(file_id ,))
+		for row in self.cursor.fetchall():
+			file_name = "/tmp/" + row[0]
+			if file_name == None:
+				return
+			file_data = row[1]
+			f = open(file_name,'wb')
+			f.write(file_data)
+			subprocess.call(["xdg-open", file_name])
+			f.close()
+
 	def invoice_treeview_button_release_event (self, treeview, event):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.builder.get_object('treeview-selection4')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -83,6 +100,24 @@ class ContactHistoryGUI:
 			menu = self.builder.get_object('invoice_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
+
+	def invoice_history_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection4')
+		model, path = selection.get_selected_rows()
+		invoice_id = model[path][0]
+		if not self.invoice_history or self.invoice_history.exists == False:
+			from reports import invoice_history as ih
+			self.invoice_history = ih.InvoiceHistoryGUI(self.main)
+		combo = self.invoice_history.builder.get_object('combobox1')
+		combo.set_active_id(self.contact_id)
+		store = self.invoice_history.builder.get_object('invoice_store')
+		selection = self.invoice_history.builder.get_object('treeview-selection1')
+		selection.unselect_all()
+		for row in store:
+			if row[0] == invoice_id:
+				selection.select_iter(row.iter)
+				break
+		self.invoice_history.present()
 
 	def contact_match_func(self, completion, key, iter):
 		split_search_text = key.split()

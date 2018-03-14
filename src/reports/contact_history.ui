@@ -43,6 +43,19 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="invoice_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Invoice history</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="invoice_history_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="invoice_store">
     <columns>
       <!-- column-name id -->
@@ -235,6 +248,8 @@
                     <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
                     <property name="tooltip_column">4</property>
+                    <signal name="button-release-event" handler="invoice_treeview_button_release_event" swapped="no"/>
+                    <signal name="row-activated" handler="invoice_row_activated" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection4">
                         <property name="mode">multiple</property>
@@ -329,10 +344,7 @@
                 <property name="label" translatable="yes">Invoices</property>
               </object>
               <packing>
-                <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
-                <property name="reorderable">True</property>
-                <property name="detachable">True</property>
               </packing>
             </child>
             <child>
@@ -410,10 +422,7 @@
               </object>
               <packing>
                 <property name="position">1</property>
-                <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
-                <property name="reorderable">True</property>
-                <property name="detachable">True</property>
               </packing>
             </child>
             <child>
@@ -490,10 +499,7 @@
               </object>
               <packing>
                 <property name="position">2</property>
-                <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
-                <property name="reorderable">True</property>
-                <property name="detachable">True</property>
               </packing>
             </child>
             <child>
@@ -504,8 +510,7 @@
               </object>
               <packing>
                 <property name="position">3</property>
-                <property name="tab_expand">True</property>
-                <property name="reorderable">True</property>
+                <property name="tab_fill">False</property>
               </packing>
             </child>
             <child type="tab">
@@ -516,10 +521,7 @@
               </object>
               <packing>
                 <property name="position">3</property>
-                <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
-                <property name="reorderable">True</property>
-                <property name="detachable">True</property>
               </packing>
             </child>
             <child>

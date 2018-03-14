@@ -24,6 +24,7 @@ import dateutils
 UI_FILE = "src/reports/invoice_history.ui"
 
 class InvoiceHistoryGUI:
+	exists = True
 	def __init__(self, main):
 
 		self.search_iter = 0
@@ -75,6 +76,9 @@ class InvoiceHistoryGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def present(self):
+		self.window.present()
+
 	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
 		price = '{:,.2f}'.format(model.get_value(iter1, 6))
 		cellrenderer.set_property("text" , price)
@@ -102,9 +106,9 @@ class InvoiceHistoryGUI:
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
 
-	def close_transaction_window(self, window, void):
-		self.window.destroy()
-		return True
+	def close_transaction_window(self, window, event):
+		self.exists = False
+		self.cursor.close()
 		
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.builder.get_object('treeview-selection1')
