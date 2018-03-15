@@ -61,10 +61,26 @@ class VendorHistoryGUI:
 			name = vendor[1]
 			self.vendor_store.append([str(id_) , name])
 
-		amount_column = self.builder.get_object ('treeviewcolumn5')
-		amount_renderer = self.builder.get_object ('cellrenderertext5')
-		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
+		column = self.builder.get_object ('treeviewcolumn12')
+		renderer = self.builder.get_object ('cellrenderertext14')
+		column.set_cell_data_func(renderer, self.amount_cell_func, 6)
 
+		column = self.builder.get_object ('treeviewcolumn5')
+		renderer = self.builder.get_object ('cellrenderertext5')
+		column.set_cell_data_func(renderer, self.amount_cell_func, 5)
+
+		self.cursor.execute("SELECT qty_prec, price_prec FROM settings.purchase_order")
+		for row in self.cursor.fetchall():
+			qty_prec = row[0]
+			price_prec = row[1]
+			
+		column = self.builder.get_object ('treeviewcolumn7')
+		renderer = self.builder.get_object ('cellrenderertext8')
+		column.set_cell_data_func(renderer, self.qty_cell_func, qty_prec)
+
+		column = self.builder.get_object ('treeviewcolumn11')
+		renderer = self.builder.get_object ('cellrenderertext13')
+		column.set_cell_data_func(renderer, self.price_cell_func, price_prec)
 		
 		self.product_name = ''
 		self.product_ext_name = ''
@@ -102,9 +118,17 @@ class VendorHistoryGUI:
 		devices = sane.get_devices()
 		self.data_queue.put(devices)
 
-	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = '{:,.2f}'.format(model.get_value(iter1, 5))
+	def price_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
+		price = '{:.{prec}f}'.format(model.get_value(iter1, 5), prec=prec)
 		cellrenderer.set_property("text" , price)
+
+	def qty_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
+		qty = '{:.{prec}f}'.format(model.get_value(iter1, 0), prec=prec)
+		cellrenderer.set_property("text" , qty)
+
+	def amount_cell_func(self, treecolumn, cellrenderer, model, iter1, column):
+		amount = '{:,.2f}'.format(model.get_value(iter1, column))
+		cellrenderer.set_property("text" , amount)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
