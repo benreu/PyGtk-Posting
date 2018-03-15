@@ -591,7 +591,7 @@ class ProductsGUI:
 			self.builder.get_object('notebook1').prev_page()
 		if self.previous_keyname == "Control_L":
 			if keyname == "q":
-				self.builder.get_object('window').destroy()
+				window.destroy()
 		self.previous_keyname = keyname
 
 	def product_treeview_cursor_changed (self, treeview):
