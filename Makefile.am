@@ -10,7 +10,6 @@ dist_doc_DATA = \
 	README \
 	COPYING \
 	ChangeLog \
-	db_settings \
 	src/PyGtk_Posting.svg \
 	run.sh \
 	pygtk_posting.anjuta \
