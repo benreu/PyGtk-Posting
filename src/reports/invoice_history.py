@@ -51,14 +51,15 @@ class InvoiceHistoryGUI:
 		self.cursor = self.db.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
-		self.cursor.execute("SELECT c.id, c.name FROM contacts AS c "
+		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name FROM contacts AS c "
 							"JOIN invoices ON invoices.customer_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
 							"GROUP BY c.id, c.name ORDER BY name")
 		for customer in self.cursor.fetchall():
 			id_ = customer[0]
 			name = customer[1]
-			self.customer_store.append([str(id_) , name])
+			ext_name = customer[2]
+			self.customer_store.append([id_ , name, ext_name])
 
 		amount_column = self.builder.get_object ('treeviewcolumn5')
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
