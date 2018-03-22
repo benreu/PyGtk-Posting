@@ -127,7 +127,7 @@ def check_and_update_version (db, statusbar):
 	cursor = db.cursor()
 	cursor.execute("SELECT version FROM settings")
 	version = cursor.fetchone()[0]
-	COMPLETE_PROGRESS = 106.00
+	COMPLETE_PROGRESS = 107.00
 	progressbar (1)
 	if version <= "016":
 		progressbar (16)
@@ -1058,7 +1058,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.serial_numbers DROP CONSTRAINT serial_numbers_invoice_line_item_id_fkey")
 		cursor.execute("ALTER TABLE public.serial_numbers RENAME invoice_line_item_id TO invoice_item_id;")
 		cursor.execute("ALTER TABLE public.serial_numbers ADD FOREIGN KEY (invoice_item_id) REFERENCES invoice_line_items ON DELETE SET NULL ON UPDATE RESTRICT")
-		cursor.execute("UPDATE settings SET version = '107'")
+	if version <= '107':
+		progressbar (107)
+		cursor.execute("ALTER TABLE public.contacts ALTER COLUMN terms_and_discounts_id SET NOT NULL")
+		cursor.execute("ALTER TABLE public.contacts ALTER COLUMN markup_percent_id SET NOT NULL")
+		cursor.execute("UPDATE settings SET version = '108'")
 	cursor.close()
 	db.commit()
 
