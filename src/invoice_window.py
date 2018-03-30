@@ -674,8 +674,8 @@ class InvoiceGUI:
 	def product_selected (self, product_id, path):
 		invoice_line_id = self.invoice_store[path][0]
 		self.cursor.execute("UPDATE serial_numbers "
-							"SET invoice_line_item_id = NULL "
-							"WHERE invoice_line_item_id = %s", 
+							"SET invoice_item_id = NULL "
+							"WHERE invoice_item_id = %s", 
 							(invoice_line_id,))
 		self.cursor.execute("SELECT products.name, ext_name, tax_letter, "
 							"invoice_serial_numbers "
@@ -713,7 +713,7 @@ class InvoiceGUI:
 		product_id = model[path][2]
 		product_name = model[path][3]
 		self.cursor.execute("SELECT id, serial_number FROM serial_numbers "
-							"WHERE invoice_line_item_id = %s", 
+							"WHERE invoice_item_id = %s", 
 							(invoice_line_id,))
 		for row in self.cursor.fetchall():
 			id_ = row[0]
@@ -731,7 +731,7 @@ class InvoiceGUI:
 				product_id = row[2]
 				product_name = row[3]
 				self.cursor.execute("SELECT COUNT(id) FROM serial_numbers "
-									"WHERE invoice_line_item_id = %s", 
+									"WHERE invoice_item_id = %s", 
 									(invoice_line_id,))
 				ser_qty = self.cursor.fetchone()[0]
 				if qty != ser_qty:
@@ -771,7 +771,7 @@ class InvoiceGUI:
 		product_id = model[path][2]
 		self.cursor.execute("SELECT c.name, i.id FROM serial_numbers AS sn "
 							"JOIN invoice_line_items AS ili "
-							"ON ili.id = sn.invoice_line_item_id "
+							"ON ili.id = sn.invoice_item_id "
 							"JOIN invoices AS i ON i.id = ili.invoice_id "
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"WHERE (sn.product_id, sn.serial_number) = (%s, %s) ",
@@ -787,9 +787,9 @@ class InvoiceGUI:
 			self.show_serial_number_error(error)
 			return  # serial number is in use
 		self.cursor.execute("UPDATE serial_numbers "
-							"SET invoice_line_item_id = %s "
+							"SET invoice_item_id = %s "
 							"WHERE (product_id, serial_number) = (%s, %s) "
-							"AND invoice_line_item_id IS NULL RETURNING id", 
+							"AND invoice_item_id IS NULL RETURNING id", 
 							(invoice_line_id, product_id, serial_number ))
 		for row in self.cursor.fetchall():
 			product_serial_number_id = row[0]
@@ -824,7 +824,7 @@ class InvoiceGUI:
 		if path != []:
 			product_serial_number_id = model[path][4]
 			self.cursor.execute("UPDATE serial_numbers "
-								"SET invoice_line_item_id = NULL "
+								"SET invoice_item_id = NULL "
 								"WHERE id = %s", (product_serial_number_id,))
 			self.db.commit()
 		self.check_serial_numbers ()
