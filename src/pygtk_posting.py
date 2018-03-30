@@ -18,7 +18,7 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib, GObject
+from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
@@ -432,6 +432,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
 		store.clear()
+		red = Gdk.RGBA(1, 0, 0, 1)
+		orange = Gdk.RGBA(1, 0.5, 0, 1)
 		self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
 								"(SELECT statement_finish_date FROM settings) "
 								"+ INTERVAL'1 month') "
@@ -439,7 +441,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 									"* INTERVAL '1 day') "
 								"- INTERVAL '1 day'")
 		if self.cursor.fetchone()[0] == True:
-			store.append(["Print statements", 0, self.statement_window])
+			store.append(["Print statements", 0, self.statement_window, orange])
 		self.cursor.execute("SELECT "
 								"date_trunc('day', "
 									"(SELECT last_backup FROM settings)) <= "
@@ -448,8 +450,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 										"((SELECT backup_frequency_days "
 										"FROM settings) * INTERVAL '1 day'))")
 		if self.cursor.fetchone()[0] == True:
-			store.append(['Backup database', 0, self.backup_window])
-		self.cursor.execute("SELECT rm.id, subject "
+			store.append(['Backup database', 0, self.backup_window, red])
+		self.cursor.execute("SELECT rm.id, subject, red, green, blue, alpha "
 							"FROM resources AS rm "
 							"JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -458,7 +460,12 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		for row in self.cursor.fetchall():
 			id_ = row[0]
 			subject = row[1]
-			store.append([subject, id_, self.resource_window])
+			rgba = Gdk.RGBA(1, 1, 1, 1)
+			rgba.red = row[2]
+			rgba.green = row[3]
+			rgba.blue = row[4]
+			rgba.alpha = row[5]
+			store.append([subject, id_, self.resource_window, rgba])
 
 	def resource_window (self, id_):
 		import resource_management
