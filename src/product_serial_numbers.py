@@ -138,7 +138,7 @@ class ProductSerialNumbersGUI:
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh ON snh.serial_number_id = sn.id "
-							"LEFT JOIN invoice_line_items AS ili ON ili.id = sn.invoice_line_item_id "
+							"LEFT JOIN invoice_items AS ili ON ili.id = sn.invoice_line_item_id "
 							"LEFT JOIN invoices ON invoices.id = ili.invoice_id "
 							"GROUP BY sn.id, p.name, sn.serial_number, "
 							"sn.date_inserted, invoice_id, manufacturing_id "

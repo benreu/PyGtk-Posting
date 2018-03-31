@@ -270,7 +270,7 @@ class GUI:
 															total, ""])
 			self.cursor.execute("SELECT ili.id, product_id, name, qty, remark, "
 									"price "
-								"FROM invoice_line_items AS ili "
+								"FROM invoice_items AS ili "
 								"JOIN products ON ili.product_id = products.id "
 								"WHERE invoice_id = %s", (id_,))
 			for line in self.cursor.fetchall():

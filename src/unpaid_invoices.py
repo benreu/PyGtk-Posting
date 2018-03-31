@@ -124,7 +124,7 @@ class GUI:
 								"UPDATE serial_numbers "
 								"SET invoice_item_id = NULL "
 								"WHERE invoice_item_id IN "
-								"(SELECT id FROM invoice_line_items "
+								"(SELECT id FROM invoice_items "
 								"WHERE invoice_id = %s)", 
 								(self.invoice_id, self.invoice_id))
 			self.db.commit()

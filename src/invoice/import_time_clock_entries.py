@@ -91,7 +91,7 @@ class ImportGUI():
 		price = get_customer_product_price (self.db, self.contact_id, self.product_id)
 		ext_price = round(float(self.invoicing_time ) * float(price), 2)
 		description = self.builder.get_object('entry1').get_text()
-		self.cursor.execute("INSERT INTO invoice_line_items "
+		self.cursor.execute("INSERT INTO invoice_items "
 							"(invoice_id, qty, product_id, price, ext_price, "
 							"remark, canceled, imported) "
 							"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "

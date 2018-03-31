@@ -304,7 +304,7 @@ def post_invoice_accounts (db, date, invoice_id):
 					"WHERE invoices.id = %s", (invoice_id,))
 	transaction_id = cursor.fetchone()[0]
 	cursor.execute("SELECT SUM(tax) AS tax, tax_received_account AS account "
-					"FROM invoice_line_items AS ili "
+					"FROM invoice_items AS ili "
 					"JOIN tax_rates ON tax_rates.id = ili.tax_rate_id "
 					"WHERE invoice_id = %s AND gl_entries_id IS NULL "
 					"GROUP BY tax_rates.tax_received_account", 
@@ -318,7 +318,7 @@ def post_invoice_accounts (db, date, invoice_id):
 						"(%s, %s, %s, %s)", 
 						(tax, account, transaction_id, date))
 	cursor.execute("SELECT ili.id, ext_price, revenue_account "
-					"FROM invoice_line_items AS ili "
+					"FROM invoice_items AS ili "
 					"JOIN products ON products.id = ili.product_id "
 					"WHERE invoice_id = %s AND gl_entries_id IS NULL", 
 					(invoice_id,))
@@ -330,7 +330,7 @@ def post_invoice_accounts (db, date, invoice_id):
 						"(amount, credit_account, gl_transaction_id, "
 						"date_inserted) VALUES "
 						"(%s, %s, %s, %s) RETURNING id) "
-						"UPDATE invoice_line_items SET gl_entries_id = "
+						"UPDATE invoice_items SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s", 
 						(revenue, account, transaction_id, date, line_id))
 	cursor.close()

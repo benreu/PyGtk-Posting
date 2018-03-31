@@ -114,7 +114,7 @@ class CreditMemoGUI:
 		self.cursor.execute("SELECT cmi.id, cmi.qty, p.id, p.name, p.ext_name, cmi.price, invoice_item_id, "
 							"i.id, date_returned, cmi.tax "
 							"FROM credit_memo_items AS cmi "
-							"JOIN invoice_line_items AS ili ON ili.id = cmi.invoice_item_id "
+							"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
 							"JOIN products AS p ON p.id = ili.product_id "
 							"JOIN invoices AS i ON i.id = ili.invoice_id "
 							"WHERE credit_memo_id = %s", (self.credit_memo_id,))
@@ -140,7 +140,7 @@ class CreditMemoGUI:
 		c = self.db.cursor()
 		c.execute("SELECT ili.id::text, p.name, ext_name, i.id::text, i.dated_for "
 					"FROM products AS p "
-					"JOIN invoice_line_items AS ili ON ili.product_id = p.id "
+					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
 					"WHERE (customer_id, paid) = (%s, True) "
 					"ORDER BY p.name", (self.customer_id,))
@@ -170,7 +170,7 @@ class CreditMemoGUI:
 		c = self.db.cursor()
 		c.execute("SELECT product_id, p.name, p.ext_name, ili.price, i.id, i.dated_for, ili.tax "
 					"FROM products AS p "
-					"JOIN invoice_line_items AS ili ON ili.product_id = p.id "
+					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
 					"WHERE ili.id = %s ", (invoice_item_id,))
 		for row in c.fetchall():

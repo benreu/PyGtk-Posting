@@ -81,7 +81,7 @@ Do you want to append the Job Sheet items?" % customer_name)
 												customer_id, product_id)
 			ext_price = float(qty) * price
 			ext_price = round(ext_price, 2)
-			self.cursor.execute("INSERT INTO invoice_line_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
+			self.cursor.execute("INSERT INTO invoice_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
 		self.cursor.execute("UPDATE job_sheets SET invoiced = True WHERE id = %s", (job_sheet_id,))
 		self.db.commit()
 		self.populate_customer_store()

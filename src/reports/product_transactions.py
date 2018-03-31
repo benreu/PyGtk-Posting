@@ -82,7 +82,7 @@ class ProductTransactionsGUI:
 		self.customer_transaction_store.clear()
 		qty_total = 0
 		self.cursor.execute("SELECT i.id, i.name, p.name, qty, i.date_created, "
-							"c.name, price FROM invoice_line_items AS ili "
+							"c.name, price FROM invoice_items AS ili "
 							"JOIN invoices AS i "
 							"ON i.id = ili.invoice_id "
 							"JOIN contacts AS c "

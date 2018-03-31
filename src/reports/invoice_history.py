@@ -220,7 +220,7 @@ class InvoiceHistoryGUI:
 			self.cursor.execute("SELECT ili.id, ili.qty,  "
 								"product_id, name, ext_name, ili.price, "
 								"ili.ext_price, remark "
-								"FROM invoice_line_items AS ili "
+								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
 								"ORDER BY name ")
@@ -240,7 +240,7 @@ class InvoiceHistoryGUI:
 			self.cursor.execute("SELECT ili.id, ili.qty,  "
 								"product_id, name, ext_name, ili.price, "
 								"ili.ext_price, remark "
-								"FROM invoice_line_items AS ili "
+								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
 								"WHERE invoice_id IN " + args)

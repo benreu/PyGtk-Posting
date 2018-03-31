@@ -47,7 +47,7 @@ class ManufacturingHistoryGUI:
 		serial_number_store.clear()
 		self.cursor.execute("SELECT sn.id, serial_number, COALESCE(c.name, '') "
 							"FROM serial_numbers AS sn "
-							"LEFT JOIN invoice_line_items AS ili "
+							"LEFT JOIN invoice_items AS ili "
 							"ON ili.id = sn.invoice_line_item_id "
 							"LEFT JOIN invoices AS i ON i.id = ili.invoice_id "
 							"LEFT JOIN contacts AS c ON c.id = i.customer_id "

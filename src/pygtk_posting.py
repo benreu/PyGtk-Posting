@@ -499,8 +499,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 			unreceived_po = row[0]
 		self.builder.get_object('button12').set_label("Receive Orders\n          (%s)" % unreceived_po)
 		self.cursor.execute("SELECT COUNT(invoices.id) FROM invoices, "
-							"LATERAL (SELECT product_id FROM invoice_line_items "
-								"WHERE invoice_line_items.invoice_id = "
+							"LATERAL (SELECT product_id FROM invoice_items "
+								"WHERE invoice_items.invoice_id = "
 								"invoices.id LIMIT 1) ILI "
 							"WHERE (invoices.canceled, posted, active) = (False, False, True)")
 		for row in self.cursor.fetchall():

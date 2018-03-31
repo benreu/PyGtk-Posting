@@ -69,7 +69,7 @@ class SalesTaxReportGUI:
 		self.tax_store.clear()
 		self.cursor.execute("SELECT SUM(i.ext_price), SUM(i.tax), "
 							"tax_rates.name "
-							"FROM invoice_line_items AS i "
+							"FROM invoice_items AS i "
 							"JOIN tax_rates ON i.tax_rate_id = tax_rates.id "
 							"JOIN invoices ON invoices.id = i.invoice_id "
 							"WHERE (invoices.canceled, invoices.posted) "
@@ -85,7 +85,7 @@ class SalesTaxReportGUI:
 			self.tax_store.append([tax_rate_name, float(tax_amount), 
 									float(sale_amount)])
 		self.cursor.execute("SELECT SUM(i.ext_price), SUM(i.tax) "
-							"FROM invoice_line_items AS i "
+							"FROM invoice_items AS i "
 							"JOIN invoices ON invoices.id = i.invoice_id "
 							"WHERE (invoices.canceled, invoices.posted) "
 							"= (False, True) "
