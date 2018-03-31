@@ -1062,7 +1062,34 @@ def check_and_update_version (db, statusbar):
 		progressbar (107)
 		cursor.execute("ALTER TABLE public.contacts ALTER COLUMN terms_and_discounts_id SET NOT NULL")
 		cursor.execute("ALTER TABLE public.contacts ALTER COLUMN markup_percent_id SET NOT NULL")
-		cursor.execute("UPDATE settings SET version = '108'")
+	if version <= '108':
+		progressbar (108)
+		cursor.execute("ALTER TABLE invoice_line_items RENAME TO invoice_items;")
+		# HINT: triggers are executed alphabetical order
+		cursor.execute("CREATE OR REPLACE FUNCTION check_tax_rate_id() RETURNS TRIGGER AS $$ \n"
+						"  BEGIN \n"
+						"    IF (SELECT tax_exemptible FROM products WHERE id = NEW.product_id) = FALSE OR NEW.tax_rate_id IS NULL THEN \n"
+						"       NEW.tax_rate_id = (SELECT tax_rates.id FROM tax_rates JOIN products ON tax_rates.id = products.tax_rate_id WHERE products.id = NEW.product_id);\n"
+						"    END IF;\n"
+						"  RETURN NEW;\n"
+						"  END;\n"
+						"$$ LANGUAGE plpgsql;")
+		cursor.execute("CREATE TRIGGER a_check_tax_rate_id BEFORE INSERT OR UPDATE OF tax_rate_id ON invoice_items FOR EACH ROW WHEN (pg_trigger_depth() < 1) EXECUTE PROCEDURE check_tax_rate_id();")
+		
+		cursor.execute("CREATE OR REPLACE FUNCTION calculate_invoice_item() RETURNS TRIGGER AS $$ \n"
+						"  BEGIN \n"
+						"    UPDATE invoice_items SET ext_price = (qty*price) WHERE id = NEW.id;\n"
+						"    UPDATE invoice_items SET tax = (((SELECT rate FROM tax_rates WHERE id = NEW.tax_rate_id) * ext_price) / 100) WHERE id = NEW.id;\n"
+						"  RETURN NEW; \n"
+						"  END; \n"
+						"$$ LANGUAGE plpgsql;")
+		cursor.execute("CREATE TRIGGER b_calculate_invoice_item AFTER INSERT OR UPDATE OF qty, product_id, price, tax_rate_id ON invoice_items FOR EACH ROW WHEN (pg_trigger_depth() < 1 AND NEW.tax_rate_id IS NOT NULL) EXECUTE PROCEDURE calculate_invoice_item();")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN tax_rate_id SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN tax SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN tax SET DEFAULT 0.0;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN ext_price SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN ext_price SET DEFAULT 0.0;")
+		cursor.execute("UPDATE settings SET version = '109'")
 	cursor.close()
 	db.commit()
 
