@@ -102,7 +102,7 @@
       <!-- column-name id -->
       <column type="gint"/>
       <!-- column-name qty -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name product_id -->
       <column type="gint"/>
       <!-- column-name product_name -->
@@ -112,11 +112,11 @@
       <!-- column-name remark -->
       <column type="gchararray"/>
       <!-- column-name price -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name tax -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name ext_price -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name tax_description -->
       <column type="gchararray"/>
       <!-- column-name new_entry -->
@@ -264,6 +264,20 @@
         <attribute name="text">1</attribute>
       </attributes>
     </child>
+  </object>
+  <object class="GtkListStore" id="serial_number_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name invoice_line_id -->
+      <column type="gint"/>
+      <!-- column-name product_name -->
+      <column type="gchararray"/>
+      <!-- column-name serial_number -->
+      <column type="gchararray"/>
+      <!-- column-name product_serial_number_id -->
+      <column type="gint"/>
+    </columns>
   </object>
   <object class="GtkWindow" id="window">
     <property name="height_request">375</property>
@@ -1352,9 +1366,9 @@ it probably means Libreoffice crashed or was improperly shut down.</property>
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="serial_number_error_dialog">
+  <object class="GtkDialog" id="error_dialog">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Serial number error!</property>
+    <property name="title" translatable="yes">Data error!</property>
     <property name="window_position">center</property>
     <property name="default_width">320</property>
     <property name="default_height">260</property>
@@ -1524,19 +1538,5 @@ it probably means Libreoffice crashed or was improperly shut down.</property>
       <action-widget response="-6">button10</action-widget>
       <action-widget response="-3">button7</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkListStore" id="serial_number_store">
-    <columns>
-      <!-- column-name product_id -->
-      <column type="gint"/>
-      <!-- column-name invoice_line_id -->
-      <column type="gint"/>
-      <!-- column-name product_name -->
-      <column type="gchararray"/>
-      <!-- column-name serial_number -->
-      <column type="gchararray"/>
-      <!-- column-name product_serial_number_id -->
-      <column type="gint"/>
-    </columns>
   </object>
 </interface>
