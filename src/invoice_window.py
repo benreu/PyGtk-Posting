@@ -200,35 +200,31 @@ class InvoiceGUI:
 		entry.select_region(0,-1)
 		if barcode == "":
 			return # blank barcode
-		self.cursor.execute("SELECT id FROM products "
-							"WHERE (barcode, deleted, sellable, stock) = "
-							"(%s, False, True, True)", (barcode,))
+		self.cursor.execute("SELECT process_invoice_barcode(%s, %s)", 
+							(barcode, self.invoice_id))
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			break
-		else:
-			for row in self.barcodes_not_found_store:
-				if row[2] == barcode:
-					row[1] += 1
-					break
-				continue
-			else:
-				self.barcodes_not_found_store.append([0, 1, barcode])
-			self.builder.get_object('entry10').grab_focus()
-			barcode_error_dialog = self.builder.get_object('barcode_error_dialog')
-			barcode_error_dialog.run()
-			barcode_error_dialog.hide()
-			return
-		for row in self.invoice_store:
-			if row[2] == product_id:
-				row[1] += 1
-				break
-			continue
-		else:
-			self.invoice_store.append([0, 1.0, 0, "", "", "", 0.00, 1, 1, "", False, '', False])
-			last = self.invoice_store.iter_n_children ()
-			last -= 1 #iter_n_children starts at 1 ; path starts at 0
-			self.product_selected(product_id, last)
+			if row[0] != 0:
+				self.populate_invoice_items()
+				row_id = row[0]
+			else:            #barcode not found
+				for row in self.barcodes_not_found_store:
+					if row[2] == barcode:
+						row[1] += 1
+						break
+					continue
+				else:
+					self.barcodes_not_found_store.append([0, 1, barcode])
+				self.builder.get_object('entry10').grab_focus()
+				barcode_error_dialog = self.builder.get_object('barcode_error_dialog')
+				barcode_error_dialog.run()
+				barcode_error_dialog.hide()
+				return
+		for row in self.invoice_store:   #select the item we scanned
+			if row[0] == row_id:
+				treeview = self.builder.get_object('treeview2')
+				c = treeview.get_column(0)
+				#path = self.invoice_store.get_path(row.path)
+				treeview.set_cursor(row.path, c, False)
 
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
@@ -244,12 +240,14 @@ class InvoiceGUI:
 			return
 		qty, product_id = list_[0], list_[1]
 		self.check_invoice_id()
-		self.invoice_store.append([0, float(qty), int(product_id), '', '', '', 0.00, 1, 1, "", False, '', False])
-		last = self.invoice_store.iter_n_children ()
-		path = last - 1 #iter_n_children starts at 1 ; path starts at 0
+		iter_ = self.invoice_store.append([0, '1', product_id, product_name,
+											"", "", price, '1', '1', "", 
+											True, '', False])
+		self.check_invoice_item_id (iter_)
 		treeview = self.builder.get_object('treeview2')
 		c = treeview.get_column(0)
-		treeview.set_cursor(path , c, False)	#set the cursor to the last appended item
+		path = self.invoice_store.get_path(iter_)
+		treeview.set_cursor(path, c, True)
 		self.product_selected (product_id, path)
 
 	def destroy(self, window):
@@ -660,9 +658,9 @@ class InvoiceGUI:
 
 	################## start price
 
-	def price_cell_func(self, column, cellrenderer, model, iter1, data):
+	def price_cell_func(self, column, cellrenderer, model, iter_, data):
 		return
-		price = '{:,.2f}'.format(model.get_value(iter1, 6))
+		price = '{:,.2f}'.format(model.get_value(iter_, 6))
 		cellrenderer.set_property("text" , price)
 		
 	def price_edited(self, widget, path, text):
@@ -690,14 +688,14 @@ class InvoiceGUI:
 
 	################## end price
 
-	def tax_cell_func(self, column, cellrenderer, model, iter1, data):
+	def tax_cell_func(self, column, cellrenderer, model, iter_, data):
 		return
-		tax = '{:,.2f}'.format(model.get_value(iter1, 7))
+		tax = '{:,.2f}'.format(model.get_value(iter_, 7))
 		cellrenderer.set_property("text" , tax)
 
-	def ext_price_cell_func(self, column, cellrenderer, model, iter1, data):
+	def ext_price_cell_func(self, column, cellrenderer, model, iter_, data):
 		return
-		ext_price = '{:,.2f}'.format(model.get_value(iter1, 8))
+		ext_price = '{:,.2f}'.format(model.get_value(iter_, 8))
 		cellrenderer.set_property("text" , ext_price)
 		
 	################## start product
@@ -978,6 +976,7 @@ class InvoiceGUI:
 		ext_price = self.invoice_store[iter_][8]
 		tax_id = self.builder.get_object('comboboxtext1').get_active_id()
 		if id == 0:
+			self.check_invoice_id()
 			self.cursor.execute("INSERT INTO invoice_items "
 								"(invoice_id, qty, product_id, remark, price, "
 								"canceled, tax_rate_id) "
@@ -995,7 +994,7 @@ class InvoiceGUI:
 			self.db.commit()
 			self.populate_document_list()
 
-	def new_item_clicked (self, widget):
+	def new_item_clicked (self, button):
 		self.cursor.execute("SELECT id, name, level_1_price::text "
 							"FROM products WHERE (deleted, sellable, stock) = "
 							"(False, True, True) ORDER BY id LIMIT 1")
@@ -1008,12 +1007,9 @@ class InvoiceGUI:
 												True, '', False])
 			self.check_invoice_item_id (iter_)
 			treeview = self.builder.get_object('treeview2')
-			for index, row in enumerate(self.invoice_store):
-				if row[10] == True:
-					c = treeview.get_column(0)
-					treeview.set_cursor(index , c, True)
-					break
-		self.check_invoice_id()
+			c = treeview.get_column(0)
+			path = self.invoice_store.get_path(iter_)
+			treeview.set_cursor(path, c, True)
 		self.set_serial_number_box_state(False)
 
 	def delete_line_item_activated (self, menuitem):
