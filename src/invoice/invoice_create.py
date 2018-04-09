@@ -230,12 +230,14 @@ class Setup(XCloseListener, unohelper.Base):
 								(self.invoice_id,))
 		return result
 				
-	def print_directly(self):
-		subprocess.Popen("soffice --headless -p " + self.invoice_file, shell = True)
+	def print_directly(self, window):
 		subprocess.call("odt2pdf " + self.invoice_file, shell = True)
-		self.cursor.execute("UPDATE invoices SET date_printed = "
-							"CURRENT_DATE WHERE id = %s", 
-							(self.invoice_id,))
+		p = printing.InvoicePrintDialog("/tmp/" + self.document_pdf)
+		result = p.print_directly(window)
+		if result == Gtk.PrintOperationResult.APPLY:
+			self.cursor.execute("UPDATE invoices SET date_printed = "
+								"CURRENT_DATE WHERE id = %s", 
+								(self.invoice_id,))
 
 	def email (self, email):
 		document = "/tmp/" + self.document_pdf

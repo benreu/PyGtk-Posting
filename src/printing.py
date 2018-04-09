@@ -36,7 +36,6 @@ class InvoicePrintDialog:
 		self.operation = Gtk.PrintOperation()
 		self.operation.set_print_settings(settings)
 		self.operation.set_embed_page_setup(True)
-
 		self.operation.connect('begin-print', self.begin_print, None)
 		self.operation.connect('draw-page', self.draw_page, None)
 
@@ -67,7 +66,7 @@ class InvoicePrintDialog:
 		return result
 		
 
-	def print_direct(self, parent):
+	def print_directly (self, parent):
 		"parent dialog to attach the dialog to"
 		result = self.operation.run(Gtk.PrintOperationAction.PRINT,
 									parent)
