@@ -417,7 +417,8 @@ pygtk_posting_PYTHON = \
 	customer_markup_percent.py \
 	customer_markup_percent.ui \
 	credit_memo.py \
-	credit_memo.ui
+	credit_memo.ui \
+	main.py
 
 EXTRA_DIST = $(ui_DATA)
 SUBDIRS = \
