@@ -449,7 +449,9 @@ class InvoiceGUI:
 		if self.builder.get_object('menuitem1').get_active() == True:
 			self.invoice.print_directly()
 		else:
-			self.invoice.print_dialog(self.window)
+			result = self.invoice.print_dialog(self.window)
+			if result != Gtk.PrintOperationResult.APPLY:
+				return
 		self.invoice.post()
 		if self.builder.get_object('menuitem4').get_active() == True:
 			self.cursor.execute("SELECT * FROM contacts WHERE id = %s", 
