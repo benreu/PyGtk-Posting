@@ -17,7 +17,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import psycopg2
+import os, sys, psycopg2
 from datetime import datetime
 from db import transactor
 from dateutils import datetime_to_text, DateTimeCalendar
