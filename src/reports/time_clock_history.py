@@ -127,36 +127,36 @@ class TimeClockHistoryGUI:
 		view_all_employee = self.builder.get_object('checkbutton1').get_active()
 		view_all_project = self.builder.get_object('checkbutton2').get_active()
 		if view_all_employee == True and view_all_project == True:
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid "
+			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (state) = ('complete') "
-								"AND start_time <= %s "
-								"AND start_time >= %s ORDER BY start_time",
+								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time",
 								(self.last_second_of_target_week, 
 								self.previous_week_time))
 		elif view_all_employee == True:
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid "
+			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (project_id, state) = (%s, 'complete') "
-								"AND start_time <= %s "
-								"AND start_time >= %s ORDER BY start_time", 
+								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
 								(project_id, self.last_second_of_target_week, 
 								self.previous_week_time))
 		elif view_all_project == True:
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid "
+			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (employee_id, state) = (%s, 'complete') "
-								"AND start_time <= %s "
-								"AND start_time >= %s ORDER BY start_time", 
+								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
 								(employee_id, self.last_second_of_target_week, 
 								self.previous_week_time))
 		elif project_id != None and employee_id != None:			
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid "
+			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (employee_id, project_id, state) = "
 								"(%s, %s, 'complete') "
-								"AND start_time <= %s "
-								"AND start_time >= %s ORDER BY start_time", 
+								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
 								(employee_id, project_id,
 								self.last_second_of_target_week, 
 								self.previous_week_time))
@@ -189,9 +189,9 @@ class TimeClockHistoryGUI:
 			line_id = row[0]
 			start_time = row[1]
 			stop_time = row[2]
-			punched_in_time = stop_time - start_time
-			in_time = datetime.fromtimestamp(start_time)
-			out_time = datetime.fromtimestamp(stop_time)
+			punched_in_time = row[5]
+			in_time = start_time
+			out_time = stop_time
 			#print row[4]
 			pay_stat = "Paid = " + str(row[4])
 			project_id_ = row[3]
