@@ -149,7 +149,7 @@ class TimeClockGUI :
 		settings.GUI(self.db, 'time_clock')
 
 	def manual_entry_clicked(self, widget):
-		self.cursor.execute("SELECT CURRENT_TIMESTAMP;")
+		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
 		self.clock_in_out_time = int(self.cursor.fetchone()[0])
 		list_box_row = self.builder.get_object('listbox1').get_selected_rows()[0]
 		box = list_box_row.get_children()[0]
@@ -177,15 +177,15 @@ class TimeClockGUI :
 		if result == Gtk.ResponseType.ACCEPT:
 			punched_in_switch.set_active(not active)
 			if active == True:
-				self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete', %s) WHERE (employee_id, state) = (%s, 'running')", (self.clock_in_out_time, employee_id))
+				self.cursor.execute("UPDATE time_clock_entries SET (state,stop_time) = ('complete',  CAST(TO_TIMESTAMP(%s) AS timestamptz)) WHERE (employee_id, state) = (%s, 'running')", (self.clock_in_out_time, employee_id))
 			else:
 				self.cursor.execute("SELECT id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
 				for row in self.cursor.fetchall():
 					row_id = row[0]
-					self.cursor.execute("UPDATE time_clock_entries SET (project_id, start_time, state) = (%s, %s, 'running') WHERE id = %s", (project_id, self.clock_in_out_time, row_id))
+					self.cursor.execute("UPDATE time_clock_entries SET (project_id, start_time, state) = (%s,CAST(TO_TIMESTAMP( %s) AS timestamptz), 'running') WHERE id = %s", (project_id, self.clock_in_out_time, row_id))
 					break
 				else:
-					self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, %s, %s, 'running', False, False)", (employee_id, self.clock_in_out_time, project_id))
+					self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, CAST(TO_TIMESTAMP( %s) AS timestamptz), %s, 'running', False, False)", (employee_id, self.clock_in_out_time, project_id))
 			self.db.commit()
 
 	def focus(self, window, event):
