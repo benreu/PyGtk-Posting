@@ -97,7 +97,7 @@ class GUI:
 		bank_id = bank_combo.get_active_id()
 		bank_combo.remove_all()
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
-							"WHERE bank_account = True")
+							"WHERE deposits = True")
 		for row in self.cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]

@@ -170,12 +170,12 @@ class GUI:
 		bank_combo = self.builder.get_object('comboboxtext3')
 		bank_id = bank_combo.get_active_id()
 		bank_combo.remove_all()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
-							"WHERE bank_account = True")
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+							"WHERE check_writing = True")
 		for row in self.cursor.fetchall():
 			bank_number = row[0]
 			bank_name = row[1]
-			bank_combo.append(str(bank_number), bank_name)
+			bank_combo.append(bank_number, bank_name)
 		bank_combo.set_active_id(bank_id)
 
 	def populate_credit_card_combo(self):

@@ -1135,7 +1135,13 @@ def check_and_update_version (db, statusbar):
 							"RETURN; \n"
 							"END \n"
 							"$BODY$ language plpgsql; ")
-		cursor.execute("UPDATE settings SET version = '111'")
+	if version <= '111':
+		progressbar (111)
+		cursor.execute("ALTER TABLE gl_accounts ADD COLUMN deposits BOOLEAN DEFAULT FALSE, ADD COLUMN check_writing BOOLEAN DEFAULT FALSE")
+		cursor.execute("UPDATE gl_accounts SET (deposits, check_writing) = (FALSE, FALSE)")
+		cursor.execute("ALTER TABLE gl_accounts ALTER COLUMN deposits SET NOT NULL")
+		cursor.execute("ALTER TABLE gl_accounts ALTER COLUMN check_writing SET NOT NULL")
+		cursor.execute("UPDATE settings SET version = '112'")
 	cursor.close()
 	db.commit()
 

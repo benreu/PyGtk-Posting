@@ -246,10 +246,51 @@ class GUI():
 							(expense_account_boolean, self.active_account_number))
 		self.db.commit()
 
-	def bank_account_checkbutton_toggled (self, checkbutton):
+	def check_writing_checkbutton_toggled (self, checkbutton):
 		bank_account_boolean = checkbutton.get_active()
 		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
-							"WHERE parent_number = %s", 
+							"WHERE parent_number = "
+							"(SELECT number FROM gl_accounts "
+							"WHERE parent_number = %s LIMIT 1)", 
+							(self.active_account_number,))
+		for row in self.cursor.fetchall():
+			num_accounts = row[0]
+			if bank_account_boolean == False or num_accounts == 0:
+				break #block popping an error on unsetting an account
+			checkbutton.set_active(False)
+			self.account_error_dialog(num_accounts)
+			return # account has child accounts
+		self.cursor.execute("UPDATE gl_accounts SET check_writing = %s "
+							"WHERE number = %s", 
+							(bank_account_boolean, self.active_account_number))
+		self.db.commit()
+		self.db.commit()
+
+	def deposit_checkbutton_toggled (self, checkbutton):
+		bank_account_boolean = checkbutton.get_active()
+		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+							"WHERE parent_number = "
+							"(SELECT number FROM gl_accounts "
+							"WHERE parent_number = %s LIMIT 1)", 
+							(self.active_account_number,))
+		for row in self.cursor.fetchall():
+			num_accounts = row[0]
+			if bank_account_boolean == False or num_accounts == 0:
+				break #block popping an error on unsetting an account
+			checkbutton.set_active(False)
+			self.account_error_dialog(num_accounts)
+			return # account has child accounts
+		self.cursor.execute("UPDATE gl_accounts SET deposits = %s "
+							"WHERE number = %s", 
+							(bank_account_boolean, self.active_account_number))
+		self.db.commit()
+
+	def bank_statement_checkbutton_toggled (self, checkbutton):
+		bank_account_boolean = checkbutton.get_active()
+		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+							"WHERE parent_number = "
+							"(SELECT number FROM gl_accounts "
+							"WHERE parent_number = %s LIMIT 1)", 
 							(self.active_account_number,))
 		for row in self.cursor.fetchall():
 			num_accounts = row[0]
@@ -317,7 +358,8 @@ class GUI():
 	def check_if_used_account (self):
 		self.cursor.execute("SELECT expense_account, bank_account, "
 							"credit_card_account, revenue_account, "
-							"number, name, cash_account, inventory_account "
+							"number, name, cash_account, inventory_account, "
+							"deposits, check_writing "
 							"FROM gl_accounts WHERE number = %s", 
 							(self.active_account_number,))
 		for row in self.cursor.fetchall():
@@ -329,12 +371,16 @@ class GUI():
 			account_name = row[5]
 			cash_account_bool = row[6]
 			inventory_account_bool = row[7]
+			deposits_bool = row[8]
+			check_writing_bool = row[9]
 		self.builder.get_object('checkbutton1').set_active(expense_account_bool)
-		self.builder.get_object('checkbutton2').set_active(bank_account_bool)
+		self.builder.get_object('checkbutton8').set_active(bank_account_bool)
 		self.builder.get_object('checkbutton3').set_active(c_c_account_bool)
 		self.builder.get_object('checkbutton4').set_active(revenue_account_bool)
 		self.builder.get_object('checkbutton5').set_active(cash_account_bool)
 		self.builder.get_object('checkbutton6').set_active(inventory_account_bool)
+		self.builder.get_object('checkbutton7').set_active(deposits_bool)
+		self.builder.get_object('checkbutton2').set_active(check_writing_bool)
 		self.cursor.execute("SELECT id FROM gl_account_flow WHERE account = %s", 
 															(account_number,))
 		for row in self.cursor.fetchall():

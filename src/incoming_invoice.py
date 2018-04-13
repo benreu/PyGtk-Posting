@@ -101,7 +101,7 @@ class IncomingInvoiceGUI:
 
 	def populate_stores (self):
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
-							"WHERE bank_account = True ORDER BY name ")
+							"WHERE check_writing = True ORDER BY name ")
 		for row in self.cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
