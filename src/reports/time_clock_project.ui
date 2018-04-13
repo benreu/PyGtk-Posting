@@ -84,12 +84,6 @@
                 <attribute name="text">2</attribute>
               </attributes>
             </child>
-            <child>
-              <object class="GtkCellRendererText" id="cellrenderertext10"/>
-              <attributes>
-                <attribute name="text">1</attribute>
-              </attributes>
-            </child>
             <child internal-child="entry">
               <object class="GtkEntry" id="combobox-entry">
                 <property name="visible">True</property>

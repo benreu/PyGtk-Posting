@@ -18,7 +18,7 @@
 
 
 from gi.repository import Gtk, Gdk
-from datetime import datetime, date
+from datetime import datetime, date, timedelta 
 from dateutils import seconds_to_user_format, seconds_to_compact_string
 
 UI_FILE = "src/admin/time_clock_tool.ui"
@@ -194,8 +194,8 @@ class TimeClockToolGUI:
 							(self.employee_id, self.project_id))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
-			start_time = seconds_to_user_format (row[1])
-			stop_time = seconds_to_user_format (row[2])
+			start_time = str(row[1])#seconds_to_user_format (row[1])
+			stop_time = str(row[2])#seconds_to_user_format (row[2])
 			actual_time = seconds_to_compact_string (row[3])
 			adjusted_time = seconds_to_compact_string (row[4])
 			self.time_clock_entries_store.append([row_id, start_time, stop_time,
@@ -250,6 +250,7 @@ class TimeClockToolGUI:
 			self.builder.get_object('spinbutton3').set_value(0)
 		dialog = self.builder.get_object('dialog1')
 		response = dialog.run()
+
 		dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
 			employee_id = self.builder.get_object('combobox3').get_active_id()
@@ -257,7 +258,8 @@ class TimeClockToolGUI:
 								"SET (employee_id, start_time, stop_time) = "
 								"(%s, %s, %s) WHERE id = %s", (employee_id, 
 								self.start_time, self.stop_time, entry_id))
-		elif response == -4: # Duplicate the entry
+		elif response == -2: # Duplicate the entry button ....emmission changed 
+			#because the original was the same as the x button in the corner
 			employee_id = self.builder.get_object('combobox3').get_active_id()
 			self.cursor.execute("INSERT INTO time_clock_entries "
 								"(employee_id, start_time, stop_time, "
@@ -276,15 +278,15 @@ class TimeClockToolGUI:
 		self.populate_employee_project_store ()
 
 	def start_time_spinbutton_changed (self, spinbutton):
-		if self.active_entry == None:
-			spinbutton.set_value (0)
-			return
-		offset = spinbutton.get_value()
-		self.start_time = self.original_start_time + (offset * self.time_value)
-		self.convert_start_seconds (self.start_time)
+			if self.active_entry == None:
+				spinbutton.set_value (0)
+				return
+			offset = spinbutton.get_value_as_int()
+			self.start_time = self.original_start_time + (offset * self.time_object)
+			self.convert_start_seconds (self.start_time) 
 
 	def convert_start_seconds (self, start_time):
-		date_time = datetime.fromtimestamp(start_time)
+		date_time = start_time#datetime.fromtimestamp(start_time)
 		day = datetime.strftime(date_time, "%a %b %d %Y")
 		hour = datetime.strftime(date_time, "%I")
 		minute = datetime.strftime(date_time, "%M %p")
@@ -302,27 +304,52 @@ class TimeClockToolGUI:
 		self.active_entry = entry
 		self.unselect_inactive_entries (entry)
 
+	#def unselect_inactive_entries (self, active_entry):
+	#	for line in [('entry1', 86400), ('entry2', 3600), ('entry3', 60),
+	#				 ('entry4', 86400), ('entry5', 3600), ('entry6', 60)]:
+	#		widget = line[0]
+	#		entry = self.builder.get_object(widget)
+	#		if entry == active_entry:
+	#			entry.select_region(0,-1)
+	#			self.time_value = line[1]
+	#		else:
+	#			entry.select_region(0,0)
+
 	def unselect_inactive_entries (self, active_entry):
-		for line in [('entry1', 86400), ('entry2', 3600), ('entry3', 60),
-					 ('entry4', 86400), ('entry5', 3600), ('entry6', 60)]:
+		for line in		[('entry1', timedelta(days=1)),
+						('entry2', timedelta(hours=1)),
+						('entry3', timedelta(minutes=1)),
+						('entry4', timedelta(days=1)),
+						('entry5', timedelta(hours=1)),
+						('entry6', timedelta(minutes=1))]:
 			widget = line[0]
 			entry = self.builder.get_object(widget)
 			if entry == active_entry:
 				entry.select_region(0,-1)
-				self.time_value = line[1]
+				self.time_object = line[1]
 			else:
 				entry.select_region(0,0)
+
 
 	def stop_time_spinbutton_changed (self, spinbutton):
 		if self.active_entry == None:
 			spinbutton.set_value (0)
 			return
-		offset = spinbutton.get_value()
-		self.stop_time = self.original_stop_time + (offset * self.time_value)
-		self.convert_stop_seconds (self.stop_time)
+		offset = spinbutton.get_value_as_int()
+		self.stop_time = self.original_stop_time + (offset * self.time_object)
+		self.convert_stop_seconds (self.stop_time) 
+
+	
+	#def stop_time_spinbutton_changed (self, spinbutton):
+	#	if self.active_entry == None:
+	#		spinbutton.set_value (0)
+	#		return
+	#	offset = spinbutton.get_value()
+	#	self.stop_time = self.original_stop_time + (offset * self.time_value)
+	#	self.convert_stop_seconds (self.stop_time)
 		
 	def convert_stop_seconds (self, stop_time):
-		date_time = datetime.fromtimestamp(stop_time)
+		date_time = stop_time#datetime.fromtimestamp(stop_time)
 		day = datetime.strftime(date_time, "%a %b %d %Y")
 		hour = datetime.strftime(date_time, "%I")
 		minute = datetime.strftime(date_time, "%M %p")

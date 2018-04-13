@@ -835,7 +835,7 @@ efficiency factor.</property>
     <action-widgets>
       <action-widget response="-6">button3</action-widget>
       <action-widget response="-5">button6</action-widget>
-      <action-widget response="-4">button2</action-widget>
+      <action-widget response="-2">button2</action-widget>
       <action-widget response="-3">button4</action-widget>
     </action-widgets>
   </object>
