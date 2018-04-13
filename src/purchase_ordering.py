@@ -150,7 +150,6 @@ class Setup():
 							"= (%s, True, False, %s, %s) WHERE id = %s", 
 							(dat, self.document_name, datetime, 
 							purchase_order_id))
-		transactor.post_purchase_order (self.db, self.total, purchase_order_id)
 		self.db.commit()
 
 
