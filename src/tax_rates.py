@@ -33,9 +33,9 @@ class TaxRateGUI:
 		window = self.builder.get_object('window1')
 		window.show_all()
 		
-		self.populate_tax_rates_store ()
-		self.populate_account_store ()
-		self.new ()
+		self.populate_tax_rates_store()
+		self.populate_account_store()
+		self.new()
 		
 	def destroy(self, window):
 		return True
@@ -71,7 +71,7 @@ class TaxRateGUI:
 
 	def row_activate(self, treeview, path, treeviewcolumn):
 		treeiter = self.tax_store.get_iter(path)
-		self.serial_number = self.tax_store.get_value(treeiter, 0)
+		self.tax_rate_id = self.tax_store.get_value(treeiter, 0)
 		if self.tax_store.get_value(treeiter, 3) == True:
 			self.builder.get_object('button2').set_sensitive(False)
 		else:
@@ -79,7 +79,7 @@ class TaxRateGUI:
 		self.cursor.execute("SELECT name, rate, exemption, "
 							"exemption_template_path, tax_letter, "
 							"tax_received_account FROM tax_rates "
-							"WHERE id = (%s)",[self.serial_number])
+							"WHERE id = (%s)",[self.tax_rate_id])
 		for row in self.cursor.fetchall():
 			self.builder.get_object('entry3').set_text(row[0])
 			tax_rate = str(row[1])
@@ -114,7 +114,7 @@ class TaxRateGUI:
 		self.builder.get_object('spinbutton5').set_sensitive(not active)
 		if active == True:
 			self.cursor.execute("SELECT exemption_template_path FROM tax_rates "
-								"WHERE id = %s", (self.serial_number,))
+								"WHERE id = %s", (self.tax_rate_id,))
 			for row in self.cursor.fetchall():
 				template_path = row[0]
 				if template_path != None :
@@ -123,13 +123,13 @@ class TaxRateGUI:
 			self.builder.get_object('spinbutton5').set_value(0.00)
 		else:
 			self.cursor.execute("SELECT rate FROM tax_rates WHERE id = %s", 
-								(self.serial_number,))
+								(self.tax_rate_id,))
 			for row in self.cursor.fetchall():
 				self.builder.get_object('spinbutton5').set_value(float(row[0]))
 			self.builder.get_object('filechooserbutton1').unselect_all ()
 				
 	def new(self, button = None):
-		self.serial_number = 0
+		self.tax_rate_id = 0
 		self.builder.get_object('entry3').set_text("New tax rate")
 		self.builder.get_object('spinbutton5').set_value(10.00)
 		self.builder.get_object('checkbutton1').set_active(False)
@@ -145,7 +145,7 @@ class TaxRateGUI:
 		tax_account = self.builder.get_object('combobox1').get_active_id()
 		if exemption == False:
 			file_path = None
-		if self.serial_number == 0:
+		if self.tax_rate_id == 0:
 			self.cursor.execute("INSERT INTO tax_rates (name, rate, standard, "
 								"exemption, exemption_template_path, deleted, "
 								"tax_letter, tax_received_account) "
@@ -159,23 +159,44 @@ class TaxRateGUI:
 								"= (%s, %s, %s, %s, %s, %s) "
 								"WHERE id = %s",
 								(name, rate, exemption, file_path, tax_letter, 
-								tax_account, self.serial_number))
+								tax_account, self.tax_rate_id))
 		self.db.commit()
 		self.populate_tax_rates_store ()
 			
 	def delete(self, widget):
 		try:
+			#verify no conflicting FK's
 			self.cursor.execute("DELETE FROM tax_rates WHERE id = %s",
-												(self.serial_number,))
+												(self.tax_rate_id,))
+			self.db.rollback()
+			self.cursor.execute("UPDATE tax_rates SET deleted = true "
+								"WHERE id = %s", (self.tax_rate_id,))
 			self.db.commit()
 		except Exception as e:
 			print (e)
-			self.builder.get_object('label5').set_label(str(e))
-			dialog = self.builder.get_object('dialog1')
-			dialog.run()
-			dialog.hide()
 			self.db.rollback()
-		self.populate_tax_rates_store ()
+			self.builder.get_object('label5').set_label(str(e))
+			self.builder.get_object('button1').set_sensitive(False)
+			dialog = self.builder.get_object('dialog1')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.ACCEPT:
+				new_tax_id = self.builder.get_object('combobox2').get_active_id()
+				self.cursor.execute("UPDATE products SET tax_rate_id = %s "
+									"WHERE tax_rate_id = %s",
+									(new_tax_id, self.tax_rate_id))
+				self.cursor.execute("UPDATE tax_rates SET deleted = true "
+									"WHERE id = %s", (self.tax_rate_id,))
+			self.db.commit()
+		self.populate_tax_rates_store()
+
+	def tax_rate_combo_changed (self, combo):
+		tax_rate_id = combo.get_active_id()
+		if tax_rate_id == self.tax_rate_id or tax_rate_id == None:
+			self.builder.get_object('button1').set_sensitive(False)
+		else:
+			self.builder.get_object('button1').set_sensitive(True)
+		
 	
 
 	

@@ -104,6 +104,7 @@
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
                 <property name="secondary_icon_stock">gtk-go-down</property>
+                <property name="secondary_icon_tooltip_text" translatable="yes">Copy time clock description to manufacturing description</property>
                 <signal name="icon-release" handler="project_name_entry_icon_released" swapped="no"/>
               </object>
               <packing>

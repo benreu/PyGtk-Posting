@@ -38,7 +38,11 @@ class ContactTermsGUI:
 		self.window.show_all()
 
 	def term_combo_changed (self, combo):
-		self.builder.get_object('button4').set_sensitive(True)
+		term_id = combo.get_active_id()
+		if term_id == self.terms_id or term_id == None:
+			self.builder.get_object('button4').set_sensitive(False)
+		else:
+			self.builder.get_object('button4').set_sensitive(True)
 
 	def populate_terms_store (self):
 		self.terms_store.clear()
@@ -115,6 +119,7 @@ class ContactTermsGUI:
 		except Exception as e:
 			self.db.rollback()
 			self.builder.get_object('label6').set_label(str(e))
+			self.builder.get_object('button4').set_sensitive(False)
 			dialog = self.builder.get_object('dialog1')
 			result = dialog.run()
 			dialog.hide()

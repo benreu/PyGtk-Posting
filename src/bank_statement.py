@@ -17,9 +17,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import os, sys, psycopg2
+import psycopg2
 from datetime import datetime
 from db import transactor
+from decimal import Decimal
 from dateutils import datetime_to_text, DateTimeCalendar
 
 UI_FILE = "src/bank_statement.ui"
@@ -133,14 +134,13 @@ class GUI:
 			self.transaction_description_store.append([description])
 
 	def populate_account_stores(self):
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE bank_account = True")
 		for row in self.cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
-			account_total = self.get_bank_account_total (account_number)
-			self.bank_account_store.append([str(account_number), account_name, 
-											'${:,.2f}'.format(account_total)])
+			#account_total = self.get_bank_account_total (account_number)
+			self.bank_account_store.append([account_number, account_name])
 		
 
 	def get_child_accounts (self, store, parent_number, parent_tree):
@@ -158,134 +158,130 @@ class GUI:
 			self.account_number = 0
 			self.bank_transaction_store.clear()
 			return
+		self.cursor.execute("CREATE OR REPLACE TEMP VIEW "
+							"bank_statement_view AS "
+							"WITH account_numbers AS "
+								"(SELECT number FROM gl_accounts "
+								"WHERE number = %s OR parent_number = %s"
+								") "
+								"SELECT id, amount, debit_account, "
+								"credit_account, check_number, date_inserted, "
+								"reconciled, transaction_description, "
+								"date_reconciled, TRUE AS debit, FALSE AS credit "
+								"FROM gl_entries WHERE debit_account "
+								"IN (SELECT * FROM account_numbers) "
+								"UNION "
+								"SELECT id, amount, debit_account, "
+								"credit_account, check_number, date_inserted, "
+								"reconciled, transaction_description, "
+								"date_reconciled, FALSE AS debit, TRUE AS credit "
+								"FROM gl_entries WHERE credit_account "
+								"IN (SELECT * FROM account_numbers)"
+								, (account_number, account_number))
 		self.bank_account_total = self.get_bank_account_total(account_number)
 		self.builder.get_object('button2').set_sensitive(True)
+		self.builder.get_object('label13').set_label(str(self.bank_account_total))
 		self.account_number = account_number
 		self.populate_treeview ()
 		self.calculate_reconciled_balance ()
+		self.db.commit()
 
 	def get_bank_account_total(self, account_number): 
 		self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
 								"(SELECT COALESCE(SUM(amount),0.00) AS debits "
-								"FROM gl_entries "
-								"WHERE debit_account = %s) d, "
+								"FROM bank_statement_view "
+								"WHERE debit = True) d, "
 								"(SELECT COALESCE(SUM(amount),0.00) AS credits "
-								"FROM gl_entries "
-								"WHERE credit_account= %s) c  ", 
-								(account_number, account_number))
-		bank_account_total = float(self.cursor.fetchone()[0]) 
+								"FROM bank_statement_view "
+								"WHERE credit = True) c  ")
+		bank_account_total = self.cursor.fetchone()[0]
 		return bank_account_total
 
 	def populate_treeview(self ):
 		self.bank_transaction_store.clear()
-		view_history = self.builder.get_object('checkbutton1').get_active()
-		if view_history == True:
-			self.cursor.execute("SELECT ge.id, ge.amount, ge.debit_account, "
-							"ge.credit_account, ge.check_number, "
+		self.cursor.execute("SELECT ge.id, "
+							"CASE WHEN ge.credit THEN ge.amount::text ELSE '' END, "
+							"CASE WHEN ge.debit THEN ge.amount::text ELSE '' END, "
+							"COALESCE(ge.check_number::text, ''), "
 							"ge.date_inserted, reconciled, contacts.name, "
 							"transaction_description "
-							"FROM gl_entries AS ge "
+							"FROM bank_statement_view AS ge "
 							"LEFT JOIN payments_incoming AS pi "
 							"ON ge.id = pi.gl_entries_id "
 							"LEFT JOIN contacts ON contacts.id = "
 							"pi.customer_id "
-							"WHERE debit_account = %s OR credit_account = %s "
+							"WHERE date_reconciled IS NULL "
 							"ORDER BY date_inserted;", 
 							(self.account_number, self.account_number))
-		else:
-			self.cursor.execute("SELECT ge.id, ge.amount, ge.debit_account, "
-							"ge.credit_account, ge.check_number, "
-							"ge.date_inserted, reconciled, contacts.name, "
-							"transaction_description "
-							"FROM gl_entries AS ge "
-							"LEFT JOIN payments_incoming AS pi "
-							"ON ge.id = pi.gl_entries_id "
-							"LEFT JOIN contacts ON contacts.id = "
-							"pi.customer_id "
-							"WHERE (debit_account = %s OR credit_account = %s) "
-							"AND date_reconciled IS NULL "
-							"ORDER BY date_inserted;", 
-							(self.account_number, self.account_number))
-		for row in self.cursor.fetchall(): 
+		for row in self.cursor.fetchall():
 			row_id = row[0]
-			amount = row[1]
-			if str(row[3]) == self.account_number:
-				debit_amount = amount
-				credit_amount = ''
-			else:
-				debit_amount = ''
-				credit_amount = amount
-			check_number = str(row[4])
-			if check_number == 'None':
-				check_number = ''
-			date = row[5]
+			debit_amount = row[1]
+			credit_amount = row[2]
+			check_number = row[3]
+			date = row[4]
 			date_formatted = datetime_to_text(date)
-			reconciled = row[6]
-			description = row[7]
+			reconciled = row[5]
+			description = row[6]
 			if description == None:
-				description = row[8]
+				description = row[7]
 			self.bank_transaction_store.append([row_id, check_number, date_formatted, 
 												str(date), description, 
 												reconciled, str(debit_amount), 
 												str(credit_amount)])
 
 	def on_reconciled_toggled(self, widget, path):
-		if self.builder.get_object('checkbutton1').get_active() == False: 
-			#we are not viewing reconciled or canceled transactions
-			active = not self.bank_transaction_store[path][5]
-			self.bank_transaction_store[path][5] = active #toggle the button state
-			if self.bank_transaction_store[path][5] == True: #the transaction got marked as cleared
-				if self.bank_transaction_store[path][6] != '':#the transaction is a debit
-					self.reconciled_total -= float(self.bank_transaction_store[path][6])
-				else:  #the transaction is a credit
-					self.reconciled_total += float(self.bank_transaction_store[path][7])
-			else: #the transaction is not cleared
-				if self.bank_transaction_store[path][6] != '': 
-					self.reconciled_total += float(self.bank_transaction_store[path][6])
-				else:
-					self.reconciled_total -= float(self.bank_transaction_store[path][7])
-			row_id = self.bank_transaction_store[path][0]
-			self.cursor.execute("UPDATE gl_entries "
-								"SET reconciled = %s WHERE id = %s", 
-								(active, row_id))
-			self.builder.get_object('entry2').set_text('${:,.2f}'.format(self.reconciled_total))
-			self.account_statement_difference ()
-			self.db.commit()
+		active = not self.bank_transaction_store[path][5]
+		self.bank_transaction_store[path][5] = active #toggle the button state
+		row_id = self.bank_transaction_store[path][0]
+		self.cursor.execute("UPDATE gl_entries "
+							"SET reconciled = %s WHERE id = %s", 
+							(active, row_id))
+		self.calculate_reconciled_balance ()
+		self.account_statement_difference ()
+		self.db.commit()
 		
 	def calculate_reconciled_balance(self):
 		self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
 								"(SELECT COALESCE(SUM(amount),0.00) AS debits "
-								"FROM gl_entries "
-								"WHERE (debit_account, reconciled) "
-								"= (%s, True))  d, "
+								"FROM bank_statement_view "
+								"WHERE (reconciled, debit) = (True, True)"
+								") d, "
 								"(SELECT COALESCE(SUM(amount),0.00) AS credits "
-								"FROM gl_entries "
-								"WHERE (credit_account, reconciled) "
-								"= (%s, True)) c ", 
-								(self.account_number, self.account_number))
-		self.reconciled_total = float(self.cursor.fetchone()[0])
-		self.builder.get_object('entry2').set_text('${:,.2f}'.format(self.reconciled_total))
+								"FROM bank_statement_view "
+								"WHERE (reconciled, credit) = (True, True)"
+								") c ")
+		self.reconciled_total = self.cursor.fetchone()[0]
+		t = '${:,.2f}'.format(float(self.reconciled_total))
+		self.builder.get_object('entry2').set_text(t)
 
 	def statement_balance_spinbutton_changed (self, entry):
 		self.account_statement_difference ()
 
 	def account_statement_difference(self ):
-		statement_amount = self.builder.get_object('spinbutton1').get_value()
+		statement_amount = Decimal(self.builder.get_object('spinbutton1').get_text())
 		difference = statement_amount - self.reconciled_total
 		self.builder.get_object('entry4').set_text('${:,.2f}'.format(difference))
-		if difference == 0.00 and statement_amount != 0.00:
+		if difference == Decimal('0.00') and statement_amount != Decimal('0.00'):
 			self.builder.get_object('button1').set_sensitive(True)
 		else:
 			self.builder.get_object('button1').set_sensitive(False)
 
 	def save_reconciled_items_clicked (self, button):
-		self.cursor.execute("UPDATE gl_entries "
-							"SET date_reconciled = %s "
-							"WHERE ((debit_account, reconciled) = (%s, True) "
-								"OR (credit_account, reconciled) = (%s, True)) "
-							"AND date_reconciled IS NULL", 
-							(datetime.today(), self.account_number, 
-							self.account_number))
+		self.cursor.execute("WITH account_numbers AS "
+							"(SELECT number FROM gl_accounts "
+								"WHERE number = %s OR parent_number = %s"
+								") "
+							"UPDATE gl_entries "
+							"SET date_reconciled = CURRENT_DATE "
+							"WHERE "
+								"(debit_account IN "
+									"(SELECT * FROM account_numbers) "
+								"OR credit_account IN "
+									"(SELECT * FROM account_numbers)"
+								") "
+							"AND date_reconciled IS NULL "
+							"AND reconciled = True", 
+							(self.account_number, self.account_number))
 		self.db.commit()
 		self.populate_treeview ()
 		self.builder.get_object('spinbutton1').set_value(0.00)

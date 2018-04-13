@@ -62,7 +62,7 @@ class GUI:
 		total_column.set_cell_data_func(total_renderer, self.total_cell_func)
 
 		amount_due_column = self.builder.get_object ('treeviewcolumn4')
-		amount_due_renderer = self.builder.get_object ('cellrenderertext7')
+		amount_due_renderer = self.builder.get_object ('cellrendererspin7')
 		amount_due_column.set_cell_data_func(amount_due_renderer, self.amount_due_cell_func)
 
 		self.calendar = DateTimeCalendar(self.db)
@@ -239,8 +239,24 @@ class GUI:
 	def invoice_treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			#menu.popup(None, None, None, None, event.button, event.time)
+			#menu.show_all()
+
+	def amount_due_edited (self, renderer, path, amount):
+		invoice_id = self.invoice_store[path][0]
+		if amount == '' or Decimal(amount) > self.invoice_store[path][4]:
+			amount = self.invoice_store[path][4]
+		self.cursor.execute("UPDATE invoices SET amount_due = %s "
+							"WHERE id = %s", (amount, invoice_id))
+		self.db.commit()
+		self.builder.get_object('spinbutton1').set_value(float(amount))
+		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
+
+	def amount_due_editing_started (self, renderer, spinbutton, path):
+		upper_limit = self.invoice_store[path][4]
+		spinbutton.set_numeric(True)
+		self.builder.get_object('amount_due_adjustment').set_upper(upper_limit)
+		spinbutton.set_value(self.invoice_store[path][5])
 
 	def apply_discount_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
@@ -283,7 +299,9 @@ class GUI:
 
 	def post_payment_clicked (self, widget):
 		comments = 	self.builder.get_object('entry2').get_text()
-		self.payment = transactor.CustomerInvoicePayment(self.db, self.date, self.total)
+		total = self.builder.get_object('spinbutton1').get_text()
+		total = Decimal(total)
+		self.payment = transactor.CustomerInvoicePayment(self.db, self.date, total)
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -294,11 +312,11 @@ class GUI:
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
 								"RETURNING id", 
 								(True, False, False, payment_text, False, 
-								self.customer_id, self.total, self.date, 
+								self.customer_id, total, self.date, 
 								comments))
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
-			self.payment.bank_check (self.payment_id, self.discount)
+			self.payment.bank_check (self.payment_id)
 		elif self.payment_type_id == 1:
 			payment_text = self.credit_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -309,10 +327,10 @@ class GUI:
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
 								"RETURNING id", (False, False, True, 
 								payment_text, False, self.customer_id, 
-								self.total, self.date, comments))
+								total, self.date, comments))
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
-			self.payment.credit_card (self.payment_id, self.discount)
+			self.payment.credit_card (self.payment_id)
 		elif self.payment_type_id == 2:
 			payment_text = self.cash_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -323,44 +341,53 @@ class GUI:
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
 								"RETURNING id", (False, True, False, 
 								payment_text, False, self.customer_id, 
-								self.total, self.date, comments))
+								total, self.date, comments))
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
-			self.payment.cash (self.payment_id, self.discount)
+			self.payment.cash (self.payment_id)
 		self.db.commit()
 		self.cursor.close()
 		self.window.destroy ()
 		
 	def update_invoices_paid (self):
-		self.discount = Decimal()
-		self.cursor.execute("(SELECT id, total - amount_due AS discount FROM "
-							"(SELECT id, total, amount_due, SUM(amount_due) "
-							"OVER (ORDER BY date_created, id) invoice_totals "
-							"FROM invoices WHERE (paid, posted, customer_id) "
-							"= (False, True, %s)) i "
-							"WHERE invoice_totals <= "
-							"(SELECT  payment_totals - invoice_totals FROM "
+		c = self.db.cursor()
+		c_id = self.customer_id
+		c.execute("(SELECT id, total - amount_due AS discount FROM "
+					"(SELECT id, total, amount_due, SUM(amount_due) "
+					"OVER (ORDER BY date_created, id) invoice_totals "
+					"FROM invoices WHERE (paid, posted, customer_id) "
+					"= (False, True, %s)"
+					") i "
+					"WHERE invoice_totals <= "
+						"(SELECT  payment_total - invoice_total FROM "
 							"(SELECT COALESCE(SUM(amount_due), 0.0)  "
-							"AS invoice_totals FROM invoices "
-							"WHERE (paid, customer_id) = (True, %s)) i, "
-							"(SELECT COALESCE(SUM(amount), 0.0) "
-							"AS payment_totals FROM payments_incoming "
-							"WHERE (customer_id) = (%s)) p) "
-							"ORDER BY id);", (self.customer_id, 
-							self.customer_id, self.customer_id))
-		for row in self.cursor.fetchall():
+							"AS invoice_total FROM invoices "
+							"WHERE (paid, customer_id) = (True, %s)"
+							") it, "
+							"(SELECT amount + amount_owed AS payment_total FROM "
+									"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
+									"FROM payments_incoming "
+									"WHERE (customer_id, misc_income) = (%s, False)"
+									") pi, "
+									"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
+									"FROM credit_memos WHERE customer_id = %s"
+									") cm "
+							") pt "
+						")"
+					"ORDER BY id);", (c_id, c_id, c_id, c_id ))
+		for row in c.fetchall():
 			invoice_id = row[0]
 			discount = row[1]
-			if float(discount) != 0.00:
-				self.discount += discount
+			if discount != Decimal('0.00'):
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
 				transactor.post_invoice_accounts (self.db, self.date, invoice_id)
-			self.cursor.execute("UPDATE invoices "
-								"SET (paid, payments_incoming_id, date_paid) "
-								"= (True, %s, CURRENT_TIMESTAMP) "
-								"WHERE id = %s", 
-								(self.payment_id, invoice_id))
+			c.execute("UPDATE invoices "
+						"SET (paid, payments_incoming_id, date_paid) "
+						"= (True, %s, CURRENT_TIMESTAMP) "
+						"WHERE id = %s", 
+						(self.payment_id, invoice_id))
+		c.close()
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
@@ -479,10 +506,8 @@ class GUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		invoice_amount_due_totals = Decimal()
-		self.total = Decimal()
 		for row in path:
 			invoice_amount_due_totals += model[row][5]
-			self.total += model[row][4]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
 		if float(invoice_amount_due_totals) == payment :
 			label.set_visible (False) #hide the off balance alert
@@ -499,10 +524,8 @@ class GUI:
 			button.set_label ('No invoices selected')
 			return
 		invoice_amount_due_totals = Decimal()
-		self.total = Decimal()
 		for row in path:
 			invoice_amount_due_totals += model[row][5]
-			self.total += model[row][4]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
 		if float(invoice_amount_due_totals) != payment :
 			button.set_label ("Totals do not match")

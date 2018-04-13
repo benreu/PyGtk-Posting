@@ -73,19 +73,10 @@ class ProductSerialNumbersGUI:
 
 	def filter_func (self, model, tree_iter, r):
 		for i in self.product_name.split():
-			if i in model[tree_iter][1].lower():
-				continue
-			else:
-				return False
-		for i in self.contact_name.split():
-			if i in model[tree_iter][2].lower():
-				continue
-			else:
+			if i not in model[tree_iter][1].lower():
 				return False
 		for i in self.serial_number.split():
-			if i in model[tree_iter][3].lower():
-				continue
-			else:
+			if i not in model[tree_iter][2].lower():
 				return False
 		return True
 
@@ -138,7 +129,7 @@ class ProductSerialNumbersGUI:
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh ON snh.serial_number_id = sn.id "
-							"LEFT JOIN invoice_line_items AS ili ON ili.id = sn.invoice_line_item_id "
+							"LEFT JOIN invoice_items AS ili ON ili.id = sn.invoice_item_id "
 							"LEFT JOIN invoices ON invoices.id = ili.invoice_id "
 							"GROUP BY sn.id, p.name, sn.serial_number, "
 							"sn.date_inserted, invoice_id, manufacturing_id "

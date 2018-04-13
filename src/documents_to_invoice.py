@@ -105,13 +105,13 @@ Do you want to append the document items?" % customer_name)
 					weight = tabs[3]
 					if freeze == True:
 						freeze_wt = freeze_wt + weight
-					self.cursor.execute("INSERT INTO invoice_line_items \
+					self.cursor.execute("INSERT INTO invoice_items \
 					(invoice_id, qty, product_id, remark,\
 					canceled, imported) VALUES (%s, %s, %s, %s, \
 					False, True)", (invoice_id, qty, product_id, remark))
 			if freeze_wt > 0 :
 				qty = freeze_wt
-				self.cursor.execute("INSERT INTO invoice_line_items \
+				self.cursor.execute("INSERT INTO invoice_items \
 					(invoice_id, qty, product_id, remark,\
 					canceled, imported) VALUES (%s, %s, %s, %s, \
 					False, True)", (invoice_id, qty, 25, remark))
@@ -126,7 +126,7 @@ Do you want to append the document items?" % customer_name)
 				price = row[3]
 				ext_price = qty * price
 				ext_price = round(ext_price, 2)
-				self.cursor.execute("INSERT INTO invoice_line_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
+				self.cursor.execute("INSERT INTO invoice_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
 		self.cursor.execute("UPDATE documents SET invoiced = True WHERE id = %s", (document_id,))
 		self.db.commit()
 		self.populate_document_store()

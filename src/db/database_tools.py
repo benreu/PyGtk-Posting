@@ -83,17 +83,10 @@ class GUI:
 			
 	def restore_name_changed(self, widget):
 		restore_database_name = widget.get_text()
-		self.cursor.execute("SELECT b.datname FROM pg_catalog.pg_database b "
-															"ORDER BY 1;")
-		for db_name in self.cursor.fetchall():
-			if db_name[0] == restore_database_name:
-				self.builder.get_object('button8').set_sensitive(False)
-				self.status_update("Database already exists!")
-				return
 		if " " in restore_database_name:
 			self.builder.get_object('button8').set_sensitive(False)
-			self.status_update("Name cannot contain spaces! "
-								"Try underscore instead.")
+			self.status_update("Database name cannot contain spaces! "
+								"Try underscore _ instead.")
 		else:
 			self.builder.get_object('button8').set_sensitive(True)
 			self.status_update("Ready to restore database")

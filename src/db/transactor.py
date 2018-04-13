@@ -62,40 +62,40 @@ class CustomerInvoicePayment:
 							"VALUES (%s) RETURNING id", (date,))
 		self.transaction_id = self.cursor.fetchone()[0]
 
-	def bank_check (self, payment_id, discount):
+	def bank_check (self, payment_id):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'check_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total - discount, self.transaction_id))
+					(self.total, self.transaction_id))
 		pi_id = self.cursor.fetchone()[0]
 		self.cursor.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
 
-	def cash (self, payment_id, discount):
+	def cash (self, payment_id):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'cash_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total - discount, self.transaction_id)) 
+					(self.total, self.transaction_id)) 
 		pi_id = self.cursor.fetchone()[0]
 		self.cursor.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
 
-	def credit_card (self, payment_id, discount):
+	def credit_card (self, payment_id):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'credit_card_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total - discount, self.transaction_id)) 
+					(self.total, self.transaction_id)) 
 		pi_id = self.cursor.fetchone()[0]
 		self.cursor.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
@@ -251,9 +251,30 @@ class VendorPayment :
 						(cash_account_number, self.total, self.date, self.transaction_id))
 
 def cancel_invoice (db, datetime, invoice_id):
-	cursor = db.cursor()
-	
-	cursor.close()
+	c = db.cursor()
+	c.execute("SELECT gt.id FROM gl_transactions AS gt "
+					"JOIN gl_entries AS ge ON ge.gl_transaction_id = gt.id "
+					"JOIN invoices ON invoices.gl_entries_id = ge.id "
+					"WHERE invoices.id = %s", (invoice_id,))
+	t_id = c.fetchone()[0]
+	c.execute("WITH credits AS "
+				"(SELECT amount, credit_account, gl_transaction_id FROM gl_entries "
+				"WHERE gl_transaction_id = %s AND credit_account IS NOT NULL"
+					"), "
+				"debits AS "
+				"(SELECT amount, debit_account, gl_transaction_id FROM gl_entries "
+				"WHERE gl_transaction_id = %s AND debit_account IS NOT NULL"
+					"),"
+				"insert_debits AS "
+				"(INSERT INTO gl_entries "
+					"(amount, debit_account, gl_transaction_id) "
+					"SELECT * FROM credits"
+				") "
+				"INSERT INTO gl_entries "
+					"(amount, credit_account, gl_transaction_id) "
+					"SELECT * FROM debits"
+				, (t_id, t_id))
+	c.close()
 
 def post_invoice_receivables (db, amount, date, invoice_id, gl_entries_id):
 	cursor = db.cursor()
@@ -283,7 +304,7 @@ def post_invoice_accounts (db, date, invoice_id):
 					"WHERE invoices.id = %s", (invoice_id,))
 	transaction_id = cursor.fetchone()[0]
 	cursor.execute("SELECT SUM(tax) AS tax, tax_received_account AS account "
-					"FROM invoice_line_items AS ili "
+					"FROM invoice_items AS ili "
 					"JOIN tax_rates ON tax_rates.id = ili.tax_rate_id "
 					"WHERE invoice_id = %s AND gl_entries_id IS NULL "
 					"GROUP BY tax_rates.tax_received_account", 
@@ -297,7 +318,7 @@ def post_invoice_accounts (db, date, invoice_id):
 						"(%s, %s, %s, %s)", 
 						(tax, account, transaction_id, date))
 	cursor.execute("SELECT ili.id, ext_price, revenue_account "
-					"FROM invoice_line_items AS ili "
+					"FROM invoice_items AS ili "
 					"JOIN products ON products.id = ili.product_id "
 					"WHERE invoice_id = %s AND gl_entries_id IS NULL", 
 					(invoice_id,))
@@ -309,7 +330,7 @@ def post_invoice_accounts (db, date, invoice_id):
 						"(amount, credit_account, gl_transaction_id, "
 						"date_inserted) VALUES "
 						"(%s, %s, %s, %s) RETURNING id) "
-						"UPDATE invoice_line_items SET gl_entries_id = "
+						"UPDATE invoice_items SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s", 
 						(revenue, account, transaction_id, date, line_id))
 	cursor.close()

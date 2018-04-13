@@ -177,15 +177,15 @@ class TimeClockGUI :
 		if result == Gtk.ResponseType.ACCEPT:
 			punched_in_switch.set_active(not active)
 			if active == True:
-				self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete', %s) WHERE (employee_id, state) = (%s, 'running')", (self.clock_in_out_time, employee_id))
+				self.cursor.execute("UPDATE time_clock_entries SET (state,stop_time) = ('complete',  CAST(TO_TIMESTAMP(%s) AS timestamptz)) WHERE (employee_id, state) = (%s, 'running')", (self.clock_in_out_time, employee_id))
 			else:
 				self.cursor.execute("SELECT id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
 				for row in self.cursor.fetchall():
 					row_id = row[0]
-					self.cursor.execute("UPDATE time_clock_entries SET (project_id, start_time, state) = (%s, %s, 'running') WHERE id = %s", (project_id, self.clock_in_out_time, row_id))
+					self.cursor.execute("UPDATE time_clock_entries SET (project_id, start_time, state) = (%s,CAST(TO_TIMESTAMP( %s) AS timestamptz), 'running') WHERE id = %s", (project_id, self.clock_in_out_time, row_id))
 					break
 				else:
-					self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, %s, %s, 'running', False, False)", (employee_id, self.clock_in_out_time, project_id))
+					self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, CAST(TO_TIMESTAMP( %s) AS timestamptz), %s, 'running', False, False)", (employee_id, self.clock_in_out_time, project_id))
 			self.db.commit()
 
 	def focus(self, window, event):
@@ -215,7 +215,7 @@ class TimeClockGUI :
 			project_combo = widget_list[1]
 			punched_in_switch = widget_list[2]
 			time_label = widget_list[3]
-			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP) - start_time, project_id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'running')", (employee_id,))
+			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP- start_time), project_id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'running')", (employee_id,))
 			for row in self.cursor.fetchall():
 				calc_time_running = row[0]
 				time_string = self.convert_seconds (calc_time_running)
@@ -248,16 +248,16 @@ class TimeClockGUI :
 		active = switch.get_active()
 		self.db.commit()
 		if active == True:
-			self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete', EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)) WHERE (employee_id, state) = (%s, 'running')", ( employee_id, ))
+			self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete', CURRENT_TIMESTAMP) WHERE (employee_id, state) = (%s, 'running')", ( employee_id, ))
 		else:
 			self.cursor.execute("SELECT id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
 			for row in self.cursor.fetchall():
 				row_id = row[0]
-				self.cursor.execute("UPDATE time_clock_entries SET (start_time, state) = (EXTRACT ('epoch' FROM CURRENT_TIMESTAMP), 'running') WHERE id = %s", (row_id, ))
+				self.cursor.execute("UPDATE time_clock_entries SET (start_time, state) = (CURRENT_TIMESTAMP, 'running') WHERE id = %s", (row_id, ))
 				#self.window.iconify()
 				#break
 			#else:
-				#self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, EXTRACT ('epoch' FROM CURRENT_TIMESTAMP), %s, 'running', False, False)", (employee_id, self.project_id))
+				#self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s,CURRENT_TIMESTAMP, %s, 'running', False, False)", (employee_id, self.project_id))
 			#combo.set_active(0)
 		self.db.commit()
 		self.unselect_rows ()
@@ -280,8 +280,8 @@ class TimeClockGUI :
 			else:
 				self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, project_id, state, invoiced, employee_paid ) VALUES (%s, %s, 'pending', False, False)", (employee_id, project_id))
 		else:
-			self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete', EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)) WHERE (employee_id, state) = (%s, 'running')", ( employee_id,))
-			self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, EXTRACT ('epoch' FROM CURRENT_TIMESTAMP), %s, 'running', False, False)", (employee_id, project_id))
+			self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete',CURRENT_TIMESTAMP) WHERE (employee_id, state) = (%s, 'running')", ( employee_id,))
+			self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s,CURRENT_TIMESTAMP, %s, 'running', False, False)", (employee_id, project_id))
 		self.db.commit()
 
 	def project_combo_grab_notify (self, widget, boolean):

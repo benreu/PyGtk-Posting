@@ -42,10 +42,6 @@ class ImportGUI():
 		completion = self.builder.get_object('product_completion')
 		completion.set_match_func(self.product_match_string)
 
-		min_column = self.builder.get_object ('treeviewcolumn2')
-		min_renderer = self.builder.get_object ('cellrenderertext2')
-		min_column.set_cell_data_func(min_renderer, self.time_data_func)
-
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
@@ -57,7 +53,7 @@ class ImportGUI():
 		return True
 
 	def populate_time_clock_import_store (self):
-		self.cursor.execute("SELECT entry.id, start_time, stop_time, project.name "
+		self.cursor.execute("SELECT entry.id, (stop_time - start_time), project.name, stop_time "
 							"FROM time_clock_entries AS entry "
 							"JOIN time_clock_projects AS project "
 							"ON project.id = entry.project_id "
@@ -69,15 +65,13 @@ class ImportGUI():
 								"entry.invoiced) = "
 							"(%s, 'complete', False) ORDER BY start_time", 
 							(self.contact_id,))
-		for entry_row in self.cursor.fetchall():
-			entry_row_id = entry_row[0]
-			start_time = entry_row[1]
-			stop_time = entry_row[2]
-			project_name = entry_row[3]
-			seconds = stop_time - start_time
-			date = datetime.fromtimestamp(stop_time)
+		for row in self.cursor.fetchall():
+			row_id = row[0]
+			seconds = row[1]
+			project_name = row[2]
+			date = row[3]
 			formatted_date = str(date)[0:10]
-			self.import_store.append([entry_row_id, project_name, seconds, str(date), formatted_date, True])
+			self.import_store.append([row_id, project_name, seconds.total_seconds(), str(seconds), str(date), formatted_date, True])
 
 	def product_combo_changed (self, combo):
 		self.product_id = combo.get_active_id()
@@ -91,7 +85,7 @@ class ImportGUI():
 		price = get_customer_product_price (self.db, self.contact_id, self.product_id)
 		ext_price = round(float(self.invoicing_time ) * float(price), 2)
 		description = self.builder.get_object('entry1').get_text()
-		self.cursor.execute("INSERT INTO invoice_line_items "
+		self.cursor.execute("INSERT INTO invoice_items "
 							"(invoice_id, qty, product_id, price, ext_price, "
 							"remark, canceled, imported) "
 							"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
@@ -101,7 +95,7 @@ class ImportGUI():
 							False, True))
 		line_item_id = self.cursor.fetchone()[0]
 		for row in self.import_store:
-			if row[5] == True:
+			if row[6] == True:
 				row_id = row[0]
 				self.cursor.execute("UPDATE time_clock_entries "
 									"SET (invoiced, invoice_line_id) = "
@@ -122,16 +116,15 @@ class ImportGUI():
 
 	def import_renderer_toggled(self, cell_renderer, path):
 		is_active = cell_renderer.get_active()
-		self.import_store[path][5] = not is_active
+		self.import_store[path][6] = not is_active
 		self.calculate_total_time ()
 
 	def calculate_total_time (self):
 		total_seconds = 0
 		for row in self.import_store:
-			import_row = row[5]
-			seconds = row[2]
+			import_row = row[6]
 			if import_row is True:
-				total_seconds += seconds
+				total_seconds += row[2]
 		time, hours, minutes, seconds = self.convert_seconds(total_seconds)
 		fractional_hours = int(minutes/6)
 		if minutes % 6 != 0 or seconds % 60 != 0 :
@@ -139,11 +132,6 @@ class ImportGUI():
 		self.invoicing_time = str(hours) + "." + str(fractional_hours)
 		self.builder.get_object('label2').set_label(time)
 		self.builder.get_object('label4').set_label(self.invoicing_time)
-
-	def time_data_func (self, column, cellrenderer, model, iter1, data):
-		seconds = model.get_value(iter1, 2)
-		time = self.convert_seconds(seconds)
-		cellrenderer.set_property("text" , time[0])
 
 	def convert_seconds(self, start_seconds):
 		leftover_seconds = int(start_seconds) 
@@ -158,8 +146,6 @@ class ImportGUI():
 			seconds = "0" + str(seconds)
 		time_string = str(hours) + ":" + str(minutes) + ":" + str(seconds)
 		return time_string, hours, int(minutes), int(seconds)
-					
-				
 
 
 		

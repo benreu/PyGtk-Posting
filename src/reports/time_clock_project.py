@@ -1,10 +1,10 @@
-# daniel_wo.py
+# time_clock_project.py
 #
 # Copyright (C) 2017 - reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -16,10 +16,13 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, Gdk, GLib, GObject
-import os, sys, subprocess
+from gi.repository import Gtk
+import subprocess
 from datetime import datetime
-from dateutils import seconds_to_user_format, seconds_to_compact_string
+from dateutils import   datetime_to_user_date_time, \
+						datetime_to_compact_string, \
+						seconds_to_compact_string
+						
 
 UI_FILE = "src/reports/time_clock_project.ui"
 
@@ -38,6 +41,8 @@ class GUI:
 		self.time_store = self.builder.get_object('time_store')
 		self.employee_time_store = self.builder.get_object('employee_time_store')
 		self.project_store = self.builder.get_object('project_store')
+		completion = self.builder.get_object('project_completion')
+		completion.set_match_func(self.project_match_func )
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -66,6 +71,13 @@ class GUI:
 		if project_id != None:
 			self.project_id = project_id
 			self.populate_time_store ()
+
+	def project_match_func(self, completion, key, iter_):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.project_store[iter_][1].lower():
+				return False
+		return True
 
 	def project_completion_match_selected (self, completion, model, iter_):
 		self.project_id = model[iter_][0]
@@ -113,8 +125,8 @@ class GUI:
 		for row in self.cursor.fetchall():
 			employee = Item()
 			employee.name = row[0]
-			employee.actual = seconds_to_user_format(row[1])
-			employee.adjusted = seconds_to_user_format (row[2])
+			employee.actual = seconds_to_user_date_time(row[1])
+			employee.adjusted = seconds_to_user_date_time (row[2])
 			employee.time_slots = row[3]
 			items.append(employee)
 		self.cursor.execute("SELECT name, SUM(actual_seconds), "
@@ -146,12 +158,12 @@ class GUI:
 			else:
 				efficiency = (adjusted_seconds / actual_seconds) * 100
 				time.efficiency = round(efficiency, 6)
-		data = dict(employee = employee, time = time, items = items, 
+		data = dict(contact = employee, time = time, items = items, 
 					company = company, wo = wo)
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
-		time_file = "/tmp/daniel_wo_time.odt"
-		time_file_pdf = "/tmp/daniel_wo_time.pdf"
-		t = Template("./templates/daniel_wo_time.odt", time_file , True)
+		time_file = "/tmp/employee_time.odt"
+		time_file_pdf = "/tmp/employee_time.pdf"
+		t = Template("./templates/employee_time.odt", time_file , False)
 		t.render(data) #the self.data holds all the info of the invoice
 		subprocess.call('odt2pdf ' + time_file, shell = True)
 		subprocess.Popen('soffice ' + time_file, shell = True)
@@ -162,10 +174,10 @@ class GUI:
 	def populate_time_store (self):
 		self.time_store.clear()
 		self.employee_time_store.clear()
-		total_actual = 0.00
-		total_adjusted = 0.00
-		self.cursor.execute("SELECT employee_id, name, SUM(actual_seconds), "
-							"SUM(adjusted_seconds) FROM time_clock_entries "
+		self.cursor.execute("SELECT employee_id, name, "
+							"SUM(actual_seconds), "
+							"SUM(adjusted_seconds) "
+							"FROM time_clock_entries "
 							"JOIN contacts "
 							"ON time_clock_entries.employee_id = contacts.id "
 							"WHERE project_id = %s "
@@ -175,16 +187,11 @@ class GUI:
 			employee_id = row[0]
 			employee_name = row[1]
 			actual_seconds = seconds_to_compact_string (row[2])
-			total_actual += float(row[2])
-			print (total_actual)
 			adjusted_seconds = seconds_to_compact_string (row[3])
-			total_adjusted += float(row[3])
 			self.time_store.append([str(employee_id), employee_name, 
 									actual_seconds, adjusted_seconds])
-		total_actual = seconds_to_compact_string (total_actual)
-		total_adjusted = seconds_to_compact_string (total_adjusted)
-		self.builder.get_object('label3').set_label(total_actual)
-		self.builder.get_object('label5').set_label(total_adjusted)
+		#self.builder.get_object('label3').set_label(total_actual)
+		#self.builder.get_object('label5').set_label(total_adjusted)
 		self.cursor.execute("SELECT time_clock_entries.id, name, start_time, "
 							"stop_time, adjusted_seconds "
 							"FROM time_clock_entries "
@@ -194,8 +201,8 @@ class GUI:
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			employee_name = row[1]
-			in_time = seconds_to_user_format (row[2])
-			out_time = seconds_to_user_format (row[3])
+			in_time = datetime_to_user_date_time (row[2])
+			out_time = datetime_to_user_date_time (row[3])
 			seconds = seconds_to_compact_string (row[4])
 			self.employee_time_store.append([str(row_id), employee_name,
 											in_time, out_time, seconds])

@@ -259,17 +259,18 @@ class Admin:
 
 
 dev_mode = False
+preferences_path = None
 
 def get_apsw_cursor ():
-	global dev_mode
+	global dev_mode, preferences_path
 	home = os.path.expanduser('~')
-	pref_path = os.path.join(home, '.config/posting')
-	if not os.path.exists(pref_path):
-		os.mkdir(pref_path)
+	preferences_path = os.path.join(home, '.config/posting')
+	if not os.path.exists(preferences_path):
+		os.mkdir(preferences_path)
 	if dev_mode == True:
 		pref_file = os.path.join(os.getcwd(), 'local_settings')
 	else:
-		pref_file = os.path.join(pref_path, 'local_settings')
+		pref_file = os.path.join(preferences_path, 'local_settings')
 	if not os.path.exists(pref_file):
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()

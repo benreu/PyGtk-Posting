@@ -591,7 +591,7 @@ class ProductsGUI:
 			self.builder.get_object('notebook1').prev_page()
 		if self.previous_keyname == "Control_L":
 			if keyname == "q":
-				self.builder.get_object('window').destroy()
+				window.destroy()
 		self.previous_keyname = keyname
 
 	def product_treeview_cursor_changed (self, treeview):
@@ -907,9 +907,7 @@ class ProductsGUI:
 			raise Exception("No revenue accounts available")
 		self.cursor.execute("SELECT id FROM tax_rates WHERE standard = True ")
 		default_id = self.cursor.fetchone()[0]
-		print (default_id)
 		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
-		print (self.builder.get_object('comboboxtext4').get_active_id())
 		self.set_price_listbox_to_default ()
 		
 		

@@ -18,7 +18,7 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib, GObject
+from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
@@ -187,10 +187,6 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		from admin import duplicate_contact
 		duplicate_contact.DuplicateContactGUI(self.db)
 
-	def customer_history_activated (self, menuitem):
-		from reports import customer_history
-		customer_history.CustomerHistoryGUI(self)
-
 	def resource_diary_activated (self, menuitem):
 		import resource_diary
 		resource_diary.ResourceDiaryGUI (self.db)
@@ -204,6 +200,10 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		module_help_dialog.set_keep_above(True)
 		module_help_dialog.run()
 		module_help_dialog.hide()
+
+	def contact_history (self, menuitem):
+		from reports import contact_history
+		contact_history.ContactHistoryGUI(self)
 
 	def serial_numbers_activated (self, menuitem):
 		import product_serial_numbers
@@ -235,6 +235,10 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 
 	def document_reports_window (self, widget):
 		print ("not done yet")
+
+	def credit_memo_activated (self, menutiem):
+		import credit_memo
+		credit_memo.CreditMemoGUI(self)
 
 	def resource_management (self, widget):
 		import resource_management
@@ -428,6 +432,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
 		store.clear()
+		red = Gdk.RGBA(1, 0, 0, 1)
+		orange = Gdk.RGBA(1, 0.5, 0, 1)
 		self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
 								"(SELECT statement_finish_date FROM settings) "
 								"+ INTERVAL'1 month') "
@@ -435,7 +441,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 									"* INTERVAL '1 day') "
 								"- INTERVAL '1 day'")
 		if self.cursor.fetchone()[0] == True:
-			store.append(["Print statements", 0, self.statement_window])
+			store.append(["Print statements", 0, self.statement_window, orange])
 		self.cursor.execute("SELECT "
 								"date_trunc('day', "
 									"(SELECT last_backup FROM settings)) <= "
@@ -444,8 +450,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 										"((SELECT backup_frequency_days "
 										"FROM settings) * INTERVAL '1 day'))")
 		if self.cursor.fetchone()[0] == True:
-			store.append(['Backup database', 0, self.backup_window])
-		self.cursor.execute("SELECT rm.id, subject "
+			store.append(['Backup database', 0, self.backup_window, red])
+		self.cursor.execute("SELECT rm.id, subject, red, green, blue, alpha "
 							"FROM resources AS rm "
 							"JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -454,7 +460,12 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		for row in self.cursor.fetchall():
 			id_ = row[0]
 			subject = row[1]
-			store.append([subject, id_, self.resource_window])
+			rgba = Gdk.RGBA(1, 1, 1, 1)
+			rgba.red = row[2]
+			rgba.green = row[3]
+			rgba.blue = row[4]
+			rgba.alpha = row[5]
+			store.append([subject, id_, self.resource_window, rgba])
 
 	def resource_window (self, id_):
 		import resource_management
@@ -488,8 +499,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 			unreceived_po = row[0]
 		self.builder.get_object('button12').set_label("Receive Orders\n          (%s)" % unreceived_po)
 		self.cursor.execute("SELECT COUNT(invoices.id) FROM invoices, "
-							"LATERAL (SELECT product_id FROM invoice_line_items "
-								"WHERE invoice_line_items.invoice_id = "
+							"LATERAL (SELECT product_id FROM invoice_items "
+								"WHERE invoice_items.invoice_id = "
 								"invoices.id LIMIT 1) ILI "
 							"WHERE (invoices.canceled, posted, active) = (False, False, True)")
 		for row in self.cursor.fetchall():

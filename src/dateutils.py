@@ -33,6 +33,12 @@ def datetime_to_user_date_time (date_time):
 	date_string = datetime.strftime(date_time, USER_FORMAT_DATE_TIME)
 	return date_string
 
+def datetime_to_compact_string (date_time):
+	if date_time == None:
+		return ''
+	date_string = datetime.strftime(date_time, "%H:%M:%S")
+	return date_string
+
 def datetime_to_user_date (date_time):
 	if date_time == None:
 		return ''

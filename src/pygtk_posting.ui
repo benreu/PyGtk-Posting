@@ -18,6 +18,8 @@
       <column type="gint"/>
       <!-- column-name gui_file -->
       <column type="PyObject"/>
+      <!-- column-name color -->
+      <column type="GdkRGBA"/>
     </columns>
   </object>
   <object class="GtkWindow" id="main_window">
@@ -138,9 +140,9 @@
                       <object class="GtkMenuItem" id="menuitem79">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Customer history</property>
+                        <property name="label" translatable="yes">Credit memo</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="customer_history_activated" swapped="no"/>
+                        <signal name="activate" handler="credit_memo_activated" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -367,6 +369,15 @@
                       <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem81">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Contact history</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="contact_history" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -1281,6 +1292,7 @@
                               <object class="GtkCellRendererText" id="cellrenderertext1"/>
                               <attributes>
                                 <attribute name="text">0</attribute>
+                                <attribute name="foreground-rgba">3</attribute>
                               </attributes>
                             </child>
                           </object>

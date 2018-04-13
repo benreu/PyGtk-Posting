@@ -24,6 +24,7 @@ import dateutils
 UI_FILE = "src/reports/invoice_history.ui"
 
 class InvoiceHistoryGUI:
+	exists = True
 	def __init__(self, main):
 
 		self.search_iter = 0
@@ -50,14 +51,15 @@ class InvoiceHistoryGUI:
 		self.cursor = self.db.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
-		self.cursor.execute("SELECT c.id, c.name FROM contacts AS c "
+		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name FROM contacts AS c "
 							"JOIN invoices ON invoices.customer_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
 							"GROUP BY c.id, c.name ORDER BY name")
 		for customer in self.cursor.fetchall():
 			id_ = customer[0]
 			name = customer[1]
-			self.customer_store.append([str(id_) , name])
+			ext_name = customer[2]
+			self.customer_store.append([id_ , name, ext_name])
 
 		amount_column = self.builder.get_object ('treeviewcolumn5')
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
@@ -74,6 +76,9 @@ class InvoiceHistoryGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def present(self):
+		self.window.present()
 
 	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
 		price = '{:,.2f}'.format(model.get_value(iter1, 6))
@@ -102,9 +107,9 @@ class InvoiceHistoryGUI:
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
 
-	def close_transaction_window(self, window, void):
-		self.window.destroy()
-		return True
+	def close_transaction_window(self, window, event):
+		self.exists = False
+		self.cursor.close()
 		
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.builder.get_object('treeview-selection1')
@@ -194,7 +199,7 @@ class InvoiceHistoryGUI:
 			total += amount
 			self.invoice_store.append([id_, str(date), date_formatted, i_name, 
 													c_name, remark, amount,
-													date_printed, 
+													str(date_printed), 
 													date_print_formatted])
 		self.builder.get_object('label3').set_label(str(total))
 
@@ -215,7 +220,7 @@ class InvoiceHistoryGUI:
 			self.cursor.execute("SELECT ili.id, ili.qty,  "
 								"product_id, name, ext_name, ili.price, "
 								"ili.ext_price, remark "
-								"FROM invoice_line_items AS ili "
+								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
 								"ORDER BY name ")
@@ -235,7 +240,7 @@ class InvoiceHistoryGUI:
 			self.cursor.execute("SELECT ili.id, ili.qty,  "
 								"product_id, name, ext_name, ili.price, "
 								"ili.ext_price, remark "
-								"FROM invoice_line_items AS ili "
+								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
 								"WHERE invoice_id IN " + args)

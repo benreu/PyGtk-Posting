@@ -84,7 +84,7 @@ class Setup(XCloseListener, unohelper.Base):
 		items = list()
 		for i in self.store:
 			item = Item()
-			item.qty = round(i[1], 1)
+			item.qty = i[1] #round(i[1], 1)
 			product_id = i[2]
 			item.product = i[3]
 			ext_name = i[4]
@@ -93,10 +93,10 @@ class Setup(XCloseListener, unohelper.Base):
 			remark = i[5]
 			if remark != "":
 				item.remark = " : " + i[5]
-			item.price = '${:,.2f}'.format(i[6])
+			item.price = i[6] #'${:,.2f}'.format(i[6])
 			item.tax_letter = i[11]
-			item.tax = '${:,.2f}'.format(i[7])
-			item.ext_price = '${:,.2f}'.format(i[8])
+			item.tax = i[7] #'${:,.2f}'.format(i[7])
+			item.ext_price = i[8] #'${:,.2f}'.format(i[8])
 			items.append(item)
 	
 		terms = Item()
@@ -115,15 +115,27 @@ class Setup(XCloseListener, unohelper.Base):
 			terms.text4 = row[4]
 			
 		document = Item()
-		self.tax = 0
-		self.subtotal = 0
-		for item in self.store:
-			self.subtotal = self.subtotal + item[8]
-			self.tax = self.tax + item[7]
-		self.total = self.subtotal + self.tax
-		document.subtotal = '${:,.2f}'.format(self.subtotal)
-		document.tax = '${:,.2f}'.format(self.tax)
-		document.total = '${:,.2f}'.format(self.total)
+		self.cursor.execute("WITH _subtotal AS "
+									"(SELECT SUM(ext_price) AS ep FROM invoice_items "
+									"WHERE invoice_id = %s "
+									"), "
+								"_tax AS "
+									"(SELECT SUM(tax) FROM invoice_items "
+									"WHERE invoice_id = %s "
+									") "
+								"UPDATE invoices SET (subtotal, tax, total) = "
+									"((SELECT * FROM _subtotal), "
+									"(SELECT * FROM _tax), "
+									"(SELECT * FROM _subtotal) + (SELECT * FROM _tax )"
+								") WHERE id = %s RETURNING subtotal, tax, total", 
+								(self.invoice_id, self.invoice_id, self.invoice_id))
+		for row in self.cursor.fetchall():
+			subtotal = row[0]
+			tax = row[1]
+			total = row[2]
+		document.subtotal = subtotal #'${:,.2f}'.format(self.subtotal)
+		document.tax = tax #'${:,.2f}'.format(self.tax)
+		document.total = total #'${:,.2f}'.format(self.total)
 		document.comment = self.comment
 		document.document_status = ''
 		
@@ -210,19 +222,22 @@ class Setup(XCloseListener, unohelper.Base):
 
 	def print_dialog(self, window):
 		subprocess.call("odt2pdf " + self.invoice_file, shell = True)
-		p = printing.PrintDialog("/tmp/" + self.document_pdf)
-		result = p.run_print_dialog(window)
+		p = printing.Setup("/tmp/" + self.document_pdf, "invoice")
+		result = p.print_dialog(window)
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE invoices SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.invoice_id,))
+		return result
 				
-	def print_directly(self):
-		subprocess.Popen("soffice --headless -p " + self.invoice_file, shell = True)
+	def print_directly(self, window):
 		subprocess.call("odt2pdf " + self.invoice_file, shell = True)
-		self.cursor.execute("UPDATE invoices SET date_printed = "
-							"CURRENT_DATE WHERE id = %s", 
-							(self.invoice_id,))
+		p = printing.Setup("/tmp/" + self.document_pdf, "invoice")
+		result = p.print_directly(window)
+		if result == Gtk.PrintOperationResult.APPLY:
+			self.cursor.execute("UPDATE invoices SET date_printed = "
+								"CURRENT_DATE WHERE id = %s", 
+								(self.invoice_id,))
 
 	def email (self, email):
 		document = "/tmp/" + self.document_pdf
@@ -234,20 +249,21 @@ class Setup(XCloseListener, unohelper.Base):
 		dat = f.read()
 		binary = psycopg2.Binary(dat)
 		f.close()
-		self.cursor.execute("UPDATE invoices SET(name, subtotal, tax, total, "
+		self.cursor.execute("UPDATE invoices SET(name, "
 							"pdf_data, posted, amount_due, dated_for) "
-							"= ( %s, %s, %s, %s, %s, %s, %s, %s) "
-							"WHERE id = %s RETURNING gl_entries_id", 
-							(self.document_name, self.subtotal, self.tax, 
-							self.total, binary, True, self.total, self.date, 
+							"= (%s, %s, %s, total, %s) "
+							"WHERE id = %s RETURNING gl_entries_id, total", 
+							(self.document_name, binary, True, self.date, 
 							self.invoice_id))
-		gl_entries_id = self.cursor.fetchone()[0]
-		transactor.post_invoice_receivables(self.db, self.total, self.date, 
+		for row in self.cursor.fetchall():
+			gl_entries_id = row[0]
+			total = row[1]
+		transactor.post_invoice_receivables(self.db, total, self.date, 
 											self.invoice_id, gl_entries_id)
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		if self.cursor.fetchone()[0] == True:
 			transactor.post_invoice_accounts (self.db, self.date, self.invoice_id)
-	 
+		
 		
 
 g_ImplementationHelper = unohelper.ImplementationHelper()

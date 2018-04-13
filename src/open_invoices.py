@@ -56,7 +56,7 @@ class OpenInvoicesGUI:
 							"COUNT(ili.id) "
 							"FROM invoices AS i JOIN contacts AS c "
 							"ON i.customer_id = c.id "
-							"JOIN invoice_line_items AS ili "
+							"JOIN invoice_items AS ili "
 							"ON ili.invoice_id = i.id "
 							"WHERE (i.canceled, posted, i.active) "
 							"= (False, False, True) "

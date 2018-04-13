@@ -212,8 +212,7 @@ class GUI:
 									"(SELECT COALESCE(SUM(amount),0.00) AS credits "
 									"FROM gl_entries "
 									"WHERE credit_account= %s) c", 
-								(parent_account, parent_account, 
-								parent_account))
+								(parent_account, parent_account))
 			for row in self.cursor.fetchall():
 				account_amount = abs(row[0])
 				yield parent_account, float(account_amount)

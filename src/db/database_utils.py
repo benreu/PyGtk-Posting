@@ -127,7 +127,7 @@ def check_and_update_version (db, statusbar):
 	cursor = db.cursor()
 	cursor.execute("SELECT version FROM settings")
 	version = cursor.fetchone()[0]
-	COMPLETE_PROGRESS = 101.00
+	COMPLETE_PROGRESS = 107.00
 	progressbar (1)
 	if version <= "016":
 		progressbar (16)
@@ -546,7 +546,7 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.account_transaction_lines ALTER COLUMN debit_account TYPE bigint;")
 		cursor.execute("ALTER TABLE public.account_transaction_lines ALTER COLUMN credit_account TYPE bigint;")
 		cursor.execute("ALTER TABLE public.account_flow_settings ALTER COLUMN account TYPE bigint;")
-		cursor.execute("ALTER TABLE accounts ALTER COLUMN type TYPE smallint USING CAST(type as smallint);")
+		cursor.execute("ALTER TABLE accounts ALTER COLUMN type TYPE smallint USING CAST(type AS smallint);")
 		cursor.execute("UPDATE accounts SET type = 1 WHERE number::text LIKE '1%'")
 		cursor.execute("UPDATE accounts SET type = 2 WHERE number::text LIKE '2%'")
 		cursor.execute("UPDATE accounts SET type = 3 WHERE number::text LIKE '3%'")
@@ -1007,8 +1007,135 @@ def check_and_update_version (db, statusbar):
 		progressbar (103)
 		cursor.execute("ALTER TABLE resources ADD COLUMN to_do BOOLEAN")
 		cursor.execute("ALTER TABLE public.resources ALTER COLUMN to_do SET DEFAULT False")
-		cursor.execute("UPDATE settings SET version = '104'")
+	if version <= '104':
+		progressbar (104)
+		cursor.execute("ALTER TABLE public.inventory_transactions ALTER COLUMN qty_in DROP DEFAULT;"
+						"ALTER TABLE public.inventory_transactions ALTER COLUMN qty_in DROP NOT NULL;")
+		cursor.execute("ALTER TABLE public.inventory_transactions ALTER COLUMN qty_out DROP DEFAULT;"
+						"ALTER TABLE public.inventory_transactions ALTER COLUMN qty_out DROP NOT NULL;")
+		cursor.execute("ALTER TABLE public.inventory_transactions ADD CONSTRAINT qty_in_or_qty_out_not_null CHECK (qty_in IS NOT NULL OR qty_out IS NOT NULL);")
+		cursor.execute("ALTER TABLE public.inventory_transactions ADD CONSTRAINT qty_in_or_qty_out_is_null CHECK (qty_in IS NULL OR qty_out IS NULL);")
+		cursor.execute("ALTER TABLE public.inventory_transactions ADD UNIQUE (invoice_line_id);")
+		#https://stackoverflow.com/questions/26948573/how-to-calculate-cost-of-goods-sold
+		cursor.execute("CREATE OR REPLACE FUNCTION get_fifo_cogs(_product_id integer, _quantity int)\n"
+						"RETURNS TABLE (cogs decimal(12, 2), qty_verified bigint) AS $$ \n"
+							"WITH inventory AS (\n"
+								"SELECT \n"
+									"id, date_inserted, \n"
+									"generate_series(1, greatest(qty_in, qty_out)), \n"
+									"price, \n"
+									"qty_in IS NOT null AS purchased \n"
+								"FROM inventory_transactions \n"
+								"WHERE product_id = _product_id\n"
+							"), inventory_purchased AS (\n"
+								"SELECT *, row_number() OVER(ORDER BY date_inserted, id) AS rn \n"
+								"FROM inventory \n"
+								"WHERE purchased \n"
+							"), inventory_sold AS (\n"
+								"SELECT *, row_number() OVER(ORDER BY date_inserted, id) AS rn \n"
+								"FROM inventory \n"
+								"WHERE NOT purchased \n"
+							")\n"
+							"SELECT SUM(price), COUNT(price) FROM \n"
+								"(\n"
+								"SELECT price FROM inventory_purchased \n"
+								"WHERE NOT EXISTS \n"
+									"(\n"
+									"SELECT 1 \n"
+									"FROM inventory_sold \n"
+									"WHERE rn = inventory_purchased.rn\n"
+									")\n"
+								"ORDER BY date_inserted, id \n"
+								"LIMIT _quantity\n"
+								") s;\n"
+						"$$ language sql;")
+	if version <= '105':
+		progressbar (105)
+		cursor.execute("CREATE TABLE credit_memos (id serial PRIMARY KEY, name varchar, customer_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, date_created date NOT NULL, date_printed date, total numeric(12, 2) DEFAULT 0.00 NOT NULL, tax numeric (12, 2) DEFAULT 0.00 NOT NULL, amount_owed numeric (12, 2) DEFAULT 0.00 NOT NULL, gl_entries_id bigint REFERENCES gl_entries ON DELETE RESTRICT, gl_entries_tax_id bigint REFERENCES gl_entries ON DELETE RESTRICT, statement_id bigint REFERENCES statements ON DELETE RESTRICT, posted boolean NOT NULL DEFAULT False, dated_for date)")
+		cursor.execute("CREATE TABLE credit_memo_items (id serial PRIMARY KEY, credit_memo_id bigint NOT NULL REFERENCES credit_memos ON DELETE RESTRICT, qty numeric (12, 1) NOT NULL, invoice_item_id bigint NOT NULL REFERENCES invoice_line_items ON DELETE RESTRICT, price numeric(12, 2) NOT NULL, date_returned date NOT NULL, tax numeric (12, 2) NOT NULL)")
+	if version <= '106':
+		progressbar (106)
+		cursor.execute("ALTER TABLE public.serial_numbers DROP CONSTRAINT serial_numbers_invoice_line_item_id_fkey")
+		cursor.execute("ALTER TABLE public.serial_numbers RENAME invoice_line_item_id TO invoice_item_id;")
+		cursor.execute("ALTER TABLE public.serial_numbers ADD FOREIGN KEY (invoice_item_id) REFERENCES invoice_line_items ON DELETE SET NULL ON UPDATE RESTRICT")
+	if version <= '107':
+		progressbar (107)
+		cursor.execute("ALTER TABLE public.contacts ALTER COLUMN terms_and_discounts_id SET NOT NULL")
+		cursor.execute("ALTER TABLE public.contacts ALTER COLUMN markup_percent_id SET NOT NULL")
+	if version <= '108':
+		progressbar (108)
+		cursor.execute("ALTER TABLE invoice_line_items RENAME TO invoice_items;")
+		# HINT: triggers are executed alphabetical order
+		cursor.execute("CREATE OR REPLACE FUNCTION check_tax_rate_id() RETURNS TRIGGER AS $$ \n"
+						"  BEGIN \n"
+						"    IF (SELECT tax_exemptible FROM products WHERE id = NEW.product_id) = FALSE OR NEW.tax_rate_id IS NULL THEN \n"
+						"       NEW.tax_rate_id = (SELECT tax_rates.id FROM tax_rates JOIN products ON tax_rates.id = products.tax_rate_id WHERE products.id = NEW.product_id);\n"
+						"    END IF;\n"
+						"  RETURN NEW;\n"
+						"  END;\n"
+						"$$ LANGUAGE plpgsql;")
+		cursor.execute("CREATE TRIGGER a_check_tax_rate_id BEFORE INSERT OR UPDATE OF tax_rate_id ON invoice_items FOR EACH ROW WHEN (pg_trigger_depth() < 1) EXECUTE PROCEDURE check_tax_rate_id();")
+		
+		cursor.execute("CREATE OR REPLACE FUNCTION calculate_invoice_item() RETURNS TRIGGER AS $$ \n"
+						"  BEGIN \n"
+						"    UPDATE invoice_items SET ext_price = (qty*price) WHERE id = NEW.id;\n"
+						"    UPDATE invoice_items SET tax = (((SELECT rate FROM tax_rates WHERE id = NEW.tax_rate_id) * ext_price) / 100) WHERE id = NEW.id;\n"
+						"  RETURN NEW; \n"
+						"  END; \n"
+						"$$ LANGUAGE plpgsql;")
+		cursor.execute("CREATE TRIGGER b_calculate_invoice_item AFTER INSERT OR UPDATE OF qty, product_id, price, tax_rate_id ON invoice_items FOR EACH ROW WHEN (pg_trigger_depth() < 1 AND NEW.tax_rate_id IS NOT NULL) EXECUTE PROCEDURE calculate_invoice_item();")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN tax_rate_id SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN tax SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN tax SET DEFAULT 0.0;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN ext_price SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN ext_price SET DEFAULT 1.0;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN qty SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN qty SET DEFAULT 1.0;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN price SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN price SET DEFAULT 1.0;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN canceled SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN canceled SET DEFAULT FALSE;")
+		cursor.execute("ALTER TABLE public.invoice_items ALTER COLUMN invoice_id SET NOT NULL;")
+	if version <= '109':
+		progressbar (109)
+		cursor.execute("DROP TRIGGER start_time_changed_trigger ON public.time_clock_entries;")
+		cursor.execute("ALTER TABLE time_clock_entries ALTER COLUMN start_time TYPE timestamptz USING CAST(TO_TIMESTAMP( start_time) AS timestamptz);")
+		cursor.execute("DROP TRIGGER stop_time_changed_trigger ON public.time_clock_entries;")
+		cursor.execute("ALTER TABLE time_clock_entries ALTER COLUMN stop_time TYPE timestamptz USING CAST(TO_TIMESTAMP( stop_time) AS timestamptz);")
+		cursor.execute("CREATE TRIGGER start_time_changed_trigger AFTER UPDATE OF start_time ON time_clock_entries FOR EACH ROW EXECUTE PROCEDURE update_time_entry_seconds();")
+		cursor.execute("CREATE TRIGGER stop_time_changed_trigger AFTER UPDATE OF stop_time ON time_clock_entries FOR EACH ROW EXECUTE PROCEDURE update_time_entry_seconds();")
+		cursor.execute("CREATE OR REPLACE FUNCTION update_time_entry_seconds() RETURNS TRIGGER AS $$ "
+							"DECLARE seconds integer; "
+							"BEGIN "
+								"SELECT EXTRACT ('epoch' FROM stop_time - start_time) INTO seconds FROM time_clock_entries WHERE id = OLD.id; "
+								"UPDATE time_clock_entries SET (actual_seconds, adjusted_seconds) = (seconds, seconds) WHERE id = OLD.id; "
+								"RETURN OLD; "
+							"END; "
+							"$$ LANGUAGE plpgsql;")
+	if version <= '110':
+		progressbar (110)
+		cursor.execute("ALTER TABLE public.products ALTER COLUMN tax_rate_id SET NOT NULL;")
+		cursor.execute("CREATE OR REPLACE FUNCTION process_invoice_barcode(_barcode varchar, _invoice_id bigint, OUT invoice_item_id bigint) as \n"
 
+							"$BODY$ \n"
+							"DECLARE _product_id BIGINT; _tax_rate_id BIGINT; \n"
+							"BEGIN \n"
+							"SELECT id, tax_rate_id INTO _product_id, _tax_rate_id FROM products WHERE (barcode, deleted) = (_barcode, FALSE); \n"
+							"IF FOUND THEN \n"
+								"IF EXISTS (SELECT id FROM invoice_items WHERE (invoice_id, product_id)= (_invoice_id, _product_id)) THEN \n"
+									"UPDATE invoice_items SET qty = qty + 1 \n"
+									"WHERE (invoice_id, product_id) = (_invoice_id, _product_id) RETURNING id INTO invoice_item_id; \n"
+								"ELSE \n"
+									"INSERT INTO invoice_items (invoice_id, product_id, tax_rate_id) \n"
+									"VALUES (_invoice_id, _product_id, _tax_rate_id) RETURNING id INTO invoice_item_id; \n"
+								"END IF; \n"
+							"ELSE \n"
+								"invoice_item_id = 0; \n"
+							"END IF; \n"
+							"RETURN; \n"
+							"END \n"
+							"$BODY$ language plpgsql; ")
+		cursor.execute("UPDATE settings SET version = '111'")
 	cursor.close()
 	db.commit()
 
