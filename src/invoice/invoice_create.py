@@ -222,7 +222,7 @@ class Setup(XCloseListener, unohelper.Base):
 
 	def print_dialog(self, window):
 		subprocess.call("odt2pdf " + self.invoice_file, shell = True)
-		p = printing.InvoicePrintDialog("/tmp/" + self.document_pdf)
+		p = printing.Setup("/tmp/" + self.document_pdf, "invoice")
 		result = p.print_dialog(window)
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE invoices SET date_printed = "
@@ -232,7 +232,7 @@ class Setup(XCloseListener, unohelper.Base):
 				
 	def print_directly(self, window):
 		subprocess.call("odt2pdf " + self.invoice_file, shell = True)
-		p = printing.InvoicePrintDialog("/tmp/" + self.document_pdf)
+		p = printing.Setup("/tmp/" + self.document_pdf, "invoice")
 		result = p.print_directly(window)
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE invoices SET date_printed = "

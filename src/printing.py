@@ -20,13 +20,13 @@ gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
 import main, os
 
-class InvoicePrintDialog:
-	def __init__(self, file_to_print):
+class Setup:
+	def __init__(self, file_to_print, settings_file):
 		file_uri = GLib.filename_to_uri(file_to_print)
 		
 		self.settings_file = (os.path.join
 								(main.preferences_path,
-								'invoice_print_settings'))
+								'%s_print_settings' % settings_file))
 		try:
 			settings = Gtk.PrintSettings.new_from_file(self.settings_file)
 		except Exception as e:
@@ -49,7 +49,7 @@ class InvoicePrintDialog:
 		page = self.doc.get_page(page_num)
 		page.render(cr)
 
-	def print_dialog(self, parent):
+	def print_dialog (self, parent):
 		"parent dialog to attach the dialog to"
 		result = self.operation.run(Gtk.PrintOperationAction.PRINT_DIALOG,
 									parent)

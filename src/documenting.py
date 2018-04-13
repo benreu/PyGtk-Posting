@@ -129,8 +129,8 @@ class Setup():
 		t = Template("./templates/document_template.odt", purchase_order_file , True)
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
-		p = printing.PrintDialog("/tmp/" + self.document_pdf)
-		p.run_print_dialog (window)
+		p = printing.Setup("/tmp/" + self.document_pdf, "document")
+		p.print_dialog (window)
 		
 	def print_directly(self):
 		from py3o.template import Template #import for every purchase order or there is an error about invalid magic header numbers
