@@ -316,7 +316,7 @@ class GUI:
 								comments))
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
-			self.payment.bank_check (self.payment_id, self.discount)
+			self.payment.bank_check (self.payment_id)
 		elif self.payment_type_id == 1:
 			payment_text = self.credit_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -330,7 +330,7 @@ class GUI:
 								total, self.date, comments))
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
-			self.payment.credit_card (self.payment_id, self.discount)
+			self.payment.credit_card (self.payment_id)
 		elif self.payment_type_id == 2:
 			payment_text = self.cash_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -344,13 +344,12 @@ class GUI:
 								total, self.date, comments))
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
-			self.payment.cash (self.payment_id, self.discount)
+			self.payment.cash (self.payment_id)
 		self.db.commit()
 		self.cursor.close()
 		self.window.destroy ()
 		
 	def update_invoices_paid (self):
-		self.discount = Decimal()
 		c = self.db.cursor()
 		c_id = self.customer_id
 		c.execute("(SELECT id, total - amount_due AS discount FROM "
@@ -380,7 +379,6 @@ class GUI:
 			invoice_id = row[0]
 			discount = row[1]
 			if discount != Decimal('0.00'):
-				self.discount += discount
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
 				transactor.post_invoice_accounts (self.db, self.date, invoice_id)

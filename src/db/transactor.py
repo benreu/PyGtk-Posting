@@ -62,40 +62,40 @@ class CustomerInvoicePayment:
 							"VALUES (%s) RETURNING id", (date,))
 		self.transaction_id = self.cursor.fetchone()[0]
 
-	def bank_check (self, payment_id, discount):
+	def bank_check (self, payment_id):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'check_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total - discount, self.transaction_id))
+					(self.total, self.transaction_id))
 		pi_id = self.cursor.fetchone()[0]
 		self.cursor.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
 
-	def cash (self, payment_id, discount):
+	def cash (self, payment_id):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'cash_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total - discount, self.transaction_id)) 
+					(self.total, self.transaction_id)) 
 		pi_id = self.cursor.fetchone()[0]
 		self.cursor.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
 
-	def credit_card (self, payment_id, discount):
+	def credit_card (self, payment_id):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'credit_card_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total - discount, self.transaction_id)) 
+					(self.total, self.transaction_id)) 
 		pi_id = self.cursor.fetchone()[0]
 		self.cursor.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
