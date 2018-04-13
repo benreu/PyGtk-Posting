@@ -20,8 +20,6 @@
       <column type="gchararray"/>
       <!-- column-name account_name -->
       <column type="gchararray"/>
-      <!-- column-name account_total -->
-      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="bank_transaction_store">
@@ -157,12 +155,6 @@
                     <attribute name="text">1</attribute>
                   </attributes>
                 </child>
-                <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext8"/>
-                  <attributes>
-                    <attribute name="text">2</attribute>
-                  </attributes>
-                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -171,14 +163,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkCheckButton" id="checkbutton1">
-                <property name="label" translatable="yes">View reconciled items</property>
+              <object class="GtkLabel" id="label13">
+                <property name="width_request">100</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="xalign">0</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="view_closed_items" swapped="no"/>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">$0.00</property>
               </object>
               <packing>
                 <property name="expand">False</property>
