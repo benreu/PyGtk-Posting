@@ -130,7 +130,9 @@ pygtk_posting_PYTHON = \
 	customer_markup_percent.ui \
 	credit_memo.py \
 	credit_memo.ui \
-	main.py
+	main.py \
+	mailing_lists.py \
+	mailing_lists.ui
 
 
 EXTRA_DIST = $(ui_DATA)
