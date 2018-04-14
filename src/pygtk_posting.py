@@ -236,6 +236,10 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	def document_reports_window (self, widget):
 		print ("not done yet")
 
+	def mailing_list_activated (self, widget):
+		import mailing_lists
+		mailing_lists.MailingListsGUI(self)
+
 	def credit_memo_activated (self, menutiem):
 		import credit_memo
 		credit_memo.CreditMemoGUI(self)

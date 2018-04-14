@@ -82,6 +82,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem82">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Mailing lists</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="mailing_list_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="imagemenuitem6">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
