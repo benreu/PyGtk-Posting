@@ -741,7 +741,8 @@ class InvoiceGUI:
 			iter_ = self.invoice_store.get_iter(path)
 			if serial_number == True:
 				self.builder.get_object('treeviewcolumn13').set_visible(True)
-				qty = int(self.invoice_store[iter_][1]) 
+				#allow only whole numbers for inventory
+				qty = self.invoice_store[iter_][1].split('.')[0] 
 				self.invoice_store[iter_][1] = qty
 			self.invoice_store[iter_][2] = int(product_id)
 			self.invoice_store[iter_][3] = product_name
