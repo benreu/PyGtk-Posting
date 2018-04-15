@@ -15,17 +15,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gdk, GdkPixbuf
+from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
 import psycopg2, time, subprocess
 import uno, unohelper
 from com.sun.star.connection import NoConnectException
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
 from com.sun.star.awt.FontWeight import BOLD, NORMAL
+from com.sun.star.awt import Size
 
 UI_FILE = "src/catalog_creator.ui"
 
 class CatalogCreatorGUI:
+	preview_image = None
+	preview_size = 0
 	def __init__ (self, main):
 
 		self.builder = Gtk.Builder()
@@ -41,7 +44,6 @@ class CatalogCreatorGUI:
 		product_completion = self.builder.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 		self.catalog_store = self.builder.get_object('catalog_store')
-		self.populate_catalog_store ()
 		
 		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)	
 		treeview = self.builder.get_object('treeview1')
@@ -53,6 +55,10 @@ class CatalogCreatorGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		
+		scale = self.builder.get_object('scale1')
+		for i in [16, 32, 64, 128, 256]:
+			scale.add_mark(i, Gtk.PositionType.BOTTOM, str(i))
 
 	def populate_products (self, m=None, d=None):
 		self.product_store.clear()
@@ -70,22 +76,56 @@ class CatalogCreatorGUI:
 			self.cursor.execute("UPDATE products SET catalog = True"
 								" WHERE id = %s", (product_id,))
 			self.db.commit()
-		GLib.idle_add ( self.populate_catalog_store )
+		GLib.idle_add ( self.load_catalog_clicked )
 
 	def product_completion_match_selected (self, combo, model, iter_):
 		product_id = model[iter_][0]
 		self.cursor.execute("UPDATE products SET catalog = True"
 								" WHERE id = %s", (product_id,))
 		self.db.commit()
-		GLib.idle_add ( self.populate_catalog_store )
+		GLib.idle_add ( self.load_catalog_clicked )
 
-	def populate_catalog_store (self):
+	def show_product_preview_activated (self, menuitem):
+		selection = self.builder.get_object("treeview-selection1")
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		self.cursor.execute("SELECT image FROM products WHERE id = %s", (row_id,))
+		for row in self.cursor.fetchall():
+			image_bytes = row[0]
+			if image_bytes == None:
+				self.preview_image == None
+			else:
+				self.preview_image = image_bytes
+				self.show_preview ()
+
+	def pane_size_allocate (self, pane, rectangle):
+		'runs at window.show_all(), initializing self.preview_size'
+		size = rectangle.width - pane.get_position() - 7
+		if size != self.preview_size:
+			self.preview_size = size
+			self.show_preview ()
+
+	def show_preview (self):
+		if self.preview_image != None:
+			byte_in = GLib.Bytes(self.preview_image.tobytes())
+			input_in = Gio.MemoryInputStream.new_from_bytes(byte_in)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(input_in, 
+															self.preview_size, 
+															self.preview_size, 
+															True)
+			self.builder.get_object('image2').set_from_pixbuf(pixbuf)
+
+	def load_catalog_clicked (self, button = None):
+		scale = self.builder.get_object('scale1')
+		size = scale.get_value()
 		self.catalog_store.clear()
 		self.cursor.execute("SELECT p.id, barcode, p.name, ext_name, description, "
-							"price FROM products AS p "
-							"JOIN products_markup_prices AS pmp "
+							"COALESCE(price, 0.00), image FROM products AS p "
+							"LEFT JOIN products_markup_prices AS pmp "
 							"ON pmp.product_id = p.id "
-							"JOIN customer_markup_percent AS cmp "
+							"LEFT JOIN customer_markup_percent AS cmp "
 							"ON cmp.id = pmp.markup_id "
 							"WHERE (catalog, standard) = (True, True) "
 							"ORDER BY catalog_order")
@@ -96,7 +136,15 @@ class CatalogCreatorGUI:
 			ext_name = row[3]
 			description = row[4]
 			price = row[5]
-			self.catalog_store.append([p_id, barcode, name, ext_name, description, price])
+			image_bytes = row[6]
+			if image_bytes == None:
+				pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,
+												True, 8, size, size)
+			else:
+				byte_in = GLib.Bytes(image_bytes.tobytes())
+				input_in = Gio.MemoryInputStream.new_from_bytes(byte_in)
+				pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(input_in, size, size, True)
+			self.catalog_store.append([p_id, barcode, name, ext_name, description, price, pixbuf])
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -265,11 +313,19 @@ class CatalogCreatorGUI:
 				img = doc.createInstance('com.sun.star.text.TextGraphicObject') 
 				img.GraphicURL = "file://%s"%imageURL 
 				img.AnchorType = AS_CHARACTER
-				img.Width = 4000
-				img.Height = 4000
+				img.Width = 2000 # hackery to get original size to work ???
+				img.Height = 2000
 				imageCell = table.getCellByName("A1")
 				cellCursor = imageCell.createTextCursor()
 				imageCell.insertTextContent(cellCursor, img, False)
+				w = img.ActualSize.Width
+				h = img.ActualSize.Height
+				v = max(w, h, 4000)
+				division = v / 4000
+				width = int(w / division)
+				height = int(h / division)
+				imageSize = Size(width, height)
+				img.setSize(imageSize)
 
 			progress = float(index+1) / rows
 			self.builder.get_object("progressbar1").set_fraction(progress)
