@@ -147,10 +147,7 @@ class ManufacturingGUI:
 				qty = self.builder.get_object('spinbutton1').get_text()
 				manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
 			self.cursor.execute("SELECT COUNT(DISTINCT(employee_id)), "
-								"ROUND( "
-									"(SUM(stop_time::numeric) - "
-									"SUM(start_time::numeric)) / 3600"
-									", 2) "
+								"SUM(stop_time - start_time) "
 								"FROM time_clock_entries "
 								"WHERE (project_id, state) = "
 								"(%s, 'complete') GROUP BY project_id", 
