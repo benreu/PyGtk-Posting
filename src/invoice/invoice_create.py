@@ -84,7 +84,7 @@ class Setup(XCloseListener, unohelper.Base):
 		items = list()
 		for i in self.store:
 			item = Item()
-			item.qty = i[1] #round(i[1], 1)
+			item.qty = i[1] 
 			product_id = i[2]
 			item.product = i[3]
 			ext_name = i[4]
@@ -93,10 +93,10 @@ class Setup(XCloseListener, unohelper.Base):
 			remark = i[5]
 			if remark != "":
 				item.remark = " : " + i[5]
-			item.price = i[6] #'${:,.2f}'.format(i[6])
+			item.price = i[6] 
 			item.tax_letter = i[11]
-			item.tax = i[7] #'${:,.2f}'.format(i[7])
-			item.ext_price = i[8] #'${:,.2f}'.format(i[8])
+			item.tax = i[7] 
+			item.ext_price = i[8] 
 			items.append(item)
 	
 		terms = Item()
@@ -127,15 +127,18 @@ class Setup(XCloseListener, unohelper.Base):
 									"((SELECT * FROM _subtotal), "
 									"(SELECT * FROM _tax), "
 									"(SELECT * FROM _subtotal) + (SELECT * FROM _tax )"
-								") WHERE id = %s RETURNING subtotal, tax, total", 
+								") WHERE id = %s "
+								"RETURNING   subtotal::money, "
+											"tax::money, "
+											"total::money", 
 								(self.invoice_id, self.invoice_id, self.invoice_id))
 		for row in self.cursor.fetchall():
 			subtotal = row[0]
 			tax = row[1]
 			total = row[2]
-		document.subtotal = subtotal #'${:,.2f}'.format(self.subtotal)
-		document.tax = tax #'${:,.2f}'.format(self.tax)
-		document.total = total #'${:,.2f}'.format(self.total)
+		document.subtotal = subtotal
+		document.tax = tax
+		document.total = total
 		document.comment = self.comment
 		document.document_status = ''
 		
