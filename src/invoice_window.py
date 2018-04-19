@@ -295,6 +295,20 @@ class InvoiceGUI:
 			return
 		self.set_product_price (path)
 
+	def customer_combo_populate_popup (self, entry, menu):
+		separator = Gtk.SeparatorMenuItem ()
+		separator.show ()
+		menu.prepend(separator)
+		edit_customer_menu = Gtk.MenuItem.new_with_label("Edit customer")
+		edit_customer_menu.connect("activate", self.edit_customer_clicked)
+		edit_customer_menu.show()
+		menu.prepend(edit_customer_menu)
+
+	def edit_customer_clicked (self, menuitem):
+		if self.customer_id != None:
+			import contacts
+			contacts.GUI(self.main, self.customer_id)
+
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object("treeview-selection")
 		model, path = selection.get_selected_rows ()
@@ -312,11 +326,6 @@ class InvoiceGUI:
 	def product_clicked (self, menuitem):
 		import products
 		products.ProductsGUI(self.main)
-
-	def customer_button_release_event (self, button, event):
-		if event.button == 3:
-			import contacts
-			contacts.GUI(self.main, self.customer_id)
 
 	def document_list_clicked (self, menuitem):
 		self.show_document_list_window ()
