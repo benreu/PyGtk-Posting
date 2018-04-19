@@ -122,7 +122,7 @@ class GUI:
 		self.account_name = self.account_store[path][1]
 		self.is_parent_account = self.account_store[path][2]
 		type_ = str(self.account_number)[0]
-		if type_ == '3' or type_ == '4':
+		if type_ == '4' or type_ == '5':
 			self.n_col = 5 #the column with negative values
 		else:
 			self.n_col = 3
@@ -234,6 +234,14 @@ class GUI:
 	def update_treeview_individually(self, widget = None):
 		if self.account_number == None:
 			return
+		treeview = self.builder.get_object("treeview1")
+		model = treeview.get_model()
+		treeview.set_model(None)
+		spinner = self.builder.get_object("spinner1")
+		spinner.start()
+		spinner.show()
+		progressbar = self.builder.get_object("progressbar1")
+		progressbar.show()
 		self.account_treestore.clear()
 		balance = 0.00
 		self.cursor.execute("SELECT gtl.id, gtl.date_inserted, ge.amount, debit_account, debits.name, credit_account, credits.name, ge.id "
@@ -244,7 +252,12 @@ class GUI:
 							"WHERE credit_account = %s OR debit_account = %s "
 							"ORDER BY gtl.date_inserted, ge.id",
 							(self.account_number, self.account_number))
-		for transaction in self.cursor.fetchall():
+		tupl = self.cursor.fetchall()
+		rows = len(tupl)
+		for index, transaction in enumerate(tupl):
+			if index == 0:
+				index = 0.01
+			progress = index/rows
 			trans_id = transaction[0]
 			date = transaction[1]
 			formatted_date = datetime_to_text(date)
@@ -307,10 +320,14 @@ class GUI:
 						self.account_treestore.append (parent, ['', '', 0, 
 												'', amount,  0.00, credit_name,
 												amount_color, balance_color])
+			progressbar.set_fraction(progress)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
-				self.scroll_window_to_bottom ()
-		GLib.timeout_add(10, self.scroll_window_to_bottom )
+		spinner.stop()
+		spinner.hide()
+		progressbar.hide()
+		treeview.set_model(model)
+		GLib.idle_add(self.scroll_window_to_bottom )
 
 	def update_treeview_daily(self, widget = None):
 		if self.account_number == None:
