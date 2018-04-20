@@ -1141,7 +1141,13 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("UPDATE gl_accounts SET (deposits, check_writing) = (FALSE, FALSE)")
 		cursor.execute("ALTER TABLE gl_accounts ALTER COLUMN deposits SET NOT NULL")
 		cursor.execute("ALTER TABLE gl_accounts ALTER COLUMN check_writing SET NOT NULL")
-		cursor.execute("UPDATE settings SET version = '112'")
+	if version <= '112':
+		progressbar (112)
+		cursor.execute("CREATE SCHEMA sql")
+		cursor.execute("CREATE TABLE sql.history (name varchar PRIMARY KEY, command varchar NOT NULL, date_inserted date NOT NULL, current BOOLEAN)")
+		cursor.execute("ALTER TABLE sql.history ADD CONSTRAINT current_column_unique UNIQUE (current);")
+		cursor.execute("INSERT INTO sql.history (name, command, date_inserted, current) VALUES (contacts, 'SELECT name FROM contacts', CURRENT_DATE, TRUE)")
+		cursor.execute("UPDATE settings SET version = '113'")
 	cursor.close()
 	db.commit()
 

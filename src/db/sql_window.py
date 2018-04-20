@@ -15,33 +15,101 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
-from decimal import getcontext
-
-getcontext().prec = 8
+import gi
+gi.require_version('GtkSource', '3.0')
+from gi.repository import Gtk, GtkSource, GObject, Gdk
 
 UI_FILE = "src/db/sql_window.ui"
 
 class SQLWindowGUI :
 	def __init__(self, db):
+		
 		self.builder = Gtk.Builder()
+		GObject.type_register(GtkSource.View)
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.db = db
+
+		language_manager = GtkSource.LanguageManager()
+		self.source_view = self.builder.get_object('gtksourceview1')
+		self.source_buffer = GtkSource.Buffer()
+		self.source_view.set_buffer(self.source_buffer)
+		self.source_buffer.set_language(language_manager.get_language('sql'))
+		completion = self.source_view.get_completion()
+		keyword_provider = GtkSource.CompletionWords.new('Keywords')
+		keyword_provider.register(self.source_buffer)
+		completion.add_provider(keyword_provider)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
-		button = self.builder.get_object('button1')
-		#self.builder.get_object('overlay1').add_overlay(button)
+
+		self.populate_sql_commands()
+
+		cursor = self.db.cursor()
+		cursor.execute("SELECT command FROM sql.history WHERE current = True")
+		command = cursor.fetchone()[0]
+		self.source_buffer.set_text(command)
+		cursor.close()
+
+	def sql_combo_changed (self, combobox):
+		if self.builder.get_object('comboboxtext-entry').has_focus():
+			return #user is typing new values
+		name = combobox.get_active_text()
+		cursor = self.db.cursor()
+		cursor.execute("SELECT command FROM sql.history WHERE name = %s", (name,))
+		for row in cursor.fetchall():
+			command = row[0]
+			self.source_buffer.set_text(command)
+		cursor.close()
+
+	def sql_combo_populate_popup (self, combo, menu):
+		separator = Gtk.SeparatorMenuItem()
+		separator.show()
+		menu.prepend(separator)
+		save = Gtk.MenuItem.new_with_mnemonic("_Delete")
+		save.show()
+		save.connect("activate", self.delete_activated)
+		menu.prepend(save)
+
+	def populate_sql_commands (self):
+		combo = self.builder.get_object('comboboxtext1')
+		combo.remove_all()
+		cursor = self.db.cursor()
+		cursor.execute("SELECT name FROM sql.history WHERE current IS NOT TRUE "
+						"ORDER BY name")
+		for row in cursor.fetchall():
+			combo.append(row[0], row[0])
+		cursor.close()
+
+	def delete_activated (self, menuitem):
+		name = self.builder.get_object('comboboxtext-entry').get_text()
+		cursor = self.db.cursor()
+		cursor.execute("DELETE FROM sql.history WHERE name = %s", (name,))
+		self.db.commit()
+		cursor.close()
+		self.populate_sql_commands()
+
+	def save_clicked (self, button):
+		cursor = self.db.cursor()
+		name = self.builder.get_object('comboboxtext-entry').get_text()
+		start = self.source_buffer.get_start_iter()
+		end = self.source_buffer.get_end_iter()
+		command = self.source_buffer.get_text(start, end, True)
+		cursor.execute("INSERT INTO sql.history (name, command, date_inserted) "
+						"VALUES (%s, %s, CURRENT_DATE) ON CONFLICT (name) "
+						"DO UPDATE SET command = %s WHERE history.name = %s", 
+						(name, command, command, name))
+		self.db.commit()
+		cursor.close()
+		self.populate_sql_commands()
 
 	def run_sql_clicked (self, button):
-		sql_buffer = self.builder.get_object('textbuffer1')
 		treeview = self.builder.get_object('treeview1')
 		for column in treeview.get_columns():
 			treeview.remove_column(column)
-		start_iter = sql_buffer.get_start_iter ()
-		end_iter = sql_buffer.get_end_iter ()
-		string = sql_buffer.get_text(start_iter, end_iter, True)
+		start_iter = self.source_buffer.get_start_iter ()
+		end_iter = self.source_buffer.get_end_iter ()
+		string = self.source_buffer.get_text(start_iter, end_iter, True)
 		cursor = self.db.cursor()
 		try:
 			cursor.execute(string)
@@ -94,5 +162,29 @@ class SQLWindowGUI :
 			store.append (store_row)
 		self.db.rollback()
 		cursor.close()
+		self.save_current_sql(string)
+
+	def save_current_sql(self, command):
+		cursor = self.db.cursor()
+		cursor.execute("UPDATE sql.history SET command = %s "
+						"WHERE current = True RETURNING name", (command,))
+		if cursor.fetchone() == None:
+			cursor.execute("INSERT INTO sql.history "
+							"(name, command, date_inserted, current) VALUES "
+							"('Current', %s, CURRENT_DATE, TRUE)", (command,))
+		self.db.commit()
+		cursor.close()
+
+	def copy_for_database_utils_clicked (self, button):
+		start = self.source_buffer.get_start_iter()
+		end = self.source_buffer.get_end_iter()
+		command = '''cursor.execute("'''
+		command += self.source_buffer.get_text(start, end, True)
+		command = command.replace("\n", '''"\n               "''')
+		command += '''")'''
+		clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+		length = len(command)
+		clipboard.set_text(command, length)
+		
 
 	
