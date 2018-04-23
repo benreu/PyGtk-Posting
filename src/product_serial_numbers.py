@@ -102,13 +102,15 @@ class ProductSerialNumbersGUI:
 		
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id, name, invoice_serial_numbers "
+							"FROM products "
 							"WHERE (deleted, stock, sellable) = "
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
 			product_id = row[0]
 			name = row[1]
-			self.product_store.append([str(product_id), name])
+			serial = row[2]
+			self.product_store.append([str(product_id), name, serial])
 		
 	def populate_contact_store (self, m=None, i=None):
 		self.contact_store.clear()
