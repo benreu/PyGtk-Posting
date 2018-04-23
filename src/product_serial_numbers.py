@@ -252,8 +252,9 @@ class ProductSerialNumbersGUI:
 
 	def contact_match_selected (self, completion, model, iter_):
 		contact_id = model[iter_][0]
-		combo = self.builder.get_object('combobox1')
-		combo.set_active_id(contact_id)
+		if contact_id != None:
+			self.contact_id = contact_id
+			self.builder.get_object('textview1').set_sensitive(True)
 
 	def contact_combo_changed (self, combo):
 		contact_id = combo.get_active_id()
