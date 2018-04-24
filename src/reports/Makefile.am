@@ -38,6 +38,8 @@ python_PYTHON = time_clock_project.ui \
 	invoice_history.py \
 	invoice_history.ui \
 	contact_history.ui \
-	contact_history.py
+	contact_history.py \
+	product_history.py \
+	product_history.ui
 
 uidir = $(pkgdatadir)/reports/ui
