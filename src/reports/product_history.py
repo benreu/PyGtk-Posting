@@ -60,7 +60,7 @@ class ProductHistoryGUI:
 
 		price_column = self.builder.get_object ('treeviewcolumn8')
 		price_renderer = self.builder.get_object ('cellrenderertext9')
-		#price_column.set_cell_data_func(price_renderer, self.price_cell_func, 5)
+		price_column.set_cell_data_func(price_renderer, self.price_cell_func, 5)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -139,9 +139,10 @@ class ProductHistoryGUI:
 		self.populate_product_stores ()
 
 	def populate_product_stores (self):
-		self.populate_product_invoices()
+		self.populate_product_invoices ()
 		self.populate_purchase_orders ()
 		self.populate_warranty_store ()
+		self.populate_manufacturing_store ()
 
 	def populate_warranty_store (self):
 		warranty_store = self.builder.get_object('warranty_store')
@@ -234,6 +235,28 @@ class ProductHistoryGUI:
 			label = "<span weight='bold'>Invoices (%s)</span>" % count
 			self.builder.get_object('label2').set_markup(label)
 
+	def populate_manufacturing_store (self):
+		store = self.builder.get_object('manufacturing_store')
+		store.clear()
+		count = 0
+		self.cursor.execute("SELECT mp.id, mp.name, qty, "
+							"SUM(stop_time - start_time)::text, "
+							"COUNT(DISTINCT(employee_id)) "
+							"FROM manufacturing_projects AS mp "
+							"JOIN time_clock_projects AS tcp "
+								"ON tcp.id = mp.time_clock_projects_id "
+							"JOIN time_clock_entries AS tce "
+								"ON tce.project_id = tcp.id "
+							"WHERE product_id = %s "
+							"GROUP BY mp.id, mp.name, qty", (self.product_id,))
+		for row in self.cursor.fetchall():
+			store.append(row) 
+			count+= 1
+		if count == 0:
+			self.builder.get_object('label3').set_label('Manufacturing')
+		else:
+			label = "<span weight='bold'>Manufacturing (%s)</span>" % count
+			self.builder.get_object('label3').set_markup(label)
 
 
 
