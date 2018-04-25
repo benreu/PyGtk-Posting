@@ -50,17 +50,17 @@ class ProductHistoryGUI:
 			ext_name = row[2]
 			self.product_store.append([id_ , name, ext_name])
 			
-		amount_column = self.builder.get_object ('treeviewcolumn4')
-		amount_renderer = self.builder.get_object ('cellrenderertext4')
-		amount_column.set_cell_data_func(amount_renderer, self.qty_cell_func, 5)
+		qty_column = self.builder.get_object ('treeviewcolumn4')
+		qty_renderer = self.builder.get_object ('cellrenderertext4')
+		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func, 5)
 			
-		amount_column = self.builder.get_object ('treeviewcolumn5')
-		amount_renderer = self.builder.get_object ('cellrenderertext5')
-		amount_column.set_cell_data_func(amount_renderer, self.price_cell_func, 6)
+		price_column = self.builder.get_object ('treeviewcolumn5')
+		price_renderer = self.builder.get_object ('cellrenderertext5')
+		price_column.set_cell_data_func(price_renderer, self.price_cell_func, 6)
 
-		amount_column = self.builder.get_object ('treeviewcolumn8')
-		amount_renderer = self.builder.get_object ('cellrenderertext9')
-		amount_column.set_cell_data_func(amount_renderer, self.price_cell_func, 5)
+		price_column = self.builder.get_object ('treeviewcolumn8')
+		price_renderer = self.builder.get_object ('cellrenderertext9')
+		#price_column.set_cell_data_func(price_renderer, self.price_cell_func, 5)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -178,7 +178,8 @@ class ProductHistoryGUI:
 		po_store = self.builder.get_object('po_store')
 		po_store.clear()
 		count = 0
-		self.cursor.execute("SELECT po.id, contacts.name, date_created, qty, price "
+		self.cursor.execute("SELECT po.id, contacts.name, date_created, "
+							"qty, price, order_number "
 							"FROM purchase_orders AS po "
 							"JOIN purchase_order_line_items AS poli "
 							"ON poli.purchase_order_id = po.id "
@@ -192,9 +193,10 @@ class ProductHistoryGUI:
 			dated_for = row[2]
 			qty = row[3]
 			price = row[4]
+			order_number = row[5]
 			date_formatted = dateutils.datetime_to_text(dated_for)
-			po_store.append([po_id, str(dated_for), 
-									date_formatted, vendor_name, qty, price])
+			po_store.append([po_id, str(dated_for), date_formatted, 
+								vendor_name, qty, price, order_number])
 		if count == 0:
 			self.builder.get_object('label4').set_label('Purchase Orders')
 		else:
