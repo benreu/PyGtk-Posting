@@ -99,6 +99,13 @@ class MainReportsGUI:
 		from reports import job_sheet_history
 		job_sheet_history.JobSheetHistoryGUI(self.db)
 
+	def product_history_clicked (self, button):
+		from reports import product_history
+		product_history.ProductHistoryGUI(self.main)
+
+
+
+		
 
 		
 		

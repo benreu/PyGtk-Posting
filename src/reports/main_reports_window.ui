@@ -47,6 +47,9 @@
                       </packing>
                     </child>
                     <child>
+                      <placeholder/>
+                    </child>
+                    <child>
                       <object class="GtkButton" id="button2">
                         <property name="label" translatable="yes">Statements</property>
                         <property name="visible">True</property>
@@ -99,7 +102,7 @@
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">5</property>
+                        <property name="position">6</property>
                       </packing>
                     </child>
                   </object>
@@ -157,6 +160,20 @@
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkButton" id="button16">
+                        <property name="label" translatable="yes">Product history</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="product_history_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkButton" id="button7">
                         <property name="label" translatable="yes">Count inventory</property>
                         <property name="visible">True</property>
@@ -199,17 +216,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button10">
-                        <property name="label" translatable="yes"> </property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">5</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>
@@ -264,6 +271,9 @@
                       </packing>
                     </child>
                     <child>
+                      <placeholder/>
+                    </child>
+                    <child>
                       <object class="GtkButton" id="button12">
                         <property name="label" translatable="yes">Time clock projects</property>
                         <property name="visible">True</property>
@@ -314,7 +324,7 @@
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">5</property>
+                        <property name="position">6</property>
                       </packing>
                     </child>
                   </object>
