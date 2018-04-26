@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -28,18 +28,21 @@ DB_FORMAT_DATE = "%Y-%m-%d"
 # -- datetime utils -- #
 
 def datetime_to_user_date_time (date_time):
+	print ("datetime_to_user_date_time is deprecated, please use Postgres function")
 	if date_time == None:
 		return ''
 	date_string = datetime.strftime(date_time, USER_FORMAT_DATE_TIME)
 	return date_string
 
 def datetime_to_compact_string (date_time):
+	print ("datetime_to_compact_string is deprecated, please use Postgres function")
 	if date_time == None:
 		return ''
 	date_string = datetime.strftime(date_time, "%H:%M:%S")
 	return date_string
 
 def datetime_to_user_date (date_time):
+	print ("datetime_to_user_date is deprecated, please use Postgres function")
 	if date_time == None:
 		return ''
 	date_string = datetime.strftime(date_time, USER_FORMAT_DATE)
@@ -50,6 +53,7 @@ def text_to_datetime (text):
 	return date_time
 
 def datetime_to_text (date_time):
+	print ("datetime_to_text is deprecated, please use Postgres function")
 	if date_time == None or date_time == '':
 		return ''
 	date_string = datetime.strftime(date_time, PARSE_STRING)
@@ -81,10 +85,12 @@ def set_calendar_from_datetime (calendar, date_time):
 #-- date (not datetime) utils --#
 
 def date_to_text (date):
+	print ("date_to_text is deprecated, please use Postgres function")
 	date_string = date.strftime(PARSE_STRING)
 	return date_string
 
 def date_to_user_format (date):
+	print ("date_to_user_format is deprecated, please use Postgres function")
 	date_string = date.strftime(USER_FORMAT_DATE)
 	return date_string
 
