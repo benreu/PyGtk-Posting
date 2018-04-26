@@ -15,7 +15,6 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from dateutils import datetime_to_text 
 
 UI_FILE = "src/open_purchase_orders.ui"
 
@@ -52,8 +51,13 @@ class OpenPurchaseOrderGUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.open_po_store.clear()
-		self.cursor.execute("SELECT p.id, p.name, c.name, date_created, "
-							"COUNT(pli.id) "
+		self.cursor.execute("SELECT "
+								"p.id, "
+								"p.name, "
+								"c.name, "
+								"date_created::text, "
+								"format_date(date_created), "
+								"COUNT(pli.id) "
 							"FROM purchase_orders AS p JOIN contacts AS c "
 							"ON p.vendor_id = c.id "
 							"JOIN purchase_order_line_items AS pli "
@@ -62,15 +66,7 @@ class OpenPurchaseOrderGUI:
 							"= (False, False) "
 							"GROUP BY (p.id, c.name)")
 		for row in self.cursor.fetchall():
-			po_id = row[0]
-			po_name = row[1]
-			contact_name = row[2]
-			date_created = row[3]
-			items = row[4]
-			formatted_date = datetime_to_text (date_created)
-			self.open_po_store.append([po_id, po_name, 
-											contact_name, str(date_created), 
-											formatted_date, items])
+			self.open_po_store.append(row)
 		if path != []:
 			selection.select_path(path)
 

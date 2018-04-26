@@ -28,9 +28,9 @@
       <column type="gint"/>
       <!-- column-name number -->
       <column type="gchararray"/>
-      <!-- column-name date_formatted -->
-      <column type="gchararray"/>
       <!-- column-name date -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
       <column type="gchararray"/>
       <!-- column-name description -->
       <column type="gchararray"/>
@@ -218,7 +218,7 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">3</property>
+                    <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2">
                         <property name="editable">True</property>
@@ -226,7 +226,7 @@
                         <signal name="editing-started" handler="date_renderer_editing_started" swapped="no"/>
                       </object>
                       <attributes>
-                        <attribute name="text">2</attribute>
+                        <attribute name="text">3</attribute>
                       </attributes>
                     </child>
                   </object>

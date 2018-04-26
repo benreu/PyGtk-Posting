@@ -22,7 +22,6 @@ from queue import Empty
 from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
 import os, subprocess, sane, psycopg2
-import dateutils
 
 UI_FILE = "src/reports/vendor_history.ui"
 
@@ -217,28 +216,23 @@ class VendorHistoryGUI:
 		self.po_store.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
-			self.cursor.execute("SELECT id, date_created, name, "
+			self.cursor.execute("SELECT id, date_created::text, "
+								"format_date(date_created), name, '', "
 								"COALESCE(total, 0.00) "
 								"FROM purchase_orders "
 								"WHERE canceled =  false "
 								"ORDER BY date_created")
 		else:
-			self.cursor.execute("SELECT id, date_created, name, "
+			self.cursor.execute("SELECT id, date_created::text, "
+								"format_date(date_created), name, '', "
 								"COALESCE(total, 0.00) "
 								"FROM purchase_orders "
 								"WHERE (vendor_id, canceled) = "
 								"(%s, False) ORDER BY date_created", 
 								(self.vendor_id,))
-		for po in self.cursor.fetchall():
-			id_ = po[0]
-			date = po[1]
-			date_formatted = dateutils.datetime_to_text(date)
-			name = po[2]
-			remark = ""
-			amount = po[3]
-			total += amount
-			self.po_store.append([id_, str(date), date_formatted, name, 
-														remark, amount])
+		for row in self.cursor.fetchall():
+			total += row[5]
+			self.po_store.append(row)
 		self.builder.get_object('label3').set_label(str(total))
 
 	def invoice_row_changed (self, selection):

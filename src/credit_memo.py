@@ -111,45 +111,30 @@ class CreditMemoGUI:
 
 	def populate_credit_memo (self):
 		self.credit_items_store.clear()
-		self.cursor.execute("SELECT cmi.id, cmi.qty, p.id, p.name, p.ext_name, cmi.price, invoice_item_id, "
-							"i.id, date_returned, cmi.tax "
+		self.cursor.execute("SELECT 0, 1.0, cmi.id, cmi.qty, p.id, p.name, "
+							"p.ext_name, cmi.price, invoice_item_id, "
+							"i.id, date_returned::text, "
+							"format_date(date_returned), cmi.tax, '' "
 							"FROM credit_memo_items AS cmi "
 							"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
 							"JOIN products AS p ON p.id = ili.product_id "
 							"JOIN invoices AS i ON i.id = ili.invoice_id "
 							"WHERE credit_memo_id = %s", (self.credit_memo_id,))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			ext_name = row[4]
-			price = row[5]
-			invoice_item_id = row[6]
-			invoice_id = row[7]
-			date = row[8]
-			tax = row[9]
-			date_formatted = datetime_to_text (date)
-			self.credit_items_store.append([0, 1.0, product_id, product_name, 
-											ext_name, price, int(invoice_item_id), 
-											invoice_id, str(date), date_formatted,
-											tax, ''])
+			self.credit_items_store.append(row)
 
 	def populate_product_store(self, m=None, i=None):
 		self.product_store.clear()
 		c = self.db.cursor()
-		c.execute("SELECT ili.id::text, p.name, ext_name, i.id::text, i.dated_for "
+		c.execute("SELECT ili.id::text, p.name || '  {' || ext_name || '}', "
+					"i.id::text, format_date(i.dated_for) "
 					"FROM products AS p "
 					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
 					"WHERE (customer_id, paid) = (%s, True) "
 					"ORDER BY p.name", (self.customer_id,))
 		for row in c.fetchall():
-			_id_ = row[0]
-			name = "%s {%s}" % (row[1], row[2])
-			invoice = row[3]
-			date = datetime_to_text (row[4])
-			self.product_store.append([_id_, name, invoice, date])
+			self.product_store.append(row)
 		c.close()
 
 	def product_combo_changed (self, combo):
@@ -168,24 +153,14 @@ class CreditMemoGUI:
 				self.builder.get_object('treeview-selection1').select_path(row.path)
 				return
 		c = self.db.cursor()
-		c.execute("SELECT product_id, p.name, p.ext_name, ili.price, i.id, i.dated_for, ili.tax "
+		c.execute("SELECT 0, 1.0, product_id, p.name, p.ext_name, ili.price, i.id, "
+					"i.dated_for, format_date(i.dated_for), ili.tax, '' "
 					"FROM products AS p "
 					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
 					"WHERE ili.id = %s ", (invoice_item_id,))
 		for row in c.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			ext_name = row[2]
-			price = row[3]
-			invoice = row[4]
-			date = row[5]
-			tax = row[6]
-			date_formatted = datetime_to_text (date)
-			_iter = self.credit_items_store.append([0, 1.0, product_id, product_name, 
-											ext_name, price, int(invoice_item_id), 
-											invoice, str(date), date_formatted,
-											tax, ''])
+			_iter = self.credit_items_store.append(row)
 			self.save_line(_iter)
 		c.close()
 

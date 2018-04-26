@@ -15,7 +15,6 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from dateutils import datetime_to_text 
 
 UI_FILE = "src/open_invoices.ui"
 
@@ -52,8 +51,13 @@ class OpenInvoicesGUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.open_invoice_store.clear()
-		self.cursor.execute("SELECT i.id, i.name, c.name, date_created, "
-							"COUNT(ili.id) "
+		self.cursor.execute("SELECT "
+								"i.id, "
+								"i.name, "
+								"c.name, "
+								"date_created::text, "
+								"format_date(date_created), "
+								"COUNT(ili.id) "
 							"FROM invoices AS i JOIN contacts AS c "
 							"ON i.customer_id = c.id "
 							"JOIN invoice_items AS ili "
@@ -62,15 +66,7 @@ class OpenInvoicesGUI:
 							"= (False, False, True) "
 							"GROUP BY (i.id, c.name)")
 		for row in self.cursor.fetchall():
-			invoice_id = row[0]
-			invoice_name = row[1]
-			contact_name = row[2]
-			date_created = row[3]
-			items = row[4]
-			formatted_date = datetime_to_text (date_created)
-			self.open_invoice_store.append([invoice_id, invoice_name, 
-											contact_name, str(date_created), 
-											formatted_date, items])
+			self.open_invoice_store.append(row)
 		if path != []:
 			selection.select_path(path)
 

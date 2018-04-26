@@ -20,7 +20,7 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess, re, os
 from decimal import Decimal, ROUND_HALF_UP
-from dateutils import datetime_to_text, DateTimeCalendar
+from dateutils import DateTimeCalendar
 import purchase_ordering
 
 items = list()
@@ -448,7 +448,10 @@ class PurchaseOrderGUI:
 			self.builder.get_object('button3').set_sensitive(True)
 			self.builder.get_object('menuitem5').set_sensitive(True)
 			self.builder.get_object('menuitem2').set_sensitive(True)
-			self.cursor.execute("SELECT id, date_created "
+			self.cursor.execute("SELECT "
+									"id, "
+									"date_created, "
+									"format_date(date_created) "
 								"FROM purchase_orders "
 								"WHERE vendor_id = (%s) "
 								"AND (paid, closed, canceled) = "
@@ -456,13 +459,18 @@ class PurchaseOrderGUI:
 			for row in self.cursor.fetchall() : # check for active PO
 				self.purchase_order_id = row[0]
 				self.datetime = row[1]
+				self.builder.get_object('entry1').set_text(row[2])
 				self.products_from_existing_po ()
 				break
 			else:
-				self.datetime = datetime.today()
-				self.purchase_order_id = 0
-			day_text = datetime_to_text(self.datetime)
-			self.builder.get_object('entry1').set_text(day_text)
+				self.cursor.execute("SELECT "
+									"0, "
+									"CURRENT_DATE, "
+									"format_date(CURRENT_DATE) ")
+				for row in self.cursor.fetchall() : 
+					self.purchase_order_id = row[0]
+					self.datetime = row[1]
+					self.builder.get_object('entry1').set_text(row[2])
 			self.calculate_totals ()
 
 	################## start qty

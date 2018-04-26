@@ -18,8 +18,6 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
-from dateutils import datetime_to_text, calendar_to_text,\
-					calendar_to_datetime, set_calendar_from_datetime
 
 UI_FILE = "src/reports/product_transactions.ui"
 
@@ -81,8 +79,14 @@ class ProductTransactionsGUI:
 		self.builder.get_object('combobox1').set_active_id(str(self.product_id))
 		self.customer_transaction_store.clear()
 		qty_total = 0
-		self.cursor.execute("SELECT i.id, i.name, p.name, qty, i.date_created, "
-							"c.name, price FROM invoice_items AS ili "
+		self.cursor.execute("SELECT i.id, "
+								"qty, "
+								"i.date_created::text, "
+								"format_date(i.date_created), "
+								"c.name, "
+								"i.name, "
+								"price "
+							"FROM invoice_items AS ili "
 							"JOIN invoices AS i "
 							"ON i.id = ili.invoice_id "
 							"JOIN contacts AS c "
@@ -94,23 +98,20 @@ class ProductTransactionsGUI:
 							"ORDER BY i.id", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
-			invoice_id = row[0]
-			invoice_name = row[1]
-			product_name = row[2]
-			qty = row[3]
-			date = row[4]
-			date_formatted = datetime_to_text(date)
-			contact_name = row[5]
-			qty_total += qty
-			price = row[6]
-			self.customer_transaction_store.append([invoice_id, qty, str(date), 
-												date_formatted, contact_name, 
-												invoice_name, price])
+			qty_total += row[1]
+			self.customer_transaction_store.append(row)
 		self.builder.get_object('label3').set_label(str(qty_total))
 		self.vendor_transaction_store.clear()
 		qty_total = 0
-		self.cursor.execute("SELECT po.id, po.name, p.name, qty, po.date_created, "
-							"c.name, price, order_number "
+		self.cursor.execute("SELECT "
+								"po.id, "
+								"qty, "
+								"po.date_created::text, "
+								"format_date(po.date_created), "
+								"c.name, "
+								"po.name, "
+								"price, "
+								"order_number "
 							"FROM purchase_order_line_items AS pli "
 							"JOIN purchase_orders AS po "
 							"ON po.id = pli.purchase_order_id "
@@ -123,19 +124,8 @@ class ProductTransactionsGUI:
 							"ORDER BY po.id", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
-			po_id = row[0]
-			po_name = row[1]
-			product_name = row[2]
-			qty = row[3]
-			date = row[4]
-			date_formatted = datetime_to_text(date)
-			contact_name = row[5]
-			qty_total += qty
-			price = row[6]
-			order_number = row[7]
-			self.vendor_transaction_store.append([po_id, qty, str(date), 
-												date_formatted, contact_name, 
-												po_name, price, order_number])
+			qty_total += row[1]
+			self.vendor_transaction_store.append(row)
 		self.builder.get_object('label5').set_label(str(qty_total))
 
 

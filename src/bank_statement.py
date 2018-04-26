@@ -21,7 +21,7 @@ import psycopg2
 from datetime import datetime
 from db import transactor
 from decimal import Decimal
-from dateutils import datetime_to_text, DateTimeCalendar
+from dateutils import DateTimeCalendar
 
 UI_FILE = "src/bank_statement.ui"
 
@@ -200,11 +200,15 @@ class GUI:
 	def populate_treeview(self ):
 		self.bank_transaction_store.clear()
 		self.cursor.execute("SELECT ge.id, "
-							"CASE WHEN ge.credit THEN ge.amount::text ELSE '' END, "
-							"CASE WHEN ge.debit THEN ge.amount::text ELSE '' END, "
 							"COALESCE(ge.check_number::text, ''), "
-							"ge.date_inserted, reconciled, contacts.name, "
-							"transaction_description "
+							"ge.date_inserted::text, "
+							"format_date(ge.date_inserted), "
+							"CASE WHEN contacts.name IS NOT NULL "
+								"THEN contacts.name "
+								"ELSE transaction_description END, "
+							"reconciled, "
+							"CASE WHEN ge.credit THEN ge.amount::text ELSE '' END, "
+							"CASE WHEN ge.debit THEN ge.amount::text ELSE '' END "
 							"FROM bank_statement_view AS ge "
 							"LEFT JOIN payments_incoming AS pi "
 							"ON ge.id = pi.gl_entries_id "
@@ -214,20 +218,7 @@ class GUI:
 							"ORDER BY date_inserted;", 
 							(self.account_number, self.account_number))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			debit_amount = row[1]
-			credit_amount = row[2]
-			check_number = row[3]
-			date = row[4]
-			date_formatted = datetime_to_text(date)
-			reconciled = row[5]
-			description = row[6]
-			if description == None:
-				description = row[7]
-			self.bank_transaction_store.append([row_id, check_number, date_formatted, 
-												str(date), description, 
-												reconciled, str(debit_amount), 
-												str(credit_amount)])
+			self.bank_transaction_store.append(row)
 
 	def on_reconciled_toggled(self, widget, path):
 		active = not self.bank_transaction_store[path][5]

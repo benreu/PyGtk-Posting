@@ -17,7 +17,7 @@ from gi.repository import Gtk
 from datetime import datetime
 from decimal import Decimal
 from db import transactor
-from dateutils import DateTimeCalendar, datetime_to_text
+from dateutils import DateTimeCalendar
 import subprocess
 
 UI_FILE = "src/unpaid_invoices.ui"
@@ -155,25 +155,22 @@ class GUI:
 		model, path = treeview_selection.get_selected_rows()
 		model.clear()
 		total = Decimal()
-		self.cursor.execute("SELECT i.id, i.name, amount_due, c.name, c.id, "
-							"dated_for FROM invoices AS i "
+		self.cursor.execute("SELECT "
+								"i.id, "
+								"i.name, "
+								"c.id, "
+								"c.name, "
+								"dated_for::text, "
+								"format_date(dated_for), "
+								"amount_due "
+							"FROM invoices AS i "
 							"JOIN contacts AS c ON i.customer_id = c.id "
 							"WHERE (canceled, paid, posted) = "
 							"(False, False, True) "
 							"ORDER BY i.id")
 		tupl = self.cursor.fetchall()
 		for row in tupl:
-			invoice_id = row[0]
-			invoice_name = row[1]
-			invoice = row[2]
-			total += invoice
-			customer_name = row[3]
-			customer_id = row[4]
-			date = row[5]
-			date_formatted = datetime_to_text(date)
-			model.append([invoice_id, invoice_name, customer_id, 
-								customer_name, str(date), date_formatted, 
-								invoice ])
+			model.append(row)
 		if path != [] and tupl != []:
 			treeview_selection.select_path(path)
 			self.builder.get_object('treeview1').scroll_to_cell(path)

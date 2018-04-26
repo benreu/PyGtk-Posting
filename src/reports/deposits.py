@@ -17,7 +17,6 @@
 
 
 from gi.repository import Gtk
-from dateutils import datetime_to_text 
 
 UI_FILE = "src/reports/deposits.ui"
 
@@ -37,8 +36,23 @@ class DepositsGUI:
 		window = self.builder.get_object('window1')
 		window.show_all()
 
+		price_column = self.builder.get_object ('treeviewcolumn2')
+		price_renderer = self.builder.get_object ('cellrenderertext2')
+		price_column.set_cell_data_func(price_renderer, self.amount_cell_func)
+
+	def amount_cell_func(self, view_column, cellrenderer, model, iter1, column):
+		amount = '{:,.2f}'.format(model.get_value(iter1, 3))
+		cellrenderer.set_property("text" , amount)
+
 	def populate_deposits_store (self):
-		self.cursor.execute ("SELECT gl_entries.id, gl_entries.amount, gl_accounts.name, date_inserted FROM gl_entries "
+		self.cursor.execute ("SELECT "
+								"gl_entries.id, "
+								"date_inserted::text, "
+								"format_date(date_inserted), "
+								"gl_entries.amount, "
+								"'', "
+								"gl_accounts.name "
+							"FROM gl_entries "
 							"JOIN gl_accounts ON gl_accounts.number = gl_entries.debit_account "
 							"WHERE gl_entries.id IN "
 								"(SELECT gl_entries_deposit_id FROM payments_incoming "
@@ -46,28 +60,19 @@ class DepositsGUI:
 							"ORDER BY date_inserted")
 		for row in self.cursor.fetchall():
 			row_id = row[0]
-			amount = row[1]
-			account_name = row[2]
-			date = row[3]
-			date_formatted = datetime_to_text(date)
-			parent = self.deposit_store.append(None,[row_id, str(date), 
-												date_formatted, float(amount), 
-												account_name, ""])
-			self.cursor.execute("SELECT p.id, amount, payment_text, "
-								"date_inserted, c.name "
+			parent = self.deposit_store.append(None,row)
+			self.cursor.execute("SELECT "
+									"p.id, "
+									"date_inserted::text, "
+									"format_date(date_inserted), "
+									"amount, "
+									"payment_text, "
+									"c.name "
 								"FROM payments_incoming AS p "
 								"JOIN contacts AS c ON c.id = p.customer_id "
 								"WHERE gl_entries_deposit_id = %s", (row_id,))
 			for row in self.cursor.fetchall():
-				payment_id = row[0]
-				amount = row[1]
-				text = row[2]
-				date = row[3]
-				customer_name = row[4]
-				date_formatted = datetime_to_text(date)
-				self.deposit_store.append(parent,[payment_id, str(date), 
-												date_formatted, float(amount), 
-												text, customer_name])
+				self.deposit_store.append(parent, row)
 
 
 

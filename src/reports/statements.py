@@ -18,7 +18,6 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import subprocess
-from dateutils import datetime_to_text
 
 UI_FILE = "src/reports/statements.ui"
 
@@ -49,19 +48,16 @@ class StatementsGUI:
 
 	def populate_customer_store (self):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT customer_id, contacts.name, contacts.ext_name "
+		self.cursor.execute("SELECT customer_id::text, contacts.name, contacts.ext_name "
 							"FROM statements JOIN contacts "
 							"ON contacts.id = statements.customer_id "
 							"GROUP BY contacts.name, customer_id, contacts.ext_name "
 							"ORDER BY contacts.name ")
 		for row in self.cursor.fetchall():
-			customer_id = row[0]
-			customer_name = row[1]
-			ext_name = row[2]
-			self.customer_store.append([str(customer_id), customer_name, ext_name])
+			self.customer_store.append(row)
 
 	def price_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = model.get_value(iter1, 5)
+		price = model.get_value(iter1, 6)
 		cellrenderer.set_property("text" , str(price))
 
 	def customer_match_selected (self, completion, model, iter):
@@ -117,8 +113,9 @@ class StatementsGUI:
 	def populate_statement_store (self):
 		self.statement_store.clear()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT s.id, date_inserted, contacts.name, "
-								"contacts.id, s.name, amount, printed "
+			self.cursor.execute("SELECT s.id, date_inserted::text, "
+								"format_date(date_inserted), contacts.id, "
+								"contacts.name, s.name, amount, printed "
 								"FROM statements AS s "
 								"JOIN contacts "
 								"ON contacts.id = s.customer_id "
@@ -126,8 +123,9 @@ class StatementsGUI:
 		else:
 			if self.customer_id == None:
 				return # no customer selected
-			self.cursor.execute("SELECT s.id, date_inserted, contacts.name, "
-								"contacts.id, s.name, amount, printed "
+			self.cursor.execute("SELECT s.id, date_inserted::text, "
+								"format_date(date_inserted), contacts.id, "
+								"contacts.name, s.name, amount, printed "
 								"FROM statements AS s "
 								"JOIN contacts "
 								"ON contacts.id = s.customer_id "
@@ -136,25 +134,20 @@ class StatementsGUI:
 								(self.customer_id, ))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
-			date = row[1]
-			customer_name = row[2]
 			customer_id = row[3]
-			statement_name = row[4]
-			amount = row[5]
-			printed = row[6]
-			date_formatted = datetime_to_text (date)
-			parent = self.statement_store.append(None, [row_id, date_formatted,  
-										str(date),customer_name, statement_name, 
-										amount, printed])
+			parent = self.statement_store.append(None, row)
 			if self.builder.get_object('checkbutton2').get_active() == False:
 				parent = None
-			self.cursor.execute("SELECT * FROM (SELECT pi.id, date_inserted, "
+			self.cursor.execute("SELECT * FROM (SELECT pi.id, date_inserted::text, "
+								"format_date(date_inserted), c.id, "
 								"c.name, payment_info(pi.id), "
 								"amount, False FROM payments_incoming AS pi "
 								"JOIN contacts AS c ON c.id = pi.customer_id "
 								"WHERE (customer_id, statement_id) = (%s, %s)) p "
 								"UNION "
-								"(SELECT i.id, date_created, c.name, i.name, "
+								"(SELECT i.id, date_created::text, "
+								"format_date(date_created), c.id, "
+								"c.name, i.name, "
 								"amount_due, (date_printed IS NOT NULL) "
 								"FROM invoices AS i "
 								"JOIN contacts AS c ON c.id = i.customer_id "
@@ -162,16 +155,7 @@ class StatementsGUI:
 								"ORDER BY 2", 
 								(customer_id, row_id, customer_id, row_id))
 			for row in self.cursor.fetchall():
-				row_id = row[0]
-				date = row[1]
-				customer_name = row[2]
-				description = row[3]
-				amount = row[4]
-				printed = row[5]
-				date_formatted = datetime_to_text (date)
-				self.statement_store.append(parent, [row_id, date_formatted,  
-										str(date),customer_name, description, 
-										amount, printed])
+				self.statement_store.append(parent, row)
 
 
 

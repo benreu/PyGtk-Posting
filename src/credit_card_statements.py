@@ -18,7 +18,7 @@
 from gi.repository import Gtk, GLib
 import psycopg2
 from db import transactor
-from dateutils import DateTimeCalendar, datetime_to_text
+from dateutils import DateTimeCalendar
 
 UI_FILE = "src/credit_card_statements.ui"
 
@@ -142,11 +142,10 @@ class CreditCardStatementGUI:
 		row_id = self.transactions_store[path][0]
 		try:
 			self.cursor.execute("UPDATE gl_entries SET date_inserted = %s "
-							"WHERE id = %s RETURNING date_inserted", 
+							"WHERE id = %s RETURNING format_date(date_inserted)", 
 							(text, row_id))
 			#Postgres has a powerful date resolver, let it figure out the date
-			date = self.cursor.fetchone()[0]
-			date_formatted = datetime_to_text (date)
+			date_formatted = self.cursor.fetchone()[0]
 		except psycopg2.DataError as e:
 			self.db.rollback()
 			print (e)
@@ -165,9 +164,15 @@ class CreditCardStatementGUI:
 
 	def populate_statement_treeview (self, widget = None):
 		self.transactions_store.clear()
-		self.cursor.execute("SELECT id, transaction_description, amount, "
-							"date_inserted, reconciled, debit_account, "
-							"credit_account "
+		self.cursor.execute("SELECT "
+								"id, "
+								"transaction_description, "
+								"amount, "
+								"date_inserted::text, "
+								"format_date(date_inserted), "
+								"reconciled, "
+								"debit_account, "
+								"credit_account "
 							"FROM gl_entries "
 							"WHERE (debit_account = %s OR credit_account = %s) "
 							"AND date_reconciled IS NULL ORDER BY date_inserted", 
@@ -178,9 +183,9 @@ class CreditCardStatementGUI:
 			description = row[1]
 			amount = float(row[2])
 			date = row[3]
-			reconciled = row[4]
-			date_formatted = datetime_to_text (date)
-			if str(row[5]) == self.credit_card_account:
+			date_formatted = row[4]
+			reconciled = row[5]
+			if str(row[6]) == self.credit_card_account:
 				amount = '{:,.2f}'.format(amount)
 				self.transactions_store.append([row_id, str(date), date_formatted, 
 											description, amount, '', reconciled])

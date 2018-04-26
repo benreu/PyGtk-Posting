@@ -18,8 +18,6 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
-from dateutils import datetime_to_text, calendar_to_text, \
-					calendar_to_datetime, set_calendar_from_datetime
 
 #Comment the first line and uncomment the second before installing
 #or making the tarball (alternatively, use project variables)

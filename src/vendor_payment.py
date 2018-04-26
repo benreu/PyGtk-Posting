@@ -113,28 +113,24 @@ class GUI:
 		self.c_c_multi_payment_store.clear()
 		if self.builder.get_object('checkbutton1').get_active() == True:
 			self.cursor.execute ("SELECT id, invoice_description, amount_due, "
-								"date_created "
+								"FALSE, "
+								"date_created::text, "
+								"format_date(date_created) "
 								"FROM purchase_orders "
 								"WHERE (canceled, invoiced, paid) = "
 								"(False, True, False) "
 								"ORDER BY date_created")
 		else:
 			self.cursor.execute ("SELECT id, invoice_description, amount_due, "
-								"date_created "
+								"FALSE, "
+								"date_created::text, "
+								"format_date(date_created) "
 								"FROM purchase_orders "
 								"WHERE (vendor_id, canceled, invoiced, paid) = "
 								"(%s, False, True, False) "
 								"ORDER BY date_created", (self.vendor_id, ))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			invoice_desc = row[1]
-			amount_due = row[2]
-			date_created = row[3]
-			date_formatted = datetime_to_text(date_created)
-			self.vendor_invoice_store.append([row_id, invoice_desc, 
-													amount_due, False,
-													str(date_created),
-													date_formatted])
+			self.vendor_invoice_store.append(row)
 		self.check_cash_entries_valid ()
 		self.check_credit_card_entries_valid ()
 

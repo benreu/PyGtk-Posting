@@ -16,7 +16,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
-from dateutils import datetime_to_text
 
 UI_FILE = "src/account_transactions.ui"
 
@@ -244,7 +243,10 @@ class GUI:
 		progressbar.show()
 		self.account_treestore.clear()
 		balance = 0.00
-		self.cursor.execute("SELECT gtl.id, gtl.date_inserted, ge.amount, debit_account, debits.name, credit_account, credits.name, ge.id "
+		self.cursor.execute("SELECT gtl.id, gtl.date_inserted::text, "
+							"format_date(gtl.date_inserted), ge.amount, "
+							"debit_account, debits.name, credit_account, "
+							"credits.name, ge.id "
 							"FROM gl_entries AS ge "
 							"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
 							"LEFT JOIN gl_accounts AS debits ON ge.debit_account = debits.number "
@@ -260,20 +262,20 @@ class GUI:
 			progress = index/rows
 			trans_id = transaction[0]
 			date = transaction[1]
-			formatted_date = datetime_to_text(date)
-			debit_account = transaction[3]
-			debit_name = transaction[4]
-			credit_account = transaction[5]
-			credit_name = transaction[6]
+			formatted_date = transaction[2]
+			debit_account = transaction[4]
+			debit_name = transaction[5]
+			credit_account = transaction[6]
+			credit_name = transaction[7]
 			if transaction[self.n_col] == int(self.account_number): # this is a credit with the account id we are searching for
-				amount = float(transaction[2])
-				balance += float(transaction[2])
+				amount = float(transaction[3])
+				balance += float(transaction[3])
 				amount_color = Gdk.RGBA(0,0,0,1)
 				balance_color = Gdk.RGBA(0,0,0,1)
 			else:# this is a debit with the account id we are searching for
-				amount = float(transaction[2]) 
+				amount = float(transaction[3]) 
 				amount = amount - amount * 2
-				balance -= float(transaction[2])
+				balance -= float(transaction[3])
 				amount_color = Gdk.RGBA(0.4,0,0,1)
 			if balance < 0.00:
 				balance_color = Gdk.RGBA(0.7,0,0,1)
@@ -334,38 +336,42 @@ class GUI:
 			return
 		self.account_treestore.clear()
 		amount = 0.00
-		self.cursor.execute("SELECT date_group, COALESCE(d.debits - c.credits, 0.00) FROM "
-								"((SELECT date_trunc('day', date_inserted) "
-								"AS date_group FROM gl_entries "
+		self.cursor.execute("SELECT date_group, "
+								"formatted_date, "
+								"COALESCE(d.debits - c.credits, 0.00) "
+								"FROM "
+								"((SELECT date_trunc('day', date_inserted)::text "
+								"AS date_group, format_date(date_inserted) "
+								"AS formatted_date FROM gl_entries "
 								"WHERE credit_account = %s OR debit_account = %s "
-								"GROUP BY date_group) ge "
+								"GROUP BY date_group, formatted_date) ge "
 
 								"LEFT JOIN "
 								
-								"(SELECT  date_inserted "
-								"AS date_group2, COALESCE(SUM(amount),0.00) AS debits "
+								"(SELECT  date_inserted::text AS date2, "
+								"COALESCE(SUM(amount),0.00) AS debits "
 								"FROM gl_entries "
-								"WHERE debit_account = %s GROUP BY date_group2) "
-								"d ON date_group2 = date_group "
+								"WHERE debit_account = %s GROUP BY date2) "
+								"d ON date2 = date_group "
 
 								"LEFT JOIN "
 								
-								"(SELECT date_inserted "
-								"AS date_group3, COALESCE(SUM(amount),0.00) AS credits "
+								"(SELECT date_inserted::text AS date3, "
+								"COALESCE(SUM(amount),0.00) AS credits "
 								"FROM gl_entries "
-								"WHERE credit_account = %s GROUP BY date_group3) "
-								"c ON date_group3 = date_group ) "
+								"WHERE credit_account = %s GROUP BY date3) "
+								"c ON date3 = date_group ) "
 							"ORDER BY 1", 
 							(self.account_number, self.account_number,
 							self.account_number, self.account_number))
 		for row in self.cursor.fetchall():
 			date = row[0]
-			balance = float(row[1])
+			formatted_date = row[1]
+			balance = float(row[2])
 			amount += balance
-			formatted_date = datetime_to_text(date)
 			amount_color = Gdk.RGBA(0,0,0,1)
 			balance_color = Gdk.RGBA(0,0,0,1)
-			self.account_treestore.append (None, [str(date), formatted_date,
+			self.account_treestore.append (None, [date, formatted_date,
 											0, '', balance, float(amount), '', 
 											amount_color, balance_color])
 			while Gtk.events_pending():
@@ -378,9 +384,11 @@ class GUI:
 			return
 		self.account_treestore.clear()
 		amount = 0.00
-		self.cursor.execute("SELECT date_group, COALESCE(d.debits - c.credits, 0.00) FROM "
+		self.cursor.execute("SELECT date_group, "
+								"format_date(date_inserted), "
+								"COALESCE(d.debits - c.credits, 0.00)::float FROM "
 								"((SELECT date_trunc('month', date_inserted) "
-								"AS date_group FROM gl_entries GROUP BY date_group) ge "
+								"AS date_group, date_inserted FROM gl_entries GROUP BY date_group, date_inserted) ge "
 
 								"LEFT JOIN "
 								
@@ -401,9 +409,9 @@ class GUI:
 							, (self.account_number, self.account_number))
 		for row in self.cursor.fetchall():
 			date = row[0]
-			balance = float(row[1])
+			formatted_date = row[1]
+			balance = row[2]
 			amount += balance
-			formatted_date = datetime_to_text(date)
 			amount_color = Gdk.RGBA(0,0,0,1)
 			balance_color = Gdk.RGBA(0,0,0,1)
 			self.account_treestore.append (None, [str(date), formatted_date,

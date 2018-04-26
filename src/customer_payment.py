@@ -19,7 +19,7 @@ from gi.repository import Gtk, GLib
 from decimal import Decimal
 from datetime import date, timedelta
 import subprocess
-from dateutils import DateTimeCalendar, date_to_text, datetime_to_text
+from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
 
 UI_FILE = "src/customer_payment.ui"
@@ -202,7 +202,13 @@ class GUI:
 	def populate_invoices (self):
 		self.update_invoice_amounts_due ()
 		self.invoice_store.clear()
-		self.cursor.execute("SELECT i.id, i.name, total, amount_due, date_created "
+		self.cursor.execute("SELECT "
+								"i.id, "
+								"i.name, "
+								"date_created::text, "
+								"format_date(date_created), "
+								"total, "
+								"amount_due "
 							"FROM invoices AS i "
 							"JOIN contacts AS c ON i.customer_id = c.id "
 							"WHERE (canceled, paid, posted) = "
@@ -210,14 +216,7 @@ class GUI:
 							"AND customer_id = %s ORDER BY i.date_created", 
 							(self.customer_id,))
 		for row in self.cursor.fetchall():
-			invoice_id = row[0]
-			invoice_name = row[1]
-			total = row[2]
-			amount_due = row[3]
-			date = row[4]
-			date_formatted = datetime_to_text(date)
-			self.invoice_store.append([invoice_id, invoice_name, str(date), 
-										date_formatted, total, amount_due ])
+			self.invoice_store.append(row)
 		self.builder.get_object('spinbutton1').set_value(0)
 
 	def invoice_selection_changed (self, selection):

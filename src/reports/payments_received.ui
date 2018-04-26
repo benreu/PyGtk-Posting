@@ -40,7 +40,7 @@
       <!-- column-name contact -->
       <column type="gchararray"/>
       <!-- column-name amount -->
-      <column type="gchararray"/>
+      <column type="gfloat"/>
       <!-- column-name payment_text -->
       <column type="gchararray"/>
     </columns>

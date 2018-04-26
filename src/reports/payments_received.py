@@ -100,7 +100,8 @@ class PaymentsReceivedGUI:
 		total_amount = Decimal()
 		fiscal_id = self.builder.get_object('combobox2').get_active_id()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT pay.id, pay.date_inserted, "
+			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+								"format_date(pay.date_inserted), "
 								"contacts.name, pay.amount, payment_info(pay.id) "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
@@ -114,8 +115,10 @@ class PaymentsReceivedGUI:
 								"ORDER BY date_inserted;", (
 								fiscal_id, fiscal_id))
 		elif self.customer_id != None:
-			self.cursor.execute("SELECT pay.id, pay.date_inserted, "
-								"contacts.name, pay.amount, payment_info(pay.id) "
+			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+								"format_date(pay.date_inserted), "
+								"contacts.name, pay.amount, "
+								"payment_info(pay.id) "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
@@ -129,17 +132,8 @@ class PaymentsReceivedGUI:
 								"ORDER BY date_inserted;", (self.customer_id, 
 								fiscal_id, fiscal_id))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			date = row[1]
-			formatted_date = dateutils.datetime_to_text(date)
-			contact = row[2]
-			amount = row[3]
-			payment_text = row[4]
-			total_amount += amount
-			self.payment_store.append([row_id, str(date), formatted_date,
-															contact,
-															str(amount),
-															payment_text])
+			total_amount += row[4]
+			self.payment_store.append(row)
 		amount_received = '${:,.2f}'.format(total_amount)
 		self.builder.get_object('label2').set_label(amount_received)
 

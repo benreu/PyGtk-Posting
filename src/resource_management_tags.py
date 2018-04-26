@@ -17,9 +17,6 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-from dateutils import seconds_to_compact_string, datetime_to_text,\
-						calendar_to_text, text_to_datetime,\
-						set_calendar_from_datetime, calendar_to_datetime
 
 UI_FILE = "src/resource_management_tags.ui"
 

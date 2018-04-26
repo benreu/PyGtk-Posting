@@ -149,20 +149,15 @@ class ContactHistoryGUI:
 		incoming_invoice_store = self.builder.get_object('incoming_invoice_store')
 		incoming_invoice_store.clear()
 		count = 0
-		self.cursor.execute("SELECT id, date_created, "
+		self.cursor.execute("SELECT id, date_created::text, "
+								"format_date(date_created), "
 								"amount, description "
 								"FROM incoming_invoices "
 								"WHERE contact_id = %s "
 								"ORDER BY date_created;", (self.contact_id,))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			date = row[1]
-			formatted_date = dateutils.datetime_to_text(date)
-			amount = row[2]
-			description = row[3]
 			count += 1
-			incoming_invoice_store.append([row_id, str(date), formatted_date,
-									amount, description])
+			incoming_invoice_store.append(row)
 		if count == 0:
 			self.builder.get_object('label9').set_label('Incoming invoices')
 		else:
@@ -174,7 +169,9 @@ class ContactHistoryGUI:
 		warranty_store.clear()
 		count = 0
 		self.cursor.execute("SELECT snh.id, p.name, sn.serial_number, "
-							"snh.date_inserted, snh.description "
+							"snh.date_inserted::text, "
+							"format_date(snh.date_inserted), "
+							"snh.description "
 							"FROM serial_number_history AS snh "
 							"JOIN serial_numbers AS sn "
 							"ON sn.id = snh.serial_number_id "
@@ -183,14 +180,7 @@ class ContactHistoryGUI:
 							(self.contact_id,))
 		for row in self.cursor.fetchall():
 			count += 1
-			row_id = row[0]
-			product_name = row[1]
-			serial_number = row[2]
-			date = row[3]
-			description = row[4]
-			date_formatted = dateutils.datetime_to_text (date)
-			warranty_store.append([row_id, product_name, serial_number, 
-									str(date), date_formatted, description])
+			warranty_store.append(row)
 		if count == 0:
 			self.builder.get_object('label8').set_label('Warranty')
 		else:
@@ -201,24 +191,17 @@ class ContactHistoryGUI:
 		statement_store = self.builder.get_object('statements_store')
 		statement_store.clear()
 		count = 0
-		self.cursor.execute("SELECT id, date_inserted, "
-								"name, amount, print_date "
+		self.cursor.execute("SELECT id, date_inserted::text, "
+								"format_date(date_inserted), "
+								"name, amount::float, print_date::text, "
+								"format_date(print_date) "
 								"FROM statements AS s "
 								"WHERE customer_id = %s "
 								"ORDER BY date_inserted, id", 
 								(self.contact_id, ))
 		for row in self.cursor.fetchall():
 			count += 1
-			row_id = row[0]
-			date = row[1]
-			statement_name = row[2]
-			amount = row[3]
-			printed = row[4]
-			date_formatted = dateutils.datetime_to_text (date)
-			date_print_formatted = dateutils.datetime_to_text(printed)
-			statement_store.append([row_id, str(date), date_formatted, 
-										statement_name, amount, str(printed), 
-										date_print_formatted])
+			statement_store.append(row)
 		if count == 0:
 			self.builder.get_object('label7').set_label('Statements')
 		else:
@@ -229,7 +212,8 @@ class ContactHistoryGUI:
 		resource_store = self.builder.get_object('resource_store')
 		resource_store.clear()
 		count = 0
-		self.cursor.execute("SELECT r.id, subject, dated_for, notes, "
+		self.cursor.execute("SELECT r.id, subject, dated_for::text, "
+							"format_date(dated_for), notes, "
 							"tag, red, green, blue, alpha "
 							"FROM resources AS r "
 							"JOIN resource_tags AS rt "
@@ -241,14 +225,14 @@ class ContactHistoryGUI:
 			row_id = row[0]
 			subject = row[1]
 			dated_for = row[2]
-			notes = row[3]
-			tag_name = row[4]
-			rgba.red = row[5]
-			rgba.green = row[6]
-			rgba.blue = row[7]
-			rgba.alpha = row[8]
-			date_formatted = dateutils.datetime_to_text(dated_for)
-			resource_store.append([row_id, subject, str(dated_for), 
+			date_formatted = row[3]
+			notes = row[4]
+			tag_name = row[5]
+			rgba.red = row[6]
+			rgba.green = row[7]
+			rgba.blue = row[8]
+			rgba.alpha = row[9]
+			resource_store.append([row_id, subject, dated_for, 
 									date_formatted, notes, tag_name, rgba])
 		if count == 0:
 			self.builder.get_object('label4').set_label('Resources')
@@ -260,20 +244,15 @@ class ContactHistoryGUI:
 		payment_store = self.builder.get_object('payments_store')
 		payment_store.clear()
 		count = 0
-		self.cursor.execute("SELECT id, date_inserted, "
+		self.cursor.execute("SELECT id, date_inserted::text, "
+								"format_date(date_inserted), "
 								"amount, payment_info(id) "
 								"FROM payments_incoming "
 								"WHERE customer_id = %s "
 								"ORDER BY date_inserted;", (self.contact_id,))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			date = row[1]
-			formatted_date = dateutils.datetime_to_text(date)
-			amount = row[2]
-			payment_text = row[3]
 			count += 1
-			payment_store.append([row_id, str(date), formatted_date,
-									amount, payment_text])
+			payment_store.append(row)
 		if count == 0:
 			self.builder.get_object('label3').set_label('Payments received')
 		else:
@@ -284,25 +263,18 @@ class ContactHistoryGUI:
 		invoice_store = self.builder.get_object('invoice_store')
 		invoice_store.clear()
 		count = 0
-		self.cursor.execute("SELECT i.id, dated_for, i.name,  "
-							"comments, COALESCE(total, 0.00), date_printed "
+		self.cursor.execute("SELECT i.id, dated_for::text, "
+							"format_date(dated_for), i.name,  "
+							"'Comments: ' || comments, "
+							"COALESCE(total, 0.00), date_printed::text, "
+							"format_date(date_printed) "
 							"FROM invoices AS i "
 							"WHERE (customer_id, canceled) = "
 							"(%s, False) ORDER BY dated_for", 
 							(self.contact_id,))
 		for row in self.cursor.fetchall():
 			count += 1
-			id_ = row[0]
-			date = row[1]
-			date_formatted = dateutils.datetime_to_text(date)
-			i_name = row[2]
-			remark = "Comments: " + row[3]
-			amount = row[4]
-			date_printed = row[5]
-			date_print_formatted = dateutils.datetime_to_text(date_printed)
-			invoice_store.append([id_, str(date), date_formatted, i_name, 
-									remark, amount, str(date_printed), 
-									date_print_formatted])
+			invoice_store.append(row)
 		if count == 0:
 			self.builder.get_object('label2').set_label('Invoices')
 		else:

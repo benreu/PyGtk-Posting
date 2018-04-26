@@ -16,7 +16,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from dateutils import datetime_to_text
 
 UI_FILE = "src/reports/loan_payments.ui"
 
@@ -57,7 +56,11 @@ class LoanPaymentsGUI:
 
 	def populate_loan_payments (self):
 		self.loan_payment_store.clear()
-		self.cursor.execute("SELECT contact_id, name, date_inserted "
+		self.cursor.execute("SELECT "
+								"contact_id, "
+								"name, "
+								"date_inserted::text, "
+								"format_date(date_inserted) "
 							"FROM gl_entries AS acl "
 							"JOIN contacts ON contacts.id = acl.contact_id "
 							"WHERE contact_id = %s "
@@ -67,10 +70,10 @@ class LoanPaymentsGUI:
 			contact_id = row[0]
 			contact_name = row[1]
 			date = row[2]
-			formatted_date = datetime_to_text(date)
-			parent = self.loan_payment_store.append(None, [0, contact_name, '', '', '', str(date), formatted_date])
+			formatted_date = row[3]
+			parent = self.loan_payment_store.append(None, [0, contact_name, '', '', '', date, formatted_date])
 			self.cursor.execute("SELECT name, amount, debit_account, "
-								"credit_account, date_inserted "
+								"credit_account, date_inserted::text "
 								"FROM gl_entries "
 								"JOIN contacts "
 								"ON gl_entries.contact_id = "
@@ -78,7 +81,7 @@ class LoanPaymentsGUI:
 								"= (%s, %s)", 
 								(contact_id, date))
 			for row in self.cursor.fetchall():
-				self.loan_payment_store.append(parent, [0, '', '', '', '', str(date), formatted_date])
+				self.loan_payment_store.append(parent, [0, '', '', '', '', date, formatted_date])
 
 
 			

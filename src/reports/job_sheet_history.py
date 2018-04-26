@@ -17,7 +17,6 @@
 
 
 from gi.repository import Gtk
-from dateutils import datetime_to_text
 
 UI_FILE = "src/reports/job_sheet_history.ui"
 
@@ -100,20 +99,19 @@ class JobSheetHistoryGUI:
 	def populate_job_sheet_treeview (self):
 		self.job_sheet_store.clear()
 		self.job_sheet_line_item_store.clear()
-		self.cursor.execute("SELECT js.id, c.name, c.ext_name, jt.name, "
-								"date_inserted, description FROM job_sheets AS js "
-								"JOIN contacts AS c ON c.id = contact_id "
-								"JOIN job_types AS jt ON jt.id = job_type_id")
+		self.cursor.execute("SELECT "
+								"js.id, "
+								"c.name, "
+								"c.ext_name, "
+								"date_inserted::text, "
+								"format_date(date_inserted), "
+								"jt.name, "
+								"description "
+							"FROM job_sheets AS js "
+							"JOIN contacts AS c ON c.id = contact_id "
+							"JOIN job_types AS jt ON jt.id = job_type_id")
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			contact_name = row[1]
-			contact_ext_name = row[2]
-			job_type_name = row[3]
-			date = row[4]
-			date_text = datetime_to_text(date)
-			description = row[5]
-			self.job_sheet_store.append([row_id, contact_name, contact_ext_name, str(date), 
-										date_text, job_type_name, description])
+			self.job_sheet_store.append(row)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 

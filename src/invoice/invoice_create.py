@@ -24,7 +24,6 @@ from com.sun.star.util import XCloseListener
 from time import strftime
 from datetime import datetime, timedelta
 from multiprocessing import Process
-from dateutils import datetime_to_text
 from db import transactor
 import printing
 
@@ -143,7 +142,11 @@ class Setup(XCloseListener, unohelper.Base):
 		document.document_status = ''
 		
 		date_plus_thirty = self.date + timedelta(days=plus_date)
-		payment_due_text = datetime_to_text(date_plus_thirty)
+		self.cursor.execute("SELECT format_date(%s), format_date(%s)", 
+							(date_plus_thirty, self.date))
+		for row in self.cursor.fetchall():
+			payment_due_text = row[0]
+			date_text = row[1]
 		if self.doc_type == "Invoice":
 			document.payment_due = payment_due_text
 		else: # document is not an invoice
@@ -153,7 +156,6 @@ class Setup(XCloseListener, unohelper.Base):
 			terms.text3 = ''
 			terms.text4 = ''
 			
-		date_text = datetime_to_text(self.date)
 		document.date = date_text
 		
 		split_name = name.split(' ')
@@ -162,7 +164,7 @@ class Setup(XCloseListener, unohelper.Base):
 			name_str += i[0:3]
 		name = name_str.lower()
 
-		invoice_date = re.sub(" ", "_", datetime_to_text(self.date))
+		invoice_date = re.sub(" ", "_", date_text)
 		prefix = self.doc_type[0:3]
 		document.name = prefix + "_" + str(self.invoice_id) + "_"\
 												+ name + "_" + invoice_date

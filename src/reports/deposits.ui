@@ -11,7 +11,7 @@
       <!-- column-name date_formatted -->
       <column type="gchararray"/>
       <!-- column-name amount -->
-      <column type="gfloat"/>
+      <column type="PyObject"/>
       <!-- column-name description -->
       <column type="gchararray"/>
       <!-- column-name customer_name -->
@@ -63,9 +63,6 @@
                     <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                      <attributes>
-                        <attribute name="text">3</attribute>
-                      </attributes>
                     </child>
                   </object>
                 </child>

@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, Gdk, GLib, GObject
+from gi.repository import Gtk
 import re
-from db import transactor
-from dateutils import DateTimeCalendar, datetime_to_text
+from dateutils import DateTimeCalendar
 
 UI_FILE = "src/resource_search.ui"
 
@@ -41,16 +40,16 @@ class ResourceSearchGUI:
 		search = entry.get_text().lower()
 		search = re.sub("%", " ", search)
 		search = "%" + search + "%" 
-		self.cursor.execute("SELECT id, subject, dated_for "
+		self.cursor.execute("SELECT "
+								"id, "
+								"subject, "
+								"dated_for::text, "
+								"format_date(dated_for) "
 							"FROM resources WHERE diary = True "
 							"AND LOWER(subject) LIKE %s ORDER BY dated_for", 
 							(search,))
 		for row in self.cursor.fetchall():
-			id = row[0]
-			subject = row[1]
-			date = row[2]
-			date_formatted = datetime_to_text(date)
-			store.append([id, subject, str(date), date_formatted])
+			store.append(row)
 
 	def diary_search_changed (self, entry):
 		print (entry.get_text())
