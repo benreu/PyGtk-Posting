@@ -1152,12 +1152,23 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.gl_entries RENAME CONSTRAINT account_transaction_lines_pkey TO gl_entries_pkey;")
 		cursor.execute("ALTER TABLE public.gl_entries RENAME CONSTRAINT account_transaction_lines_credit_account_fkey TO gl_entries_credit_account_fkey;")
 		cursor.execute("ALTER TABLE public.gl_entries RENAME CONSTRAINT account_transaction_lines_debit_account_fkey TO gl_entries_debit_account_fkey;")
-		cursor.execute("ALTER TABLE public.gl_entries DROP COLUMN incoming_invoice_id;")
+		#cursor.execute("ALTER TABLE public.gl_entries DROP COLUMN incoming_invoice_id;")
 		cursor.execute("ALTER TABLE public.gl_entries DROP COLUMN contact_id")
 		cursor.execute("ALTER SEQUENCE public.account_transaction_lines_id_seq RENAME TO gl_entries_id_seq;")
 		cursor.execute("ALTER SEQUENCE public.accounts_id_seq RENAME TO gl_accounts_id_seq;")
 		cursor.execute("ALTER SEQUENCE public.account_flow_settings_id_seq RENAME TO gl_account_flow_settings_id_seq;")
-		cursor.execute("UPDATE settings SET version = '114'")
+	if version <= '114':
+		progressbar (114)
+		#cursor.execute("ALTER TABLE settings ADD COLUMN date_format varchar, ADD COLUMN timestamp_format varchar")
+		cursor.execute("UPDATE settings SET date_format = 'FMMonth DD YYYY'")
+		cursor.execute("UPDATE settings SET timestamp_format = 'FMMonth DD YYYY HH12:MI:SS AM'")
+		cursor.execute("CREATE OR REPLACE FUNCTION format_date (date_in date) RETURNS varchar AS $$ \n"
+						"	SELECT to_char(date_in, (SELECT date_format FROM settings))\n"
+						"	$$ language sql;")
+		cursor.execute("CREATE OR REPLACE FUNCTION format_timestamp (timestamp_in timestamptz) RETURNS varchar AS $$ \n"
+						"	SELECT to_char(timestamp_in, (SELECT timestamp_format FROM settings))\n"
+						"	$$ language sql;")
+		cursor.execute("UPDATE settings SET version = '115'")
 	cursor.close()
 	db.commit()
 
