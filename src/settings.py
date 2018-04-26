@@ -31,10 +31,17 @@ class GUI():
 
 		self.document_type_id = 0
 
-		self.cursor.execute("SELECT print_direct, statement_day_of_month, "
-							"email_when_possible, enforce_exact_payment, "
-							"accrual_based, cost_decrease_alert, "
-							"backup_frequency_days FROM settings")
+		self.cursor.execute("SELECT "
+								"print_direct, "
+								"statement_day_of_month, "
+								"email_when_possible, "
+								"enforce_exact_payment, "
+								"accrual_based, "
+								"cost_decrease_alert, "
+								"backup_frequency_days, "
+								"date_format, "
+								"timestamp_format "
+							"FROM public.settings")
 		for row in self.cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
 			self.builder.get_object('spinbutton1').set_value(row[1])
@@ -46,6 +53,8 @@ class GUI():
 				self.builder.get_object('radiobutton2').set_active(True)
 			self.builder.get_object('spinbutton4').set_value(row[5] * 100)
 			self.builder.get_object('spinbutton5').set_value(row[6])
+			self.builder.get_object('entry7').set_text(row[7])
+			self.builder.get_object('entry8').set_text(row[8])
 		self.load_precision()
 		self.document_type_store = Gtk.ListStore(int, str)
 		self.document_type_treeview = self.builder.get_object('treeview4')
@@ -119,6 +128,34 @@ class GUI():
 			self.db.commit()
 			self.load_precision ()
 		dialog.hide()
+
+	def date_entry_changed (self, entry):
+		format = entry.get_text()
+		self.db.commit()
+		try:
+			self.cursor.execute("UPDATE public.settings "
+								"SET date_format = %s "
+								"RETURNING format_date(CURRENT_DATE)", 
+								(format,))
+			formatted_date = self.cursor.fetchone()[0]
+		except Exception:
+			self.db.rollback()
+			formatted_date = "#Error"
+		self.builder.get_object('label49').set_text(formatted_date)
+
+	def date_with_time_changed (self, entry):
+		format = entry.get_text()
+		self.db.commit()
+		try:
+			self.cursor.execute("UPDATE public.settings "
+								"SET timestamp_format = %s "
+								"RETURNING format_timestamp(CURRENT_TIMESTAMP)", 
+								(format,))
+			formatted_date = self.cursor.fetchone()[0]
+		except Exception:
+			self.db.rollback()
+			formatted_date = "#Error"
+		self.builder.get_object('label51').set_text(formatted_date)
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(self.select_spinbutton_value, spinbutton)
