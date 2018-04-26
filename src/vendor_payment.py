@@ -18,7 +18,7 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
-from dateutils import DateTimeCalendar, datetime_to_text
+from dateutils import DateTimeCalendar
 from check_writing import set_written_ck_amnt_text, get_check_number
 from db.transactor import VendorPayment, vendor_check_payment, \
 							vendor_debit_payment, post_purchase_order_accounts
@@ -346,9 +346,9 @@ class GUI:
 		self.add_multi_payment (Decimal(1.00))
 
 	def add_multi_payment (self, amount):
-		self.c_c_multi_payment_store.append([ amount, 
-										str(self.date), 
-										datetime_to_text(self.date)])
+		self.cursor.execute("SELECT format_date(%s)", (self.date,))
+		date = self.cursor.fetchone()[0]
+		self.c_c_multi_payment_store.append([amount, str(self.date), date])
 		self.calculate_multi_payment_amount ()
 
 	def remove_multi_payment_button_clicked (self, button):

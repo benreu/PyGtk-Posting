@@ -21,7 +21,6 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from subprocess import Popen, PIPE, STDOUT
 import os, sys, time, subprocess, sane, psycopg2
-import dateutils
 
 UI_FILE = "src/reports/contact_transactions.ui"
 
@@ -249,7 +248,14 @@ class GUI:
 		else:
 			if self.customer_id == None:
 				return # no customer selected yet
-			self.cursor.execute("SELECT id, name, date_created, total "
+			self.cursor.execute("SELECT "
+									"id, "
+									"date_created::text, "
+									"format_date(date_created), "
+									"0, "
+									"name, "
+									"'', "
+									"total "
 								"FROM invoices WHERE (customer_id, canceled) = "
 								"(%s, false) ORDER BY date_created", 
 								(self.customer_id,))
@@ -259,15 +265,7 @@ class GUI:
 		self.builder.get_object('checkbutton3').set_active(False)
 		for invoice in self.cursor.fetchall():
 			id_ = invoice[0]
-			name = invoice[1]
-			date = invoice[2]
-			date_formatted = dateutils.datetime_to_text(date)
-			remark = ''
-			total = invoice[3]
-			tree_item = self.transaction_store.append(None, [id_, str(date), 
-															date_formatted, 0,
-															name, "", remark, 
-															total, ""])
+			tree_item = self.transaction_store.append(None, row)
 			self.cursor.execute("SELECT ili.id, product_id, name, qty, remark, "
 									"price "
 								"FROM invoice_items AS ili "
@@ -318,7 +316,16 @@ class GUI:
 		else:
 			if self.vendor_id == None:
 				return # no vendor selected yet
-			self.cursor.execute("SELECT id, name, date_created, total "
+			self.cursor.execute("SELECT "
+									"id, "
+									"date_created::text, "
+									"format_date(date_created), "
+									"0, "
+									"name, "
+									"'', "
+									"'', "
+									"total, "
+									"'' "
 								"FROM purchase_orders "
 								"WHERE (vendor_id, canceled) = "
 								"(%s, False) ORDER BY date_created", 
@@ -328,15 +335,7 @@ class GUI:
 		self.builder.get_object('combobox-entry1').set_text('')
 		self.builder.get_object('checkbutton4').set_active(False)
 		for po in self.cursor.fetchall():
-			id_ = po[0]
-			name = po[1]
-			date = po[2]
-			date_formatted = dateutils.datetime_to_text(date)
-			remark = ""
-			total = po[3]
-			tree_item = self.transaction_store.append(None, [id_, str(date), 
-														date_formatted, 0, name, 
-														"", remark, total, ""])
+			tree_item = self.transaction_store.append(None, row)
 			self.cursor.execute("SELECT poli.id, poli.qty, remark, "
 								"poli.price, product_id, name, order_number "
 								"FROM purchase_order_line_items AS poli "

@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from dateutils import datetime_to_text, DateTimeCalendar
+from dateutils import DateTimeCalendar
 from datetime import datetime, timedelta
 
 UI_FILE = "src/fiscal_years.ui"
@@ -47,19 +47,17 @@ class FiscalYearGUI:
 
 	def populate_fiscal_years (self):
 		self.fiscal_year_store.clear()
-		self.cursor.execute("SELECT id, name, start_date, end_date, active "
+		self.cursor.execute("SELECT "
+								"id, "
+								"name, "
+								"start_date, "
+								"format_date(start_date), "
+								"end_date, "
+								"format_date(end_date), "
+								"active "
 							"FROM fiscal_years ORDER BY start_date")
 		for row in self.cursor.fetchall():
-			f_id = row[0]
-			name = row[1]
-			start_date = row[2]
-			end_date = row[3]
-			active = row[4]
-			start_date_formatted = datetime_to_text(start_date)
-			end_date_formatted = datetime_to_text(end_date)
-			self.fiscal_year_store.append([f_id, name, str(start_date), 
-											start_date_formatted, str(end_date), 
-											end_date_formatted, active])
+			self.fiscal_year_store.append(row)
 
 	def active_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()

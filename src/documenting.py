@@ -20,8 +20,6 @@ from time import strftime
 from datetime import datetime, timedelta
 from db import transactor
 import printing
-from dateutils import datetime_to_text, calendar_to_text,\
-					calendar_to_datetime, set_calendar_from_datetime 
 
 items = list()
 class Item(object):#this is used by py3o library see their example for more info
@@ -67,7 +65,7 @@ class Setup():
 			company.zip = row[5]
 			company.country = row[6]
 			company.phone = row[7]
-			company.fax = row[8]			
+			company.fax = row[8]
 			company.email = row[9]
 			company.website = row[10]
 			company.tax_number = row[11]
@@ -108,7 +106,8 @@ class Setup():
 		document.date = self.date
 		
 		date_thirty = date + timedelta(days=30)
-		payment_thirty = datetime_to_text(date_thirty)
+		self.cursor.execute("SELECT format_date(%s)", (date_thirty,))
+		payment_thirty = self.cursor.fetchone()[0]
 		document.payment_due = payment_thirty
 
 		document.number = self.document_name

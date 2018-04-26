@@ -20,7 +20,7 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime, timedelta
 import subprocess, re
 import documenting
-from dateutils import datetime_to_text, DateTimeCalendar
+from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 
 UI_FILE = "src/documents_window.ui"
@@ -548,7 +548,8 @@ class DocumentGUI:
 		for i in split_name:
 			name_str = name_str + i[0:3]
 		name = name_str.lower()
-		date = datetime_to_text (self.date)
+		self.cursor.execute("SELECT format_date(%s)", (self.date,))
+		date = self.cursor.fetchone()[0]
 		date = re.sub (" ", "_", date)
 		self.document_name = type_text + "_" + str(self.document_id) + "_" + name + "_" + date
 		self.cursor.execute("UPDATE documents SET name = %s WHERE id = %s", (self.document_name, self.document_id))
@@ -596,14 +597,16 @@ class DocumentGUI:
 		
 	def populate_document_store (self):
 		self.documents_store.clear()
-		self.cursor.execute("SELECT name, dated_for "
+		self.cursor.execute("SELECT "
+								"name, "
+								"dated_for, "
+								"format_date(dated_for) "
 							"FROM documents WHERE id = %s", 
 							(self.document_id,))
 		for row in self.cursor.fetchall():
 			self.document_name = row[0]
 			self.date = row[1]
-			day_text = datetime_to_text (self.date)
-			self.builder.get_object('entry1').set_text(day_text)
+			self.builder.get_object('entry1').set_text(row[2])
 		self.builder.get_object('entry5').set_text(self.document_name)
 		self.cursor.execute("SELECT dli.id, qty, p.id, p.name, ext_name, min, max, "
 							"type_1, type_2, priority, remark, price, s_price, "

@@ -17,7 +17,7 @@
 
 
 from gi.repository import Gtk
-from dateutils import DateTimeCalendar, datetime_to_text
+from dateutils import DateTimeCalendar
 import psycopg2
 
 UI_FILE = "src/product_serial_numbers.ui"
@@ -124,10 +124,15 @@ class ProductSerialNumbersGUI:
 
 	def populate_serial_number_history (self):
 		self.serial_number_store.clear()
-		self.cursor.execute("SELECT sn.id, p.name, sn.serial_number, "
-							"sn.date_inserted, COALESCE(COUNT(snh.id)::text, ''), "
-							"COALESCE(invoice_id::text, ''), "
-							"COALESCE(manufacturing_id::text, '') "
+		self.cursor.execute("SELECT "
+								"sn.id, "
+								"p.name, "
+								"sn.serial_number, "
+								"sn.date_inserted::text, "
+								"format_date(sn.date_inserted), "
+								"COALESCE(COUNT(snh.id)::text, ''), "
+								"COALESCE(invoice_id::text, ''), "
+								"COALESCE(manufacturing_id::text, '') "
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh ON snh.serial_number_id = sn.id "
@@ -137,17 +142,7 @@ class ProductSerialNumbersGUI:
 							"sn.date_inserted, invoice_id, manufacturing_id "
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			product_name = row[1]
-			serial_number = row[2]
-			date = row[3]
-			events = row[4]
-			invoice_id = row[5]
-			manufacturing_id = row[6]
-			date_formatted = datetime_to_text(date)
-			self.serial_number_store.append([id_, product_name, serial_number, 
-											str(date), date_formatted, events,
-											invoice_id,'', manufacturing_id])
+			self.serial_number_store.append(row)
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -157,18 +152,17 @@ class ProductSerialNumbersGUI:
 	def populate_serial_event_store (self, serial_id):
 		store = self.builder.get_object('events_store')
 		store.clear()
-		self.cursor.execute("SELECT snh.id, c.name, snh.date_inserted, "
-							"snh.description FROM serial_number_history AS snh "
+		self.cursor.execute("SELECT "
+								"snh.id, "
+								"c.name, "
+								"snh.date_inserted::text, "
+								"format_date(snh.date_inserted), "
+								"snh.description "
+							"FROM serial_number_history AS snh "
 							"JOIN contacts AS c ON c.id = snh.contact_id "
 							"WHERE serial_number_id = %s", (serial_id,))
 		for row in self.cursor.fetchall():
-			history_id = row[0]
-			contact_name = row[1]
-			date = row[2]
-			description = row[3]
-			date_formatted = datetime_to_text(date)
-			store.append([history_id, contact_name, str(date), date_formatted,
-							description])
+			store.append(row)
 
 	def add_serial_event_clicked (self, button):
 		dialog = self.builder.get_object('event_dialog')

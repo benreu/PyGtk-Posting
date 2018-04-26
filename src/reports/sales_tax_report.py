@@ -17,8 +17,7 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 from datetime import datetime, date, timedelta
-from dateutils import datetime_to_text, calendar_to_text,\
-					calendar_to_datetime, set_calendar_from_datetime
+from dateutils import DateTimeCalendar
 
 UI_FILE = "src/reports/sales_tax_report.ui"
 
@@ -33,26 +32,21 @@ class SalesTaxReportGUI:
 		self.cursor = self.db.cursor()
 		self.tax_store = self.builder.get_object('tax_store')
 
-		self.start_datetime = datetime.today() - timedelta(days=365)
-		self.end_datetime = datetime.today ()
-		start_date_text = datetime_to_text(self.start_datetime)
-		end_date_text = datetime_to_text(self.end_datetime)
+		self.end_datetime = None
+
 		start_entry = self.builder.get_object('entry1')
 		end_entry = self.builder.get_object('entry2')
-		start_entry.set_text(start_date_text)
-		end_entry.set_text(end_date_text)
 
-		start_calendar = self.builder.get_object('start_calendar')
-		self.start_calendar_popover = Gtk.Popover()
-		self.start_calendar_popover.add(start_calendar)
-		self.start_calendar_popover.set_relative_to(start_entry)
-		end_calendar = self.builder.get_object('end_calendar')
-		self.end_calendar_popover = Gtk.Popover()
-		self.end_calendar_popover.add(end_calendar)
-		self.end_calendar_popover.set_relative_to(end_entry)
+		self.start_calendar = DateTimeCalendar()
+		self.start_calendar.set_relative_to(start_entry)
+		self.end_calendar = DateTimeCalendar()
+		self.end_calendar.set_relative_to(end_entry)
 
-		set_calendar_from_datetime (start_calendar, self.start_datetime)
-		set_calendar_from_datetime (end_calendar, self.end_datetime)
+		self.start_calendar.connect('day-selected', self.start_date_selected)
+		self.end_calendar.connect('day-selected', self.end_date_selected)
+
+		self.start_calendar.set_date(datetime.today() - timedelta(days = 365))
+		self.end_calendar.set_today ()
 
 		tax_column = self.builder.get_object('treeviewcolumn2')
 		tax_renderer = self.builder.get_object('cellrenderertext2')
@@ -84,7 +78,9 @@ class SalesTaxReportGUI:
 			tax_rate_name = row[2]
 			self.tax_store.append([tax_rate_name, float(tax_amount), 
 									float(sale_amount)])
-		self.cursor.execute("SELECT SUM(i.ext_price), SUM(i.tax) "
+		self.cursor.execute("SELECT "
+								"COALESCE(SUM(i.ext_price), 0.00), "
+								"COALESCE(SUM(i.tax), 0.00) "
 							"FROM invoice_items AS i "
 							"JOIN invoices ON invoices.id = i.invoice_id "
 							"WHERE (invoices.canceled, invoices.posted) "
@@ -107,24 +103,23 @@ class SalesTaxReportGUI:
 		cellrenderer.set_property("text" , total)
 
 	def start_date_selected(self, calendar):
-		date_tuple = calendar.get_date()
-		day_text = calendar_to_text(date_tuple)
-		self.start_datetime = calendar_to_datetime(date_tuple)
+		self.start_datetime = calendar.get_datetime()
+		day_text = calendar.get_text()
 		self.builder.get_object('entry1').set_text(day_text)
-		self.populate_tax_treeview ()
+		if self.end_datetime != None: #end date not available before start date
+			self.populate_tax_treeview ()
 
 	def end_date_selected (self, calendar):
-		date_tuple = calendar.get_date()
-		day_text = calendar_to_text(date_tuple)
-		self.end_datetime = calendar_to_datetime(date_tuple)
+		self.end_datetime = calendar.get_datetime()
+		day_text = calendar.get_text()
 		self.builder.get_object('entry2').set_text(day_text)
 		self.populate_tax_treeview ()
 
 	def start_icon_clicked (self, entry, icon, event):
-		self.start_calendar_popover.show()
+		self.start_calendar.show()
 
 	def end_icon_clicked (self, entry, icon, event):
-		self.end_calendar_popover.show()
+		self.end_calendar.show()
 
 
 

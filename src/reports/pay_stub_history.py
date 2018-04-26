@@ -16,11 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, Gdk, GLib, GObject
-import os, sys, subprocess
-from datetime import datetime
-from dateutils import datetime_to_text, calendar_to_text,\
-					calendar_to_datetime, set_calendar_from_datetime 
+from gi.repository import Gtk
+
 
 UI_FILE = "src/reports/pay_stub_history.ui"
 
@@ -68,16 +65,28 @@ class PayStubHistoryGUI:
 	def populate_pay_stub_history_store (self):
 		self.history_store.clear()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT payroll.pay_stubs.id, name, date_inserted, "
-								"regular_hours, overtime_hours, "
-								"cost_sharing_hours, profit_sharing_hours "
+			self.cursor.execute("SELECT "
+									"payroll.pay_stubs.id, "
+									"name, "
+									"format_date(date_inserted), "
+									"regular_hours, "
+									"overtime_hours, "
+									"cost_sharing_hours, "
+									"profit_sharing_hours, "
+									"0.00 "
 								"FROM pay_stubs "
 								"JOIN contacts "
 								"ON contacts.id = pay_stubs.employee_id")
 		elif self.employee_id != None:
-			self.cursor.execute("SELECT payroll.pay_stubs.id, name, date_inserted, "
-								"regular_hours, overtime_hours, "
-								"cost_sharing_hours, profit_sharing_hours "
+			self.cursor.execute("SELECT "
+									"payroll.pay_stubs.id, "
+									"name, "
+									"format_date(date_inserted), "
+									"regular_hours, "
+									"overtime_hours, "
+									"cost_sharing_hours, "
+									"profit_sharing_hours, "
+									"0.00 "
 								"FROM pay_stubs "
 								"JOIN contacts "
 								"ON contacts.id = pay_stubs.employee_id "
@@ -85,17 +94,7 @@ class PayStubHistoryGUI:
 		else:
 			return # select all off and no employee selected
 		for row in self.cursor.fetchall():
-			row_id = str(row[0])
-			employee = row[1]
-			date = datetime_to_text(row[2])
-			regular_hours = str(row[3])
-			overtime_hours = str(row[4])
-			cost_hours = str(row[5])
-			profit_hours = str(row[6])
-			amount = str(0.00)
-			self.history_store.append([row_id, employee, date, regular_hours,
-									overtime_hours, cost_hours, profit_hours,
-									amount])
+			self.history_store.append(row)
 
 
 

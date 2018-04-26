@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-from dateutils import DateTimeCalendar, seconds_to_compact_string, datetime_to_text,\
+from dateutils import DateTimeCalendar, seconds_to_compact_string, \
 						text_to_datetime, seconds_to_user_format
 
 UI_FILE = "src/resource_management.ui"
@@ -450,7 +450,8 @@ class ResourceManagementGUI:
 
 	def populate_resource_store_threaded (self, row_limit, finished):
 		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
-							"timed_seconds, dated_for, rmt.id, tag, red, "
+							"timed_seconds, dated_for, format_date(dated_for), "
+							"rmt.id, tag, red, "
 							"green, blue, alpha, phone_number, "
 							"call_received_time, to_do "
 							"FROM resources AS rm "
@@ -471,25 +472,25 @@ class ResourceManagementGUI:
 			contact_name = row[3]
 			timed_seconds = row[4]
 			dated_for = row[5]
-			tag_id = row[6]
-			tag_name = row[7]
+			date_formatted = row[6]
+			tag_id = row[7]
+			tag_name = row[8]
 			if tag_id == None:
 				tag_id = 0
 				tag_name = ''
 			else:
-				rgba.red = row[8]
-				rgba.green = row[9]
-				rgba.blue = row[10]
-				rgba.alpha = row[11]
-			phone_number = row[12]
-			call_received_time = row[13]
-			to_do = row[14]
+				rgba.red = row[9]
+				rgba.green = row[10]
+				rgba.blue = row[11]
+				rgba.alpha = row[12]
+			phone_number = row[13]
+			call_received_time = row[14]
+			to_do = row[15]
 			c_r_time_formatted = seconds_to_user_format(call_received_time)
 			if contact_id == None:
 				contact_id = 0
 				contact_name = ''
 			time_formatted = seconds_to_compact_string (timed_seconds)
-			date_formatted = datetime_to_text(dated_for)
 			parent_iter = self.resource_store.append(None,[row_id, subject, 
 													contact_id,contact_name, 
 													False, timed_seconds, 
@@ -503,7 +504,8 @@ class ResourceManagementGUI:
 
 	def add_resource_children (self, parent_id, parent_iter, finished):
 		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
-							"timed_seconds, dated_for, rmt.id, tag, red, "
+							"timed_seconds, dated_for, format_date(dated_for), "
+							"rmt.id, tag, red, "
 							"green, blue, alpha, phone_number, "
 							"call_received_time, to_do "
 							"FROM resources AS rm "
@@ -523,25 +525,25 @@ class ResourceManagementGUI:
 			contact_name = row[3]
 			timed_seconds = row[4]
 			dated_for = row[5]
-			tag_id = row[6]
-			tag_name = row[7]
+			date_formatted = row[6]
+			tag_id = row[7]
+			tag_name = row[8]
 			if tag_id == None:
 				tag_id = 0
 				tag_name = ''
 			else:
-				rgba.red = row[8]
-				rgba.green = row[9]
-				rgba.blue = row[10]
-				rgba.alpha = row[11]
-			phone_number = row[12]
-			call_received_time = row[13]
-			to_do = row[14]
+				rgba.red = row[9]
+				rgba.green = row[10]
+				rgba.blue = row[11]
+				rgba.alpha = row[12]
+			phone_number = row[13]
+			call_received_time = row[14]
+			to_do = row[15]
 			c_r_time_formatted = seconds_to_user_format(call_received_time)
 			if contact_id == None:
 				contact_id = 0
 				contact_name = ''
 			time_formatted = seconds_to_compact_string (timed_seconds)
-			date_formatted = datetime_to_text(dated_for)
 			parent = self.resource_store.append(parent_iter,
 															[row_id, 
 															subject, 

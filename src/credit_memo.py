@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk
 import subprocess, re
-from dateutils import DateTimeCalendar, datetime_to_text
+from dateutils import DateTimeCalendar
 
 UI_FILE = "src/credit_memo.ui"
 
@@ -166,10 +166,9 @@ class CreditMemoGUI:
 
 	def return_day_selected (self, calendar):
 		date = calendar.get_date()
-		date_formatted = datetime_to_text(date)
 		_iter = self.credit_items_store.get_iter(self.path)
 		self.credit_items_store[_iter][8] = str(date)
-		self.credit_items_store[_iter][9] = date_formatted
+		#self.credit_items_store[_iter][9] = date_formatted
 		self.save_line(_iter)
 
 	def date_entry_icon_released (self, entry, icon, position):
@@ -267,7 +266,8 @@ class CreditMemoGUI:
 			items.append(item)
 
 		document = Item()
-		date_text = datetime_to_text(self.date)
+		self.cursor.execute("SELECT format_date(%s)", (self.date,))
+		date_text = self.cursor.fetchone()[0] 
 		document.date = date_text
 		
 		split_name = name.split(' ')

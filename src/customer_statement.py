@@ -19,7 +19,6 @@ from gi.repository import Gtk, Gdk
 import os, sys, subprocess
 from datetime import datetime
 import customer_payment, statementing
-from dateutils import datetime_to_text
 
 
 UI_FILE = "src/customer_statement.ui"
@@ -145,39 +144,51 @@ class GUI:
 		self.statement_store.clear()
 		c_id = self.customer_id
 		self.cursor.execute("SELECT * FROM "
-								"(SELECT name, date_inserted AS date, "
-								"amount FROM statements " 
+								"(SELECT "
+									"name, "
+									"date_inserted::text AS date, "
+									"format_date(date_inserted), "
+									"amount "
+								"FROM statements " 
 								"WHERE id =(SELECT MAX(id) FROM statements "
 								"WHERE customer_id = %s)"
 								") s "
 								"UNION "
-								"(SELECT name, dated_for AS date, "
-								"amount_due FROM invoices "
+								"(SELECT "
+									"name, "
+									"dated_for::text AS date, "
+									"format_date(dated_for), "
+									"amount_due "
+								"FROM invoices "
 								"WHERE (canceled, posted, customer_id) = "
 								"(False, True, %s) "
 								"AND statement_id IS NULL"
 								") "
 								"UNION "
-								"(SELECT name, date_created AS date, "
-								"amount_owed FROM credit_memos "
+								"(SELECT "
+									"name, "
+									"date_created::text AS date, "
+									"format_date(date_created), "
+									"amount_owed "
+								"FROM credit_memos "
 								"WHERE (posted, customer_id) = "
 								"(True, %s) "
 								"AND statement_id IS NULL"
 								") "
 								"UNION "
-								"(SELECT payment_info(id), date_inserted AS date, "
-								"amount FROM payments_incoming "
+								"(SELECT "
+									"payment_info(id), "
+									"date_inserted::text AS date, "
+									"format_date(date_inserted), "
+									"amount "
+								"FROM payments_incoming "
 								"WHERE (customer_id, misc_income) = "
 								"(%s, False) AND statement_id IS NULL"
 								") "
 							"ORDER BY date", 
 							(c_id, c_id, c_id,c_id))
 		for row in self.cursor.fetchall():
-			text = row[0]
-			date = row[1]
-			amount = row[2]
-			formatted_date = datetime_to_text(date)
-			self.statement_store.append([text, str(date), formatted_date, amount])
+			self.statement_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)
 
 

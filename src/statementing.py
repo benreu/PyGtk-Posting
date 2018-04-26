@@ -18,7 +18,6 @@
 from gi.repository import Gtk
 import subprocess, psycopg2, re
 from datetime import datetime, timedelta
-from dateutils import datetime_to_text
 import printing
 
 items = list()
@@ -77,8 +76,8 @@ class Setup():
 		document = Item() 
 		document.total = '${:,.2f}'.format(total)
 		document.comment = self.comment
-		date_text = datetime_to_text (date)
-		#date_text = re.sub(" ", "_", date_text)
+		self.cursor.execute("SELECT format_date(%s)", date)
+		date_text = self.cursor.fetchone()[0]
 		document.date = date_text
 		
 		split_name = name.split(' ') 

@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -15,8 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
-from dateutils import datetime_to_text
+from gi.repository import Gtk
 
 UI_FILE = "src/inventory/inventory_history.ui"
 
@@ -120,8 +119,12 @@ class InventoryHistoryGUI:
 		location_id = self.builder.get_object('combobox1').get_active_id()
 		self.inventory_transaction_store.clear()
 		if self.product_id != None and all_history == False:	
-			self.cursor.execute("SELECT i_t.id, products.name, (qty_in - qty_out), "
-								"date_inserted, locations.name "
+			self.cursor.execute("SELECT "
+									"i_t.id, "
+									"format_date(date_inserted), "
+									"(qty_in - qty_out), "
+									"products.name, "
+									"locations.name "
 								"FROM inventory_transactions AS i_t "
 								"JOIN locations "
 								"ON locations.id = i_t.location_id "
@@ -131,8 +134,12 @@ class InventoryHistoryGUI:
 								"(%s, %s) ORDER BY locations.name", 
 								(self.product_id, location_id))
 		else:
-			self.cursor.execute("SELECT i_t.id, products.name, (qty_in - qty_out), "
-								"date_inserted, locations.name "
+			self.cursor.execute("SELECT "
+									"i_t.id, "
+									"format_date(date_inserted), "
+									"(qty_in - qty_out), "
+									"products.name, "
+									"locations.name "
 								"FROM inventory_transactions AS i_t "
 								"JOIN locations "
 								"ON locations.id = i_t.location_id "
@@ -142,13 +149,7 @@ class InventoryHistoryGUI:
 								"ORDER BY locations.name",
 								(location_id, ))
 		for row in self.cursor.fetchall():
-			transaction_id = row[0]
-			product_name = row[1]
-			qty = row[2]
-			date = row[3]
-			date_text = datetime_to_text(date)
-			location_name = row[4]
-			self.inventory_transaction_store.append([transaction_id, date_text, qty, product_name, location_name])
+			self.inventory_transaction_store.append(row)
 
 
 

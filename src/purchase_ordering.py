@@ -20,7 +20,6 @@ import subprocess, re
 from datetime import timedelta
 from decimal import Decimal
 from db import transactor
-from dateutils import datetime_to_text
 import printing
 
 
@@ -90,10 +89,13 @@ class Setup():
 		document.comment = self.comment
 		document.date = self.datetime
 
-		date_plus_thirty = datetime + timedelta(days=30)
-		payment_due_text = datetime_to_text(date_plus_thirty)
+		date_thirty = datetime + timedelta(days=30)
+		self.cursor.execute("SELECT format_date(%s), format_date(%s)", 
+											(date_thirty, datetime))
+		for row in self.cursor.fetchall():
+			payment_due_text = row[0]
+			date_text = row[1]
 		document.payment_due = payment_due_text
-		date_text = datetime_to_text(datetime)
 		document.date = date_text
 		
 		split_name = name.split(' ')

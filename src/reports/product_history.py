@@ -19,7 +19,6 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
-import dateutils
 
 UI_FILE = "src/reports/product_history.ui"
 
@@ -148,8 +147,14 @@ class ProductHistoryGUI:
 		warranty_store = self.builder.get_object('warranty_store')
 		warranty_store.clear()
 		count = 0
-		self.cursor.execute("SELECT snh.id, p.name, sn.serial_number, "
-							"snh.date_inserted, snh.description, c.name "
+		self.cursor.execute("SELECT "
+								"snh.id, "
+								"p.name, "
+								"sn.serial_number, "
+								"snh.date_inserted::text, "
+								"format_date(date_inserted), "
+								"snh.description, "
+								"c.name "
 							"FROM serial_number_history AS snh "
 							"JOIN serial_numbers AS sn "
 							"ON sn.id = snh.serial_number_id "
@@ -159,16 +164,7 @@ class ProductHistoryGUI:
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
-			row_id = row[0]
-			product_name = row[1]
-			serial_number = row[2]
-			date = row[3]
-			description = row[4]
-			c_name = row[5]
-			date_formatted = dateutils.datetime_to_text (date)
-			warranty_store.append([row_id, product_name, serial_number, 
-									str(date), date_formatted, description, 
-									c_name])
+			warranty_store.append(row)
 		if count == 0:
 			self.builder.get_object('label8').set_label('Warranty')
 		else:
@@ -179,8 +175,14 @@ class ProductHistoryGUI:
 		po_store = self.builder.get_object('po_store')
 		po_store.clear()
 		count = 0
-		self.cursor.execute("SELECT po.id, contacts.name, date_created, "
-							"qty, price, order_number "
+		self.cursor.execute("SELECT "
+								"po.id, "
+								"date_created::text, "
+								"format_date(date_created), "
+								"contacts.name, "
+								"qty, "
+								"price, "
+								"order_number "
 							"FROM purchase_orders AS po "
 							"JOIN purchase_order_line_items AS poli "
 							"ON poli.purchase_order_id = po.id "
@@ -189,15 +191,7 @@ class ProductHistoryGUI:
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
-			po_id = row[0]
-			vendor_name = row[1]
-			dated_for = row[2]
-			qty = row[3]
-			price = row[4]
-			order_number = row[5]
-			date_formatted = dateutils.datetime_to_text(dated_for)
-			po_store.append([po_id, str(dated_for), date_formatted, 
-								vendor_name, qty, price, order_number])
+			po_store.append(row)
 		if count == 0:
 			self.builder.get_object('label4').set_label('Purchase Orders')
 		else:
@@ -208,8 +202,16 @@ class ProductHistoryGUI:
 		invoice_store = self.builder.get_object('invoice_store')
 		invoice_store.clear()
 		count = 0
-		self.cursor.execute("SELECT i.id, dated_for, i.name, c.id::text, c.name, "
-							"comments, qty, price "
+		self.cursor.execute("SELECT "
+								"i.id, "
+								"dated_for::text, "
+								"format_date(dated_for), "
+								"i.name, "
+								"'Comments: ' || comments, "
+								"qty, "
+								"price "
+								"c.id::text, "
+								"c.name, "
 							"FROM invoices AS i "
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"JOIN invoice_items AS ii ON ii.invoice_id = i.id "
@@ -218,15 +220,6 @@ class ProductHistoryGUI:
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
-			id_ = row[0]
-			date = row[1]
-			date_formatted = dateutils.datetime_to_text(date)
-			i_name = row[2]
-			c_id = row[3]
-			c_name = row[4]
-			remark = "Comments: " + row[5]
-			qty = row[6]
-			price = row[7]
 			invoice_store.append([id_, str(date), date_formatted, i_name, 
 									remark, qty, price, c_id, c_name])
 		if count == 0:
@@ -239,9 +232,12 @@ class ProductHistoryGUI:
 		store = self.builder.get_object('manufacturing_store')
 		store.clear()
 		count = 0
-		self.cursor.execute("SELECT mp.id, mp.name, qty, "
-							"SUM(stop_time - start_time)::text, "
-							"COUNT(DISTINCT(employee_id)) "
+		self.cursor.execute("SELECT "
+								"mp.id, "
+								"mp.name, "
+								"qty, "
+								"SUM(stop_time - start_time)::text, "
+								"COUNT(DISTINCT(employee_id)) "
 							"FROM manufacturing_projects AS mp "
 							"JOIN time_clock_projects AS tcp "
 								"ON tcp.id = mp.time_clock_projects_id "

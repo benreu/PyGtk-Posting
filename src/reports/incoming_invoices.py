@@ -18,7 +18,6 @@
 
 from gi.repository import Gtk
 import subprocess
-from dateutils import datetime_to_text 
 
 UI_FILE = "src/reports/incoming_invoices.ui"
 
@@ -97,23 +96,29 @@ class IncomingInvoiceGUI:
 	def populate_incoming_invoice_store (self):
 		self.incoming_invoice_store.clear()
 		if self.builder.get_object('checkbutton1').get_active () == True:
-			self.cursor.execute("SELECT i.id, c.name, date_created, "
-								"description, amount FROM incoming_invoices AS i "
+			self.cursor.execute("SELECT "
+									"i.id, "
+									"c.name, "
+									"date_created::text, "
+									"format_date(date_created), "
+									"description, "
+									"amount "
+								"FROM incoming_invoices AS i "
 								"JOIN contacts AS c ON c.id = i.contact_id")
 		else:
-			self.cursor.execute("SELECT i.id, c.name, date_created, "
-								"description, amount FROM incoming_invoices AS i "
+			self.cursor.execute("SELECT "
+									"i.id, "
+									"c.name, "
+									"date_created::text, "
+									"format_date(date_created), "
+									"description, "
+									"amount "
+								"FROM incoming_invoices AS i "
 								"JOIN contacts AS c ON c.id = i.contact_id "
 								"WHERE contact_id = %s", 
 								(self.service_provider_id,))
 		for row in self.cursor.fetchall():
-			i_id = row[0]
-			name = row[1]
-			date = row[2]
-			description = row[3]
-			amount = row[4]
-			date_formatted = datetime_to_text (date)
-			self.incoming_invoice_store.append([i_id, name, str(date), date_formatted, description, amount])
+			self.incoming_invoice_store.append(row)
 
 
 

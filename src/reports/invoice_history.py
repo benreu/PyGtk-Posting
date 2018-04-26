@@ -19,7 +19,6 @@
 from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
-import dateutils
 
 UI_FILE = "src/reports/invoice_history.ui"
 
@@ -172,35 +171,39 @@ class InvoiceHistoryGUI:
 		self.invoice_store.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
-			self.cursor.execute("SELECT i.id, dated_for, i.name, c.name, "
-								"comments, COALESCE(total, 0.00), date_printed "
+			self.cursor.execute("SELECT "
+									"i.id, "
+									"dated_for::text, "
+									"format_date(dated_for), "
+									"i.name, "
+									"c.name, "
+									"'Comments: ' || comments, "
+									"COALESCE(total, 0.00), "
+									"date_printed::text, "
+									"format_date(date_printed)"
 								"FROM invoices AS i "
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE canceled =  false "
 								"ORDER BY dated_for")
 		else:
-			self.cursor.execute("SELECT i.id, dated_for, i.name, c.name, "
-								"comments, COALESCE(total, 0.00), date_printed "
+			self.cursor.execute("SELECT "
+									"i.id, "
+									"dated_for::text, "
+									"format_date(dated_for), "
+									"i.name, "
+									"c.name, "
+									"'Comments: ' || comments, "
+									"COALESCE(total, 0.00), "
+									"date_printed::text, "
+									"format_date(date_printed)"
 								"FROM invoices AS i "
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE (customer_id, canceled) = "
 								"(%s, False) ORDER BY dated_for", 
 								(self.customer_id,))
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			date = row[1]
-			date_formatted = dateutils.datetime_to_text(date)
-			i_name = row[2]
-			c_name = row[3]
-			remark = "Comments: " + row[4]
-			amount = row[5]
-			date_printed = row[6]
-			date_print_formatted = dateutils.datetime_to_text(date_printed)
-			total += amount
-			self.invoice_store.append([id_, str(date), date_formatted, i_name, 
-													c_name, remark, amount,
-													str(date_printed), 
-													date_print_formatted])
+			total += row[6]
+			self.invoice_store.append(row)
 		self.builder.get_object('label3').set_label(str(total))
 
 	def invoice_row_changed (self, selection):

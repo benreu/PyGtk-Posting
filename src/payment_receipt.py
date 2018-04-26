@@ -15,9 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, Gdk, GLib, GObject
+from gi.repository import Gtk
 import subprocess, psycopg2
-from dateutils import datetime_to_text 
 import printing
 
 UI_FILE = "src/payment_receipt.ui"
@@ -86,41 +85,38 @@ class PaymentReceiptGUI:
 		self.payment_store.clear()
 		customer_id = self.builder.get_object('combobox1').get_active_id()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT p.id, date_inserted, c.id, c.name, amount, "
-								"payment_text, check_payment, cash_payment, "
-								"credit_card_payment, COALESCE(invoices.id, 0), COALESCE(invoices.name, '') "
+			self.cursor.execute("SELECT "
+									"p.id, "
+									"date_inserted::text, "
+									"format_date(date_inserted), "
+									"c.id, "
+									"c.name, "
+									"amount, "
+									"payment_info(p.id), "
+									"COALESCE(invoices.id, 0), "
+									"COALESCE(invoices.name, '') "
 								"FROM payments_incoming AS p "
 								"JOIN contacts AS c ON c.id = p.customer_id "
 								"LEFT JOIN invoices ON invoices.payments_incoming_id = p.id "
 								"ORDER BY c.name")
 		else:
-			self.cursor.execute("SELECT p.id, date_inserted, c.id, c.name, amount, "
-								"payment_text, check_payment, cash_payment, "
-								"credit_card_payment, COALESCE(invoices.id, 0), COALESCE(invoices.name, '') "
+			self.cursor.execute("SELECT "
+									"p.id, "
+									"date_inserted::text, "
+									"format_date(date_inserted), "
+									"c.id, "
+									"c.name, "
+									"amount, "
+									"payment_info(p.id), "
+									"COALESCE(invoices.id, 0), "
+									"COALESCE(invoices.name, '') "
 								"FROM payments_incoming AS p "
 								"JOIN contacts AS c ON c.id = p.customer_id "
 								"LEFT JOIN invoices ON invoices.payments_incoming_id = p.id "
 								"WHERE c.id = %s ORDER BY c.name", 
 								(customer_id,))
 		for row in self.cursor.fetchall():
-			payment_id = row[0]
-			date = row[1]
-			contact_id = row[2]
-			contact_name = row[3]
-			amount = row[4]
-			payment_text = row[5]
-			if row[6] == True:
-				payment_type = 'Check'
-			elif row[7] == True:
-				payment_type = 'Cash'
-			elif row[8] == True:
-				payment_type = 'Credit card'
-			invoice_id = row[9]
-			invoice_name = row[10]
-			date_formatted = datetime_to_text (date)
-			self.payment_store.append([payment_id, str(date), date_formatted, 
-										contact_id, contact_name, amount, 
-										payment_text, payment_type, invoice_id, invoice_name])
+			self.payment_store.append(row)
 
 	def view_payment_receipt_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')

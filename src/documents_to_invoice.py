@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -19,7 +19,6 @@
 from gi.repository import Gtk
 import invoice_window
 from datetime import datetime
-from dateutils import datetime_to_text
 
 UI_FILE = "src/documents_to_invoice.ui"
 
@@ -48,21 +47,19 @@ class DocumentsToInvoiceGUI:
 
 	def populate_document_store(self):
 		self.documents_store.clear()
-		self.cursor.execute("SELECT d.id, d.name, c.name, contact_id, "
-							"date_created "
+		self.cursor.execute("SELECT "
+								"d.id, "
+								"contact_id, "
+								"c.name, "
+								"d.name, "
+								"date_created::text, "
+								"format_date(date_created) "
 							"FROM documents AS d "
 							"JOIN contacts AS c ON c.id = d.contact_id "
 							"WHERE (canceled, invoiced, pending_invoice) = "
 							"(False, False, True)")
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			document_name = row[1]
-			contact_name = row[2]
-			contact_id = row[3]
-			date = row[4]
-			day_text = datetime_to_text(date)
-			self.documents_store.append([row_id, contact_id, contact_name, 
-										document_name, day_text, str(date)])
+			self.documents_store.append(row)
 
 	def import_to_invoice_clicked(self, button):
 		model, path = self.builder.get_object('treeview-selection1').get_selected_rows()
