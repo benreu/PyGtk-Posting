@@ -51,10 +51,4 @@ class ResourceSearchGUI:
 		for row in self.cursor.fetchall():
 			store.append(row)
 
-	def diary_search_changed (self, entry):
-		print (entry.get_text())
-
-	def contact_search_changed (self, entry):
-		print (entry.get_text())
-
 		
