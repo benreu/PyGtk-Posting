@@ -255,11 +255,14 @@ class ResourceManagementGUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		text = model[path][7]
-		if text == '':
-			self.dated_for_calendar.set_today()
+		row_id = model[path][0]
+		self.cursor.execute("SELECT dated_for FROM resources "
+							"WHERE id = %s AND dated_for IS NOT NULL", (row_id,))
+		for row in self.cursor.fetchall():
+			self.dated_for_calendar.set_datetime(row[0])
+			break
 		else:
-			date_time = text_to_datetime (text)
-			self.dated_for_calendar.set_datetime(date_time)
+			self.dated_for_calendar.set_today()
 		self.dated_for_calendar.show()
 
 	def tag_editing_started (self, renderer_combo, combobox, path):
@@ -316,7 +319,8 @@ class ResourceManagementGUI:
 		if self.time % 60 == 0:
 			row_id = self.resource_store[path][0]
 			self.cursor.execute("UPDATE resources "
-								"SET timed_seconds = %s WHERE id = %s", 
+								"SET timed_seconds = INTERVAL '%s' "
+								"WHERE id = %s", 
 								(self.time, row_id))
 			self.db.commit()
 		if self.editing == False:
@@ -364,7 +368,7 @@ class ResourceManagementGUI:
 			tag_id = None
 		if contact_id == 0:
 			contact_id = None
-		if dated_for == '' :
+		if dated_for == '' or dated_for == None:
 			dated_for = None
 		else:
 			dated_for = text_to_datetime (dated_for)
@@ -373,7 +377,7 @@ class ResourceManagementGUI:
 								"(subject, contact_id, timed_seconds, "
 								"date_created, dated_for, tag_id, parent_id, "
 								"phone_number) "
-								"VALUES (%s, %s, %s, CURRENT_DATE, "
+								"VALUES (%s, %s, INTERVAL '%s', CURRENT_DATE, "
 								"%s, %s, %s, %s) "
 								"RETURNING id", 
 								(subject, contact_id, time_seconds, 
@@ -383,7 +387,7 @@ class ResourceManagementGUI:
 			self.cursor.execute("UPDATE resources "
 								"SET (subject, contact_id, timed_seconds, "
 								"dated_for, tag_id, phone_number) = "
-								"(%s, %s, %s, %s, %s, %s) "
+								"(%s, %s, INTERVAL '%s', %s, %s, %s) "
 								"WHERE id = %s", 
 								(subject, contact_id, time_seconds, 
 								dated_for, tag_id, phone_number, row_id))
@@ -400,13 +404,25 @@ class ResourceManagementGUI:
 			self.populate_resource_store_flat (row_limit, finished)
 
 	def populate_resource_store_flat (self, row_limit, finished):
-		self.cursor.execute("SELECT rm.id, subject, "
-							"COALESCE(contact_id, 0), "
-							"COALESCE(name, ''), "
-							"timed_seconds, dated_for, format_date(dated_for), "
-							"rmt.id, tag, red, "
-							"green, blue, alpha, phone_number, "
-							"call_received_time, to_do "
+		self.cursor.execute("SELECT "
+								"rm.id, "
+								"subject, "
+								"COALESCE(contact_id, 0), "
+								"COALESCE(name, ''), "
+								"to_char(timed_seconds, 'SS')::bigint, "
+								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
+								"dated_for, "
+								"format_date(dated_for), "
+								"rmt.id, "
+								"tag, "
+								"red, "
+								"green, "
+								"blue, "
+								"alpha, "
+								"phone_number, "
+								"call_received_time, "
+								"format_timestamp(call_received_time), "
+								"to_do "
 							"FROM resources AS rm "
 							"LEFT JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -424,23 +440,23 @@ class ResourceManagementGUI:
 			contact_id = row[2]
 			contact_name = row[3]
 			timed_seconds = row[4]
-			dated_for = row[5]
-			date_formatted = row[6]
-			tag_id = row[7]
-			tag_name = row[8]
+			time_formatted = row[5]
+			dated_for = row[6]
+			date_formatted = row[7]
+			tag_id = row[8]
+			tag_name = row[9]
 			if tag_id == None:
 				tag_id = 0
 				tag_name = ''
 			else:
-				rgba.red = row[9]
-				rgba.green = row[10]
-				rgba.blue = row[11]
-				rgba.alpha = row[12]
-			phone_number = row[13]
-			call_received_time = row[14]
-			to_do = row[15]
-			c_r_time_formatted = seconds_to_user_format(call_received_time)
-			time_formatted = seconds_to_compact_string (timed_seconds)
+				rgba.red = row[10]
+				rgba.green = row[11]
+				rgba.blue = row[12]
+				rgba.alpha = row[13]
+			phone_number = row[14]
+			call_received_time = row[15]
+			c_r_time_formatted = row[16]
+			to_do = row[17]
 			self.resource_store.append(None,[row_id, subject, contact_id,
 										contact_name, False, timed_seconds, 
 										time_formatted, date_formatted, tag_id, 
@@ -449,11 +465,25 @@ class ResourceManagementGUI:
 										c_r_time_formatted, to_do])
 
 	def populate_resource_store_threaded (self, row_limit, finished):
-		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
-							"timed_seconds, dated_for, format_date(dated_for), "
-							"rmt.id, tag, red, "
-							"green, blue, alpha, phone_number, "
-							"call_received_time, to_do "
+		self.cursor.execute("SELECT "
+								"rm.id, "
+								"subject, "
+								"COALESCE(contact_id, 0), "
+								"COALESCE(name, ''), "
+								"to_char(timed_seconds, 'SS')::bigint, "
+								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
+								"dated_for, "
+								"format_date(dated_for), "
+								"rmt.id, "
+								"tag, "
+								"red, "
+								"green, "
+								"blue, "
+								"alpha, "
+								"phone_number, "
+								"call_received_time, "
+								"format_timestamp(call_received_time), "
+								"to_do "
 							"FROM resources AS rm "
 							"LEFT JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -471,26 +501,23 @@ class ResourceManagementGUI:
 			contact_id = row[2]
 			contact_name = row[3]
 			timed_seconds = row[4]
-			dated_for = row[5]
-			date_formatted = row[6]
-			tag_id = row[7]
-			tag_name = row[8]
+			time_formatted = row[5]
+			dated_for = row[6]
+			date_formatted = row[7]
+			tag_id = row[8]
+			tag_name = row[9]
 			if tag_id == None:
 				tag_id = 0
 				tag_name = ''
 			else:
-				rgba.red = row[9]
-				rgba.green = row[10]
-				rgba.blue = row[11]
-				rgba.alpha = row[12]
-			phone_number = row[13]
-			call_received_time = row[14]
-			to_do = row[15]
-			c_r_time_formatted = seconds_to_user_format(call_received_time)
-			if contact_id == None:
-				contact_id = 0
-				contact_name = ''
-			time_formatted = seconds_to_compact_string (timed_seconds)
+				rgba.red = row[10]
+				rgba.green = row[11]
+				rgba.blue = row[12]
+				rgba.alpha = row[13]
+			phone_number = row[14]
+			call_received_time = row[15]
+			c_r_time_formatted = row[16]
+			to_do = row[17]
 			parent_iter = self.resource_store.append(None,[row_id, subject, 
 													contact_id,contact_name, 
 													False, timed_seconds, 
@@ -503,11 +530,25 @@ class ResourceManagementGUI:
 			self.add_resource_children (row_id, parent_iter, finished)
 
 	def add_resource_children (self, parent_id, parent_iter, finished):
-		self.cursor.execute("SELECT rm.id, subject, contact_id, name, "
-							"timed_seconds, dated_for, format_date(dated_for), "
-							"rmt.id, tag, red, "
-							"green, blue, alpha, phone_number, "
-							"call_received_time, to_do "
+		self.cursor.execute("SELECT "
+								"rm.id, "
+								"subject, "
+								"COALESCE(contact_id, 0), "
+								"COALESCE(name, ''), "
+								"to_char(timed_seconds, 'SS')::bigint, "
+								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
+								"dated_for, "
+								"format_date(dated_for), "
+								"rmt.id, "
+								"tag, "
+								"red, "
+								"green, "
+								"blue, "
+								"alpha, "
+								"phone_number, "
+								"call_received_time, "
+								"format_timestamp(call_received_time), "
+								"to_do "
 							"FROM resources AS rm "
 							"LEFT JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
@@ -524,26 +565,23 @@ class ResourceManagementGUI:
 			contact_id = row[2]
 			contact_name = row[3]
 			timed_seconds = row[4]
-			dated_for = row[5]
-			date_formatted = row[6]
-			tag_id = row[7]
-			tag_name = row[8]
+			time_formatted = row[5]
+			dated_for = row[6]
+			date_formatted = row[7]
+			tag_id = row[8]
+			tag_name = row[9]
 			if tag_id == None:
 				tag_id = 0
 				tag_name = ''
 			else:
-				rgba.red = row[9]
-				rgba.green = row[10]
-				rgba.blue = row[11]
-				rgba.alpha = row[12]
-			phone_number = row[13]
-			call_received_time = row[14]
-			to_do = row[15]
-			c_r_time_formatted = seconds_to_user_format(call_received_time)
-			if contact_id == None:
-				contact_id = 0
-				contact_name = ''
-			time_formatted = seconds_to_compact_string (timed_seconds)
+				rgba.red = row[10]
+				rgba.green = row[11]
+				rgba.blue = row[12]
+				rgba.alpha = row[13]
+			phone_number = row[14]
+			call_received_time = row[15]
+			c_r_time_formatted = row[16]
+			to_do = row[17]
 			parent = self.resource_store.append(parent_iter,
 															[row_id, 
 															subject, 
