@@ -1167,8 +1167,13 @@ def check_and_update_version (db, statusbar):
 						"	$$ language sql;")
 		cursor.execute("CREATE OR REPLACE FUNCTION format_timestamp (timestamp_in timestamptz) RETURNS varchar AS $$ \n"
 						"	SELECT to_char(timestamp_in, (SELECT timestamp_format FROM settings))\n"
-						"	$$ language sql;")
-		cursor.execute("UPDATE settings SET version = '115'")
+						"	$$ language sql;")	
+	if version <= '115':
+		progressbar (115)
+		cursor.execute("ALTER TABLE resources ALTER COLUMN call_received_time TYPE timestamptz USING CAST(TO_TIMESTAMP(call_received_time) AS timestamptz);")
+		cursor.execute("ALTER TABLE resources DROP COLUMN timed_seconds;"
+						"ALTER TABLE resources ADD COLUMN timed_seconds INTERVAL second;")
+		cursor.execute("UPDATE settings SET version = '116'")
 	cursor.close()
 	db.commit()
 
