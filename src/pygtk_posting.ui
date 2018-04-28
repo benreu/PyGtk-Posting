@@ -623,6 +623,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem83">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Loans</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="loans_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem53">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>

@@ -1173,7 +1173,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE resources ALTER COLUMN call_received_time TYPE timestamptz USING CAST(TO_TIMESTAMP(call_received_time) AS timestamptz);")
 		cursor.execute("ALTER TABLE resources DROP COLUMN timed_seconds;"
 						"ALTER TABLE resources ADD COLUMN timed_seconds INTERVAL second;")
-		cursor.execute("UPDATE settings SET version = '116'")
+	if version <= '116':
+		progressbar (116)
+		cursor.execute("CREATE TABLE loans (id serial PRIMARY KEY, description varchar NOT NULL, contact_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, date_received date NOT NULL, amount numeric (12, 2) NOT NULL, finished boolean NOT NULL DEFAULT False)")
+		cursor.execute("CREATE TABLE loan_payments (id serial PRIMARY KEY, loan_id bigint NOT NULL REFERENCES loans ON DELETE RESTRICT, principal numeric (12, 2) NOT NULL, interest numeric (12, 2) NOT NULL, gl_entries_principal_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT, gl_entries_interest_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT)")
+		cursor.execute("UPDATE settings SET version = '117'")
 	cursor.close()
 	db.commit()
 

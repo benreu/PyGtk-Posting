@@ -268,6 +268,10 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		import loan_payment
 		loan_payment.LoanPaymentGUI(self.db)
 
+	def loans_activated (self, widget):
+		import loans
+		loans.LoanGUI(self)
+
 	def view_log_clicked (self, menuitem):
 		import view_log
 		view_log.ViewLogGUI(self.db, self)
