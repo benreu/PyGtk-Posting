@@ -437,11 +437,16 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		function = model[path][2]
 		function(id_)
 
+	def loan_payment (self, id_):
+		import loan_payment
+		loan_payment.LoanPaymentGUI (self.db, id_)
+
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
 		store.clear()
 		red = Gdk.RGBA(1, 0, 0, 1)
 		orange = Gdk.RGBA(1, 0.5, 0, 1)
+		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
 		self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
 								"(SELECT statement_finish_date FROM settings) "
 								"+ INTERVAL'1 month') "
@@ -459,6 +464,18 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 										"FROM settings) * INTERVAL '1 day'))")
 		if self.cursor.fetchone()[0] == True:
 			store.append(['Backup database', 0, self.backup_window, red])
+		self.cursor.execute("SELECT l.id, c.name || ' loan payment' "
+							"FROM loans AS l "
+							"JOIN contacts AS c ON l.contact_id = c.id "
+							"WHERE date_trunc"
+							"(l.period, l.last_payment_date) <= "
+							"date_trunc(l.period, "
+								"CURRENT_DATE - ('1 '||l.period)::interval "
+							")")
+		for row in self.cursor.fetchall():
+			loan_id = row[0]
+			reminder = row[1]
+			store.append([reminder, loan_id, self.loan_payment, brown])
 		self.cursor.execute("SELECT rm.id, subject, red, green, blue, alpha "
 							"FROM resources AS rm "
 							"JOIN resource_tags AS rmt "
