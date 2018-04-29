@@ -173,51 +173,57 @@ class LoanPayment:
 		self.cursor = db.cursor()
 		self.total = total
 		self.date = date
-		self.cursor.execute ("INSERT INTO gl_transactions (date_inserted, "
-								"contact_id, loan_payment) "
-							"VALUES (%s, %s, True) RETURNING id", 
+		self.cursor.execute ("INSERT INTO gl_transactions "
+							"(date_inserted, contact_id) "
+							"VALUES (%s, %s) RETURNING id", 
 							(date, contact_id))
 		self.transaction_id = self.cursor.fetchone()[0]
 		
 	def credit_card (self, credit_card_account):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, gl_transaction_id) "
-					"VALUES (%s, %s, %s)", 
+					"VALUES (%s, %s, %s) RETURNING id", 
 					(credit_card_account, self.total, self.transaction_id))
+		return self.cursor.fetchone()[0]
 
 	def bank_check (self, checking_account, check_number, contact_name):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, check_number, gl_transaction_id, "
 					"date_inserted, transaction_description) "
-					"VALUES (%s, %s, %s, %s, %s, %s)", 
+					"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", 
 					(checking_account, self.total, check_number, 
 					self.transaction_id, self.date, contact_name))
+		return self.cursor.fetchone()[0]
 
 	def cash (self, cash_account):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, gl_transaction_id) "
-					"VALUES (%s, %s, %s)", 
+					"VALUES (%s, %s, %s) RETURNING id", 
 					(cash_account, self.total, self.transaction_id))
+		return self.cursor.fetchone()[0]
 
 	def bank_transfer (self, checking_account, transaction_number):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, transaction_description, "
 					"date_inserted, gl_transaction_id) "
-					"VALUES (%s, %s, %s, %s, %s)", 
+					"VALUES (%s, %s, %s, %s, %s) RETURNING id", 
 					(checking_account, self.total, transaction_number, 
 					self.date, self.transaction_id))
+		return self.cursor.fetchone()[0]
 
 	def principal (self, principal_account, amount):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, amount, gl_transaction_id) "
-					"VALUES (%s, %s, %s)", 
+					"VALUES (%s, %s, %s) RETURNING id", 
 					(principal_account, amount, self.transaction_id))
+		return self.cursor.fetchone()[0]
 
 	def interest (self, expense_account, amount):
 		self.cursor.execute("INSERT INTO gl_entries "
 					"(debit_account, amount, gl_transaction_id) "
-					"VALUES (%s, %s, %s)", 
+					"VALUES (%s, %s, %s) RETURNING id", 
 					(expense_account, amount, self.transaction_id))
+		return self.cursor.fetchone()[0]
 					
 class VendorPayment :
 	def __init__ (self, db, date, total, description):
@@ -538,6 +544,19 @@ def switch_to_accrual_based (db):
 		po_id = row[0]
 		post_purchase_order_accounts (db, po_id)
 	cursor.close()
+
+def create_loan (db, date, amount, liability_account):
+	cursor = db.cursor()
+	cursor.execute("WITH new_row AS "
+						"(INSERT INTO gl_transactions "
+						"(date_inserted) VALUES (%s) RETURNING id) "
+				"INSERT INTO gl_entries "
+				"(gl_transaction_id, credit_account, amount) "
+				"VALUES ((SELECT id FROM new_row), %s, %s) RETURNING id", 
+				(date, liability_account, amount))
+	gl_entries_id = cursor.fetchone()[0]
+	cursor.close()
+	return gl_entries_id
 
 
 
