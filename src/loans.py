@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 from dateutils import DateTimeCalendar
 from db import transactor
 
@@ -58,6 +58,9 @@ class LoanGUI :
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def window_destroy (self, window):
+		self.cursor.close()
+
 	def spinbutton_focus_in_event (self, entry, event):
 		GLib.idle_add(self.highlight, entry)
 
@@ -82,7 +85,7 @@ class LoanGUI :
 			cellrenderer.set_property("text", 'Wrong format, please check database')
 
 	def populate_contacts (self):
-		self.cursor.execute("SELECT id::text, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
@@ -176,23 +179,27 @@ class LoanGUI :
 			self.builder.get_object('button1').set_sensitive(True)
 
 	def save_clicked (self, button):
+		gl_entries_id = transactor.create_loan(self.db, self.date, 
+												self.amount, self.account)
 		self.cursor.execute("INSERT INTO loans "
 								"(description, "
 								"contact_id, "
 								"date_received, "
 								"amount, "
 								"period, "
-								"last_payment_date) "
-							"VALUES (%s, %s, %s, %s, %s, now()) RETURNING id",
+								"last_payment_date, "
+								"gl_entries_id) "
+							"VALUES (%s, %s, %s, %s, %s, now(), %s) ",
 							(self.description,
 							self.contact_id,
 							self.date,
 							self.amount,
-							self.payment_period))
-		id = self.cursor.fetchone()[0]
-		transactor.create_loan(self.db, self.date, self.amount, self.account, id)
+							self.payment_period,
+							gl_entries_id))
 		self.db.commit()
 		self.populate_loans ()
+		button.set_sensitive(False)
+		self.window.destroy()
 
 	
 		

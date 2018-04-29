@@ -13,6 +13,8 @@
       <column type="gchararray"/>
       <!-- column-name name -->
       <column type="gchararray"/>
+      <!-- column-name ext_name -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkEntryCompletion" id="contact_completion">
@@ -23,6 +25,12 @@
       <object class="GtkCellRendererText" id="cellrenderertext1"/>
       <attributes>
         <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText" id="cellrenderertext8"/>
+      <attributes>
+        <attribute name="text">2</attribute>
       </attributes>
     </child>
   </object>
@@ -60,6 +68,7 @@
     <property name="default_width">400</property>
     <property name="default_height">500</property>
     <property name="icon">PyGtk_Posting.svg</property>
+    <signal name="destroy" handler="window_destroy" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -98,6 +107,7 @@
                       <object class="GtkEntry" id="entry1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="editable">False</property>
                         <property name="primary_icon_stock">gtk-find</property>
                         <signal name="icon-release" handler="date_entry_icon_release" swapped="no"/>
                       </object>
@@ -116,6 +126,12 @@
                         <property name="entry_text_column">1</property>
                         <property name="id_column">0</property>
                         <signal name="changed" handler="contact_combo_changed" swapped="no"/>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext7"/>
+                          <attributes>
+                            <attribute name="text">2</attribute>
+                          </attributes>
+                        </child>
                         <child internal-child="entry">
                           <object class="GtkEntry" id="combobox-entry">
                             <property name="can_focus">True</property>
@@ -170,6 +186,7 @@
                         <property name="can_focus">True</property>
                         <property name="xalign">1</property>
                         <property name="adjustment">adjustment1</property>
+                        <property name="digits">2</property>
                         <property name="numeric">True</property>
                         <signal name="focus-in-event" handler="spinbutton_focus_in_event" swapped="no"/>
                         <signal name="value-changed" handler="amount_value_changed" swapped="no"/>
@@ -183,7 +200,7 @@
                       <object class="GtkLabel" id="label6">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Payment reminder</property>
+                        <property name="label" translatable="yes">Payment period</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
