@@ -30,58 +30,63 @@ class LoanPaymentsGUI:
 		self.builder.connect_signals(self)
 
 		self.loan_payment_store = self.builder.get_object('loan_payments_store')
-		self.contact_store = self.builder.get_object('contacts_store')
-		self.populate_contacts ()
+		self.loan_store = self.builder.get_object('loan_store')
+		self.populate_loans ()
+
+		column = self.builder.get_object ('treeviewcolumn2')
+		renderer = self.builder.get_object ('cellrenderertext2')
+		column.set_cell_data_func(renderer, self.cell_func, 2)
+
+		column = self.builder.get_object ('treeviewcolumn3')
+		renderer = self.builder.get_object ('cellrenderertext3')
+		column.set_cell_data_func(renderer, self.cell_func, 3)
+
+		column = self.builder.get_object ('treeviewcolumn4')
+		renderer = self.builder.get_object ('cellrenderertext4')
+		column.set_cell_data_func(renderer, self.cell_func, 4)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
-	def populate_contacts (self):
-		self.cursor.execute("SELECT contacts.id, name "
-							"FROM gl_entries "
-							"JOIN contacts "
-							"ON gl_entries.contact_id "
-							"= contacts.id WHERE loan_payment = True "
-							"GROUP BY contacts.id, name")
-		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			self.contact_store.append ([str(contact_id), contact_name])
+	def cell_func (self, column, cellrenderer, model, iter1, index):
+		amount = "{:,.2f}".format(model[iter1][index])
+		cellrenderer.set_property("text", amount)
 
-	def contact_combo_changed (self, combo):
-		contact_id = combo.get_active_id ()
-		if contact_id != None :
-			self.contact_id = contact_id
+	def populate_loans (self):
+		self.cursor.execute("SELECT l.id::text, l.description "
+							"FROM loans AS l "
+							"ORDER BY description")
+		for row in self.cursor.fetchall():
+			self.loan_store.append(row)
+
+	def loan_combo_changed (self, combo):
+		loan_id = combo.get_active_id ()
+		if loan_id != None :
+			self.loan_id = loan_id
 			self.populate_loan_payments()
 
 	def populate_loan_payments (self):
 		self.loan_payment_store.clear()
 		self.cursor.execute("SELECT "
-								"contact_id, "
-								"name, "
-								"date_inserted::text, "
-								"format_date(date_inserted) "
-							"FROM gl_entries AS acl "
-							"JOIN contacts ON contacts.id = acl.contact_id "
-							"WHERE contact_id = %s "
-							"GROUP BY contact_id, name, date_inserted", 
-							(self.contact_id,))
+								"lp.id, "
+								"c.name, "
+								"total.amount::float, "
+								"principal.amount::float, "
+								"interest.amount::float, "
+								"total.date_inserted::text, "
+								"format_date(total.date_inserted) "
+							"FROM loan_payments AS lp "
+							"JOIN gl_entries AS total "
+								"ON total.id = lp.gl_entries_total_id "
+							"JOIN gl_entries AS principal "
+								"ON principal.id = lp.gl_entries_principal_id "
+							"JOIN gl_entries AS interest "
+								"ON interest.id = lp.gl_entries_interest_id "
+							"JOIN contacts AS c ON c.id = lp.contact_id "
+							"WHERE lp.loan_id = %s ORDER BY principal.date_inserted", 
+							(self.loan_id,))
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			date = row[2]
-			formatted_date = row[3]
-			parent = self.loan_payment_store.append(None, [0, contact_name, '', '', '', date, formatted_date])
-			self.cursor.execute("SELECT name, amount, debit_account, "
-								"credit_account, date_inserted::text "
-								"FROM gl_entries "
-								"JOIN contacts "
-								"ON gl_entries.contact_id = "
-								"contacts.id WHERE (contact_id, date_inserted) "
-								"= (%s, %s)", 
-								(contact_id, date))
-			for row in self.cursor.fetchall():
-				self.loan_payment_store.append(parent, [0, '', '', '', '', date, formatted_date])
+			self.loan_payment_store.append(row)
 
 
 			
