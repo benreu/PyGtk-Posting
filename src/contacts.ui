@@ -886,6 +886,7 @@
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="tooltip_text" translatable="yes">Mailing lists</property>
+                                            <signal name="clicked" handler="mailing_list_clicked" swapped="no"/>
                                           </object>
                                           <packing>
                                             <property name="left_attach">0</property>

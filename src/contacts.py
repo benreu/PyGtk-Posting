@@ -97,6 +97,10 @@ class GUI(Connection, Admin):
 		
 		GLib.timeout_add(100, self.populate_scanners)
 
+	def mailing_list_clicked (self, button):
+		import mailing_lists
+		mailing_lists.MailingListsGUI(self.main)
+
 	def customer_markup_percent_clicked (self, button):
 		if self.get_admin() == False:
 			return

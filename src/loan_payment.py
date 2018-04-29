@@ -23,7 +23,7 @@ from db import transactor
 UI_FILE = "src/loan_payment.ui"
 
 class LoanPaymentGUI:
-	def __init__(self, db):
+	def __init__(self, db, loan_id = None):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -31,21 +31,22 @@ class LoanPaymentGUI:
 
 		self.db = db
 		self.cursor = db.cursor()
-		self.calendar = DateTimeCalendar(self.db)		
+		self.calendar = DateTimeCalendar(self.db)
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
-		self.contact_id = None
-		contact_completion = self.builder.get_object('contact_completion')
-		contact_completion.set_match_func(self.contact_match_func)
-		self.contact_store = self.builder.get_object('contact_store')
-		self.cash_store = self.builder.get_object('cash_store')
+		self.loan_id = None
 		self.loan_store = self.builder.get_object('loan_store')
+		self.cash_store = self.builder.get_object('cash_store')
+		self.loan_account_store = self.builder.get_object('loan_account_store')
 		self.bank_store = self.builder.get_object('bank_store')
 		self.expense_store = self.builder.get_object('expense_store')
 		self.populate_stores()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+		if loan_id != None:
+			self.builder.get_object('combobox1').set_active_id(str(loan_id))
 
 	def spinbutton_focus_in_event (self, entry, event):
 		GLib.idle_add(self.highlight, entry)
@@ -54,73 +55,48 @@ class LoanPaymentGUI:
 		entry.select_region(0, -1)
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
-							"WHERE (deleted, service_provider) = (False, True) "
-							"ORDER BY name")
+		self.cursor.execute("SELECT l.id::text, l.description, c.id::text, c.name "
+							"FROM loans AS l "
+							"JOIN contacts AS c ON c.id = l.contact_id "
+							"WHERE finished = False ORDER BY description")
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			contact_co = row[2]
-			self.contact_store.append([str(contact_id), contact_name, contact_co])
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+			self.loan_store.append(row)
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE bank_account = True")
 		for row in self.cursor.fetchall():
-			bank_account = row[0]
-			bank_name = row[1]
-			self.bank_store.append([str(bank_account), bank_name])
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+			self.bank_store.append(row)
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE cash_account = True")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.cash_store.append([str(account_number), account_name])
+			self.cash_store.append(row)
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE type = 3 AND parent_number IS NULL")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			parent_tree = self.expense_store.append(None,[account_number, 
-																account_name])
-			self.get_child_accounts (self.expense_store, account_number, parent_tree)
+			parent_tree = self.expense_store.append(None, row)
+			self.get_child_accounts (self.expense_store, row[0], parent_tree)
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE type = 5 AND parent_number IS NULL")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			parent_tree = self.loan_store.append(None,[account_number, 
-																account_name])
-			self.get_child_accounts (self.loan_store, account_number, parent_tree)
+			parent_tree = self.loan_account_store.append(None, row)
+			self.get_child_accounts (self.loan_account_store, row[0], parent_tree)
 
 	def get_child_accounts (self, store, parent_number, parent_tree):
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE parent_number = %s", (parent_number,))
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			parent = store.append(parent_tree,[account_number, account_name])
-			self.get_child_accounts (store, account_number, parent)
+			parent = store.append(parent_tree, row)
+			self.get_child_accounts (store, row[0], parent)
 
-	def contact_match_func(self, completion, key, tree_iter):
-		split_search_text = key.split()
-		for text in split_search_text:
-			if text not in self.contact_store[tree_iter][1].lower():
-				return False
-		return True
-
-	def contact_combo_changed (self, combo):
-		contact_id = combo.get_active_id()
+	def loan_combo_changed (self, combo):
+		loan_id = combo.get_active_id()
 		iter_ = combo.get_active()
-		if contact_id != None:
-			self.contact_id = contact_id
-			contact_name = self.contact_store[iter_][1]
+		if loan_id != None:
+			iter_ = combo.get_active()
+			self.contact_id = self.loan_store[iter_][2]
+			self.loan_id = loan_id
+			contact_name = self.loan_store[iter_][3]
 			self.builder.get_object('label16').set_label(contact_name)
 			self.check_if_all_requirements_valid ()
-
-	def contact_match_selected (self, completion, model, iter_):
-		self.contact_id = model[iter_][0]
-		contact_name = model[iter_][1]
-		self.builder.get_object('label16').set_label(contact_name)
-		self.check_if_all_requirements_valid ()
 
 	def bank_combo_changed (self, combo):
 		bank_account = combo.get_active_id()
@@ -137,7 +113,7 @@ class LoanPaymentGUI:
 		check_button.set_sensitive(False)
 		transfer_button.set_sensitive(False)
 		cash_button.set_sensitive(False)
-		if self.contact_id == None:
+		if self.loan_id == None:
 			self.set_button_message('No contact selected')
 			return # no contact selected
 		if self.date == None:
@@ -196,7 +172,8 @@ class LoanPaymentGUI:
 	def cash_payment_clicked (self, button):
 		self.principal_and_interest_payment ()
 		cash_account = self.builder.get_object('combobox3').get_active_id()
-		self.loan_payment.cash (cash_account)
+		self.total_id = self.loan_payment.cash (cash_account)
+		self.update_loan_payment_ids ()
 		self.db.commit()
 		self.window.destroy()
 
@@ -204,7 +181,8 @@ class LoanPaymentGUI:
 		self.principal_and_interest_payment ()
 		transaction_number = self.builder.get_object('entry3').get_text()
 		bank_account = self.builder.get_object('combobox4').get_active_id()
-		self.loan_payment.bank_transfer(bank_account, transaction_number)
+		self.total_id = self.loan_payment.bank_transfer(bank_account, transaction_number)
+		self.update_loan_payment_ids ()
 		self.db.commit()
 		self.window.destroy()
 
@@ -212,26 +190,46 @@ class LoanPaymentGUI:
 		self.principal_and_interest_payment ()
 		bank_account = self.builder.get_object('combobox4').get_active_id()
 		check_number = self.builder.get_object('entry7').get_text()
-		contact_name = self.builder.get_object('combobox-entry').get_text()
-		self.loan_payment.bank_check (bank_account, check_number, contact_name)
+		active = self.builder.get_object('combobox1').get_active()
+		contact_name = self.loan_store[active][2]
+		self.total_id = self.loan_payment.bank_check (bank_account, check_number, contact_name)
+		self.update_loan_payment_ids ()
 		self.db.commit()
 		self.window.destroy()
 
 	def principal_and_interest_payment (self):
 		self.loan_payment = transactor.LoanPayment(self.db, self.date, 
-													self.total, self.contact_id)
+													self.total, self.loan_id)
 		#### interest
 		interest = self.builder.get_object('spinbutton2').get_value()
 		interest_selection = self.builder.get_object('treeview-selection3')
 		model, path = interest_selection.get_selected_rows()
 		interest_account = model[path][0]
-		self.loan_payment.interest (interest_account, interest)
+		self.interest_id = self.loan_payment.interest (interest_account, interest)
 		#### principal
 		principal = self.builder.get_object('spinbutton1').get_value()
 		principal_selection = self.builder.get_object('treeview-selection2')
 		model, path = principal_selection.get_selected_rows()
 		principal_account = model[path][0]
-		self.loan_payment.principal (principal_account, principal)
+		self.principal_id = self.loan_payment.principal (principal_account, principal)
+
+	def update_loan_payment_ids (self):
+		self.cursor.execute("INSERT INTO loan_payments "
+								"(loan_id, "
+								"gl_entries_principal_id, "
+								"gl_entries_interest_id, "
+								"gl_entries_total_id, "
+								"contact_id "
+								") "
+							"VALUES (%s, %s, %s, %s, %s); "
+							"UPDATE loans SET last_payment_date = CURRENT_DATE "
+							"WHERE id = %s", 
+							(self.loan_id,
+							self.principal_id,
+							self.interest_id,
+							self.total_id, 
+							self.contact_id, 
+							self.loan_id))
 
 	def row_activate (self, treeview, path, treeviewcolumn):
 		self.check_if_all_requirements_valid ()
@@ -264,6 +262,7 @@ class LoanPaymentGUI:
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
 		self.builder.get_object('entry1').set_text(day_text)
+		self.check_if_all_requirements_valid()
 
 	def calendar_entry_icon_released(self, entry, icon, event):
 		self.calendar.set_relative_to(entry)

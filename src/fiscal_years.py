@@ -31,11 +31,11 @@ class FiscalYearGUI:
 		self.db = db
 		self.cursor = self.db.cursor()
 
-		self.start_calendar = DateTimeCalendar(self.db, True)
+		self.start_calendar = DateTimeCalendar(True)
 		self.start_calendar.connect('day-selected', self.start_day_selected)
 		self.start_calendar.set_today()
 
-		self.end_calendar = DateTimeCalendar(self.db, True)
+		self.end_calendar = DateTimeCalendar(True)
 		self.end_calendar.connect('day-selected', self.end_day_selected)
 		self.end_calendar.set_date(datetime.today() + timedelta(days=365))
 
@@ -50,9 +50,9 @@ class FiscalYearGUI:
 		self.cursor.execute("SELECT "
 								"id, "
 								"name, "
-								"start_date, "
+								"start_date::text, "
 								"format_date(start_date), "
-								"end_date, "
+								"end_date::text, "
 								"format_date(end_date), "
 								"active "
 							"FROM fiscal_years ORDER BY start_date")
