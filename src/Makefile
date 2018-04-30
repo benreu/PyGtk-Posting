@@ -312,7 +312,6 @@ pygtk_posting_PYTHON = \
 	job_types.py \
 	credit_card_statements.py \
 	jobs_to_invoice.py \
-	statements_to_print.py \
 	statementing.py \
 	customer_tax_exemptions.py \
 	product_location.py \
@@ -368,7 +367,6 @@ pygtk_posting_PYTHON = \
 	documents_to_invoice.ui \
 	receive_orders.ui \
 	locations.ui \
-	statements_to_print.ui \
 	customer_statement.ui \
 	contact_terms.ui \
 	incoming_invoice.ui \
@@ -420,7 +418,9 @@ pygtk_posting_PYTHON = \
 	credit_memo.ui \
 	main.py \
 	mailing_lists.py \
-	mailing_lists.ui
+	mailing_lists.ui \
+	loans.py \
+	loans.ui
 
 EXTRA_DIST = $(ui_DATA)
 SUBDIRS = \
