@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject, Pango
-from datetime import datetime, timedelta, date
-from dateutils import datetime_to_user_date, DateTimeCalendar
+from gi.repository import Gtk
+from dateutils import DateTimeCalendar
 import spell_check
 
 UI_FILE = "src/resource_diary.ui"
@@ -36,56 +35,65 @@ class ResourceDiaryGUI:
 		textview = self.builder.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 
-		self.day = date.today()
-		self.add_day_info ()
 		self.calendar = DateTimeCalendar(self.db)
 		self.calendar.connect('day-selected', self.calendar_day_selected)
+		self.calendar.set_today()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def add_day_info (self):
-		text = datetime_to_user_date (self.day)
-		self.builder.get_object('label5').set_label(text)
-		self.builder.get_object('entry1').set_text(text)
-		diary = self.get_diary (self.day)
-		self.builder.get_object('textbuffer1').set_text(diary)
+		cursor = self.db.cursor()
+		cursor.execute("WITH date_range AS "
+							"(SELECT generate_series "
+								"(%s - INTERVAL '4 year', "
+								"%s,  '1 year' "
+								") AS diary_date "
+							") "
+						"SELECT "
+							"COALESCE(subject, ''), "
+							"to_char(date_range.diary_date, 'Dy FMMonth DD YYYY') "
+						"FROM date_range "
+						"LEFT JOIN resources "
+						"ON date_range.diary_date = resources.dated_for "
+						"AND diary = True "
+						"ORDER BY date_range.diary_date DESC", 
+						(self.day, self.day))
+		tupl = cursor.fetchall()
+		for row in tupl:
+			print (row)
 		
-		year_ago = self.day.replace(year = (self.day.year - 1))
-		text = datetime_to_user_date (year_ago)
-		self.builder.get_object('label13').set_label(text)
-		diary = self.get_diary (year_ago)		
-		self.builder.get_object('textbuffer2').set_text(diary)
+		subject0 = tupl[0][0]
+		date0 = tupl[0][1]
 		
-		two_year_ago = year_ago.replace (year = (year_ago.year - 1))
-		text = datetime_to_user_date (two_year_ago)
-		self.builder.get_object('label14').set_label(text)
-		diary = self.get_diary (two_year_ago)		
-		self.builder.get_object('textbuffer3').set_text(diary)
+		self.builder.get_object('label1').set_label(date0)
+		self.builder.get_object('entry1').set_text(date0)
+		self.builder.get_object('textbuffer1').set_text(subject0)
 		
-		three_year_ago = two_year_ago.replace (year = (two_year_ago.year - 1))
-		text = datetime_to_user_date (three_year_ago)
-		self.builder.get_object('label15').set_label(text)
-		diary = self.get_diary (three_year_ago)		
-		self.builder.get_object('textbuffer4').set_text(diary)
+		subject1 = tupl[1][0]
+		date1 = tupl[1][1]
 		
-		four_year_ago = three_year_ago.replace (year = (three_year_ago.year - 1))
-		text = datetime_to_user_date (four_year_ago)
-		self.builder.get_object('label16').set_label(text)
-		diary = self.get_diary (four_year_ago)		
-		self.builder.get_object('textbuffer5').set_text(diary)
+		self.builder.get_object('label2').set_label(date1)
+		self.builder.get_object('textbuffer2').set_text(subject1)
 		
-	def get_diary (self, date):
-		diary = '' # blank string in case there are no results
-		self.cursor.execute("SELECT subject FROM resources "
-							"WHERE dated_for = %s AND "
-							"diary = True", 
-							(date,))
-		for row in self.cursor.fetchall():
-			diary = row[0]
-			if diary == None: # diary might be None
-				diary = ''
-		return diary
+		subject2 = tupl[2][0]
+		date2 = tupl[2][1]
+				
+		self.builder.get_object('label3').set_label(date2)
+		self.builder.get_object('textbuffer3').set_text(subject2)
+		
+		subject3 = tupl[3][0]
+		date3 = tupl[3][1]
+		
+		self.builder.get_object('label4').set_label(date3)
+		self.builder.get_object('textbuffer4').set_text(subject3)
+		
+		subject4 = tupl[4][0]
+		date4 = tupl[4][1]
+		
+		self.builder.get_object('label5').set_label(date4)
+		self.builder.get_object('textbuffer5').set_text(subject4)
+		cursor.close()
 
 	def next_day_clicked (self, button):
 		self.day = (self.day + timedelta(days = 1))
