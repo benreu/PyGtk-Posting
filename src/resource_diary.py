@@ -17,6 +17,7 @@
 
 
 from gi.repository import Gtk
+from datetime import timedelta
 from dateutils import DateTimeCalendar
 import spell_check
 
@@ -31,6 +32,7 @@ class ResourceDiaryGUI:
 
 		self.db = db
 		self.cursor = self.db.cursor()
+		self.populating = False
 
 		textview = self.builder.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
@@ -43,6 +45,7 @@ class ResourceDiaryGUI:
 		self.window.show_all()
 
 	def add_day_info (self):
+		self.populating = True
 		cursor = self.db.cursor()
 		cursor.execute("WITH date_range AS "
 							"(SELECT generate_series "
@@ -60,8 +63,6 @@ class ResourceDiaryGUI:
 						"ORDER BY date_range.diary_date DESC", 
 						(self.day, self.day))
 		tupl = cursor.fetchall()
-		for row in tupl:
-			print (row)
 		
 		subject0 = tupl[0][0]
 		date0 = tupl[0][1]
@@ -94,6 +95,7 @@ class ResourceDiaryGUI:
 		self.builder.get_object('label5').set_label(date4)
 		self.builder.get_object('textbuffer5').set_text(subject4)
 		cursor.close()
+		self.populating = False
 
 	def next_day_clicked (self, button):
 		self.day = (self.day + timedelta(days = 1))
@@ -104,18 +106,19 @@ class ResourceDiaryGUI:
 		self.add_day_info ()
 
 	def diary_textbuffer_changed (self, textbuffer):
+		if self.populating == True:
+			return
 		end = textbuffer.get_end_iter()
 		start = textbuffer.get_start_iter()
 		text = textbuffer.get_text(start, end, True)
-		self.cursor.execute("UPDATE resources SET subject = %s "
-							"WHERE dated_for = %s AND "
-							"diary = True RETURNING id", (text, self.day))
-		for row in self.cursor.fetchall():
-			break # record found
-		else: # no diary found for this date; create one
-			self.cursor.execute("INSERT INTO resources "
-								"(subject, dated_for, diary) "
-								"VALUES (%s, %s, True) ", (text, self.day))
+		self.cursor.execute("INSERT INTO resources "
+							"(subject, dated_for, diary) "
+							"VALUES (%s, %s, True) "
+							"ON CONFLICT (dated_for, diary) "
+							"DO UPDATE SET subject = %s " 
+							"WHERE (resources.diary, resources.dated_for) = "
+							"(True, %s)", 
+							(text, self.day, text, self.day))
 		self.db.commit()
 
 	def entry_icon_release (self, entry, position, button):

@@ -430,7 +430,7 @@ class ResourceManagementGUI:
 							"ON rm.contact_id = contacts.id "
 							"WHERE date_created <= %s "
 							"AND finished != %s OR finished IS NULL "
-							"AND diary = False "
+							"AND diary != True "
 							"LIMIT %s", (self.older_than_date, finished, 
 							row_limit))
 		for row in self.cursor.fetchall():
@@ -491,7 +491,7 @@ class ResourceManagementGUI:
 							"ON rm.contact_id = contacts.id "
 							"WHERE (finished != %s OR finished IS NULL) "
 							"AND date_created <= %s AND parent_id IS NULL "
-							"AND diary = False "
+							"AND diary != True "
 							"LIMIT %s", (finished, self.older_than_date,  
 							row_limit))
 		for row in self.cursor.fetchall():
@@ -556,7 +556,7 @@ class ResourceManagementGUI:
 							"ON rm.contact_id = contacts.id "
 							"WHERE rm.parent_id = %s "
 							"AND (finished != %s OR finished IS NULL) "
-							"AND diary = False", 
+							"AND diary != True", 
 							(parent_id, finished ))
 		for row in self.cursor.fetchall():
 			rgba = Gdk.RGBA(1, 1, 1, 1)

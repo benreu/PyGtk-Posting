@@ -1177,7 +1177,12 @@ def check_and_update_version (db, statusbar):
 		progressbar (116)
 		cursor.execute("CREATE TABLE loans (id serial PRIMARY KEY, description varchar NOT NULL, contact_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT, date_received date NOT NULL, amount numeric (12, 2) NOT NULL, period varchar NOT NULL, finished boolean NOT NULL DEFAULT False, gl_entries_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT, last_payment_date date NOT NULL)")
 		cursor.execute("CREATE TABLE loan_payments (id serial PRIMARY KEY, loan_id bigint NOT NULL REFERENCES loans ON DELETE RESTRICT, gl_entries_principal_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT, gl_entries_interest_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT, gl_entries_total_id bigint REFERENCES gl_entries ON DELETE RESTRICT, contact_id bigint NOT NULL REFERENCES contacts ON DELETE RESTRICT)")
-		cursor.execute("UPDATE settings SET version = '117'")
+	if version <= '117':
+		progressbar (117)
+		cursor.execute("ALTER TABLE public.resources ALTER COLUMN diary DROP DEFAULT;")
+		cursor.execute("UPDATE public.resources SET diary = NULL WHERE diary = False;")
+		cursor.execute("ALTER TABLE public.resources ADD UNIQUE (dated_for, diary);")
+		cursor.execute("UPDATE settings SET version = '118'")
 	cursor.close()
 	db.commit()
 
