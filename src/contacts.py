@@ -83,6 +83,9 @@ class GUI(Connection, Admin):
 		self.select_contact ()
 		self.populate_zip_codes ()
 
+		if self.main.admin == True:
+			self.builder.get_object('treeview1').set_tooltip_column(0)
+
 		self.mailing_list_popover = Gtk.Popover()
 		self.mailing_list_popover.add(self.builder.get_object("box18"))	
 		self.initiate_mailing_info()
