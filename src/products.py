@@ -102,6 +102,8 @@ class ProductsGUI:
 			self.builder.get_object('notebook1').set_current_page(1)
 		if manufactured == True:
 			self.builder.get_object('radiobutton3').set_active(True)
+		if self.main.admin == True:
+			self.builder.get_object('treeview2').set_tooltip_column(0)
 		
 		window = self.builder.get_object('window')
 		window.show_all()
