@@ -63,7 +63,9 @@ class InvoiceHistoryGUI:
 		amount_column = self.builder.get_object ('treeviewcolumn5')
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
 		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
-
+		
+		if self.main.admin == True:
+			self.builder.get_object('treeview2').set_tooltip_column(0)
 		
 		self.product_name = ''
 		self.product_ext_name = ''
@@ -220,9 +222,15 @@ class InvoiceHistoryGUI:
 		store = self.builder.get_object('invoice_items_store')
 		store.clear()
 		if load_all == True:			
-			self.cursor.execute("SELECT ili.id, ili.qty,  "
-								"product_id, name, ext_name, ili.price, "
-								"ili.ext_price, remark "
+			self.cursor.execute("SELECT "
+									"ili.id, "
+									"ili.qty::float,  "
+									"product_id, "
+									"name, "
+									"ext_name, "
+									"remark, "
+									"ili.price, "
+									"ili.ext_price "
 								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
@@ -240,25 +248,21 @@ class InvoiceHistoryGUI:
 				args = str(tuple(id_list))
 			else:				# single variables do not work in tuple > SQL
 				args = "(%s)" % id_list[0] 
-			self.cursor.execute("SELECT ili.id, ili.qty,  "
-								"product_id, name, ext_name, ili.price, "
-								"ili.ext_price, remark "
+			self.cursor.execute("SELECT "
+									"ili.id, "
+									"ili.qty::float,  "
+									"product_id, "
+									"name, "
+									"ext_name, "
+									"remark, "
+									"ili.price, "
+									"ili.ext_price "
 								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
 								"WHERE invoice_id IN " + args)
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			ext_name = row[4]
-			price = row[5]
-			ext_price = row[6]
-			remark = row[7]
-			store.append([float(qty), product_id,
-											product_name, ext_name, remark, 
-											price, ext_price])
+			store.append(row)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 

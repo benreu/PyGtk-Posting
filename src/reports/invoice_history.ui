@@ -43,6 +43,8 @@
   </object>
   <object class="GtkListStore" id="invoice_items_store">
     <columns>
+      <!-- column-name row_id -->
+      <column type="gint"/>
       <!-- column-name qty -->
       <column type="gfloat"/>
       <!-- column-name product_id -->
@@ -470,11 +472,11 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Qty</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">0</property>
+                            <property name="sort_column_id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext8"/>
                               <attributes>
-                                <attribute name="text">0</attribute>
+                                <attribute name="text">1</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -484,11 +486,11 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Product</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">2</property>
+                            <property name="sort_column_id">3</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext9"/>
                               <attributes>
-                                <attribute name="text">2</attribute>
+                                <attribute name="text">3</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -498,11 +500,11 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Ext name</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">3</property>
+                            <property name="sort_column_id">4</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext11"/>
                               <attributes>
-                                <attribute name="text">3</attribute>
+                                <attribute name="text">4</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -512,11 +514,11 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Remark</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">4</property>
+                            <property name="sort_column_id">5</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext12"/>
                               <attributes>
-                                <attribute name="text">4</attribute>
+                                <attribute name="text">5</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -526,11 +528,11 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Price</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">5</property>
+                            <property name="sort_column_id">6</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext13"/>
                               <attributes>
-                                <attribute name="text">5</attribute>
+                                <attribute name="text">6</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -540,11 +542,11 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Ext price</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">6</property>
+                            <property name="sort_column_id">7</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext14"/>
                               <attributes>
-                                <attribute name="text">6</attribute>
+                                <attribute name="text">7</attribute>
                               </attributes>
                             </child>
                           </object>
