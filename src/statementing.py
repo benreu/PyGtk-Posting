@@ -76,7 +76,7 @@ class Setup():
 		document = Item() 
 		document.total = '${:,.2f}'.format(total)
 		document.comment = self.comment
-		self.cursor.execute("SELECT format_date(%s)", date)
+		self.cursor.execute("SELECT format_date(%s)", (date.date(),))
 		date_text = self.cursor.fetchone()[0]
 		document.date = date_text
 		
@@ -106,8 +106,8 @@ class Setup():
 		subprocess.call("odt2pdf " + self.statement_file, shell = True)
 		
 	def print_dialog (self, window):
-		p = printing.PrintDialog("/tmp/" + self.document_pdf)
-		result = p.run_print_dialog(window)
+		p = printing.Setup("/tmp/" + self.document_pdf, 'statement')
+		result = p.print_dialog(window)
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE statements SET (print_date, printed) = "
 								"(CURRENT_DATE, True) WHERE id = %s", 
