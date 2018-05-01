@@ -481,7 +481,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 							"JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
 							"WHERE finished != True "
-							"AND (diary, to_do) = (False, True)")
+							"AND diary IS NULL "
+							"AND to_do = True")
 		for row in self.cursor.fetchall():
 			id_ = row[0]
 			subject = row[1]
