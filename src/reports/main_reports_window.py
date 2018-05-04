@@ -59,6 +59,10 @@ class MainReportsGUI:
 		from reports import product_transactions
 		product_transactions.ProductTransactionsGUI(self.db)
 
+	def invoice_to_payment_matching (self, button):
+		from reports import invoice_to_payment_matching
+		invoice_to_payment_matching.GUI(self.db)
+
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history
 		pay_stub_history.PayStubHistoryGUI(self.db)
