@@ -240,8 +240,8 @@ class InvoiceGUI:
 			return
 		qty, product_id = list_[0], list_[1]
 		self.check_invoice_id()
-		iter_ = self.invoice_store.append([0, '1', product_id, product_name,
-											"", "", price, '1', '1', "", 
+		iter_ = self.invoice_store.append([0, qty, int(product_id), '',
+											'', '', '1', '1', '1', '', 
 											True, '', False])
 		self.check_invoice_item_id (iter_)
 		treeview = self.builder.get_object('treeview2')
