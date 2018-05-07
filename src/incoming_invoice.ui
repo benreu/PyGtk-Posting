@@ -1046,32 +1046,60 @@
           </packing>
         </child>
         <child>
-          <object class="GtkOverlay" id="overlay1">
+          <object class="GtkBox" id="box7">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_top">10</property>
+            <property name="orientation">vertical</property>
             <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow3">
+              <object class="GtkLabel" id="label20">
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">Pdf optimizing failed! Check the log for a possible resolution, 
+or you can attach the pdf without optimization.</property>
+                <attributes>
+                  <attribute name="background" value="#cccc00000000"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkOverlay" id="overlay1">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="margin_top">10</property>
-                <property name="shadow_type">in</property>
+                <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkTextView" id="textview1">
+                  <object class="GtkScrolledWindow" id="scrolledwindow3">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="editable">False</property>
-                    <property name="buffer">pdf_opt_result_buffer</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTextView" id="textview1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="buffer">pdf_opt_result_buffer</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="index">-1</property>
+                  </packing>
+                </child>
+                <child type="overlay">
+                  <object class="GtkSpinner" id="spinner1">
+                    <property name="can_focus">False</property>
                   </object>
                 </child>
               </object>
               <packing>
-                <property name="index">-1</property>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
-            </child>
-            <child type="overlay">
-              <object class="GtkSpinner" id="spinner1">
-                <property name="can_focus">False</property>
-              </object>
             </child>
           </object>
           <packing>

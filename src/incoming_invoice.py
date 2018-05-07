@@ -18,7 +18,7 @@
 from gi.repository import Gtk, GLib, GObject
 from multiprocessing import Queue, Process
 from queue import Empty
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, call
 import re, sane, os
 from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
@@ -412,6 +412,11 @@ class IncomingInvoiceGUI:
 				self.scan_file()
 			elif self.attach_origin == 2:
 				self.attach_file_from_disk()
+			elif self.attach_origin == 3:
+				call(["cp", self.file_name, "/tmp/opt.pdf"])
+				self.attach_file_from_disk()
+			self.builder.get_object('button10').set_label('Attach')
+			self.builder.get_object('label20').set_visible(False)
 		dialog.hide()
 
 	def scanner_combo_changed (self, combo):
@@ -428,24 +433,32 @@ class IncomingInvoiceGUI:
 		self.result_buffer = self.builder.get_object('pdf_opt_result_buffer')
 		self.result_buffer.set_text('', -1)
 		self.sw = self.builder.get_object('scrolledwindow3')
-		file_a = chooser.get_filename()
-		cmd = "./src/pdf_opt/pdfsizeopt '%s' '/tmp/opt.pdf'" % file_a
-		p = Popen(cmd, stdout = PIPE,
-						stderr = STDOUT,
-						stdin = PIPE,
-						shell = True)
+		self.file_name = chooser.get_filename()
+		p = Popen(['./src/pdf_opt/pdfsizeopt', self.file_name, '/tmp/opt.pdf'], 
+														stdout = PIPE,
+														stderr = STDOUT,
+														stdin = PIPE,
+														close_fds = False)
 		self.io_id = GObject.io_add_watch(p.stdout, GObject.IO_IN, self.optimizer_thread)
 		GObject.io_add_watch(p.stdout, GObject.IO_HUP, self.thread_finished)
 
 	def thread_finished (self, stdout, condition):
-		GObject.source_remove(self.io_id)
 		stdout.close()
+		self.spinner.stop()
+		self.spinner.set_visible(False)
+		GObject.source_remove(self.io_id)
+		button = self.builder.get_object('button10')
+		button.set_sensitive(True)
 		if os.path.exists("/tmp/opt.pdf"):
 			self.builder.get_object('combobox5').set_sensitive (False)
-			self.builder.get_object('button10').set_sensitive (True)
-			self.spinner.stop()
-			self.spinner.set_visible(False)
+			button.set_label("Attach")
 			self.attach_origin = 2
+		else:
+			label = self.builder.get_object('label20')
+			label.set_visible(True)
+			label.show()
+			button.set_label("Attach without optimization")
+			self.attach_origin = 3
 
 	def optimizer_thread (self, stdout, condition):
 		line = stdout.readline()
