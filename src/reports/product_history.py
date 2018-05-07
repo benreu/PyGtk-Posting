@@ -152,7 +152,7 @@ class ProductHistoryGUI:
 								"p.name, "
 								"sn.serial_number, "
 								"snh.date_inserted::text, "
-								"format_date(date_inserted), "
+								"format_date(snh.date_inserted), "
 								"snh.description, "
 								"c.name "
 							"FROM serial_number_history AS snh "
@@ -160,7 +160,8 @@ class ProductHistoryGUI:
 							"ON sn.id = snh.serial_number_id "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"JOIN contacts AS c ON c.id = snh.contact_id "
-							"WHERE sn.product_id = %s ORDER by date_inserted", 
+							"WHERE sn.product_id = %s"
+							"ORDER by snh.date_inserted", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
@@ -209,9 +210,9 @@ class ProductHistoryGUI:
 								"i.name, "
 								"'Comments: ' || comments, "
 								"qty, "
-								"price "
+								"price, "
 								"c.id::text, "
-								"c.name, "
+								"c.name "
 							"FROM invoices AS i "
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"JOIN invoice_items AS ii ON ii.invoice_id = i.id "
@@ -220,8 +221,7 @@ class ProductHistoryGUI:
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
-			invoice_store.append([id_, str(date), date_formatted, i_name, 
-									remark, qty, price, c_id, c_name])
+			invoice_store.append(row)
 		if count == 0:
 			self.builder.get_object('label2').set_label('Invoices')
 		else:
