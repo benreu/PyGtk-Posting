@@ -27,7 +27,9 @@ class ProductAccountRelationshipGUI:
 		self.cursor = self.db.cursor()
 		
 		self.product_text = ''
-		self.account_text = ''
+		self.expense_text = ''
+		self.revenue_text = ''
+		self.inventory_text = ''
 		self.product_window = None
 		
 		self.builder = Gtk.Builder()
@@ -69,8 +71,16 @@ class ProductAccountRelationshipGUI:
 		import product_hub 
 		product_hub.ProductHubGUI(self.main, product_id)
 
-	def account_search_changed (self, entry):
-		self.account_text = entry.get_text()
+	def expense_search_changed (self, entry):
+		self.expense_text = entry.get_text()
+		self.filtered_store.refilter()
+
+	def revenue_search_changed (self, entry):
+		self.revenue_text = entry.get_text()
+		self.filtered_store.refilter()
+
+	def inventory_search_changed (self, entry):
+		self.inventory_text = entry.get_text()
 		self.filtered_store.refilter()
 		
 	def product_search_changed (self, entry):
@@ -79,13 +89,17 @@ class ProductAccountRelationshipGUI:
 
 	def filter_func (self, model, tree_iter, r):
 		if self.product_text in model[tree_iter][1].lower():
-			if self.account_text in model[tree_iter][2].lower():
-				if self.account_text in model[tree_iter][3].lower():
-					if self.account_text in model[tree_iter][4].lower():
+			if self.expense_text in model[tree_iter][2].lower():
+				if self.revenue_text in model[tree_iter][3].lower():
+					if self.inventory_text in model[tree_iter][4].lower():
 						return True
 		return False
 
+	def reload_button_clicked (self, button):
+		self.populate_product_account_store ()
+
 	def populate_product_account_store (self):
+		self.product_account_store.clear()
 		self.cursor.execute("SELECT p.id, p.name, "
 							"COALESCE((SELECT name FROM gl_accounts "
 							"WHERE number = p.default_expense_account), ''), "
@@ -95,17 +109,9 @@ class ProductAccountRelationshipGUI:
 							"WHERE number = p.inventory_account), '') "
 							"FROM products AS p ORDER BY p.name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			expense_account = row[2]
-			revenue_account = row[3]
-			inventory_account = row[4]
-			self.product_account_store.append([product_id, product_name, 
-											expense_account, revenue_account, 
-											inventory_account])
+			self.product_account_store.append(row)
 
 
-			
 
 
-							
+
