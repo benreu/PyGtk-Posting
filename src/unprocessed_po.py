@@ -251,27 +251,24 @@ class GUI:
 
 	def populate_expense_account_store (self):
 		self.expense_account_store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE expense_account = True")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.expense_account_store.append([str(account_number), account_name])
+			self.expense_account_store.append(row)
 
 	def populate_po_combobox (self):
 		name_combo = self.builder.get_object('combobox1') 
-		self.cursor.execute("SELECT po.id, po.name, c.name, "
-							"(attached_pdf IS NOT NULL) "
+		self.cursor.execute("SELECT "
+								"po.id::text, "
+								"po.name, "
+								"'Vendor: ' || c.name, "
+								"(attached_pdf IS NOT NULL) "
 							"FROM purchase_orders AS po "
 							"JOIN contacts AS c ON c.id = po.vendor_id "
 							"WHERE (canceled, invoiced, closed) = "
 							"(False, False, True) ORDER by po.id" )
 		for row in self.cursor.fetchall():
-			serial = row[0]
-			po = row[1]
-			vendor_name = "Vendor: "+ row[2]
-			attachment = row[3]
-			self.po_store.append([str(serial),po, vendor_name, attachment])
+			self.po_store.append(row)
 		
 	def po_combobox_changed (self, combo): 
 		po_id = combo.get_active_id()
@@ -288,8 +285,18 @@ class GUI:
 
 	def populate_purchase_order_items_store (self):
 		self.purchase_order_items_store.clear()
-		self.cursor.execute("SELECT poli.id, qty, p.id, p.name, remark, price, "
-							"ext_price, a.expense_account, a.name, expense "
+		self.cursor.execute("SELECT "
+								"poli.id, "
+								"qty, "
+								"p.id, "
+								"p.name, "
+								"remark, "
+								"price, "
+								"ext_price, "
+								"a.expense_account, "
+								"a.name, "
+								"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
+								"expense "
 							"FROM purchase_order_line_items AS poli "
 							"JOIN products AS p ON p.id = poli.product_id "
 							"LEFT JOIN gl_accounts AS a "
@@ -297,24 +304,7 @@ class GUI:
 							"WHERE purchase_order_id = (%s) ORDER BY poli.id", 
 							(self.purchase_order_id, ))
 		for row in self.cursor.fetchall() :
-			row_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			remark = row[4]
-			price = row[5]
-			ext_price = row[6]
-			expense_account = row[7]
-			expense_account_name = row[8]
-			expense = row[9]
-			calculated_cost = price
-			if expense == True:
-				calculated_cost = 0.00
-			self.purchase_order_items_store.append([row_id, qty, product_id, 
-												product_name, remark, price, 
-												ext_price, expense_account, 
-												expense_account_name, 
-												calculated_cost, expense])
+			self.purchase_order_items_store.append(row)
 		self.calculate_totals ()
 
 	def check_expense_accounts (self):
@@ -437,7 +427,8 @@ class GUI:
 		listbox = self.builder.get_object('listbox2')
 		cost_spinbutton = self.builder.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
-		self.cursor.execute("SELECT id, name, markup_percent FROM customer_markup_percent ORDER BY name")
+		self.cursor.execute("SELECT id, name, markup_percent "
+							"FROM customer_markup_percent ORDER BY name")
 		for row in self.cursor.fetchall():
 			terms_id = row[0]
 			terms_name = row[1]
@@ -507,7 +498,9 @@ class GUI:
 			sell_spin = widget_list[3]
 			sell_adjustment = sell_spin.get_adjustment()
 			sell_adjustment.set_lower(cost)
-			self.cursor.execute("SELECT price FROM products_markup_prices WHERE (product_id, markup_id) = (%s, %s)", (self.product_id, terms_id))
+			self.cursor.execute("SELECT price FROM products_markup_prices "
+								"WHERE (product_id, markup_id) = (%s, %s)", 
+								(self.product_id, terms_id))
 			for row in self.cursor.fetchall():
 				sell_price = float(row[0])
 				sell_spin.set_value(sell_price)
@@ -516,7 +509,9 @@ class GUI:
 				markup_spin.set_value(markup)
 				break
 			else:
-				self.cursor.execute("SELECT markup_percent FROM customer_markup_percent WHERE id = %s", (terms_id,))
+				self.cursor.execute("SELECT markup_percent "
+									"FROM customer_markup_percent "
+									"WHERE id = %s", (terms_id,))
 				markup = float(self.cursor.fetchone()[0])
 				markup_spin.set_value(markup)
 				margin = (markup / 100) * cost
@@ -525,7 +520,8 @@ class GUI:
 
 	def save_product_terms_prices (self):
 		cost = self.builder.get_object('spinbutton1').get_value()
-		self.cursor.execute("UPDATE products SET cost = %s WHERE id = %s", (cost, self.product_id))
+		self.cursor.execute("UPDATE products SET cost = %s "
+							"WHERE id = %s", (cost, self.product_id))
 		listbox = self.builder.get_object('listbox2')
 		for list_box_row in listbox:
 			if list_box_row.get_index() == 0:
@@ -536,13 +532,20 @@ class GUI:
 			terms_id = terms_id_label.get_label()
 			sell_spin = widget_list[3]
 			sell_price = sell_spin.get_value()
-			self.cursor.execute("SELECT id FROM products_markup_prices WHERE (product_id, markup_id) = (%s, %s)", (self.product_id, terms_id))
+			self.cursor.execute("SELECT id FROM products_markup_prices "
+								"WHERE (product_id, markup_id) = (%s, %s)", 
+								(self.product_id, terms_id))
 			for row in self.cursor.fetchall():
 				_id_ = row[0]
-				self.cursor.execute("UPDATE products_markup_prices SET price = %s WHERE id = %s", (sell_price, _id_))
+				self.cursor.execute("UPDATE products_markup_prices "
+									"SET price = %s WHERE id = %s", 
+									(sell_price, _id_))
 				break
 			else:
-				self.cursor.execute("INSERT INTO products_markup_prices (product_id, markup_id, price) VALUES (%s, %s, %s)", (self.product_id, terms_id, sell_price))
+				self.cursor.execute("INSERT INTO products_markup_prices "
+									"(product_id, markup_id, price) "
+									"VALUES (%s, %s, %s)", 
+									(self.product_id, terms_id, sell_price))
 		self.db.commit()
 
 	def attach_button_clicked (self, button):
@@ -668,11 +671,16 @@ class GUI:
 		expense_account = self.expense_products_store[path][3]
 		if expense_account == 0:
 			expense_account = None
-		self.cursor.execute("UPDATE products SET (name, cost, default_expense_account) = (%s, %s, %s) WHERE id = %s", (product_name, product_cost, expense_account, product_id))
+		self.cursor.execute("UPDATE products SET "
+							"(name, cost, default_expense_account) = "
+							"(%s, %s, %s) WHERE id = %s", 
+							(product_name, product_cost, 
+							expense_account, product_id))
 		self.db.commit()
 
 	def new_expense_product_clicked (self, button):
-		self.cursor.execute("INSERT INTO products (name, cost, expense) VALUES ('New expense product', 0.00, True)")
+		self.cursor.execute("INSERT INTO products (name, cost, expense) "
+							"VALUES ('New expense product', 0.00, True)")
 		self.db.commit()
 		self.populate_expense_products_store ()
 
