@@ -42,6 +42,10 @@ class OpenInvoicesGUI:
 	def focus_in_event (self, window, event):
 		self.populate_store()
 
+	def new_invoice_clicked (self, button):
+		import invoice_window
+		invoice_window.InvoiceGUI(self.parent)
+
 	def open_invoice_row_activated (self, treeview, path, treeview_column):
 		invoice_id = self.open_invoice_store[path][0]
 		import invoice_window
