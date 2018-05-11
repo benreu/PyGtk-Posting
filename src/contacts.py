@@ -68,10 +68,6 @@ class GUI(Connection, Admin):
 		box = self.builder.get_object("box19")
 		self.duplicate_name_popover.add(box)
 		
-		self.populate_terms_combo ()
-		if self.contact_id == 0:
-			self.new_contact(None)
-		
 		self.contact_store = self.builder.get_object('contact_store')
 		self.individual_contact_store = self.builder.get_object('individual_contact_store')
 		self.filtered_contact_store = self.builder.get_object(
@@ -80,8 +76,12 @@ class GUI(Connection, Admin):
 		self.filtered_contact_store.set_visible_func(self.contact_filter_func)
 		self.treeview = self.builder.get_object('treeview1')
 		self.populate_contacts ()
-		self.select_contact ()
+		self.populate_terms_combo ()
 		self.populate_zip_codes ()
+		if self.contact_id == 0:
+			self.new_contact(None)
+		else:
+			self.select_contact ()
 
 		if self.main.admin == True:
 			self.builder.get_object('treeview1').set_tooltip_column(0)
@@ -640,6 +640,7 @@ class GUI(Connection, Admin):
 			self.builder.get_object('combobox1').set_active_id(row[20])
 			self.service_provider_widget.set_active(row[21])
 			self.builder.get_object('entry13').set_text(row[22])
+			self.builder.get_object('combobox4').set_active_id(row[23])
 		
 		self.initiate_mailing_info()
 		# clear the individual contact entries
