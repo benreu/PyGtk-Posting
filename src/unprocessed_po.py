@@ -100,6 +100,18 @@ class GUI:
 	def spinbutton_focus_in_event (self, entry, event):
 		GLib.idle_add(self.highlight, entry)
 
+	def view_attachment_clicked (self, button):
+		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
+							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+							(self.purchase_order_id,))
+		for row in self.cursor.fetchall():
+			file_name = "/tmp/Attachment.pdf"
+			file_data = row[0]
+			f = open(file_name,'wb')
+			f.write(file_data)
+			Popen("xdg-open %s" % file_name, shell = True)
+			f.close()
+
 	def highlight (self, entry):
 		entry.select_region(0, -1)
 
@@ -248,7 +260,8 @@ class GUI:
 
 	def populate_po_combobox (self):
 		name_combo = self.builder.get_object('combobox1') 
-		self.cursor.execute("SELECT po.id, po.name, c.name "
+		self.cursor.execute("SELECT po.id, po.name, c.name, "
+							"(attached_pdf IS NOT NULL) "
 							"FROM purchase_orders AS po "
 							"JOIN contacts AS c ON c.id = po.vendor_id "
 							"WHERE (canceled, invoiced, closed) = "
@@ -257,7 +270,8 @@ class GUI:
 			serial = row[0]
 			po = row[1]
 			vendor_name = "Vendor: "+ row[2]
-			self.po_store.append([str(serial),po, vendor_name])
+			attachment = row[3]
+			self.po_store.append([str(serial),po, vendor_name, attachment])
 		
 	def po_combobox_changed (self, combo): 
 		po_id = combo.get_active_id()
@@ -269,6 +283,8 @@ class GUI:
 		self.purchase_order_id = po_id
 		self.populate_purchase_order_items_store ()
 		self.builder.get_object("button7").set_sensitive(True)
+		attachment = self.po_store[path][3]
+		self.builder.get_object("button15").set_sensitive(attachment)
 
 	def populate_purchase_order_items_store (self):
 		self.purchase_order_items_store.clear()

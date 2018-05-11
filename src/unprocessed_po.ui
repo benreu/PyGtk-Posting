@@ -76,6 +76,8 @@
       <column type="gchararray"/>
       <!-- column-name vendor_name -->
       <column type="gchararray"/>
+      <!-- column-name attachment -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkListStore" id="purchase_order_items_store">
@@ -213,6 +215,20 @@
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button15">
+                        <property name="label" translatable="yes">View attachment</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="view_attachment_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>
