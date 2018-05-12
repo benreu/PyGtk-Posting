@@ -809,7 +809,7 @@ class PurchaseOrderGUI:
 	def add_entry (self):
 		self.check_po_id ()
 		self.db.commit()
-		self.purchase_order_store.append([0, Decimal(1.0), 0, "Create non-stock item", 
+		self.purchase_order_store.append([0, Decimal(1.0), 0, "Select order number", 
 										False, "Select a stock item" , "", "", 
 										Decimal(1), Decimal(1), True, int(self.vendor_id), '', 
 										self.purchase_order_id, False])
