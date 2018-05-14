@@ -92,10 +92,10 @@ class ReceiveOrdersGUI:
 			location_id = row[0]
 			location_name = row[1]
 			self.location_store.append([str(location_id), location_name])
-		if active_id != None :
+		if active_id == None :
 			location_combo.set_active(0)
 		else:
-			location_combo.set_active_id(str(active_id))
+			location_combo.set_active_id(active_id)
 
 	def receive_treeview_activated (self, treeview, path, treeview_column):
 		qty = self.receive_order_store[path][6]
@@ -113,7 +113,7 @@ class ReceiveOrdersGUI:
 		self.cursor.execute("UPDATE purchase_orders SET "
 							"received = True WHERE id = %s", (po_id,))
 		location_id = self.builder.get_object('combobox2').get_active_id()
-		inventorying.receive(self.db, self.receive_order_store, location_id)
+		inventorying.receive(self.db, po_id, location_id)
 		self.db.commit()
 		self.populate_purchase_order_combo()
 
