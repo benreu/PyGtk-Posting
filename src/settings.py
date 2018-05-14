@@ -166,18 +166,12 @@ class GUI():
 		self.cursor.execute("SELECT id, column_name, visible "
 							"FROM settings.invoice_columns ORDER BY id")
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			column_name = row[1]
-			visible = row[2]
-			store.append([id_, column_name, visible])
+			store.append(row)
 		store = self.builder.get_object('po_columns_store')
 		self.cursor.execute("SELECT id, column_name, visible "
 							"FROM settings.po_columns ORDER BY id")
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			column_name = row[1]
-			visible = row[2]
-			store.append([id_, column_name, visible])
+			store.append(row)
 
 	def invoice_column_visible_toggled (self, toggle, path):
 		store = self.builder.get_object('invoice_columns_store')
@@ -234,12 +228,10 @@ class GUI():
 
 	def populate_time_clock_projects(self):
 		self.time_clock_store.clear()		
-		self.cursor.execute("SELECT * FROM time_clock_projects "
+		self.cursor.execute("SELECT id, name FROM time_clock_projects "
 							"WHERE (permanent, active) = (True, True)")
 		for row in self.cursor.fetchall():
-			project_id = row[0]
-			project_name = row[1]
-			self.time_clock_store.append([project_id, project_name])
+			self.time_clock_store.append(row)
 
 	def end_time_clock_project(self, widget):
 		model, path = self.builder.get_object('treeview-selection4').get_selected_rows()
@@ -309,11 +301,9 @@ class GUI():
 
 	def populate_document_types(self):
 		self.document_type_store.clear()
-		self.cursor.execute("SELECT * FROM document_types")
+		self.cursor.execute("SELECT id, name FROM document_types")
 		for row in self.cursor.fetchall():
-			type_id = row[0]
-			type_name = row[1]
-			self.document_type_store.append([type_id, type_name])
+			self.document_type_store.append(row)
 
 	def add_document_type_clicked (self, widget):
 		document_type_entry = self.builder.get_object('entry2')
