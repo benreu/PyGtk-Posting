@@ -17,11 +17,8 @@
 
 
 from gi.repository import Gtk, GObject, Gdk, GLib
-from multiprocessing import Queue, Process
-from queue import Empty
-from subprocess import Popen, PIPE, STDOUT
 from decimal import Decimal
-import os, subprocess, sane, psycopg2
+import subprocess
 
 UI_FILE = "src/reports/vendor_history.ui"
 
@@ -91,31 +88,6 @@ class VendorHistoryGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
-
-		self.data_queue = Queue()
-		self.scanner_store = self.builder.get_object("scanner_store")
-		thread = Process(target=self.get_scanners)
-		thread.start()
-		
-		GLib.timeout_add(100, self.populate_scanners)
-
-	def populate_scanners(self):
-		try:
-			devices = self.data_queue.get_nowait()
-			for scanner in devices:
-				device_id = scanner[0]
-				device_manufacturer = scanner[1]
-				name = scanner[2]
-				given_name = scanner[3]
-				self.scanner_store.append([str(device_id), device_manufacturer,
-											name, given_name])
-		except Empty:
-			return True
-		
-	def get_scanners(self):
-		sane.init()
-		devices = sane.get_devices()
-		self.data_queue.put(devices)
 
 	def price_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
 		price = '{:.{prec}f}'.format(model.get_value(iter1, 5), prec=prec)
@@ -317,96 +289,29 @@ class VendorHistoryGUI:
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
-		file_id = model[path][0]
+		po_id = model[path][0]
 		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
-							"WHERE id = %s", (file_id,))
+							"WHERE id = %s", (po_id,))
 		for row in self.cursor.fetchall():
 			file_name = "/tmp/Attachment.pdf"
 			file_data = row[0]
 			if file_data == None:
-				self.run_attach_dialog ()
+				self.run_attach_dialog (po_id)
 				return
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.call("xdg-open %s" % file_name, shell = True)
 			f.close()
 
-	def run_attach_dialog (self):
-		dialog = self.builder.get_object('no_attachment_dialog')
-		self.builder.get_object('button8').set_sensitive (False)
-		self.spinner = self.builder.get_object('spinner1')
-		self.spinner.stop ()
-		self.spinner.set_visible (False)
-		chooser = self.builder.get_object('filechooserbutton1')
-		chooser.unselect_all()
-		chooser.set_sensitive(True)
+	def run_attach_dialog (self, po_id):
+		import pdf_attachment
+		dialog = pdf_attachment.Dialog(self.window)
 		result = dialog.run()
-		self.builder.get_object('pdf_opt_result_buffer').set_text('', -1)
 		if result == Gtk.ResponseType.ACCEPT:
-			if self.attach_origin == 1:
-				self.scan_file()
-			elif self.attach_origin == 2:
-				self.attach_file_from_disk()
-		dialog.hide()
-
-	def scanner_combo_changed (self, combo):
-		self.builder.get_object('filechooserbutton1').set_sensitive (False)
-		self.attach_origin = 1
-		self.builder.get_object('button8').set_sensitive (True)
-
-	def filechooser_file_set (self, chooser):
-		if os.path.exists("/tmp/opt.pdf"):
-			os.remove("/tmp/opt.pdf")
-		self.spinner.start()
-		self.spinner.set_visible(True)
-		self.result_buffer = self.builder.get_object('pdf_opt_result_buffer')
-		self.result_buffer.set_text('', -1)
-		self.sw = self.builder.get_object('scrolledwindow2')
-		file_a = chooser.get_filename()
-		cmd = "./src/pdf_opt/pdfsizeopt '%s' '/tmp/opt.pdf'" % file_a
-		p = Popen(cmd, stdout = PIPE,
-						stderr = STDOUT,
-						stdin = PIPE,
-						shell = True)
-		self.io_id = GObject.io_add_watch(p.stdout, GObject.IO_IN, self.optimizer_thread)
-		GObject.io_add_watch(p.stdout, GObject.IO_HUP, self.thread_finished)
-
-	def thread_finished (self, stdout, condition):
-		GObject.source_remove(self.io_id)
-		stdout.close()
-		if os.path.exists("/tmp/opt.pdf"):
-			self.builder.get_object('button8').set_sensitive (True)
-			self.spinner.stop()
-			self.spinner.set_visible(False)
-			self.attach_origin = 2
-
-	def optimizer_thread (self, stdout, condition):
-		line = stdout.readline()
-		line = line.decode(encoding="utf-8", errors="strict")
-		adj = self.sw.get_vadjustment()
-		adj.set_value(adj.get_upper() - adj.get_page_size())
-		iter_ = self.result_buffer.get_end_iter()
-		self.result_buffer.insert(iter_, line, -1)
-		return True
-
-	def scan_file (self):
-		device_address = self.builder.get_object("combobox").get_active_id()
-		device = sane.open(device_address)
-		document = device.scan()
-		document.save("/tmp/opt.pdf")
-		self.attach_file_from_disk ()
-
-	def attach_file_from_disk (self):
-		selection = self.builder.get_object("treeview-selection1")
-		model, path = selection.get_selected_rows()
-		po_id = model[path][0]
-		f = open("/tmp/opt.pdf",'rb')
-		file_data = f.read ()
-		binary = psycopg2.Binary (file_data)
-		f.close()
-		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
-							"WHERE id = %s", (binary, po_id))
-		self.db.commit()
+			file_data = dialog.get_pdf ()
+			self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
+								"WHERE id = %s", (file_data, po_id))
+			self.db.commit()
 
 
 		
