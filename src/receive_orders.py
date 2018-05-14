@@ -50,11 +50,11 @@ class ReceiveOrdersGUI:
 		
 	def populate_purchase_order_combo(self):
 		self.purchase_order_store.clear()
-		self.cursor.execute("SELECT id, name FROM purchase_orders "
+		self.cursor.execute("SELECT id::text, name FROM purchase_orders "
 							"WHERE (canceled, invoiced, closed, received) = "
 							"(False, True, True, False) ")	
 		for row in self.cursor.fetchall():
-			self.purchase_order_store.append([str(row[0]), row[1]])
+			self.purchase_order_store.append(row)
 
 	def purchase_order_combo_changed(self, combo):
 		self.receive_order_store.clear()
@@ -87,11 +87,9 @@ class ReceiveOrdersGUI:
 		location_combo = self.builder.get_object('combobox2')
 		active_id = location_combo.get_active_id()
 		self.location_store.clear()
-		self.cursor.execute("SELECT id, name FROM locations ORDER BY name")
+		self.cursor.execute("SELECT id::text, name FROM locations ORDER BY name")
 		for row in self.cursor.fetchall():
-			location_id = row[0]
-			location_name = row[1]
-			self.location_store.append([str(location_id), location_name])
+			self.location_store.append(row)
 		if active_id == None :
 			location_combo.set_active(0)
 		else:
