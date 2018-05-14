@@ -58,6 +58,7 @@ class GUI():
 		self.load_precision()
 
 		self.time_clock_store = self.builder.get_object('time_clock_projects_store')
+		self.document_type_store = self.builder.get_object('document_type_store')
 		self.populate_time_clock_projects ()
 
 		self.setting_store = self.builder.get_object('setting_store')
@@ -88,6 +89,7 @@ class GUI():
 			stack.set_visible_child(accounting)
 		self.populate_all_widgets ()
 		self.populate_columns()
+		self.populate_document_types()
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -322,9 +324,6 @@ class GUI():
 		text12 = self.builder.get_object('entry33').get_text()
 
 		self.cursor.execute("INSERT INTO document_types (name , text1 , text2 , text3 , text4 , text5 , text6 , text7 , text8 , text9 , text10 , text11 , text12 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (document_type_name, text1, text2, text3, text4, text5, text6, text7, text8, text9, text10, text11, text12))
-		self.cursor.execute("ALTER TABLE consecutive_doc_num ADD %s integer" % document_type_name)
-		self.cursor.execute("UPDATE consecutive_doc_num SET (%s) = (1)" % document_type_name)
-		
 		self.db.commit()
 		self.populate_document_types ()
 		document_type_entry.set_text("")

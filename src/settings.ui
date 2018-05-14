@@ -952,7 +952,7 @@
       </packing>
     </child>
   </object>
-  <object class="GtkListStore" id="document_store">
+  <object class="GtkListStore" id="document_type_store">
     <columns>
       <!-- column-name id -->
       <column type="gint"/>
@@ -984,7 +984,7 @@
               <object class="GtkTreeView" id="treeview4">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">document_store</property>
+                <property name="model">document_type_store</property>
                 <property name="activate_on_single_click">True</property>
                 <signal name="row-activated" handler="document_type_row_activate" swapped="no"/>
                 <child internal-child="selection">
