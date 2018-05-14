@@ -952,6 +952,14 @@
       </packing>
     </child>
   </object>
+  <object class="GtkListStore" id="document_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkBox" id="document_types">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -976,10 +984,23 @@
               <object class="GtkTreeView" id="treeview4">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="model">document_store</property>
                 <property name="activate_on_single_click">True</property>
                 <signal name="row-activated" handler="document_type_row_activate" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection5"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                    <property name="title" translatable="yes">Types</property>
+                    <property name="sort_column_id">1</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
                 </child>
               </object>
             </child>
@@ -1586,6 +1607,14 @@ column visibility.</property>
       </row>
     </data>
   </object>
+  <object class="GtkListStore" id="time_clock_projects_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkBox" id="time_clock">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -1689,14 +1718,26 @@ column visibility.</property>
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
+                <property name="model">time_clock_projects_store</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection4"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="title" translatable="yes">Projects</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext4"/>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
                 </child>
               </object>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
@@ -1719,12 +1760,6 @@ column visibility.</property>
         <property name="fill">True</property>
         <property name="position">2</property>
       </packing>
-    </child>
-    <child>
-      <placeholder/>
-    </child>
-    <child>
-      <placeholder/>
     </child>
   </object>
   <object class="GtkWindow" id="window1">
