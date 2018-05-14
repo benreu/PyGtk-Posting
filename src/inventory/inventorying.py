@@ -51,19 +51,27 @@ def sell (db, invoice_store, location_id, contact_id, date):
 							(invoice_line_id,))
 	cursor.close()
 
-def receive (db, purchase_order_store, location_id):
+def receive (db, po_id, location_id):
 	cursor = db.cursor()
-	for row in purchase_order_store:
-		line_id = row[0]
-		product_id = row[2]
-		price = row[7]
-		cursor.execute("SELECT inventory_enabled FROM products WHERE id = %s", (product_id,))
-		if cursor.fetchone()[0] == True:
-			qty = row[1]
-			cursor.execute("INSERT INTO inventory_transactions "
-							"(qty_in, product_id, location_id, price, purchase_order_line_id, date_inserted) "
-							"VALUES (%s, %s, %s, %s, %s, CURRENT_DATE)", 
-							(qty, product_id, location_id, price, line_id))
+	cursor.execute("WITH cte AS "
+						"(SELECT "
+							"poli.id, "
+							"poli.qty, "
+							"poli.product_id, "
+							"poli.price, "
+							"%s::int, "
+							"CURRENT_DATE "
+						"FROM purchase_order_line_items AS poli "
+						"JOIN products AS p ON p.id = poli.product_id "
+						"WHERE (poli.purchase_order_id, p.inventory_enabled) = "
+						"(%s, True) "
+						") "
+					"INSERT INTO inventory_transactions "
+					"(purchase_order_line_id, qty_in, product_id, "
+					"price, location_id, date_inserted"
+					") "
+					"SELECT * FROM cte", 
+					(location_id, po_id))
 	cursor.close()
 
 def transfer (db, transfer_store):
