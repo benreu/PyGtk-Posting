@@ -125,13 +125,13 @@ class GUI():
 
 	def date_entry_changed (self, entry):
 		format = entry.get_text()
-		self.db.commit()
 		try:
 			self.cursor.execute("UPDATE public.settings "
 								"SET date_format = %s "
 								"RETURNING format_date(CURRENT_DATE)", 
 								(format,))
 			formatted_date = self.cursor.fetchone()[0]
+			self.db.commit()
 		except Exception:
 			self.db.rollback()
 			formatted_date = "#Error"
@@ -139,13 +139,13 @@ class GUI():
 
 	def date_with_time_changed (self, entry):
 		format = entry.get_text()
-		self.db.commit()
 		try:
 			self.cursor.execute("UPDATE public.settings "
 								"SET timestamp_format = %s "
 								"RETURNING format_timestamp(CURRENT_TIMESTAMP)", 
 								(format,))
 			formatted_date = self.cursor.fetchone()[0]
+			self.db.commit()
 		except Exception:
 			self.db.rollback()
 			formatted_date = "#Error"
