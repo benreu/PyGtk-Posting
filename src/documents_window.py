@@ -94,17 +94,27 @@ class DocumentGUI:
 		
 		self.populate_product_store ()
 		self.populate_customer_store ()
-		
-		self.cursor.execute("SELECT print_direct, email_when_possible FROM settings")
-		print_direct, email = self.cursor.fetchone()
-		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
-		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
 			
 		self.calculate_totals ()
+		self.load_settings()
 		
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
 
+	def load_settings (self):
+		self.cursor.execute("SELECT column_id, column_name, visible "
+							"FROM settings.document_columns")
+		for row in self.cursor.fetchall():
+			column_id = row[0]
+			column_name = row[1]
+			visible = row[2]
+			tree_column = self.builder.get_object(column_id)
+			tree_column.set_title(column_name)
+			tree_column.set_visible(visible)
+		self.cursor.execute("SELECT print_direct, email_when_possible FROM settings")
+		print_direct, email = self.cursor.fetchone()
+		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
+		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
 
 	def drag_finish(self, wid, context, x, y, time):
 		print (wid, context, x, y, time)

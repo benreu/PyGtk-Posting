@@ -1182,7 +1182,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.resources ALTER COLUMN diary DROP DEFAULT;")
 		cursor.execute("UPDATE public.resources SET diary = NULL WHERE diary = False;")
 		cursor.execute("ALTER TABLE public.resources ADD UNIQUE (dated_for, diary);")
-		cursor.execute("UPDATE settings SET version = '118'")
+	if version <= '118':
+		progressbar (118)
+		cursor.execute("CREATE TABLE settings.document_columns (id serial PRIMARY KEY, column_id varchar NOT NULL, column_name varchar NOT NULL, visible boolean NOT NULL)")
+		cursor.executemany("INSERT INTO settings.document_columns (column_id, column_name, visible) VALUES (%s, %s, True)", [('treeviewcolumn1', 'Qty'), ('treeviewcolumn2', 'Product'), ('treeviewcolumn7', 'Ext. name'), ('treeviewcolumn8', 'Minimum'),('treeviewcolumn9', 'Maximum'), ('treeviewcolumn10', 'Retailer'), ('treeviewcolumn11', 'Freeze'), ('treeviewcolumn3', 'Remark'), ('treeviewcolumn12', 'Priority'), ('treeviewcolumn4', 'Price'), ('treeviewcolumn13', 'S Price'), ('treeviewcolumn6', 'Ext. price')])
+		cursor.execute("UPDATE settings SET version = '119'")
 	cursor.close()
 	db.commit()
 

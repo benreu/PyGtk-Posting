@@ -174,6 +174,11 @@ class GUI():
 							"FROM settings.po_columns ORDER BY id")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		store = self.builder.get_object('document_columns_store')
+		self.cursor.execute("SELECT id, column_name, visible "
+							"FROM settings.document_columns ORDER BY id")
+		for row in self.cursor.fetchall():
+			store.append(row)
 
 	def invoice_column_visible_toggled (self, toggle, path):
 		store = self.builder.get_object('invoice_columns_store')
@@ -181,6 +186,24 @@ class GUI():
 		id_ = store[path][0]
 		store[path][2] = active
 		self.cursor.execute("UPDATE settings.invoice_columns SET visible = %s "
+							"WHERE id = %s", (active, id_))
+		self.db.commit()
+
+	def document_column_name_edited (self, cellrenderertext, path, text):
+		store = self.builder.get_object('document_columns_store')
+		id_ = store[path][0]
+		self.cursor.execute("UPDATE settings.document_columns "
+							"SET column_name = %s "
+							"WHERE id = %s", (text, id_))
+		self.db.commit()
+		store[path][1] = text
+
+	def document_column_visible_toggled (self, toggle, path):
+		store = self.builder.get_object('document_columns_store')
+		active = not toggle.get_active()
+		id_ = store[path][0]
+		store[path][2] = active
+		self.cursor.execute("UPDATE settings.document_columns SET visible = %s "
 							"WHERE id = %s", (active, id_))
 		self.db.commit()
 
