@@ -74,26 +74,30 @@ class GUI():
 
 		self.setting_store = self.builder.get_object('setting_store')
 
+		stack = Gtk.Stack()
+		stack_sidebar = Gtk.StackSidebar()
+		stack_sidebar.set_stack(stack)
 		box = self.builder.get_object ('box1')
-		self.stack = Gtk.Stack()
-		box.pack_start(self.stack, True, True, 0)
-		self.company = self.builder.get_object('company')
-		self.general = self.builder.get_object('general')
-		self.time_clock = self.builder.get_object('time_clock')
-		self.document_types = self.builder.get_object('document_types')
-		self.accounting = self.builder.get_object('accounting')
-		self.window_columns = self.builder.get_object('window_columns')
+		box.pack_start(stack_sidebar, False, False, 0)
+		box.pack_start(stack, True, True, 0)
 		
-		self.stack.add_named(self.company, "company" )
-		self.stack.add_named(self.general, "general" )
-		self.stack.add_named(self.time_clock, "time_clock" )
-		self.stack.add_named(self.document_types, "document_types" )
-		self.stack.add_named(self.accounting, "accounting" )
-		self.stack.add_named(self.window_columns, "window_columns" )
+		company = self.builder.get_object('company')
+		general = self.builder.get_object('general')
+		time_clock = self.builder.get_object('time_clock')
+		document_types = self.builder.get_object('document_types')
+		accounting = self.builder.get_object('accounting')
+		window_columns = self.builder.get_object('window_columns')
+		
+		stack.add_titled(accounting, "accounting", "Accounting")
+		stack.add_titled(company, "company", "Company")
+		stack.add_titled(document_types, "document_types", "Document types")
+		stack.add_titled(general, "general", "General")
+		stack.add_titled(time_clock, "time_clock", "Time clock")
+		stack.add_titled(window_columns, "window_columns", "Window columns")
 		if setting_container != None:
-			self.stack.set_visible_child(self.builder.get_object(setting_container))
+			stack.set_visible_child(self.builder.get_object(setting_container))
 		else:
-			self.stack.set_visible_child(self.accounting)
+			stack.set_visible_child(accounting)
 		self.populate_all_widgets ()
 		self.populate_columns()
 
@@ -276,11 +280,6 @@ class GUI():
 			self.builder.get_object('entry24').set_text(row[10])
 			self.builder.get_object('entry25').set_text(row[11])
 		self.populate_time_clock_projects ()
-
-	def setting_row_activate(self, treeview, path, treeviewcolumn):
-		treeiter = self.setting_store.get_iter(path)
-		setting = self.setting_store.get_value(treeiter, 1)	
-		self.stack.set_visible_child(self.builder.get_object(setting))
 
 	def direct_print_toggled (self, checkbutton):
 		self.cursor.execute("UPDATE settings SET print_direct = %s",
