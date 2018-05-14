@@ -49,11 +49,6 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkFileFilter" id="filefilter1">
-    <patterns>
-      <pattern>*.pdf</pattern>
-    </patterns>
-  </object>
   <object class="GtkMenu" id="menu1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -67,7 +62,6 @@
       </object>
     </child>
   </object>
-  <object class="GtkTextBuffer" id="pdf_opt_result_buffer"/>
   <object class="GtkListStore" id="po_store">
     <columns>
       <!-- column-name po_id -->
@@ -221,6 +215,7 @@
                       <object class="GtkButton" id="button15">
                         <property name="label" translatable="yes">View attachment</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="view_attachment_clicked" swapped="no"/>
@@ -962,203 +957,6 @@
     </child>
     <action-widgets>
       <action-widget response="-3">button14</action-widget>
-    </action-widgets>
-  </object>
-  <object class="GtkListStore" id="scanner_store">
-    <columns>
-      <!-- column-name device_id -->
-      <column type="gchararray"/>
-      <!-- column-name device_manufacturer -->
-      <column type="gchararray"/>
-      <!-- column-name device_name -->
-      <column type="gchararray"/>
-      <!-- column-name device_given_name -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkDialog" id="scan_dialog">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Attach file</property>
-    <property name="window_position">center</property>
-    <property name="default_width">600</property>
-    <property name="default_height">600</property>
-    <property name="icon">PyGtk_Posting.svg</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">unprocessed</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox2">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area2">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button9">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button8">
-                <property name="label" translatable="yes">Attach</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="label6">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_top">10</property>
-            <property name="label" translatable="yes">Scan file to attach</property>
-            <property name="xalign">0</property>
-            <attributes>
-              <attribute name="weight" value="bold"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="box10">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkAccelLabel" id="accellabel1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Scanner </property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBox" id="combobox2">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="model">scanner_store</property>
-                <property name="id_column">0</property>
-                <signal name="changed" handler="scanner_combo_changed" swapped="no"/>
-                <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext6"/>
-                  <attributes>
-                    <attribute name="text">3</attribute>
-                  </attributes>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="label3">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_top">10</property>
-            <property name="label" translatable="yes">Attach file from disk</property>
-            <property name="ellipsize">start</property>
-            <property name="xalign">0</property>
-            <attributes>
-              <attribute name="weight" value="bold"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkFileChooserButton" id="filechooserbutton1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="filter">filefilter1</property>
-            <signal name="file-set" handler="filechooser_file_set" swapped="no"/>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkOverlay" id="overlay1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow3">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="margin_top">10</property>
-                <property name="shadow_type">in</property>
-                <child>
-                  <object class="GtkTextView" id="textview1">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="editable">False</property>
-                    <property name="buffer">pdf_opt_result_buffer</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="index">-1</property>
-              </packing>
-            </child>
-            <child type="overlay">
-              <object class="GtkSpinner" id="spinner1">
-                <property name="can_focus">False</property>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-6">button9</action-widget>
-      <action-widget response="-3">button8</action-widget>
     </action-widgets>
   </object>
 </interface>

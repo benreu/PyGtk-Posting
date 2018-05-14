@@ -16,13 +16,11 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, GObject
+from gi.repository import Gtk, GLib, Gio
 from decimal import Decimal, ROUND_HALF_UP
-from multiprocessing import Queue, Process
-from queue import Empty
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen
 from datetime import datetime
-import os, sane, psycopg2
+import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
 
@@ -85,13 +83,6 @@ class GUI:
 		self.populate_expense_product_combo ()
 		self.window = self.builder.get_object('unprocessed')
 		self.window.show_all()
-
-		self.data_queue = Queue()
-		self.scanner_store = self.builder.get_object("scanner_store")
-		thread = Process(target=self.get_scanners)
-		thread.start()
-		
-		GLib.timeout_add(100, self.populate_scanners)
 		
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		if self.cursor.fetchone()[0] == True:
@@ -109,29 +100,11 @@ class GUI:
 			file_data = row[0]
 			f = open(file_name,'wb')
 			f.write(file_data)
-			Popen("xdg-open %s" % file_name, shell = True)
+			Popen(["xdg-open", file_name])
 			f.close()
 
 	def highlight (self, entry):
 		entry.select_region(0, -1)
-
-	def populate_scanners(self):
-		try:
-			devices = self.data_queue.get_nowait()
-			for scanner in devices:
-				device_id = scanner[0]
-				device_manufacturer = scanner[1]
-				name = scanner[2]
-				given_name = scanner[3]
-				self.scanner_store.append([str(device_id), device_manufacturer,
-											name, given_name])
-		except Empty:
-			return True
-		
-	def get_scanners(self):
-		sane.init()
-		devices = sane.get_devices()
-		self.data_queue.put(devices)
 
 	def destroy(self, window):
 		self.window.destroy()
@@ -549,80 +522,20 @@ class GUI:
 		self.db.commit()
 
 	def attach_button_clicked (self, button):
-		dialog = self.builder.get_object('scan_dialog')
-		self.builder.get_object('button8').set_sensitive (False)
-		combo = self.builder.get_object('combobox2')
-		combo.set_active(-1)
-		combo.set_sensitive(True)
-		chooser = self.builder.get_object('filechooserbutton1')
-		chooser.unselect_all()
-		chooser.set_sensitive(True)
+		import pdf_attachment
+		dialog = pdf_attachment.Dialog(self.window)
 		result = dialog.run()
-		self.builder.get_object('pdf_opt_result_buffer').set_text('', -1)
 		if result == Gtk.ResponseType.ACCEPT:
-			if self.attach_origin == 1:
-				self.scan_file()
-			elif self.attach_origin == 2:
-				self.attach_file_from_disk()
-		dialog.hide()
-
-	def scanner_combo_changed (self, combo):
-		self.builder.get_object('filechooserbutton1').set_sensitive (False)
-		self.attach_origin = 1
-		self.builder.get_object('button8').set_sensitive (True)
-
-	def filechooser_file_set (self, chooser):
-		if os.path.exists("/tmp/opt.pdf"):
-			os.remove("/tmp/opt.pdf")
-		self.spinner = self.builder.get_object('spinner1')
-		self.spinner.start()
-		self.spinner.set_visible(True)
-		self.result_buffer = self.builder.get_object('pdf_opt_result_buffer')
-		self.result_buffer.set_text('', -1)
-		self.sw = self.builder.get_object('scrolledwindow3')
-		file_a = chooser.get_filename()
-		cmd = "./src/pdf_opt/pdfsizeopt '%s' '/tmp/opt.pdf'" % file_a
-		p = Popen(cmd, stdout = PIPE,
-						stderr = STDOUT,
-						stdin = PIPE,
-						shell = True)
-		self.io_id = GObject.io_add_watch(p.stdout, GObject.IO_IN, self.optimizer_thread)
-		GObject.io_add_watch(p.stdout, GObject.IO_HUP, self.thread_finished)
-
-	def thread_finished (self, stdout, condition):
-		GObject.source_remove(self.io_id)
-		stdout.close()
-		if os.path.exists("/tmp/opt.pdf"):
-			self.builder.get_object('combobox2').set_sensitive (False)
-			self.builder.get_object('button8').set_sensitive (True)
-			self.spinner.stop()
-			self.spinner.set_visible(False)
-			self.attach_origin = 2
-
-	def optimizer_thread (self, stdout, condition):
-		line = stdout.readline()
-		line = line.decode(encoding="utf-8", errors="strict")
-		adj = self.sw.get_vadjustment()
-		adj.set_value(adj.get_upper() - adj.get_page_size())
-		iter_ = self.result_buffer.get_end_iter()
-		self.result_buffer.insert(iter_, line, -1)
-		return True
-
-	def scan_file (self):
-		device_address = self.builder.get_object("combobox2").get_active_id()
-		device = sane.open(device_address)
-		document = device.scan()
-		document.save("/tmp/opt.pdf")
-		self.attach_file_from_disk ()
-
-	def attach_file_from_disk (self):
-		f = open("/tmp/opt.pdf",'rb')
-		file_data = f.read ()
-		binary = psycopg2.Binary (file_data)
-		f.close()
-		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
-							"WHERE id = %s", (binary, self.purchase_order_id))
-		self.db.commit()
+			pdf_data = dialog.get_pdf ()
+			self.cursor.execute("UPDATE purchase_orders "
+								"SET attached_pdf = %s "
+								"WHERE id = %s", 
+								(pdf_data, self.purchase_order_id))
+			self.db.commit()
+			# update the attachment status for this po
+			active = self.builder.get_object("combobox1").get_active()
+			self.po_store[active][3] = True
+			self.builder.get_object("button15").set_sensitive(True)
 
 	def expense_products_clicked (self, button):
 		self.populate_expense_products_store ()
