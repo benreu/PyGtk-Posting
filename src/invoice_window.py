@@ -525,25 +525,23 @@ class InvoiceGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT id, name, ext_name, "
-								"(( SELECT COALESCE(SUM(total), 0.00) "
+		self.cursor.execute("SELECT "
+								"id::text, "
+								"name || '   Unpaid : ' || "
+								"(( SELECT COALESCE(SUM(amount_due), 0.00) "
 								"FROM invoices "
 								"WHERE canceled = False "
 								"AND customer_id = c_outer.id) - "
 								"(SELECT COALESCE(SUM(amount), 0.00) "
 								"FROM payments_incoming "
 								"WHERE (customer_id, misc_income) = "
-								"(c_outer.id, False) ))"
+								"(c_outer.id, False) ))::money, " 
+								"ext_name "
 							"FROM contacts AS c_outer "
 							"WHERE (deleted, customer) = "
 							"(False, True) ORDER BY name")
 		for row in self.cursor.fetchall():
-			customer_id = row[0]
-			name = row[1]
-			ext_name = row[2]
-			unpaid = row[3]
-			unpaid = "Unpaid balance  " + '${:,.2f}'.format(unpaid)
-			self.customer_store.append([str(customer_id),name + "  :  " + unpaid, ext_name])
+			self.customer_store.append(row)
 		
 	def customer_match_selected(self, completion, model, iter):
 		self.customer_id = model[iter][0]
