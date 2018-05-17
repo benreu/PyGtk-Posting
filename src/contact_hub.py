@@ -36,6 +36,7 @@ class ContactHubGUI:
 			self.name = row[0]
 			self.builder.get_object('button4').set_sensitive(row[1])
 			self.builder.get_object('button2').set_sensitive(row[2])
+			self.builder.get_object('button7').set_sensitive(row[2])
 			break
 		else:
 			raise Exception ("Contact not found")
@@ -77,6 +78,12 @@ class ContactHubGUI:
 		from reports import vendor_history
 		v = vendor_history.VendorHistoryGUI(self.main)
 		v.builder.get_object('combobox1').set_active_id(str(self.contact_id))
+		self.window.destroy()
+
+	def customer_payments_clicked (self, button):
+		from reports import payments_received
+		p = payments_received.PaymentsReceivedGUI(self.db)
+		p.builder.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 
