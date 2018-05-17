@@ -1,9 +1,0 @@
-/bin/sh: 1: odt2pdf: not found
-Traceback (most recent call last):
-  File "/media/reuben/nas/pygtk_posting-0.3.1/src/purchase_order_window.py", line 355, in post_purchase_order
-    purchase_order.print_dialog(self.window)
-  File "/media/reuben/nas/pygtk_posting-0.3.1/src/purchase_ordering.py", line 124, in print_dialog
-    p = printing.PrintDialog("/tmp/" + self.document_pdf)
-  File "/media/reuben/nas/pygtk_posting-0.3.1/src/printing.py", line 30, in __init__
-    self.doc = Poppler.Document.new_from_file(file_uri)
-GLib.Error: g-file-error-quark: No such file or directory (4)

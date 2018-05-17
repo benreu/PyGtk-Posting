@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "./src/pygtk_posting.py", line 612, in <module>
-    sys.exit(main())
-  File "./src/pygtk_posting.py", line 607, in main
-    app = GUI()
-  File "./src/pygtk_posting.py", line 55, in __init__
-    self.builder.add_from_file(UI_FILE)
-GLib.Error: gtk-builder-error-quark: src/pygtk_posting.ui:26:50 Object with ID  not found (13)

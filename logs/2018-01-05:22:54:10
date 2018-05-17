@@ -1,8 +1,0 @@
-
-(pygtk_posting.py:8303): Gtk-CRITICAL **: gtk_entry_set_text: assertion 'GTK_IS_ENTRY (entry)' failed
-
-(pygtk_posting.py:8303): Gtk-CRITICAL **: gtk_editable_set_position: assertion 'GTK_IS_EDITABLE (editable)' failed
-./src/pygtk_posting.py:515: Warning: invalid (NULL) pointer instance
-  Gtk.main()
-./src/pygtk_posting.py:515: Warning: g_signal_handler_unblock: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed
-  Gtk.main()
