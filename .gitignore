@@ -58,3 +58,21 @@ docs/_build/
 
 # PyBuilder
 target/
+/.anjuta/default.profile
+/.anjuta/session/anjuta.session
+/.anjuta/session/dock-layout.xml
+/.anjuta_sym_db.db
+/.ropeproject/config.py
+/.ropeproject/history
+/.ropeproject/objectdb
+/Makefile
+/autom4te.cache/output.0
+/autom4te.cache/output.1
+/autom4te.cache/requests
+/autom4te.cache/traces.0
+/autom4te.cache/traces.1
+/config.h
+/config.h.in
+/local_settings
+/missing
+/py-compile

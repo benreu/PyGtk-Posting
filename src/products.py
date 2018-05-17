@@ -853,7 +853,13 @@ class ProductsGUI:
 		self.populate_product_store ()
 		self.repopulated = True
 		self.update_vendor_product_info ()
-		
+		button = self.builder.get_object('button2')
+		if self.builder.get_object('combobox-entry4').get_text() == '':
+			button.set_sensitive(False)
+			button.set_label("No inventory account")
+		else:
+			button.set_sensitive(True)
+			button.set_label("Adjust inventory")
 
 	def delete_product_activated (self, widget):
 		try:
@@ -897,6 +903,9 @@ class ProductsGUI:
 		self.builder.get_object('entry13').set_text("")
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton2').set_active(True)
+		button = self.builder.get_object('button2')
+		button.set_sensitive(False)
+		button.set_label("Product not saved")
 		
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE revenue_account = True "
