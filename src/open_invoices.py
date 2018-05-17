@@ -41,6 +41,21 @@ class OpenInvoicesGUI:
 
 	def focus_in_event (self, window, event):
 		self.populate_store()
+		
+	def contact_hub_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		customer_id = model[path][6]
+		import contact_hub
+		contact_hub.ContactHubGUI(self.parent, customer_id)
+
+	def treeview_button_release_event (self, treeview, event):
+		if event.button == 3:
+			menu = self.builder.get_object('menu1')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
 
 	def new_invoice_clicked (self, button):
 		import invoice_window
@@ -61,14 +76,15 @@ class OpenInvoicesGUI:
 								"c.name, "
 								"date_created::text, "
 								"format_date(date_created), "
-								"COUNT(ili.id) "
+								"COUNT(ili.id), "
+								"c.id "
 							"FROM invoices AS i JOIN contacts AS c "
 							"ON i.customer_id = c.id "
 							"JOIN invoice_items AS ili "
 							"ON ili.invoice_id = i.id "
 							"WHERE (i.canceled, posted, i.active) "
 							"= (False, False, True) "
-							"GROUP BY (i.id, c.name)")
+							"GROUP BY (i.id, c.name, c.id)")
 		for row in self.cursor.fetchall():
 			self.open_invoice_store.append(row)
 		if path != []:
