@@ -40,6 +40,10 @@ class GUI:
 		self.calendar = DateTimeCalendar(self.db)
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
+		self.reconcile_calendar = DateTimeCalendar(self.db)
+		self.reconcile_calendar.connect('day-selected', self.reconcile_calendar_day_selected)
+		self.reconcile_calendar.set_relative_to(self.builder.get_object('entry6'))
+		self.reconcile_date = None
 		self.voided_cheque_calendar = DateTimeCalendar(self.db)
 		self.voided_cheque_calendar.connect('day-selected', self.voided_cheque_day_selected)
 		self.voided_cheque_calendar.set_relative_to(self.builder.get_object('entry5'))
@@ -80,6 +84,23 @@ class GUI:
 			bank_account = self.builder.get_object('combobox3').get_active_id()
 			cheque_number = self.builder.get_object('entry3').get_text()
 			transactor.post_voided_check(self.db, bank_account, self.voided_cheque_date, cheque_number)
+
+	def date_entry_icon_release (self, entry, entryiconposition, event):
+		if self.account_number != 0:
+			self.reconcile_calendar.show()
+
+	def reconcile_calendar_day_selected (self, calendar):
+		entry = self.builder.get_object('entry6')
+		date = calendar.get_date()
+		self.cursor.execute("SELECT COUNT(id) FROM gl_entries "
+							"WHERE date_reconciled = %s", (date,))
+		if self.cursor.fetchone()[0] != 0:
+			entry.set_text("Date already used !")
+			self.reconcile_date = None
+		else:
+			entry.set_text(calendar.get_text())
+			self.reconcile_date = calendar.get_date()
+		self.account_statement_difference ()
 
 	def voided_cheque_day_selected (self, calendar):
 		self.voided_cheque_date = calendar.get_date()
@@ -249,13 +270,23 @@ class GUI:
 		self.account_statement_difference ()
 
 	def account_statement_difference(self ):
+		button = self.builder.get_object('button1')
+		if self.reconcile_date == None:
+			button.set_label("No reconcile date")
+			button.set_sensitive(False)
+			return
+		else:
+			button.set_label("Save reconciled items")
+			button.set_sensitive(True)
 		statement_amount = Decimal(self.builder.get_object('spinbutton1').get_text())
 		difference = statement_amount - self.reconciled_total
 		self.builder.get_object('entry4').set_text('${:,.2f}'.format(difference))
 		if difference == Decimal('0.00') and statement_amount != Decimal('0.00'):
-			self.builder.get_object('button1').set_sensitive(True)
+			button.set_label("Save reconciled items")
+			button.set_sensitive(True)
 		else:
-			self.builder.get_object('button1').set_sensitive(False)
+			button.set_label("Reconciled amount does not match")
+			button.set_sensitive(False)
 
 	def save_reconciled_items_clicked (self, button):
 		self.cursor.execute("WITH account_numbers AS "
@@ -263,7 +294,7 @@ class GUI:
 								"WHERE number = %s OR parent_number = %s"
 								") "
 							"UPDATE gl_entries "
-							"SET date_reconciled = CURRENT_DATE "
+							"SET date_reconciled = %s "
 							"WHERE "
 								"(debit_account IN "
 									"(SELECT * FROM account_numbers) "
@@ -272,7 +303,8 @@ class GUI:
 								") "
 							"AND date_reconciled IS NULL "
 							"AND reconciled = True", 
-							(self.account_number, self.account_number))
+							(self.account_number, self.account_number,
+							self.reconcile_date))
 		self.db.commit()
 		self.populate_treeview ()
 		self.builder.get_object('spinbutton1').set_value(0.00)
