@@ -110,26 +110,30 @@ class CreditMemoGUI:
 		self.builder.get_object('menuitem2').set_sensitive(True)
 
 	def populate_credit_memo (self):
+		c = self.db.cursor()
 		self.credit_items_store.clear()
-		self.cursor.execute("SELECT "
-								"cmi.id, "
-								"cmi.qty, "
-								"p.id, "
-								"p.name, "
-								"p.ext_name, "
-								"cmi.price::float, "
-								"invoice_item_id, "
-								"ili.invoice_id, "
-								"date_returned::text, "
-								"format_date(date_returned)," 
-								"cmi.tax, "
-								"'' "
-							"FROM credit_memo_items AS cmi "
-							"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
-							"JOIN products AS p ON p.id = ili.product_id "
-							"WHERE credit_memo_id = %s", (self.credit_memo_id,))
-		for row in self.cursor.fetchall():
+		c.execute("SELECT "
+						"cmi.id, "
+						"cmi.qty, "
+						"p.id, "
+						"p.name, "
+						"p.ext_name, "
+						"cmi.price::float, "
+						"cmi.invoice_item_id, "
+						"ili.invoice_id, "
+						"date_returned::text, "
+						"format_date(date_returned)," 
+						"cmi.tax, "
+						"COALESCE(sn.serial_number, '') "
+					"FROM credit_memo_items AS cmi "
+					"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
+					"JOIN products AS p ON p.id = ili.product_id "
+					"LEFT JOIN serial_number_history AS snh ON snh.id = cmi.serial_number_history_id "
+					"LEFT JOIN serial_numbers AS sn ON sn.id = snh.serial_number_id "
+					"WHERE credit_memo_id = %s", (self.credit_memo_id,))
+		for row in c.fetchall():
 			self.credit_items_store.append(row)
+		c.close()
 
 	def populate_product_store(self, m=None, i=None):
 		self.product_store.clear()
