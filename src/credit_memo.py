@@ -292,7 +292,7 @@ class CreditMemoGUI:
 
 	def view_document_clicked (self, button):
 		self.create_odt()
-		subprocess.call(["soffice", self.credit_memo_file])
+		subprocess.Popen(["soffice", self.credit_memo_file])
 
 
 
