@@ -79,12 +79,11 @@ class CreditMemoGUI:
 							"FROM contacts AS c "
 							"JOIN invoices AS i ON c.id = i.customer_id "
 							"WHERE (c.deleted, c.customer, i.paid) = "
-							"(False, True, True) ORDER BY name")
+							"(False, True, True) "
+							"GROUP BY c.id, c.name, c.ext_name "
+							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			customer_id = row[0]
-			name = row[1]
-			ext_name = row[2]
-			self.customer_store.append([customer_id, name, ext_name])
+			self.customer_store.append(row)
 
 	def customer_combo_changed (self, combo):
 		customer_id = combo.get_active_id ()
