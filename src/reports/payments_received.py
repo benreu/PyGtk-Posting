@@ -86,16 +86,18 @@ class PaymentsReceivedGUI:
 		if customer_id == None:
 			return
 		self.customer_id = customer_id
-		self.builder.get_object('checkbutton1').set_active(False)
 		self.populate_payment_store ()
 
 	def view_all_checkbutton_toggled (self, checkbutton):
 		self.populate_payment_store ()
 
 	def fiscal_combo_changed (self, combo):
+		self.builder.get_object('checkbutton1').set_active(False)
 		self.populate_payment_store ()
 
 	def populate_payment_store (self):
+		if self.customer_id == None:
+			return
 		self.payment_store.clear()
 		total_amount = Decimal()
 		fiscal_id = self.builder.get_object('combobox2').get_active_id()
@@ -106,15 +108,9 @@ class PaymentsReceivedGUI:
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
-								"WHERE (pay.date_inserted "
-								"BETWEEN (SELECT start_date "
-									"FROM fiscal_years WHERE id = %s) "
-									"AND "
-									"(SELECT end_date "
-									"FROM fiscal_years WHERE id = %s)) "
-								"ORDER BY date_inserted;", (
-								fiscal_id, fiscal_id))
-		elif self.customer_id != None:
+								"WHERE contacts.id = %s "
+								"ORDER BY date_inserted;", (self.customer_id,))
+		else:
 			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
 								"contacts.name, pay.amount, "
