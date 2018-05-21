@@ -433,6 +433,16 @@ class GUI(Connection, Admin):
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.call("libreoffice " + label_file, shell = True)
 
+	def treeview_button_release_event (self, treeview, event):
+		if event.button == 3:
+			menu = self.builder.get_object('menu2')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+
+	def contact_hub_activated (self, menuitem):
+		import contact_hub
+		contact_hub.ContactHubGUI(self.main, self.contact_id)
+
 	def name_entry_changed (self, entry):
 		entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
 
