@@ -62,23 +62,20 @@ class PaymentsReceivedGUI:
 
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT customer_id, name FROM payments_incoming "
+		self.cursor.execute("SELECT customer_id::text, name "
+							"FROM payments_incoming "
 							"JOIN contacts ON payments_incoming.customer_id "
 							"= contacts.id "
 							"GROUP BY customer_id, name "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			customer_id = row[0]
-			customer_name = row[1]
-			self.contact_store.append([str(customer_id), customer_name])
+			self.contact_store.append(row)
 		store = self.builder.get_object('fiscal_store')
 		store.clear()
-		self.cursor.execute("SELECT id, name FROM fiscal_years "
+		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			fiscal_id = row[0]
-			fiscal_name = row[1]
-			store.append([str(fiscal_id), fiscal_name])
+			store.append(row)
 		self.builder.get_object('combobox2').set_active(0)
 
 	def customer_combo_changed (self, combo):
@@ -100,7 +97,6 @@ class PaymentsReceivedGUI:
 			return
 		self.payment_store.clear()
 		total_amount = Decimal()
-		fiscal_id = self.builder.get_object('combobox2').get_active_id()
 		if self.builder.get_object('checkbutton1').get_active() == True:
 			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
@@ -111,6 +107,7 @@ class PaymentsReceivedGUI:
 								"WHERE contacts.id = %s "
 								"ORDER BY date_inserted;", (self.customer_id,))
 		else:
+			fiscal_id = self.builder.get_object('combobox2').get_active_id()
 			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
 								"contacts.name, pay.amount, "
