@@ -97,6 +97,28 @@
     <property name="can_focus">False</property>
     <property name="label" translatable="yes">Date returned</property>
   </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Delete item</property>
+        <property name="use_underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem2">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">View Credit Memo</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="view_document_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
@@ -115,11 +137,12 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="margin_bottom">10</property>
+            <property name="spacing">5</property>
             <child>
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Customer </property>
+                <property name="label" translatable="yes">Customer</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -159,7 +182,7 @@
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes"> Date </property>
+                <property name="label" translatable="yes">Date</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -172,6 +195,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="editable">False</property>
+                <property name="width_chars">0</property>
+                <property name="max_width_chars">14</property>
                 <property name="primary_icon_stock">gtk-find</property>
                 <signal name="icon-release" handler="date_entry_icon_released" swapped="no"/>
               </object>
@@ -179,6 +204,40 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="combobox2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="model">credit_products_store</property>
+                <property name="has_entry">True</property>
+                <property name="entry_text_column">1</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="product_combo_changed" swapped="no"/>
+                <child>
+                  <object class="GtkCellRendererText" id="cellrenderertext15"/>
+                  <attributes>
+                    <attribute name="text">2</attribute>
+                  </attributes>
+                </child>
+                <child>
+                  <object class="GtkCellRendererText" id="cellrenderertext16"/>
+                  <attributes>
+                    <attribute name="text">3</attribute>
+                  </attributes>
+                </child>
+                <child internal-child="entry">
+                  <object class="GtkEntry" id="combobox-entry2">
+                    <property name="can_focus">True</property>
+                    <property name="completion">product_completion</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -342,11 +401,15 @@
             <property name="margin_top">10</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkButton" id="button3">
-                <property name="label" translatable="yes">Delete item</property>
+              <object class="GtkMenuButton" id="menubutton1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="popup">menu1</property>
+                <property name="direction">up</property>
+                <child>
+                  <placeholder/>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -360,7 +423,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="view_document_clicked" swapped="no"/>
+                <signal name="clicked" handler="view_document_activated" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

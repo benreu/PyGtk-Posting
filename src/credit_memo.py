@@ -107,17 +107,26 @@ class CreditMemoGUI:
 			self.credit_items_store.clear()
 			self.credit_memo_id = None
 		self.populate_product_store ()
+		self.builder.get_object('menuitem2').set_sensitive(True)
 
 	def populate_credit_memo (self):
 		self.credit_items_store.clear()
-		self.cursor.execute("SELECT 0, 1.0, cmi.id, cmi.qty, p.id, p.name, "
-							"p.ext_name, cmi.price, invoice_item_id, "
-							"i.id, date_returned::text, "
-							"format_date(date_returned), cmi.tax, '' "
+		self.cursor.execute("SELECT "
+								"cmi.id, "
+								"cmi.qty, "
+								"p.id, "
+								"p.name, "
+								"p.ext_name, "
+								"cmi.price::float, "
+								"invoice_item_id, "
+								"ili.invoice_id, "
+								"date_returned::text, "
+								"format_date(date_returned)," 
+								"cmi.tax, "
+								"'' "
 							"FROM credit_memo_items AS cmi "
 							"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
 							"JOIN products AS p ON p.id = ili.product_id "
-							"JOIN invoices AS i ON i.id = ili.invoice_id "
 							"WHERE credit_memo_id = %s", (self.credit_memo_id,))
 		for row in self.cursor.fetchall():
 			self.credit_items_store.append(row)
@@ -152,8 +161,19 @@ class CreditMemoGUI:
 				self.builder.get_object('treeview-selection1').select_path(row.path)
 				return
 		c = self.db.cursor()
-		c.execute("SELECT 0, 1.0, product_id, p.name, p.ext_name, ili.price, i.id, "
-					"i.dated_for, format_date(i.dated_for), ili.tax, '' "
+		c.execute("SELECT "
+					"0, "
+					"1.0, "
+					"product_id, "
+					"p.name, "
+					"p.ext_name, "
+					"ili.price, "
+					"ili.id, "
+					"i.id, "
+					"i.dated_for::text, "
+					"format_date(i.dated_for), "
+					"ili.tax::float, "
+					"'' "
 					"FROM products AS p "
 					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
@@ -290,7 +310,7 @@ class CreditMemoGUI:
 		t = Template("./templates/credit_memo_template.odt", self.credit_memo_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 
-	def view_document_clicked (self, button):
+	def view_document_activated (self, button):
 		self.create_odt()
 		subprocess.Popen(["soffice", self.credit_memo_file])
 
@@ -299,7 +319,7 @@ class CreditMemoGUI:
 
 
 
-		
+
 
 
 		
