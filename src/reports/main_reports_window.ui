@@ -327,10 +327,11 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="button15">
-                        <property name="label" translatable="yes"> </property>
+                        <property name="label" translatable="yes">Bank Statements</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="clicked" handler="bank_statements_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
