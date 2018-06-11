@@ -328,7 +328,9 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">7</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext12"/>
+                      <object class="GtkCellRendererText" id="cellrenderertext12">
+                        <property name="editable">True</property>
+                      </object>
                       <attributes>
                         <attribute name="text">7</attribute>
                       </attributes>
