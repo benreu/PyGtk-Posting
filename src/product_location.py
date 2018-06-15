@@ -161,21 +161,23 @@ class ProductLocationGUI:
 	def populate_product_location_treeview(self):
 		location_id = self.builder.get_object('combobox1').get_active_id()
 		self.product_location_store.clear()
-		self.cursor.execute ("SELECT id, product_id, aisle, rack, cart, shelf, cabinet, drawer, bin FROM product_location WHERE (locator_visible, location_id) = (True, %s)", (location_id,))
+		self.cursor.execute ("SELECT "
+								"pl.id, "
+								"p.name, "
+								"aisle, "
+								"rack, "
+								"cart, "
+								"shelf, "
+								"cabinet, "
+								"drawer, "
+								"bin, "
+								"product_id "
+							"FROM product_location AS pl "
+							"JOIN products AS p ON p.id = pl.product_id "
+							"WHERE (locator_visible, location_id) = (True, %s)", 
+							(location_id,))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			product_id = row[1]
-			aisle = row[2]
-			rack = row[3]
-			cart = row[4]
-			shelf = row[5]
-			cabinet = row[6]
-			drawer = row[7]
-			_bin_ = row[8]
-			self.cursor.execute ("SELECT name FROM products WHERE id = %s AND deleted = False", (product_id,))
-			for row in self.cursor.fetchall():
-				product_name = row[0]
-				self.product_location_store.append([row_id, product_name, aisle, rack, cart, shelf, cabinet, drawer, _bin_, product_id])
+			self.product_location_store.append(row)
 
 	def populate_location_combo(self):
 		location_combo = self.builder.get_object('combobox1')
