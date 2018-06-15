@@ -8,15 +8,7 @@ It stands for PYthon + GTK + POSTgresql. The postgresql part has been modified t
 
 Special credits
 
-py3o is used for all reports and printouts. It has the most lowly job there is and is not appreciated half enough. Without py3o, PyGtk Posting would be worthless. Since it is not in the program name it deserves a special credit here.
-
-Helping
-
-Python/Gtk programmers are in high demand! Even if you feel you are very poor at Python/Gtk, I will teach you.
-SQL programmers are also appreciated. There is a lot of SQL code that should have JOINs and so forth to reduce network latency. I started PyGtk Posting with no experience in SQL, Python, or Gtk. The SQL has obviously received the least attention over time.
-As there are no preparations for a donation account, donating is not very easy. 
-Suggestions/feature requests are wanted in the worst way. What do you wish other accounting apps had? What features do you use day by day? 
-And of course testing/bug reports are welcome anytime. Do you know of a place to create awareness of this app? Let me hear about it as I want to build this accounting app in a community fashion.
+py3o is used for all report printouts and invoices. It has the most lowly job there is and is not appreciated half enough. Without py3o, PyGtk Posting would be worthless. Since it is not in the program name it deserves a special credit here.
 
 Dependencies 
 
@@ -53,11 +45,19 @@ Problems
 
 Send me the log.txt that is created when you try to run the run.sh. Better yet, figure out what went wrong and tell me where I need to improve :)
 
+Helping
+
+Python/Gtk/SQL programmers are wanted very much! Testing, documentation or a dedicated website for Posting would be much appreciated too.
+As there are no preparations for a donation account, donating is not very easy. 
+Suggestions/feature requests are wanted in the worst way. What do you wish other accounting apps had? What features do you use day by day? 
+And of course bug reports are welcome anytime. 
+Do you know of a place to create awareness of this app? Let me hear about it as I want to build this accounting app in a community fashion.
+
 Hacking
 
 Install Anjuta, then open the 'pygtk_posting.anjuta' file with Anjuta. As of this time there are almost no *good* tutorials available for Anjuta. So you are on your own. A very nice polite email to me with a specific question will probably generate a response.
 
-After Hacking 
+Hacking 
 
-Create a folder named 'oldsrc' beside the src folder and copy all the /src files you got originally into the 'oldsrc'. Run the create_diff.sh and send the posting.diff to me. Remember you are doing this for your own benefit. If you do not backport your changes, and I release the next version and you use it, it will break your database possibly leading to corruption. Please alert me if you made database changes, as the diff file does not take care of that (properly). An SQL command will do the trick for my end.
+PyGtk Posting uses Git for version tracking. If you don't know Git, please contact me for alternatives.
 
