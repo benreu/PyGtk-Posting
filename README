@@ -33,6 +33,7 @@ python3-tk
 python3-matplotlib
 python3-cairocffi
 python3-uno
+python3-lxml
 PostgreSQL server somewhere on the network or locally
 unoconv
 LibreOffice (recommended) or OpenOffice
