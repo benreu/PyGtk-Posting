@@ -26,6 +26,9 @@ from com.sun.star.awt import Size
 
 UI_FILE = "src/catalog_creator.ui"
 
+class Item(object):#this is used by py3o library see their example for more info
+	pass
+
 class CatalogCreatorGUI:
 	preview_image = None
 	preview_size = 0
@@ -76,7 +79,8 @@ class CatalogCreatorGUI:
 			self.cursor.execute("UPDATE products SET catalog = True"
 								" WHERE id = %s", (product_id,))
 			self.db.commit()
-		GLib.idle_add ( self.load_catalog_clicked )
+			GLib.idle_add ( self.load_catalog_clicked )
+			combo.set_active(-1)
 
 	def product_completion_match_selected (self, combo, model, iter_):
 		product_id = model[iter_][0]
@@ -211,6 +215,41 @@ class CatalogCreatorGUI:
 								"WHERE id = %s", (file_data, product_id))
 		self.db.commit()
 		dialog.hide()
+		
+	def populate_template_clicked (self, button):
+		from py3o.template import Template 
+		product_list = dict()
+		self.cursor.execute("SELECT "
+							"'name'||p.barcode, p.name, "
+							"'price'||p.barcode, price::money "
+							"FROM products AS p "
+							"JOIN products_markup_prices AS pmp "
+							"ON pmp.product_id = p.id "
+							"JOIN customer_markup_percent AS cmp "
+							"ON cmp.id = pmp.markup_id "
+							"WHERE (p.catalog, cmp.standard) = (True, True)")
+		for row in self.cursor.fetchall():
+			name_id = row[0]
+			name = row[1]
+			price_id = row[2]
+			price = row[3]
+			product_list[name_id] = name
+			product_list[price_id] = price
+		catalog_file = "/tmp/catalog.odt"
+		t = Template("./templates/catalog_template.odt", catalog_file , False)
+		try:
+			t.render(product_list) #the product_list holds all the catalog info
+		except Exception as e:
+			print (e)
+			dialog = Gtk.MessageDialog(self.window,
+										0,
+										Gtk.MessageType.ERROR,
+										Gtk.ButtonsType.CLOSE,
+										e)
+			dialog.run()
+			dialog.destroy()
+			return
+		subprocess.Popen(["soffice", catalog_file])
 
 	def image_area_draw (self, drawing_area, cr):
 		image = GdkPixbuf.Pixbuf.new_from_file("/home/reuben/reuben.jpg")
