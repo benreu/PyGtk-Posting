@@ -70,7 +70,6 @@ class InvoiceHistoryGUI:
 		self.product_name = ''
 		self.product_ext_name = ''
 		self.remark = ''
-		self.order_number = ''
 		
 		self.filter = self.builder.get_object ('invoice_items_filter')
 		self.filter.set_visible_func(self.filter_func)
@@ -270,21 +269,17 @@ class InvoiceHistoryGUI:
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
 		self.product_ext_name = self.builder.get_object('searchentry2').get_text().lower()
 		self.remark = self.builder.get_object('searchentry3').get_text().lower()
-		self.order_number = self.builder.get_object('searchentry4').get_text().lower()
 		self.filter.refilter()
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.product_name.split():
-			if text not in model[tree_iter][2].lower():
-				return False
-		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][3].lower():
 				return False
-		for text in self.remark.split():
+		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][4].lower():
 				return False
-		for text in self.order_number.split():
-			if text not in model[tree_iter][7].lower():
+		for text in self.remark.split():
+			if text not in model[tree_iter][5].lower():
 				return False
 		return True
 
