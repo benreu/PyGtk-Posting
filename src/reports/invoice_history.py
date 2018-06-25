@@ -169,7 +169,10 @@ class InvoiceHistoryGUI:
 		self.load_customer_invoices ()
 
 	def load_customer_invoices (self):
-		self.invoice_store.clear()
+		invoice_treeview = self.builder.get_object('treeview1')
+		model = invoice_treeview.get_model()
+		invoice_treeview.set_model(None)
+		model.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
 			self.cursor.execute("SELECT "
@@ -204,7 +207,8 @@ class InvoiceHistoryGUI:
 								(self.customer_id,))
 		for row in self.cursor.fetchall():
 			total += row[6]
-			self.invoice_store.append(row)
+			model.append(row)
+		invoice_treeview.set_model(model)
 		self.builder.get_object('label3').set_label(str(total))
 
 	def invoice_row_changed (self, selection):
@@ -216,6 +220,9 @@ class InvoiceHistoryGUI:
 		self.load_invoice_items (load_all = active)
 		if active == True:
 			self.builder.get_object('checkbutton3').set_active(False)
+
+	def select_all_activated (self, menuitem):
+		self.builder.get_object('treeview-selection1').select_all()
 
 	def load_invoice_items (self, load_all = False):
 		store = self.builder.get_object('invoice_items_store')
