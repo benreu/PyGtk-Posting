@@ -122,9 +122,9 @@ class GUI:
 		self.is_parent_account = self.account_store[path][2]
 		type_ = str(self.account_number)[0]
 		if type_ == '4' or type_ == '5':
-			self.n_col = 5 #the column with negative values
+			self.n_col = 6 #the column with negative values
 		else:
-			self.n_col = 3
+			self.n_col = 4
 		self.load_account_store()
 		self.scroll_window_to_bottom ()		
 		
@@ -277,6 +277,7 @@ class GUI:
 				amount = amount - amount * 2
 				balance -= float(transaction[3])
 				amount_color = Gdk.RGBA(0.4,0,0,1)
+				balance_color = Gdk.RGBA(0.8,0,0,1)
 			if balance < 0.00:
 				balance_color = Gdk.RGBA(0.7,0,0,1)
 			parent = self.account_treestore.append (None, [str(date), formatted_date, 0, 
