@@ -135,20 +135,16 @@ class AssembledProductsGUI:
 	def populate_stores(self):
 		self.product_store.clear()
 		self.assembled_product_store.clear()
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, purchasable, stock) = "
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
-		self.cursor.execute("SELECT id, name FROM products "
+			self.product_store.append(row)
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, manufactured) = (False, True) "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			_id_ = row[0]
-			name = row[1]
-			self.assembled_product_store.append([str(_id_), name])
+			self.assembled_product_store.append(row)
 
 	def products_clicked (self, button):
 		import products
@@ -226,7 +222,7 @@ class AssembledProductsGUI:
 		self.builder.get_object('label6').set_label("'%s'" % product_name)
 		self.assembly_store.clear()
 		self.cursor.execute("SELECT pai.id, qty, assembly_product_id, name, "
-							"cost, remark "
+							"remark, cost, cost*qty "
 							"FROM product_assembly_items AS pai "
 							"JOIN products ON products.id = "
 							"pai.assembly_product_id "
@@ -240,7 +236,7 @@ class AssembledProductsGUI:
 			cost = row[4]
 			remark = row[5]
 			ext_cost = cost * qty
-			self.assembly_store.append([line_id, int(qty), product_id, product_name, remark, cost, ext_cost])
+			self.assembly_store.append(row)
 		self.calculate_totals ()
 
 	def add_entry(self, widget):
