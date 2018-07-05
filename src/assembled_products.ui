@@ -71,6 +71,7 @@
     <property name="default_height">400</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
+    <signal name="key-release-event" handler="window_key_release_event" swapped="no"/>
     <child>
       <object class="GtkPaned" id="paned1">
         <property name="visible">True</property>
@@ -220,6 +221,7 @@
                     <property name="vexpand">True</property>
                     <property name="model">assembly_store</property>
                     <signal name="button-release-event" handler="products_button_release_event" swapped="no"/>
+                    <signal name="key-release-event" handler="treeview_key_release_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection2"/>
                     </child>
@@ -343,7 +345,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="clicked" handler="delete_entry" swapped="no"/>
+                        <signal name="clicked" handler="delete_item_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -357,7 +359,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="clicked" handler="add_entry" swapped="no"/>
+                        <signal name="clicked" handler="new_item_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>

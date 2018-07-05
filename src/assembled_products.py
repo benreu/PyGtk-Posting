@@ -205,7 +205,7 @@ class AssembledProductsGUI:
 		ext_price = cost * qty
 		line[6] = round(ext_price, 2)
 
-	def delete_entry(self, widget):
+	def delete_entry(self):
 		row, path = self.builder.get_object("treeview-selection2").get_selected_rows ()
 		tree_iter = row.get_iter(path)
 		line_id = self.assembly_store.get_value(tree_iter, 0)
@@ -238,10 +238,46 @@ class AssembledProductsGUI:
 			ext_cost = cost * qty
 			self.assembly_store.append(row)
 		self.calculate_totals ()
+		
+	def delete_item_clicked (self, button):
+		self.delete_entry()
 
-	def add_entry(self, widget):
-		self.assembly_store.append([0, 1, 0, "Select a product", "", 0.00, 0.00])
+	def new_item_clicked (self, button):
+		self.add_entry()
 
+	def add_entry(self):
+		treeview = self.builder.get_object('treeview2')
+		c = treeview.get_column(0)
+		row = self.assembly_store.append([0, 1, 0, "Select a product", "", 0.00, 0.00])
+		path = self.assembly_store.get_path(row)
+		treeview.set_cursor(path, c, True)
 
+	def treeview_key_release_event (self, treeview, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		path, col = treeview.get_cursor()
+		# only visible columns!!
+		columns = [c for c in treeview.get_columns() if c.get_visible()]
+		colnum = columns.index(col)
+		if keyname=="Tab":
+			if colnum + 1 < len(columns):
+				next_column = columns[colnum + 1]
+			else:
+				tmodel = treeview.get_model()
+				titer = tmodel.iter_next(tmodel.get_iter(path))
+				if titer is None:
+					titer = tmodel.get_iter_first()
+					path = tmodel.get_path(titer)
+					next_column = columns[0]
+			if keyname == 'Tab':
+				GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
+
+	def window_key_release_event(self, window, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if keyname == 'F1':
+			pass # create help file 
+		elif keyname == 'F2':
+			self.add_entry ()
+		elif keyname == 'F3':
+			self.delete_entry()
 
 		
