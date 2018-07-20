@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkLabel" id="label2">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -32,6 +32,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -42,7 +45,6 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkMenuItem" id="menuitem1">
-                <property name="use_action_appearance">True</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">_File</property>
@@ -1389,6 +1391,9 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
     <property name="artists">Reuben Rissler</property>
     <property name="logo">PyGtk_Posting.svg</property>
     <property name="license_type">gpl-3-0</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="aboutdialog-vbox">
         <property name="can_focus">False</property>
@@ -1419,6 +1424,9 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">main_window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
@@ -1546,6 +1554,9 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">main_window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="can_focus">False</property>

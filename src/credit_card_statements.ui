@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">100000</property>
     <property name="step_increment">1</property>
@@ -64,6 +64,9 @@
     <property name="default_height">400</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -455,7 +458,6 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="margin_top">10</property>
-                <property name="xalign">0</property>
                 <property name="draw_indicator">True</property>
                 <signal name="toggled" handler="populate_statement_treeview" swapped="no"/>
               </object>
@@ -560,6 +562,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox6">
         <property name="can_focus">False</property>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.12"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="bank_account_store">
     <columns>
       <!-- column-name number -->
@@ -38,6 +38,9 @@
     <property name="default_width">400</property>
     <property name="default_height">600</property>
     <property name="icon">PyGtk_Posting.svg</property>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -76,7 +79,6 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">This groups transactions by date reconciled</property>
-                <property name="xalign">0</property>
                 <property name="draw_indicator">True</property>
                 <signal name="toggled" handler="grouped_checkbutton_toggled" swapped="no"/>
               </object>
