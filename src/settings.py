@@ -63,30 +63,10 @@ class GUI():
 
 		self.setting_store = self.builder.get_object('setting_store')
 
-		stack = Gtk.Stack()
-		stack_sidebar = Gtk.StackSidebar()
-		stack_sidebar.set_stack(stack)
-		box = self.builder.get_object ('box1')
-		box.pack_start(stack_sidebar, False, False, 0)
-		box.pack_start(stack, True, True, 0)
-		
-		company = self.builder.get_object('company')
-		general = self.builder.get_object('general')
-		time_clock = self.builder.get_object('time_clock')
-		document_types = self.builder.get_object('document_types')
-		accounting = self.builder.get_object('accounting')
-		window_columns = self.builder.get_object('window_columns')
-		
-		stack.add_titled(accounting, "accounting", "Accounting")
-		stack.add_titled(company, "company", "Company")
-		stack.add_titled(document_types, "document_types", "Document types")
-		stack.add_titled(general, "general", "General")
-		stack.add_titled(time_clock, "time_clock", "Time clock")
-		stack.add_titled(window_columns, "window_columns", "Window columns")
 		if setting_container != None:
+			stack = self.builder.get_object('settings_stack')
 			stack.set_visible_child(self.builder.get_object(setting_container))
-		else:
-			stack.set_visible_child(accounting)
+			
 		self.populate_all_widgets ()
 		self.populate_columns()
 		self.populate_document_types()
