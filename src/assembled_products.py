@@ -106,9 +106,6 @@ class AssembledProductsGUI:
 		tree_iter = self.assembly_store.get_iter(path)
 		self.assembly_store[tree_iter][2] = int(product_id)
 		self.assembly_store[tree_iter][3] = product_name
-		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
-		cost = self.cursor.fetchone()[0]
-		self.assembly_store[tree_iter][5] = cost
 		self.save_assembly_product_line (tree_iter)
 		self.calculate_row_total (tree_iter)
 		self.calculate_totals()
@@ -170,23 +167,40 @@ class AssembledProductsGUI:
 		self.assembly_store[tree_iter][3] = text
 		self.save_assembly_product_line (tree_iter)
 
-	def save_assembly_product_line(self, line):
-		if self.assembly_store[line][3] == "Select a product":
+	def save_assembly_product_line(self, tree_iter):
+		if self.assembly_store[tree_iter][3] == "Select a product":
 			return # no product yet
-		line_id = self.assembly_store[line][0]
-		qty = self.assembly_store[line][1]
-		product_id = self.assembly_store[line][2]
-		remark = self.assembly_store[line][4]
+		line_id = self.assembly_store[tree_iter][0]
+		qty = self.assembly_store[tree_iter][1]
+		product_id = self.assembly_store[tree_iter][2]
+		remark = self.assembly_store[tree_iter][4]
 		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
 		for row in self.cursor.fetchall():
 			cost = row[0]
-			self.assembly_store[line][5] = cost
-			self.assembly_store[line][6] = float(cost) * qty
+			self.assembly_store[tree_iter][5] = cost
+			self.assembly_store[tree_iter][6] = float(cost) * qty
 		if line_id == 0:
-			self.cursor.execute("INSERT INTO product_assembly_items (manufactured_product_id, qty, assembly_product_id, remark) VALUES (%s, %s, %s, %s) RETURNING id", (self.manufactured_product_id, qty, product_id, remark))
-			self.assembly_store[line][0] = self.cursor.fetchone()[0]
+			self.cursor.execute("INSERT INTO product_assembly_items "
+									"(manufactured_product_id, "
+									"qty, "
+									"assembly_product_id, "
+									"remark) "
+								"VALUES (%s, %s, %s, %s) RETURNING id", 
+									(self.manufactured_product_id, 
+									qty, 
+									product_id, 
+									remark))
+			self.assembly_store[tree_iter][0] = self.cursor.fetchone()[0]
 		else:
-			self.cursor.execute("UPDATE product_assembly_items SET (qty, assembly_product_id, remark) = (%s, %s, %s) WHERE id = %s", ( qty, product_id, remark, line_id))
+			self.cursor.execute("UPDATE product_assembly_items SET "
+									"(qty, "
+									"assembly_product_id, "
+									"remark) "
+								"= (%s, %s, %s) WHERE id = %s", 
+									(qty, 
+									product_id, 
+									remark, 
+									line_id))
 		self.db.commit()
 		self.calculate_totals ()
 
@@ -199,18 +213,19 @@ class AssembledProductsGUI:
 		self.builder.get_object('label4').set_label(str(line_items))
 		self.builder.get_object('label5').set_label(total)
 
-	def calculate_row_total(self, line):
-		cost = float(self.assembly_store[line][5])
-		qty = float(self.assembly_store[line][1])
+	def calculate_row_total(self, tree_iter):
+		cost = float(self.assembly_store[tree_iter][5])
+		qty = float(self.assembly_store[tree_iter][1])
 		ext_price = cost * qty
-		self.assembly_store[line][6] = round(ext_price, 2)
+		self.assembly_store[tree_iter][6] = round(ext_price, 2)
 
 	def delete_entry(self):
 		row, path = self.builder.get_object("treeview-selection2").get_selected_rows ()
 		tree_iter = row.get_iter(path)
 		line_id = self.assembly_store.get_value(tree_iter, 0)
 		self.assembly_store.remove(tree_iter)
-		self.cursor.execute("DELETE FROM product_assembly_items WHERE id = %s", (line_id,))
+		self.cursor.execute("DELETE FROM product_assembly_items "
+							"WHERE id = %s", (line_id,))
 		self.db.commit()
 
 	def add_product(self, widget):
