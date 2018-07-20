@@ -666,6 +666,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
+            <property name="column_spacing">5</property>
             <child>
               <object class="GtkEntry" id="entry5">
                 <property name="visible">True</property>
@@ -675,7 +676,7 @@
                 <property name="xalign">1</property>
               </object>
               <packing>
-                <property name="left_attach">3</property>
+                <property name="left_attach">5</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -686,7 +687,7 @@
                 <property name="label" translatable="yes">Total</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">4</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -711,6 +712,31 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label7">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Rows</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="rows_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="max_length">4</property>
+                <property name="width_chars">4</property>
+                <property name="max_width_chars">4</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>

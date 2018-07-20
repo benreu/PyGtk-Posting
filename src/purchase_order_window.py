@@ -790,6 +790,8 @@ class PurchaseOrderGUI:
 				self.total += row[9]
 		total = '${:,.2f}'.format(self.total)
 		self.builder.get_object('entry5').set_text(total)
+		rows = len(self.purchase_order_store)
+		self.builder.get_object('rows_entry').set_text(str(rows))
 
 	def check_po_id (self):
 		if self.purchase_order_id == 0:
