@@ -99,18 +99,18 @@ class AssembledProductsGUI:
 		import product_hub
 		product_hub.ProductHubGUI(self.main, self.product_hub_id)
 
-	def product_match_selected(self, completion, model, iter_):
-		product_id = self.product_store[iter_][0]
-		product_name = self.product_store[iter_][1]
+	def product_match_selected(self, completion, model, combo_iter):
+		product_id = self.product_store[combo_iter][0]
+		product_name = self.product_store[combo_iter][1]
 		model, path = self.builder.get_object('treeview-selection2').get_selected_rows()
-		self.assembly_store[path][2] = int(product_id)
-		self.assembly_store[path][3] = product_name
+		tree_iter = self.assembly_store.get_iter(path)
+		self.assembly_store[tree_iter][2] = int(product_id)
+		self.assembly_store[tree_iter][3] = product_name
 		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
 		cost = self.cursor.fetchone()[0]
-		self.assembly_store[path][5] = cost
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
-		self.calculate_row_total (line)
+		self.assembly_store[tree_iter][5] = cost
+		self.save_assembly_product_line (tree_iter)
+		self.calculate_row_total (tree_iter)
 		self.calculate_totals()
 
 	def product_combo_editing_started (self, combo_renderer, combo, path):
@@ -152,39 +152,39 @@ class AssembledProductsGUI:
 
 	def qty_edited(self, widget, path, text):
 		self.assembly_store[path][1] = int(text) # update all values related to the price and quantity
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
-		self.calculate_row_total (line)
+		iter = self.assembly_store.get_iter(path)
+		self.save_assembly_product_line (iter)
+		self.calculate_row_total (iter)
 		self.calculate_totals ()
 
 	def remark_edited (self, widget, path, text):
 		self.assembly_store[path][4] = text
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
+		iter = self.assembly_store.get_iter(path)
+		self.save_assembly_product_line (iter)
 
-	def product_combo_changed (self, combo_renderer, path, iter_):
-		product_id = self.product_store[iter_][0]
-		text = self.product_store[iter_][1]
-		self.assembly_store[path][2] = int(product_id)
-		self.assembly_store[path][3] = text
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
+	def product_combo_changed (self, combo_renderer, path, combo_iter):
+		product_id = self.product_store[combo_iter][0]
+		text = self.product_store[combo_iter][1]
+		tree_iter = self.assembly_store.get_iter(path)
+		self.assembly_store[tree_iter][2] = int(product_id)
+		self.assembly_store[tree_iter][3] = text
+		self.save_assembly_product_line (tree_iter)
 
 	def save_assembly_product_line(self, line):
-		if line[3] == "Select a product":
+		if self.assembly_store[line][3] == "Select a product":
 			return # no product yet
-		line_id = line[0]
-		qty = line[1]
-		product_id = line[2]
-		remark = line[4]
+		line_id = self.assembly_store[line][0]
+		qty = self.assembly_store[line][1]
+		product_id = self.assembly_store[line][2]
+		remark = self.assembly_store[line][4]
 		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
 		for row in self.cursor.fetchall():
 			cost = row[0]
-			line[5] = cost
-			line[6] = float(cost) * qty
+			self.assembly_store[line][5] = cost
+			self.assembly_store[line][6] = float(cost) * qty
 		if line_id == 0:
 			self.cursor.execute("INSERT INTO product_assembly_items (manufactured_product_id, qty, assembly_product_id, remark) VALUES (%s, %s, %s, %s) RETURNING id", (self.manufactured_product_id, qty, product_id, remark))
-			line[0] = self.cursor.fetchone()[0]
+			self.assembly_store[line][0] = self.cursor.fetchone()[0]
 		else:
 			self.cursor.execute("UPDATE product_assembly_items SET (qty, assembly_product_id, remark) = (%s, %s, %s) WHERE id = %s", ( qty, product_id, remark, line_id))
 		self.db.commit()
@@ -200,10 +200,10 @@ class AssembledProductsGUI:
 		self.builder.get_object('label5').set_label(total)
 
 	def calculate_row_total(self, line):
-		cost = float(line[5])
-		qty = float(line[1])
+		cost = float(self.assembly_store[line][5])
+		qty = float(self.assembly_store[line][1])
 		ext_price = cost * qty
-		line[6] = round(ext_price, 2)
+		self.assembly_store[line][6] = round(ext_price, 2)
 
 	def delete_entry(self):
 		row, path = self.builder.get_object("treeview-selection2").get_selected_rows ()
