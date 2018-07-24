@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -19,8 +19,6 @@ UI_FILE = "src/time_clock.ui"
 
 from gi.repository import Gtk, GLib
 from datetime import datetime
-from dateutils import datetime_to_text
-import settings
 
 class TimeClockGUI :
 	
@@ -30,81 +28,156 @@ class TimeClockGUI :
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.previous_project = None
-		listbox = self.builder.get_object('listbox1')
-		self.listbox = listbox
-
 		self.db = db
 		self.cursor = self.db.cursor()
-		self.timeclock_liststore = Gtk.ListStore (str, str)
-		self.populate_timeclock_liststore ()
-		self.cursor.execute("SELECT id, name FROM contacts WHERE employee = True AND deleted = False")
-		for row, line in enumerate(self.cursor.fetchall()):
-			employee_id = line[0]
-			employee_name = line[1]
-			employee_name_label = Gtk.Label(employee_name, xalign=1)
-			employee_id_label = Gtk.Label(employee_id, xalign=1)
-			employee_id_label.set_visible(False)
-			
-			#self.cursor.execute("SELECT * FROM time_clock_projects WHERE active = True")
-			combo = Gtk.ComboBox.new_with_model (self.timeclock_liststore)
-			#entry = combo.get_child ()
-			#entry.set_editable (False)
-			combo.set_tooltip_text("Project")
-			cell = Gtk.CellRendererText()
-			combo.pack_start(cell, True)
-			combo.add_attribute(cell, 'text', 1)
-			combo.set_id_column(0)
-			#combo.set_entry_text_column(1)
-			self.project_combo_grabbed = True
-			combo.connect("grab-notify", self.project_combo_grab_notify)
-			combo.set_property("can-focus", True)
-			
-			#for project in self.cursor.fetchall():
-			#	combo.append(str(project[0]), project[1])
+		self.stack = self.builder.get_object('time_clock_stack')
+		self.employee_store = self.builder.get_object('employee_store')
+		self.project_store = self.builder.get_object('project_store')
 
-			list_box_row = Gtk.ListBoxRow()
-			hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-			list_box_row.add(hbox)
-		
-			switch = Gtk.Switch()
-			switch.props.valign = Gtk.Align.CENTER
-			
-			self.cursor.execute("SELECT * FROM time_clock_entries WHERE (employee_id, state) = (%s, 'running')", (employee_id,))
-			for entry in self.cursor.fetchall():
-				switch.set_active(True)
-				combo.set_active_id(str(entry[4]))
-				break
-			else:
-				switch.set_sensitive(False)
-				
-			project_time_label = Gtk.Label("0:00:00", xalign=1 )
-			project_time_label.set_property('width-chars', 8)
+		self.populate_employees ()
 
-			switch.connect("button-release-event", self.switch_activated, employee_id, combo)
-			combo.connect("changed", self.combo_changed, employee_id, switch, list_box_row)
-			combo.connect("scroll-event", self.combo_scroll_event)
-			hbox.pack_start(employee_name_label, True, False, 5)
-			hbox.pack_end(employee_id_label, False, False, 0)
-			hbox.pack_end(project_time_label, False, False, 5)
-			hbox.pack_end(switch, False, False, 5)
-			hbox.pack_end(combo, False, False, 5)
-			
+		window = self.builder.get_object('window1')
+		window.show_all()
 
-			listbox.add(list_box_row)
+	def populate_employees (self):
+		self.employee_store.clear()
+		self.cursor.execute("SELECT "
+								"c.id, "
+								"c.name, "
+								"COALESCE(format_timestamp(start_time), ''), "
+								"COALESCE (running, False), "
+								"COALESCE (tce.id, 0), "
+								"COALESCE (tcp.name, '') "
+							"FROM contacts AS c "
+							"LEFT JOIN time_clock_entries AS tce "
+								"ON tce.employee_id = c.id "
+								"AND tce.running = True "
+							"LEFT JOIN time_clock_projects AS tcp "
+								"ON tcp.id = tce.project_id "
+							"WHERE (employee, deleted) = (True, False) "
+							"ORDER BY c.name")
+		for row in self.cursor.fetchall():
+			self.employee_store.append(row)
+		selection = self.builder.get_object('employee_selection')
+		GLib.idle_add(selection.unselect_all)
 
-		self.window = self.builder.get_object('window1')
-		self.window.show_all()
-		self.manual_window = self.builder.get_object('dialog1')
-		GLib.timeout_add_seconds(1, self.update_time )
-		GLib.timeout_add(1100, self.unselect_rows)
+	def employee_row_activated (self, treeview, path, treeviewcolumn):
+		if treeviewcolumn == self.builder.get_object('treeview_time_column'):
+			if self.employee_store[path][3] == True:
+				treeview.set_cursor(path, treeviewcolumn, True)
+				return
+		self.employee_id = self.employee_store[path][0]
+		employee_name = self.employee_store[path][1]
+		if self.employee_store[path][3] == False:
+			self.stack.set_visible_child_name ('job_page')
+			self.populate_job_store ()
+			self.builder.get_object('employee_label').set_label(employee_name)
+		else:
+			self.entry_id = self.employee_store[path][4]
+			self.builder.get_object('employee_label1').set_label(employee_name)
+			project_name = self.employee_store[path][5]
+			self.builder.get_object('project_label1').set_label(project_name)
+			self.stack.set_visible_child_name ('punchout_page')
+			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
+			self.clock_in_out_time = int(self.cursor.fetchone()[0])
+			self.show_date_from_seconds ()
 
-	def combo_scroll_event (self, combo, eventscroll):
-		combo.emit_stop_by_name("scroll-event")
+	def populate_job_store (self):
+		self.project_store.clear()
+		self.cursor.execute("SELECT "
+								"tcp.id, "
+								"'Previous project     -     '||tcp.name "
+							"FROM time_clock_entries AS tce "
+							"JOIN time_clock_projects AS tcp "
+							"ON tce.project_id = tcp.id "
+							"WHERE tce.id = "
+								"(SELECT MAX(tce.id) "
+								"FROM time_clock_entries AS tce "
+								"JOIN time_clock_projects AS tcp "
+								"ON tce.project_id = tcp.id "
+								"AND tcp.active = True "
+								"WHERE tce.employee_id = %s"
+								") "
+							"UNION ALL "
+							"(SELECT "
+								"id, "
+								"name "
+							"FROM time_clock_projects "
+							"WHERE active = TRUE "
+							"ORDER BY id"
+							")", 
+							(self.employee_id,))
+		for row in self.cursor.fetchall():
+			self.project_store.append(row)
 
-	def unselect_rows (self):
-		listbox = self.builder.get_object('listbox1')
-		listbox.select_row(None)
+	def job_row_activated (self, treeview, path, treeviewcolumn):
+		self.project_id = self.project_store[path][0]
+		job_name = self.project_store[path][1]
+		self.builder.get_object('project_label').set_label(job_name)
+		self.stack.set_visible_child_name ('punchin_page')
+		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
+		self.clock_in_out_time = int(self.cursor.fetchone()[0])
+		self.show_date_from_seconds ()
+
+	def punch_in_clicked (self, button):
+		self.cursor.execute("INSERT INTO time_clock_entries "
+							"(employee_id, "
+							"project_id, "
+							"running, "
+							"invoiced, "
+							"employee_paid, "
+							"start_time) "
+							"VALUES "
+							"(%s, %s, True, False, False, CURRENT_TIMESTAMP)", 
+							(self.employee_id, self.project_id))
+		self.db.commit()
+		self.stack.set_visible_child_name ('employee_page')
+		self.populate_employees ()
+
+	def manual_punch_in_clicked (self, button):
+		self.cursor.execute("INSERT INTO time_clock_entries "
+								"(employee_id, "
+								"project_id, "
+								"running, "
+								"invoiced, "
+								"employee_paid, "
+								"start_time) "
+							"VALUES "
+								"(%s, "
+								"%s, "
+								"True, "
+								"False, "
+								"False, "
+								"CAST(TO_TIMESTAMP(%s) AS timestamptz))", 
+							(self.employee_id, 
+							self.project_id, 
+							self.clock_in_out_time))
+		self.db.commit()
+		self.stack.set_visible_child_name ('employee_page')
+		self.populate_employees ()
+
+	def punch_out_clicked (self, button):
+		self.cursor.execute("UPDATE time_clock_entries "
+							"SET (running, stop_time) = "
+							"(False, CURRENT_TIMESTAMP) "
+							"WHERE id = %s", (self.entry_id,))
+		self.db.commit()
+		self.stack.set_visible_child_name ('employee_page')
+		self.populate_employees ()
+
+	def manual_punch_out_clicked (self, button):
+		self.cursor.execute("UPDATE time_clock_entries "
+							"SET (running, stop_time) = "
+							"(False, CAST(TO_TIMESTAMP(%s) AS timestamptz)) "
+							"WHERE id = %s", 
+							(self.clock_in_out_time, self.entry_id))
+		self.db.commit()
+		self.stack.set_visible_child_name ('employee_page')
+		self.populate_employees ()
+
+	def cancel_clicked (self, button):
+		self.stack.set_visible_child_name ('employee_page')
+		self.populate_employees ()
 		
 	def increase_day (self, widget):
 		self.clock_in_out_time += 86400
@@ -132,8 +205,9 @@ class TimeClockGUI :
 		
 	def show_date_from_seconds(self):
 		date = datetime.fromtimestamp(self.clock_in_out_time)
-		date_text = datetime_to_text(date)
+		date_text = datetime.strftime(date, "%b %d %Y")
 		self.builder.get_object('label2').set_label(date_text)
+		self.builder.get_object('label5').set_label(date_text)
 		date = str(date)
 		hour = int(date [11:13])
 		minute = date [14:16]
@@ -141,182 +215,28 @@ class TimeClockGUI :
 		if hour > 12:
 			hour -= 12
 			self.builder.get_object('label4').set_text(minute + " PM")
+			self.builder.get_object('label7').set_text(minute + " PM")
 		else:
 			self.builder.get_object('label4').set_text(minute + " AM")
-		self.builder.get_object('label3').set_text(str(hour) + " :")
+			self.builder.get_object('label7').set_text(minute + " AM")
+		self.builder.get_object('label3').set_text(str(hour))
+		self.builder.get_object('label6').set_text(str(hour))
 
-	def projects_clicked(self, widget):
-		settings.GUI(self.db, 'time_clock')
-
-	def manual_entry_clicked(self, widget):
-		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
-		self.clock_in_out_time = int(self.cursor.fetchone()[0])
-		list_box_row = self.builder.get_object('listbox1').get_selected_rows()[0]
-		box = list_box_row.get_children()[0]
-		widget_list = box.get_children()
-		employee_id_label = widget_list[4]
-		employee_id = employee_id_label.get_label()
-		self.employee_id = employee_id
-		project_combo = widget_list[1]
-		project_id = project_combo.get_active_id()
-		if project_id == None:
-			return # no project selected
-		punched_in_switch = widget_list[2]
-		active = punched_in_switch.get_active()
-		self.show_date_from_seconds ()
-		clock_label = self.builder.get_object('label1')
-		if active == True:
-			clock_label.set_label("Do you wish to clock out on")
-			self.clock_state = "in"
-		else:
-			clock_label.set_label("Do you wish to clock in on")
-			self.clock_state = "out"
-		result = self.manual_window.run()
-		self.manual_window.hide()
-		self.unselect_rows ()
-		if result == Gtk.ResponseType.ACCEPT:
-			punched_in_switch.set_active(not active)
-			if active == True:
-				self.cursor.execute("UPDATE time_clock_entries SET (state,stop_time) = ('complete',  CAST(TO_TIMESTAMP(%s) AS timestamptz)) WHERE (employee_id, state) = (%s, 'running')", (self.clock_in_out_time, employee_id))
-			else:
-				self.cursor.execute("SELECT id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
-				for row in self.cursor.fetchall():
-					row_id = row[0]
-					self.cursor.execute("UPDATE time_clock_entries SET (project_id, start_time, state) = (%s,CAST(TO_TIMESTAMP( %s) AS timestamptz), 'running') WHERE id = %s", (project_id, self.clock_in_out_time, row_id))
-					break
-				else:
-					self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s, CAST(TO_TIMESTAMP( %s) AS timestamptz), %s, 'running', False, False)", (employee_id, self.clock_in_out_time, project_id))
-			self.db.commit()
-
-	def focus(self, window, event):
-		self.focusing = True
-		self.populate_timeclock_liststore ()
-		self.update_time ()
-		self.focusing = False
-
-	def populate_timeclock_liststore (self):
-		self.timeclock_liststore.clear()
-		self.cursor.execute("SELECT id, name FROM time_clock_projects "
-							"WHERE active = True")
-		for row in self.cursor.fetchall():
-			project_id = row[0]
-			project_name = row[1]
-			self.timeclock_liststore.append([str(project_id), project_name])
-
-	def update_time(self):
-		listbox = self.builder.get_object('listbox1')
-		self.focusing = True
-		for list_box_row in listbox:
-			box = list_box_row.get_child()
-			widget_list = box.get_children()
-			employee_id_label = widget_list[4]
-			employee_id_label.set_visible(False)
-			employee_id = employee_id_label.get_label()
-			project_combo = widget_list[1]
-			punched_in_switch = widget_list[2]
-			time_label = widget_list[3]
-			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP- start_time), project_id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'running')", (employee_id,))
-			for row in self.cursor.fetchall():
-				calc_time_running = row[0]
-				time_string = self.convert_seconds (calc_time_running)
-				time_label.set_label(time_string)
-				if self.project_combo_grabbed is True: # only change the project combo when it's unfocused
-					project_id = row[1]
-					project_combo.set_active_id(str(project_id))
-				punched_in_switch.set_active(True)
-				punched_in_switch.set_sensitive(True)
-				break
-			else: # check for pending punch in for this employee
-				self.cursor.execute("SELECT project_id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
-				for row in self.cursor.fetchall():
-					if self.project_combo_grabbed is True:
-						project_id = row[0]
-						project_combo.set_active_id(str(project_id))
-					punched_in_switch.set_sensitive(True)
-					break
-				else:
-					if self.project_combo_grabbed is True:
-						project_combo.set_active(-1)
-					punched_in_switch.set_sensitive(False)
-				punched_in_switch.set_active(False)
-		self.focusing = False
+	def time_renderer_editing_started (self, cellrenderer, celleditable, path):
+		celleditable.set_editable(False)
+		celleditable.set_alignment(1.00)
+		entry_id = self.employee_store[path][4]
 		self.db.commit()
-		return True
-
-	def switch_activated (self, switch, event, employee_id, combo):
-		#self.project_id = combo.get_active_id()
-		active = switch.get_active()
-		self.db.commit()
-		if active == True:
-			self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete', CURRENT_TIMESTAMP) WHERE (employee_id, state) = (%s, 'running')", ( employee_id, ))
-		else:
-			self.cursor.execute("SELECT id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
-			for row in self.cursor.fetchall():
-				row_id = row[0]
-				self.cursor.execute("UPDATE time_clock_entries SET (start_time, state) = (CURRENT_TIMESTAMP, 'running') WHERE id = %s", (row_id, ))
-				#self.window.iconify()
-				#break
-			#else:
-				#self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s,CURRENT_TIMESTAMP, %s, 'running', False, False)", (employee_id, self.project_id))
-			#combo.set_active(0)
-		self.db.commit()
-		self.unselect_rows ()
-
-	def combo_changed (self, combo, employee_id, switch, row):
-		#print combo.get_event()
-		if self.focusing == True:
-			return # we do not change anything if focus is active (repopulating combo)
-		active = switch.get_active()
-		project_id = combo.get_active_id()
-		self.db.commit()
-		if active == False:
-			self.listbox.select_row(row)
-			switch.set_sensitive(True)
-			self.cursor.execute("SELECT id FROM time_clock_entries WHERE (employee_id, state) = (%s, 'pending')", (employee_id,))
-			for row in self.cursor.fetchall():
-				row_id = row[0]
-				self.cursor.execute("UPDATE time_clock_entries SET project_id = %s WHERE id = %s", (project_id, row_id))
-				break
-			else:
-				self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, project_id, state, invoiced, employee_paid ) VALUES (%s, %s, 'pending', False, False)", (employee_id, project_id))
-		else:
-			self.cursor.execute("UPDATE time_clock_entries SET (state, stop_time) = ('complete',CURRENT_TIMESTAMP) WHERE (employee_id, state) = (%s, 'running')", ( employee_id,))
-			self.cursor.execute("INSERT INTO time_clock_entries ( employee_id, start_time, project_id, state, invoiced, employee_paid ) VALUES (%s,CURRENT_TIMESTAMP, %s, 'running', False, False)", (employee_id, project_id))
-		self.db.commit()
-
-	def project_combo_grab_notify (self, widget, boolean):
-		self.project_combo_grabbed = boolean
-
-	def listbox_row_selected (self, listbox, listbox_row):
-		if listbox_row == None:
-			self.builder.get_object('button8').set_sensitive(False)
-			return # no row is selected
-		box = listbox_row.get_children()[0]
-		widget_list = box.get_children()
-		employee_id_label = widget_list[4]
-		employee_id = employee_id_label.get_label()
-		project_combo = widget_list[1]
-		if project_combo.get_active() < 0:
-			self.builder.get_object('button8').set_sensitive(False)
-			self.unselect_rows()
-		else:
-			self.builder.get_object('button8').set_sensitive(True)
-		#GLib.timeout_add(5000, self.unselect_rows)
-
-	def convert_seconds(self, start_seconds):
-		leftover_seconds = int(start_seconds) 
-		hours = int(leftover_seconds / 3600)
-		leftover_seconds = (leftover_seconds - (hours * 3600))
-		minutes = int(leftover_seconds / 60)
-		leftover_seconds = (leftover_seconds - (minutes * 60))
-		seconds = int(leftover_seconds)
-		if minutes < 10:
-			minutes = "0" + str(minutes)
-		if seconds < 10:
-			seconds = "0" + str(seconds)
-		time_string = str(hours) + ":" + str(minutes) + ":" + str(seconds)
-		return time_string
-
+		self.cursor.execute("SELECT "
+								"'     '||"
+								"DATE_TRUNC('second',("
+									"CURRENT_TIMESTAMP - start_time)"
+								")||'     '"
+							"FROM time_clock_entries WHERE id = %s", 
+							(entry_id,))
+		interval = self.cursor.fetchone()[0]
+		celleditable.set_text(interval)
+		celleditable.select_region(-1, -1)
 
 
 
