@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="barcodes_not_found_store">
     <columns>
       <!-- column-name id -->
@@ -292,6 +292,9 @@
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <signal name="key-release-event" handler="window_key_event" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -1015,6 +1018,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
@@ -1166,6 +1172,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox3">
         <property name="can_focus">False</property>
@@ -1245,6 +1254,9 @@ it probably means Libreoffice crashed or was improperly shut down.</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="transient_for">window</property>
     <signal name="delete-event" handler="document_window_delete" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box9">
         <property name="visible">True</property>
@@ -1375,6 +1387,9 @@ it probably means Libreoffice crashed or was improperly shut down.</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox5">
         <property name="can_focus">False</property>
@@ -1432,6 +1447,9 @@ it probably means Libreoffice crashed or was improperly shut down.</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="can_focus">False</property>

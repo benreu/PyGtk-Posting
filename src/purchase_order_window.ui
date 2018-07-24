@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.12"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">10000</property>
     <property name="step_increment">1</property>
@@ -228,6 +228,9 @@
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <signal name="key-release-event" handler="window_key_event" swapped="no"/>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -322,7 +325,6 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="tooltip_text" translatable="yes">View all products on order for all vendors</property>
-                        <property name="xalign">0</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="view_all_toggled" swapped="no"/>
                       </object>
@@ -664,6 +666,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
+            <property name="column_spacing">5</property>
             <child>
               <object class="GtkEntry" id="entry5">
                 <property name="visible">True</property>
@@ -673,7 +676,7 @@
                 <property name="xalign">1</property>
               </object>
               <packing>
-                <property name="left_attach">3</property>
+                <property name="left_attach">5</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -684,7 +687,7 @@
                 <property name="label" translatable="yes">Total</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">4</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -712,6 +715,31 @@
                 <property name="top_attach">0</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="label7">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Rows</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="rows_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="max_length">4</property>
+                <property name="width_chars">4</property>
+                <property name="max_width_chars">4</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -729,6 +757,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox4">
         <property name="can_focus">False</property>
@@ -872,6 +903,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="can_focus">False</property>
@@ -1008,6 +1042,9 @@ Do you want to update the quantity to </property>
     <property name="action">save</property>
     <property name="do_overwrite_confirmation">True</property>
     <property name="local_only">False</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="filechooserdialog-vbox1">
         <property name="can_focus">False</property>
@@ -1068,6 +1105,9 @@ Do you want to update the quantity to </property>
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
@@ -1313,6 +1353,9 @@ Do you want to update the quantity to </property>
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox5">
         <property name="can_focus">False</property>
@@ -1377,7 +1420,6 @@ this purchase order.</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
-            <property name="xalign">0</property>
             <property name="draw_indicator">True</property>
           </object>
           <packing>

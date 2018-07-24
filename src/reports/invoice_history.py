@@ -70,7 +70,6 @@ class InvoiceHistoryGUI:
 		self.product_name = ''
 		self.product_ext_name = ''
 		self.remark = ''
-		self.order_number = ''
 		
 		self.filter = self.builder.get_object ('invoice_items_filter')
 		self.filter.set_visible_func(self.filter_func)
@@ -170,7 +169,10 @@ class InvoiceHistoryGUI:
 		self.load_customer_invoices ()
 
 	def load_customer_invoices (self):
-		self.invoice_store.clear()
+		invoice_treeview = self.builder.get_object('treeview1')
+		model = invoice_treeview.get_model()
+		invoice_treeview.set_model(None)
+		model.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
 			self.cursor.execute("SELECT "
@@ -205,7 +207,8 @@ class InvoiceHistoryGUI:
 								(self.customer_id,))
 		for row in self.cursor.fetchall():
 			total += row[6]
-			self.invoice_store.append(row)
+			model.append(row)
+		invoice_treeview.set_model(model)
 		self.builder.get_object('label3').set_label(str(total))
 
 	def invoice_row_changed (self, selection):
@@ -217,6 +220,9 @@ class InvoiceHistoryGUI:
 		self.load_invoice_items (load_all = active)
 		if active == True:
 			self.builder.get_object('checkbutton3').set_active(False)
+
+	def select_all_activated (self, menuitem):
+		self.builder.get_object('treeview-selection1').select_all()
 
 	def load_invoice_items (self, load_all = False):
 		store = self.builder.get_object('invoice_items_store')
@@ -230,7 +236,8 @@ class InvoiceHistoryGUI:
 									"ext_name, "
 									"remark, "
 									"ili.price, "
-									"ili.ext_price "
+									"ili.ext_price, "
+									"ili.invoice_id "
 								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
@@ -256,7 +263,8 @@ class InvoiceHistoryGUI:
 									"ext_name, "
 									"remark, "
 									"ili.price, "
-									"ili.ext_price "
+									"ili.ext_price, "
+									"ili.invoice_id "
 								"FROM invoice_items AS ili "
 								"JOIN products "
 								"ON products.id = ili.product_id "
@@ -270,21 +278,17 @@ class InvoiceHistoryGUI:
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
 		self.product_ext_name = self.builder.get_object('searchentry2').get_text().lower()
 		self.remark = self.builder.get_object('searchentry3').get_text().lower()
-		self.order_number = self.builder.get_object('searchentry4').get_text().lower()
 		self.filter.refilter()
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.product_name.split():
-			if text not in model[tree_iter][2].lower():
-				return False
-		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][3].lower():
 				return False
-		for text in self.remark.split():
+		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][4].lower():
 				return False
-		for text in self.order_number.split():
-			if text not in model[tree_iter][7].lower():
+		for text in self.remark.split():
+			if text not in model[tree_iter][5].lower():
 				return False
 		return True
 

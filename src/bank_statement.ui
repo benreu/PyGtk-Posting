@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="lower">-100000</property>
     <property name="upper">100000</property>
@@ -117,6 +117,9 @@
     <property name="default_height">600</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -129,11 +132,12 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="margin_bottom">10</property>
+            <property name="spacing">5</property>
             <child>
               <object class="GtkLabel" id="label7">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes"> Bank Account </property>
+                <property name="label" translatable="yes">Bank Account</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -173,6 +177,32 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label14">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Reconcile date</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry6">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="primary_icon_stock">gtk-find</property>
+                <signal name="icon-release" handler="date_entry_icon_release" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -485,6 +515,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox4">
         <property name="can_focus">False</property>
@@ -629,6 +662,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="can_focus">False</property>
@@ -700,6 +736,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>

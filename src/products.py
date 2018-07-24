@@ -826,28 +826,26 @@ class ProductsGUI:
 								ext_name, True, manufacturer_number, job, 
 								invoice_serial, self.product_id))
 			
-		self.cursor.execute("SELECT id FROM product_location "
-							"WHERE (product_id, location_id) = (%s, %s)", 
-							(self.product_id, location_id))
-		for row in self.cursor.fetchall():
-			row_id = row[0]
-			self.cursor.execute("UPDATE product_location "
-								"SET (aisle, rack, cart, shelf, cabinet, "
-								"drawer, bin, locator_visible) = "
-								"(%s, %s, %s, %s, %s, %s, %s, %s)"
-								"WHERE id = %s", 
-								(aisle, rack, cart, shelf, cabinet, drawer, 
-								_bin_, locator_visible, row_id))
-			break
-		else:
-			self.cursor.execute("INSERT INTO product_location "
-								"(product_id, location_id, aisle, rack, cart, "
-								"shelf, cabinet, drawer, bin, locator_visible) "
-								"VALUES "
-								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", 
-								(self.product_id, location_id, aisle, rack, 
-								cart, shelf, cabinet, drawer, _bin_, 
-								locator_visible))
+		c = self.db.cursor()
+		c.execute("INSERT INTO product_location "
+					"(product_id, location_id, aisle, rack, cart, "
+					"shelf, cabinet, drawer, bin, locator_visible) "
+					"VALUES "
+					"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+					"ON CONFLICT (product_id, location_id) "
+					"DO UPDATE SET "
+					"(aisle, rack, cart, shelf, cabinet, "
+					"drawer, bin, locator_visible) = "
+					"(%s, %s, %s, %s, %s, %s, %s, %s) "
+					"WHERE "
+						"(product_location.product_id, "
+						"product_location.location_id"
+						") = (%s, %s)", 
+					(self.product_id, location_id, aisle, rack, 
+					cart, shelf, cabinet, drawer, _bin_, locator_visible,
+					aisle, rack, cart, shelf, cabinet, drawer, _bin_, 
+					locator_visible, 
+					self.product_id, location_id,))
 		self.builder.get_object('spinbutton1').emit("value-changed")
 		self.db.commit()
 		self.populate_product_store ()

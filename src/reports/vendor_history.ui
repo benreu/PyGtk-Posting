@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkTextBuffer" id="pdf_opt_result_buffer"/>
   <object class="GtkMenu" id="po_item_menu">
     <property name="visible">True</property>
@@ -112,6 +112,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="delete-event" handler="close_transaction_window" swapped="no"/>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -165,7 +168,6 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">View all purchase orders from all vendors</property>
-                <property name="xalign">0</property>
                 <property name="draw_indicator">True</property>
                 <signal name="toggled" handler="vendor_view_all_toggled" swapped="no"/>
               </object>
@@ -397,7 +399,6 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="tooltip_text" translatable="yes">View all products from all purchase orders</property>
-                        <property name="xalign">0</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="all_products_togglebutton_toggled" swapped="no"/>
                       </object>
@@ -568,6 +569,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>

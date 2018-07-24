@@ -99,18 +99,15 @@ class AssembledProductsGUI:
 		import product_hub
 		product_hub.ProductHubGUI(self.main, self.product_hub_id)
 
-	def product_match_selected(self, completion, model, iter_):
-		product_id = self.product_store[iter_][0]
-		product_name = self.product_store[iter_][1]
+	def product_match_selected(self, completion, model, combo_iter):
+		product_id = self.product_store[combo_iter][0]
+		product_name = self.product_store[combo_iter][1]
 		model, path = self.builder.get_object('treeview-selection2').get_selected_rows()
-		self.assembly_store[path][2] = int(product_id)
-		self.assembly_store[path][3] = product_name
-		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
-		cost = self.cursor.fetchone()[0]
-		self.assembly_store[path][5] = cost
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
-		self.calculate_row_total (line)
+		tree_iter = self.assembly_store.get_iter(path)
+		self.assembly_store[tree_iter][2] = int(product_id)
+		self.assembly_store[tree_iter][3] = product_name
+		self.save_assembly_product_line (tree_iter)
+		self.calculate_row_total (tree_iter)
 		self.calculate_totals()
 
 	def product_combo_editing_started (self, combo_renderer, combo, path):
@@ -135,20 +132,16 @@ class AssembledProductsGUI:
 	def populate_stores(self):
 		self.product_store.clear()
 		self.assembled_product_store.clear()
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, purchasable, stock) = "
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
-		self.cursor.execute("SELECT id, name FROM products "
+			self.product_store.append(row)
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, manufactured) = (False, True) "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			_id_ = row[0]
-			name = row[1]
-			self.assembled_product_store.append([str(_id_), name])
+			self.assembled_product_store.append(row)
 
 	def products_clicked (self, button):
 		import products
@@ -156,41 +149,58 @@ class AssembledProductsGUI:
 
 	def qty_edited(self, widget, path, text):
 		self.assembly_store[path][1] = int(text) # update all values related to the price and quantity
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
-		self.calculate_row_total (line)
+		iter = self.assembly_store.get_iter(path)
+		self.save_assembly_product_line (iter)
+		self.calculate_row_total (iter)
 		self.calculate_totals ()
 
 	def remark_edited (self, widget, path, text):
 		self.assembly_store[path][4] = text
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
+		iter = self.assembly_store.get_iter(path)
+		self.save_assembly_product_line (iter)
 
-	def product_combo_changed (self, combo_renderer, path, iter_):
-		product_id = self.product_store[iter_][0]
-		text = self.product_store[iter_][1]
-		self.assembly_store[path][2] = int(product_id)
-		self.assembly_store[path][3] = text
-		line = self.assembly_store[path]
-		self.save_assembly_product_line (line)
+	def product_combo_changed (self, combo_renderer, path, combo_iter):
+		product_id = self.product_store[combo_iter][0]
+		text = self.product_store[combo_iter][1]
+		tree_iter = self.assembly_store.get_iter(path)
+		self.assembly_store[tree_iter][2] = int(product_id)
+		self.assembly_store[tree_iter][3] = text
+		self.save_assembly_product_line (tree_iter)
 
-	def save_assembly_product_line(self, line):
-		if line[3] == "Select a product":
+	def save_assembly_product_line(self, tree_iter):
+		if self.assembly_store[tree_iter][3] == "Select a product":
 			return # no product yet
-		line_id = line[0]
-		qty = line[1]
-		product_id = line[2]
-		remark = line[4]
+		line_id = self.assembly_store[tree_iter][0]
+		qty = self.assembly_store[tree_iter][1]
+		product_id = self.assembly_store[tree_iter][2]
+		remark = self.assembly_store[tree_iter][4]
 		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
 		for row in self.cursor.fetchall():
 			cost = row[0]
-			line[5] = cost
-			line[6] = float(cost) * qty
+			self.assembly_store[tree_iter][5] = cost
+			self.assembly_store[tree_iter][6] = float(cost) * qty
 		if line_id == 0:
-			self.cursor.execute("INSERT INTO product_assembly_items (manufactured_product_id, qty, assembly_product_id, remark) VALUES (%s, %s, %s, %s) RETURNING id", (self.manufactured_product_id, qty, product_id, remark))
-			line[0] = self.cursor.fetchone()[0]
+			self.cursor.execute("INSERT INTO product_assembly_items "
+									"(manufactured_product_id, "
+									"qty, "
+									"assembly_product_id, "
+									"remark) "
+								"VALUES (%s, %s, %s, %s) RETURNING id", 
+									(self.manufactured_product_id, 
+									qty, 
+									product_id, 
+									remark))
+			self.assembly_store[tree_iter][0] = self.cursor.fetchone()[0]
 		else:
-			self.cursor.execute("UPDATE product_assembly_items SET (qty, assembly_product_id, remark) = (%s, %s, %s) WHERE id = %s", ( qty, product_id, remark, line_id))
+			self.cursor.execute("UPDATE product_assembly_items SET "
+									"(qty, "
+									"assembly_product_id, "
+									"remark) "
+								"= (%s, %s, %s) WHERE id = %s", 
+									(qty, 
+									product_id, 
+									remark, 
+									line_id))
 		self.db.commit()
 		self.calculate_totals ()
 
@@ -203,18 +213,19 @@ class AssembledProductsGUI:
 		self.builder.get_object('label4').set_label(str(line_items))
 		self.builder.get_object('label5').set_label(total)
 
-	def calculate_row_total(self, line):
-		cost = float(line[5])
-		qty = float(line[1])
+	def calculate_row_total(self, tree_iter):
+		cost = float(self.assembly_store[tree_iter][5])
+		qty = float(self.assembly_store[tree_iter][1])
 		ext_price = cost * qty
-		line[6] = round(ext_price, 2)
+		self.assembly_store[tree_iter][6] = round(ext_price, 2)
 
-	def delete_entry(self, widget):
+	def delete_entry(self):
 		row, path = self.builder.get_object("treeview-selection2").get_selected_rows ()
 		tree_iter = row.get_iter(path)
 		line_id = self.assembly_store.get_value(tree_iter, 0)
 		self.assembly_store.remove(tree_iter)
-		self.cursor.execute("DELETE FROM product_assembly_items WHERE id = %s", (line_id,))
+		self.cursor.execute("DELETE FROM product_assembly_items "
+							"WHERE id = %s", (line_id,))
 		self.db.commit()
 
 	def add_product(self, widget):
@@ -226,7 +237,7 @@ class AssembledProductsGUI:
 		self.builder.get_object('label6').set_label("'%s'" % product_name)
 		self.assembly_store.clear()
 		self.cursor.execute("SELECT pai.id, qty, assembly_product_id, name, "
-							"cost, remark "
+							"remark, cost, cost*qty "
 							"FROM product_assembly_items AS pai "
 							"JOIN products ON products.id = "
 							"pai.assembly_product_id "
@@ -240,12 +251,48 @@ class AssembledProductsGUI:
 			cost = row[4]
 			remark = row[5]
 			ext_cost = cost * qty
-			self.assembly_store.append([line_id, int(qty), product_id, product_name, remark, cost, ext_cost])
+			self.assembly_store.append(row)
 		self.calculate_totals ()
+		
+	def delete_item_clicked (self, button):
+		self.delete_entry()
 
-	def add_entry(self, widget):
-		self.assembly_store.append([0, 1, 0, "Select a product", "", 0.00, 0.00])
+	def new_item_clicked (self, button):
+		self.add_entry()
 
+	def add_entry(self):
+		treeview = self.builder.get_object('treeview2')
+		c = treeview.get_column(0)
+		row = self.assembly_store.append([0, 1, 0, "Select a product", "", 0.00, 0.00])
+		path = self.assembly_store.get_path(row)
+		treeview.set_cursor(path, c, True)
 
+	def treeview_key_release_event (self, treeview, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		path, col = treeview.get_cursor()
+		# only visible columns!!
+		columns = [c for c in treeview.get_columns() if c.get_visible()]
+		colnum = columns.index(col)
+		if keyname=="Tab":
+			if colnum + 1 < len(columns):
+				next_column = columns[colnum + 1]
+			else:
+				tmodel = treeview.get_model()
+				titer = tmodel.iter_next(tmodel.get_iter(path))
+				if titer is None:
+					titer = tmodel.get_iter_first()
+					path = tmodel.get_path(titer)
+					next_column = columns[0]
+			if keyname == 'Tab':
+				GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
+
+	def window_key_release_event(self, window, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if keyname == 'F1':
+			pass # create help file 
+		elif keyname == 'F2':
+			self.add_entry ()
+		elif keyname == 'F3':
+			self.delete_entry()
 
 		

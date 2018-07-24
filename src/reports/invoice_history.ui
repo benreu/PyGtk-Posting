@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="customer_store">
     <columns>
       <!-- column-name customer_id -->
@@ -59,6 +59,8 @@
       <column type="gfloat"/>
       <!-- column-name ext_price -->
       <column type="gfloat"/>
+      <!-- column-name invoice_number -->
+      <column type="glong"/>
     </columns>
   </object>
   <object class="GtkTreeModelFilter" id="invoice_items_filter">
@@ -70,6 +72,15 @@
   <object class="GtkMenu" id="invoice_menu">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem3">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Select all</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="select_all_activated" swapped="no"/>
+      </object>
+    </child>
     <child>
       <object class="GtkMenuItem" id="menuitem2">
         <property name="visible">True</property>
@@ -111,6 +122,9 @@
     <property name="default_height">400</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="delete-event" handler="close_transaction_window" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -171,7 +185,6 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">View all invoices from all customers</property>
-                <property name="xalign">0</property>
                 <property name="draw_indicator">True</property>
                 <signal name="toggled" handler="customer_view_all_toggled" swapped="no"/>
               </object>
@@ -414,36 +427,19 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSearchEntry" id="searchentry4">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="primary_icon_name">edit-find-symbolic</property>
-                        <property name="primary_icon_activatable">False</property>
-                        <property name="primary_icon_sensitive">False</property>
-                        <property name="placeholder_text" translatable="yes">Search order number</property>
-                        <signal name="search-changed" handler="search_entry_search_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkCheckButton" id="checkbutton1">
                         <property name="label" translatable="yes">All products </property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="tooltip_text" translatable="yes">View all products from all invoices</property>
-                        <property name="xalign">0</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="all_products_togglebutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">4</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                   </object>
@@ -547,6 +543,19 @@
                               <object class="GtkCellRendererText" id="cellrenderertext14"/>
                               <attributes>
                                 <attribute name="text">7</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn13">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Invoice</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext16"/>
+                              <attributes>
+                                <attribute name="text">8</attribute>
                               </attributes>
                             </child>
                           </object>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkFileFilter" id="filefilter1">
     <patterns>
       <pattern>*.pbk</pattern>
@@ -14,6 +14,9 @@
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">normal</property>
     <property name="filter">filefilter1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="filechooserdialog-vbox1">
         <property name="can_focus">False</property>
@@ -83,6 +86,9 @@
     <property name="do_overwrite_confirmation">True</property>
     <property name="extra_widget">progressbar1</property>
     <property name="filter">filefilter1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="filechooserdialog-vbox2">
         <property name="can_focus">False</property>
@@ -152,6 +158,9 @@
   <object class="GtkDialog" id="dialog1">
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>

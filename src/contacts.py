@@ -64,9 +64,6 @@ class GUI(Connection, Admin):
 		self.custom3_widget = self.builder.get_object("entry27")
 		self.custom4_widget = self.builder.get_object("entry28")
 		self.note = self.builder.get_object("textbuffer1")
-		self.duplicate_name_popover = Gtk.Popover()
-		box = self.builder.get_object("box19")
-		self.duplicate_name_popover.add(box)
 		
 		self.contact_store = self.builder.get_object('contact_store')
 		self.individual_contact_store = self.builder.get_object('individual_contact_store')
@@ -86,8 +83,6 @@ class GUI(Connection, Admin):
 		if self.main.admin == True:
 			self.builder.get_object('treeview1').set_tooltip_column(0)
 
-		self.mailing_list_popover = Gtk.Popover()
-		self.mailing_list_popover.add(self.builder.get_object("box18"))	
 		self.initiate_mailing_info()
 		
 		self.window = self.builder.get_object('window1')
@@ -463,10 +458,10 @@ class GUI(Connection, Admin):
 			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
 		else:
 			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
-		self.duplicate_name_popover.set_relative_to(entry)
+		self.builder.get_object('duplicate_popover').set_relative_to(entry)
 
 	def name_entry_icon_release (self, entry, pos, event):
-		self.duplicate_name_popover.show()
+		self.builder.get_object('duplicate_popover').show()
 		self.builder.get_object('treeview-selection3').unselect_all()
 
 	def contact_treeview_cursor_changed (self, treeview):
@@ -940,8 +935,8 @@ class GUI(Connection, Admin):
 			list_name = item[1]
 			active = item[2]
 			self.mailing_list_store.append([list_id, list_name, active])
-		self.mailing_list_popover.set_relative_to(entry14)
-		self.mailing_list_popover.show_all ()
+		self.builder.get_object('mailing_popover').set_relative_to(entry14)
+		self.builder.get_object('mailing_popover').show_all ()
 
 	def active_toggled (self, cell_renderer, path):
 		row_id = self.mailing_list_store[path][0]
