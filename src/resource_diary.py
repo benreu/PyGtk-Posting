@@ -99,11 +99,11 @@ class ResourceDiaryGUI:
 
 	def next_day_clicked (self, button):
 		self.day = (self.day + timedelta(days = 1))
-		self.add_day_info ()
+		self.calendar.set_date(self.day) # this will fire signal and update views
 
 	def previous_day_clicked (self, button):
 		self.day = (self.day - timedelta(days = 1))
-		self.add_day_info ()
+		self.calendar.set_date(self.day) # this will fire signal and update views
 
 	def diary_textbuffer_changed (self, textbuffer):
 		if self.populating == True:
