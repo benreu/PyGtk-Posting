@@ -1191,7 +1191,7 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.products ADD CONSTRAINT inventory_account_is_applied CHECK (inventory_account IS NOT NULL OR inventory_enabled = False);")
 	if version <= '120':
 		progressbar (120)
-		cursor.execute("ALTER TABLE public.credit_memo_items ADD COLUMN serial_number_history_id bigint REFERENCES serial_number_history ON DELETE RESTRICT;")
+		cursor.execute("ALTER TABLE public.serial_number_history ADD COLUMN credit_memo_item_id bigint REFERENCES credit_memo_items ON DELETE RESTRICT;")
 		cursor.execute("UPDATE settings SET version = '121'")
 	cursor.close()
 	db.commit()
