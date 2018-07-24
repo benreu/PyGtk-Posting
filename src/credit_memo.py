@@ -128,7 +128,7 @@ class CreditMemoGUI:
 					"FROM credit_memo_items AS cmi "
 					"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
 					"JOIN products AS p ON p.id = ili.product_id "
-					"LEFT JOIN serial_number_history AS snh ON snh.id = cmi.serial_number_history_id "
+					"LEFT JOIN serial_number_history AS snh ON snh.credit_memo_item_id = cmi.id "
 					"LEFT JOIN serial_numbers AS sn ON sn.id = snh.serial_number_id "
 					"WHERE credit_memo_id = %s", (self.credit_memo_id,))
 		for row in c.fetchall():
@@ -154,16 +154,12 @@ class CreditMemoGUI:
 		if invoice_item_id != None:
 			self.invoice_item_selected(invoice_item_id)
 
-	def product_match_selected (self, completion, model, _iter):
+	def product_match_selected (self, completion, model, _iter_):
 		invoice_item_id = model[_iter_][0]
 		self.invoice_item_selected(invoice_item_id)
 
 	def invoice_item_selected (self, invoice_item_id):
 		self.check_credit_memo_id()
-		for row in self.credit_items_store:
-			if row[5] == int(invoice_item_id):
-				self.builder.get_object('treeview-selection1').select_path(row.path)
-				return
 		c = self.db.cursor()
 		c.execute("SELECT "
 					"0, "
@@ -186,6 +182,33 @@ class CreditMemoGUI:
 			_iter = self.credit_items_store.append(row)
 			self.save_line(_iter)
 		c.close()
+
+	def apply_serial_number_activated (self, menuitem):
+		pass
+
+	def treeview_cursor_changed (self, treeview):
+		selection = treeview.get_selection()
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][2]
+		store = self.builder.get_object('serial_number_store')
+		store.clear()
+		self.cursor.execute("SELECT ii.id, sn.serial_number "
+							"FROM serial_numbers AS sn "
+							"JOIN invoice_items AS ii ON ii.id = sn.invoice_item_id "
+							"JOIN invoices AS i ON i.id = ii.invoice_id "
+							"WHERE (i.customer_id, ii.product_id) = (%s, %s)", 
+							(self.customer_id, product_id))
+		for row in self.cursor.fetchall():
+			store.append(row)
+	
+	def serial_number_changed (self, combo, path, tree_iter):
+		model = self.builder.get_object('serial_number_store')
+		invoice_item_id = model[tree_iter][0]
+		serial_number = model[tree_iter][1]
+		self.credit_items_store[path][6] = invoice_item_id
+		self.credit_items_store[path][11] = serial_number
 
 	def return_day_selected (self, calendar):
 		date = calendar.get_date()
@@ -211,24 +234,27 @@ class CreditMemoGUI:
 		entry.destroy()
 
 	def save_line (self, _iter):
+		c = self.db.cursor()
 		row_id = self.credit_items_store[_iter][0]
 		qty = self.credit_items_store[_iter][1]
 		price = self.credit_items_store[_iter][5]
 		invoice_item_id = self.credit_items_store[_iter][6]
 		tax = self.credit_items_store[_iter][10]
 		if row_id == 0:
-			self.cursor.execute("INSERT INTO credit_memo_items "
-							"(credit_memo_id, qty, invoice_item_id, price, date_returned, tax) "
-							"VALUES (%s, %s, %s, %s, now(), %s) RETURNING id", 
-							(self.credit_memo_id, qty, invoice_item_id, price, tax))
-			row_id = self.cursor.fetchone()[0]
+			c.execute("INSERT INTO credit_memo_items "
+						"(credit_memo_id, qty, invoice_item_id, "
+							"price, date_returned, tax) "
+						"VALUES (%s, %s, %s, %s, now(), %s) RETURNING id", 
+						(self.credit_memo_id, qty, invoice_item_id, price, tax))
+			row_id = c.fetchone()[0]
 			self.credit_items_store[_iter][0] = row_id
 		else:
-			self.cursor.execute("UPDATE credit_memo_items SET "
+			c.execute("UPDATE credit_memo_items SET "
 							"(qty, invoice_item_id, price, tax) "
 							"= (%s, %s, %s, %s) WHERE id = %s", 
 							(qty, invoice_item_id, price, tax, row_id))
 		self.db.commit()
+		c.close()
 
 	def check_credit_memo_id (self):
 		if self.credit_memo_id == None:
@@ -238,6 +264,15 @@ class CreditMemoGUI:
 								(self.customer_id,))
 			self.credit_memo_id = self.cursor.fetchone()[0]
 
+	def post_credit_memo_clicked (self, button):
+		c = self.db.cursor()
+		c.execute("WITH cancel AS"
+					"(SELECT ii.product_id, serial_number "
+					"FROM credit_memo_items AS cmi "
+					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
+					"JOIN "
+					")", ())
+		c.close()
 
 ########################  py3o template to document generator
 

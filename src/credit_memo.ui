@@ -101,6 +101,15 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
+      <object class="GtkMenuItem" id="menuitem3">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Apply serial number</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="apply_serial_number_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -119,12 +128,20 @@
       </object>
     </child>
   </object>
+  <object class="GtkListStore" id="serial_number_store">
+    <columns>
+      <!-- column-name invoice_item_id -->
+      <column type="gint"/>
+      <!-- column-name serial_number -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
     <property name="title" translatable="yes">Credit Memo</property>
     <property name="window_position">center</property>
-    <property name="default_width">700</property>
+    <property name="default_width">800</property>
     <property name="default_height">400</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <child>
@@ -207,6 +224,18 @@
               </packing>
             </child>
             <child>
+              <object class="GtkLabel" id="label4">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Add product</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkComboBox" id="combobox2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -235,9 +264,9 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">5</property>
               </packing>
             </child>
           </object>
@@ -257,6 +286,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">credit_items_store</property>
+                <signal name="cursor-changed" handler="treeview_cursor_changed" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
@@ -376,8 +406,11 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">11</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext6">
+                      <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                         <property name="editable">True</property>
+                        <property name="model">serial_number_store</property>
+                        <property name="text_column">1</property>
+                        <signal name="changed" handler="serial_number_changed" swapped="no"/>
                       </object>
                       <attributes>
                         <attribute name="text">11</attribute>
@@ -437,6 +470,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="post_credit_memo_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
