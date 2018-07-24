@@ -1197,7 +1197,16 @@ def check_and_update_version (db, statusbar):
 	if version <= '121':
 		progressbar (121)
 		cursor.execute("ALTER TABLE public.serial_number_history ADD COLUMN credit_memo_item_id bigint REFERENCES credit_memo_items ON DELETE RESTRICT;")
-		cursor.execute("UPDATE settings SET version = '122'")
+	if version <= '122':
+		progressbar (122)
+		cursor.execute ("ALTER TABLE time_clock_entries ADD COLUMN running BOOLEAN")
+		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN employee_id SET NOT NULL")
+		cursor.execute ("UPDATE time_clock_entries SET running = False WHERE state = 'complete'")
+		cursor.execute ("UPDATE time_clock_entries SET running = True WHERE state = 'running'")
+		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN employee_id SET NOT NULL")
+		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN start_time SET NOT NULL")
+		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN running SET NOT NULL")
+		cursor.execute("UPDATE settings SET version = '123'")
 	cursor.close()
 	db.commit()
 
