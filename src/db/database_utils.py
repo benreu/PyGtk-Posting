@@ -1206,7 +1206,13 @@ def check_and_update_version (db, statusbar):
 		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN employee_id SET NOT NULL")
 		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN start_time SET NOT NULL")
 		cursor.execute ("ALTER TABLE time_clock_entries ALTER COLUMN running SET NOT NULL")
-		cursor.execute("UPDATE settings SET version = '123'")
+	if version <= '123':
+		progressbar (123)
+		cursor.execute ("ALTER TABLE invoices ALTER COLUMN posted SET NOT NULL")
+		cursor.execute ("ALTER TABLE invoices ALTER COLUMN paid SET NOT NULL")
+		cursor.execute ("ALTER TABLE invoices ALTER COLUMN canceled SET NOT NULL")
+		cursor.execute ("ALTER TABLE invoices ALTER COLUMN customer_id SET NOT NULL")
+		cursor.execute("UPDATE settings SET version = '124'")
 	cursor.close()
 	db.commit()
 
