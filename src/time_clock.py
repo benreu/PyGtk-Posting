@@ -227,6 +227,20 @@ class TimeClockGUI :
 			self.builder.get_object('label7').set_text(minute + " AM")
 		self.builder.get_object('label3').set_text(str(hour))
 		self.builder.get_object('label6').set_text(str(hour))
+		self.show_punched_in_calculated_time()
+
+	def show_punched_in_calculated_time (self):
+		self.db.commit()
+		self.cursor.execute("SELECT "
+								"DATE_TRUNC('second',("
+									"CAST(TO_TIMESTAMP(%s) AS timestamptz) - "
+									"start_time "
+									")"
+								")::text "
+							"FROM time_clock_entries WHERE id = %s", 
+							(self.clock_in_out_time, self.entry_id))
+		interval = self.cursor.fetchone()[0]
+		self.builder.get_object('time_label_manual_out').set_label(interval)
 
 	def time_renderer_editing_started (self, cellrenderer, celleditable, path):
 		celleditable.set_editable(False)
