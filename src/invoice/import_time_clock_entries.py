@@ -61,9 +61,9 @@ class ImportGUI():
 							"ON job_sheets.id = project.job_sheet_id "
 							"JOIN contacts "
 							"ON contacts.id = job_sheets.contact_id "
-							"WHERE (job_sheets.contact_id, entry.state, "
+							"WHERE (job_sheets.contact_id, entry.running, "
 								"entry.invoiced) = "
-							"(%s, 'complete', False) ORDER BY start_time", 
+							"(%s, False, False) ORDER BY start_time", 
 							(self.contact_id,))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
