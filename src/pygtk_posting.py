@@ -34,7 +34,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	admin = False
 	log_file = None
@@ -81,6 +82,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 			self.cursor.execute("LISTEN products")
 			self.cursor.execute("LISTEN contacts")
 			self.cursor.execute("LISTEN accounts")
+			self.cursor.execute("LISTEN time_clock_entries")
 			GLib.timeout_add_seconds(1, self.listen_postgres)
 			self.populate_accounts()
 			self.populate_modules ()
@@ -96,6 +98,11 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	def listen_postgres (self):
 		if self.db.closed == 1:
 			return False
+		try:
+			self.db.commit ()
+		except Exception as e:
+			print (e, "pygtk_posting.py polling feature misfired")
+			return False
 		self.db.poll()
 		while self.db.notifies:
 			notify = self.db.notifies.pop(0)
@@ -105,6 +112,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 				self.emit('contacts_changed')
 			elif "account" in notify.payload:
 				self.populate_accounts()
+			elif "clock_entry" in notify.payload:
+				self.emit('clock_entries_changed')
 		return True
 
 	def populate_modules (self):
@@ -548,7 +557,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 
 	def time_clock(self, widget):
 		import time_clock
-		time_clock.TimeClockGUI(self.db)
+		time_clock.TimeClockGUI(self)
 
 	def xlwttest(self, widget):
 		import testxlwt

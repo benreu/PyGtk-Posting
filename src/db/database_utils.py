@@ -1212,7 +1212,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute ("ALTER TABLE invoices ALTER COLUMN paid SET NOT NULL")
 		cursor.execute ("ALTER TABLE invoices ALTER COLUMN canceled SET NOT NULL")
 		cursor.execute ("ALTER TABLE invoices ALTER COLUMN customer_id SET NOT NULL")
-		cursor.execute("UPDATE settings SET version = '124'")
+	if version <= '124':
+		progressbar (124)
+		cursor.execute("CREATE RULE time_clock_entries_inserted_rule AS ON INSERT TO time_clock_entries DO ALSO NOTIFY time_clock_entries, 'time_clock_entry_inserted'")
+		cursor.execute("CREATE RULE time_clock_entries_updated_rule AS ON UPDATE TO time_clock_entries DO ALSO NOTIFY time_clock_entries, 'time_clock_entry_updated'")
+		cursor.execute("UPDATE settings SET version = '125'")
 	cursor.close()
 	db.commit()
 

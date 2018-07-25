@@ -22,13 +22,15 @@ from datetime import datetime
 
 class TimeClockGUI :
 	
-	def __init__(self, db):
+	def __init__(self, main):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.main = main
+		self.handler = main.connect('clock_entries_changed', self.populate_employees)
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.stack = self.builder.get_object('time_clock_stack')
 		self.employee_store = self.builder.get_object('employee_store')
@@ -39,7 +41,11 @@ class TimeClockGUI :
 		window = self.builder.get_object('window1')
 		window.show_all()
 
-	def populate_employees (self):
+	def destroy (self, window):
+		self.main.disconnect(self.handler)
+		self.cursor.close()
+
+	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
 		self.cursor.execute("SELECT "
 								"c.id, "
