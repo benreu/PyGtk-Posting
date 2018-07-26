@@ -129,6 +129,7 @@
               <object class="GtkSearchEntry" id="searchentry1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="has_focus">True</property>
                 <property name="hexpand">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">False</property>
