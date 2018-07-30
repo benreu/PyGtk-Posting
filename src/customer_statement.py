@@ -69,6 +69,12 @@ class GUI:
 		self.statement_store.clear()
 		self.builder.get_object('combobox-entry').set_text("")
 
+	def view_statement_clicked (self, button):
+		statement = statementing.Setup(self.db, self.statement_store, 
+										self.customer_id, datetime.today(), 
+										self.customer_total)
+		statement.view()
+
 	def customer_combobox_populate(self):
 		self.customer_store.clear()
 		c = self.db.cursor()
@@ -145,20 +151,24 @@ class GUI:
 		c_id = self.customer_id
 		self.cursor.execute("SELECT * FROM "
 								"(SELECT "
+									"id::text, "
 									"name, "
 									"date_inserted::text AS date, "
 									"format_date(date_inserted), "
-									"amount "
+									"amount, "
+									"amount::text "
 								"FROM statements " 
 								"WHERE id =(SELECT MAX(id) FROM statements "
 								"WHERE customer_id = %s)"
 								") s "
 								"UNION "
 								"(SELECT "
+									"id::text, "
 									"name, "
 									"dated_for::text AS date, "
 									"format_date(dated_for), "
-									"amount_due "
+									"amount_due, "
+									"amount_due::text "
 								"FROM invoices "
 								"WHERE (canceled, posted, customer_id) = "
 								"(False, True, %s) "
@@ -166,10 +176,12 @@ class GUI:
 								") "
 								"UNION "
 								"(SELECT "
+									"id::text, "
 									"name, "
 									"date_created::text AS date, "
 									"format_date(date_created), "
-									"amount_owed "
+									"amount_owed, "
+									"amount_owed::text "
 								"FROM credit_memos "
 								"WHERE (posted, customer_id) = "
 								"(True, %s) "
@@ -177,16 +189,18 @@ class GUI:
 								") "
 								"UNION "
 								"(SELECT "
+									"payment_text, "
 									"payment_info(id), "
 									"date_inserted::text AS date, "
 									"format_date(date_inserted), "
-									"amount "
+									"amount, "
+									"amount::text "
 								"FROM payments_incoming "
 								"WHERE (customer_id, misc_income) = "
 								"(%s, False) AND statement_id IS NULL"
 								") "
 							"ORDER BY date", 
-							(c_id, c_id, c_id,c_id))
+							(c_id, c_id, c_id, c_id))
 		for row in self.cursor.fetchall():
 			self.statement_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)

@@ -43,6 +43,8 @@
   </object>
   <object class="GtkListStore" id="statement_store">
     <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
       <!-- column-name description -->
       <column type="gchararray"/>
       <!-- column-name date -->
@@ -51,6 +53,8 @@
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -175,15 +179,30 @@
                   <object class="GtkTreeSelection" id="treeview-selection"/>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                  <object class="GtkTreeViewColumn">
                     <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Description</property>
+                    <property name="title" translatable="yes">Number</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">0</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                      <object class="GtkCellRendererText"/>
                       <attributes>
                         <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Description</property>
+                    <property name="expand">True</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">1</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                      <attributes>
+                        <attribute name="text">1</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -193,12 +212,11 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_indicator">True</property>
-                    <property name="sort_column_id">1</property>
+                    <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2"/>
                       <attributes>
-                        <attribute name="text">2</attribute>
+                        <attribute name="text">3</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -208,11 +226,13 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Amount</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">3</property>
+                    <property name="sort_column_id">4</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext3"/>
+                      <object class="GtkCellRendererText" id="cellrenderertext3">
+                        <property name="xalign">1</property>
+                      </object>
                       <attributes>
-                        <attribute name="text">3</attribute>
+                        <attribute name="text">5</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -261,6 +281,20 @@
               </packing>
             </child>
             <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">View statement</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="view_statement_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="button1">
                 <property name="label" translatable="yes">Print statement</property>
                 <property name="visible">True</property>
@@ -271,7 +305,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>

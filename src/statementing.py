@@ -68,9 +68,9 @@ class Setup():
 		items = list()
 		for i in self.store:
 			item = Item()
-			item.description = i[0]
-			item.date = i[2]
-			item.amount = '${:,.2f}'.format(i[3])
+			item.description = i[1]
+			item.date = i[3]
+			item.amount = '${:,.2f}'.format(i[4])
 			items.append(item)
 		
 		document = Item() 
@@ -103,7 +103,11 @@ class Setup():
 		self.statement_file = "/tmp/" + self.document_odt
 		t = Template("./templates/statement_template.odt", self.statement_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
-		subprocess.call("odt2pdf " + self.statement_file, shell = True)
+		subprocess.call(["odt2pdf", self.statement_file])
+
+	def view (self):
+		subprocess.Popen(["soffice", self.statement_file])
+		self.db.rollback ()  # we are only viewing the statement, so remove the id again
 		
 	def print_dialog (self, window):
 		p = printing.Setup("/tmp/" + self.document_pdf, 'statement')
