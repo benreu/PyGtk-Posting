@@ -41,6 +41,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">This opens an Office window with a generated tax exemption.
+ It does not apply the exemption to the customer.</property>
                 <signal name="clicked" handler="regenerate_exemption_clicked" swapped="no"/>
               </object>
               <packing>
@@ -77,6 +79,7 @@
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
                 <property name="shadow_type">in</property>
                 <child>
                   <object class="GtkTreeView" id="treeview1">
