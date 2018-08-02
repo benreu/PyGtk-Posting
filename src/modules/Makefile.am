@@ -1,7 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
 
-python_PYTHON = 
 
 python_PYTHON = __init__.py \
 	PyGtk_Posting.svg \
