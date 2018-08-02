@@ -41,7 +41,7 @@ def add_new_tables(db, statusbar):
 	progressbar (4)
 	cursor.execute("CREATE TABLE products (id serial PRIMARY KEY, name varchar, description varchar, barcode varchar, unit varchar, product_groups_id integer, cost numeric(12,2), level_1_price numeric(12,2), level_2_price numeric(12,2), level_3_price numeric(12,2), level_4_price numeric(12,2), tax_rate_id smallint, deleted boolean, sellable boolean, purchasable boolean, min_inventory smallint, reorder_qty smallint, tax_exemptible boolean, manufactured boolean, weight numeric(12,3), tare numeric(12,3));")
 	progressbar (5)
-	cursor.execute("INSERT INTO products (name, description, barcode, unit, cost, level_1_price, level_2_price, level_3_price , level_4_price, tax_rate_id, deleted, sellable, purchasable, min_inventory, reorder_qty, tax_exemptible, manufactured, weight, tare) VALUES ('Example product', '', '', 1, 10.00, 14.00, 13.00, 12.00 , 11.00, 1, False, True, True, 0, 0, True, False, 0.000, 0.000);")
+	cursor.execute("INSERT INTO products (name, description, barcode, unit, cost, level_1_price, level_2_price, level_3_price , level_4_price, tax_rate_id, deleted, sellable, purchasable, min_inventory, reorder_qty, tax_exemptible, manufactured, weight, tare) VALUES ('Example product', '', '1', 1, 10.00, 14.00, 13.00, 12.00 , 11.00, 1, False, True, True, 0, 0, True, False, 0.000, 0.000);")
 	progressbar (6)
 	cursor.execute("CREATE TABLE vendor_product_numbers (id serial PRIMARY KEY, vendor_id integer, vendor_sku varchar, product_id integer)")
 	progressbar (7)
@@ -1152,7 +1152,6 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.gl_entries RENAME CONSTRAINT account_transaction_lines_pkey TO gl_entries_pkey;")
 		cursor.execute("ALTER TABLE public.gl_entries RENAME CONSTRAINT account_transaction_lines_credit_account_fkey TO gl_entries_credit_account_fkey;")
 		cursor.execute("ALTER TABLE public.gl_entries RENAME CONSTRAINT account_transaction_lines_debit_account_fkey TO gl_entries_debit_account_fkey;")
-		cursor.execute("ALTER TABLE public.gl_entries DROP COLUMN incoming_invoice_id;")
 		cursor.execute("ALTER TABLE public.gl_entries DROP COLUMN contact_id")
 		cursor.execute("ALTER SEQUENCE public.account_transaction_lines_id_seq RENAME TO gl_entries_id_seq;")
 		cursor.execute("ALTER SEQUENCE public.accounts_id_seq RENAME TO gl_accounts_id_seq;")
@@ -1216,7 +1215,10 @@ def check_and_update_version (db, statusbar):
 		progressbar (124)
 		cursor.execute("CREATE RULE time_clock_entries_inserted_rule AS ON INSERT TO time_clock_entries DO ALSO NOTIFY time_clock_entries, 'time_clock_entry_inserted'")
 		cursor.execute("CREATE RULE time_clock_entries_updated_rule AS ON UPDATE TO time_clock_entries DO ALSO NOTIFY time_clock_entries, 'time_clock_entry_updated'")
-		cursor.execute("UPDATE settings SET version = '125'")
+	if version <= '125':
+		progressbar (125)
+		cursor.execute("UPDATE gl_accounts SET revenue_account = True WHERE number = 4140")
+		cursor.execute("UPDATE settings SET version = '126'")
 	cursor.close()
 	db.commit()
 
