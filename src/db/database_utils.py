@@ -127,7 +127,7 @@ def check_and_update_version (db, statusbar):
 	cursor = db.cursor()
 	cursor.execute("SELECT version FROM settings")
 	version = cursor.fetchone()[0]
-	COMPLETE_PROGRESS = 107.00
+	COMPLETE_PROGRESS = 126.00
 	progressbar (1)
 	if version <= "016":
 		progressbar (16)
