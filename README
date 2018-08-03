@@ -12,7 +12,7 @@ py3o is used for all report printouts and invoices. It has the most lowly job th
 
 Dependencies 
 
-Gtk+ 3.16 or higher
+Gtk+ 3.22 or higher
 gir1.2-poppler-0.18
 gir1.2-gtkspell3-3.0
 python3-xlsxwriter
@@ -29,7 +29,7 @@ python3-lxml
 PostgreSQL server somewhere on the network or locally
 unoconv
 LibreOffice (recommended) or OpenOffice
-Linux Mint 18 (recommended OS)
+Linux Mint 19 (recommended OS)
 
 postgresql-client needs to be installed to backup/restore databases
 
