@@ -60,7 +60,7 @@ class PurchaseOrderGUI:
 		self.order_number_store = self.builder.get_object ('order_number_store')
 		self.revenue_account_store = self.builder.get_object ('revenue_account_store')
 		self.expense_account_store = self.builder.get_object ('expense_account_store')
-		self.purchase_order_store = self.builder.get_object('purchase_order_store')
+		self.p_o_store = self.builder.get_object('purchase_order_store')
 		self.vendor_store = self.builder.get_object('vendor_store')
 		self.barcodes_not_found_store = self.builder.get_object('barcodes_not_found_store')
 		vendor_completion = self.builder.get_object('vendor_completion')
@@ -149,12 +149,11 @@ class PurchaseOrderGUI:
 		if self.vendor_id == 0:
 			return
 		qty, product_id = list_[0], list_[1]
-		self.purchase_order_store.append([0, Decimal(qty), int(product_id), '', 
-											True, '', '', '', 0.00, 0.00, True, 
-											int(self.vendor_id), '', 
-											self.purchase_order_id, False])
-		path = self.get_new_entry_path ()
-		_iter = self.purchase_order_store.get_iter(path)
+		_iter = self.p_o_store.append([0, Decimal(qty), int(product_id), '', 
+										True, '', '', '', Decimal(0.0), 
+										Decimal(0.0), True, 
+										int(self.vendor_id), '', 
+										self.purchase_order_id, False])
 		self.product_edited(_iter, product_id)
 
 	def export_to_csv_activated (self, menuitem):
@@ -191,15 +190,15 @@ class PurchaseOrderGUI:
 
 	def hold_togglebutton_toggled (self, togglebutton, path):
 		active = not togglebutton.get_active ()
-		row_id = self.purchase_order_store[path][0]
-		self.purchase_order_store[path][14] = active
+		row_id = self.p_o_store[path][0]
+		self.p_o_store[path][14] = active
 		self.cursor.execute("UPDATE purchase_order_line_items "
 							"SET hold = %s WHERE id = %s", (active, row_id))
 		self.db.commit()
 		self.calculate_totals ()
 
 	def products_from_existing_po (self):
-		self.purchase_order_store.clear()
+		self.p_o_store.clear()
 		if self.builder.get_object ('checkbutton1').get_active() == True:
 			self.builder.get_object('treeviewcolumn11').set_visible(True)
 			self.cursor.execute("SELECT poli.id, poli.qty, poli.remark, "
@@ -250,7 +249,7 @@ class PurchaseOrderGUI:
 			vendor_name = row[11]
 			purchase_order_id = row[12]
 			hold = row[13]
-			self.purchase_order_store.append([row_id, qty, product_id, 
+			self.p_o_store.append([row_id, qty, product_id, 
 											order_number, stock, product_name, 
 											ext_name, remark, cost, ext_cost, 
 											False, vendor_id, vendor_name, 
@@ -279,10 +278,10 @@ class PurchaseOrderGUI:
 	def line_items_treeview_vendor_changed (self, combo, path, iter_):
 		vendor_id = self.vendor_store[iter_][0]
 		vendor_name = self.vendor_store[iter_][1]
-		_iter = self.purchase_order_store.get_iter(path)
-		product_id = self.purchase_order_store[_iter][2]
-		self.purchase_order_store[_iter][11] = int(vendor_id)
-		self.purchase_order_store[_iter][12] = vendor_name
+		_iter = self.p_o_store.get_iter(path)
+		product_id = self.p_o_store[_iter][2]
+		self.p_o_store[_iter][11] = int(vendor_id)
+		self.p_o_store[_iter][12] = vendor_name
 		self.update_line_item_vendor (_iter, vendor_id)
 		self.save_product (_iter, product_id)
 
@@ -311,7 +310,7 @@ class PurchaseOrderGUI:
 		product_hub.ProductHubGUI(self.main, product_id)
 
 	def update_line_item_vendor (self, _iter, vendor_id):
-		row_id = self.purchase_order_store[_iter][0]
+		row_id = self.p_o_store[_iter][0]
 		self.cursor.execute("SELECT id FROM purchase_orders "
 							"WHERE vendor_id = (%s) "
 							"AND (paid, closed, canceled) = "
@@ -341,7 +340,7 @@ class PurchaseOrderGUI:
 			self.cursor.execute("UPDATE purchase_orders "
 								"SET name = %s WHERE id = %s", 
 								(document_name, purchase_order_id))
-		self.purchase_order_store[_iter][13] = purchase_order_id
+		self.p_o_store[_iter][13] = purchase_order_id
 		self.db.commit()
 		
 	def products_activated (self, column):
@@ -386,7 +385,7 @@ class PurchaseOrderGUI:
 	def view_purchase_order(self, widget):
 		comment = self.builder.get_object('entry2').get_text()
 		purchase_order = purchase_ordering.Setup(self.db, 
-												self.purchase_order_store, 
+												self.p_o_store, 
 												self.vendor_id, comment, 
 												self.datetime, 
 												self.purchase_order_id)
@@ -400,7 +399,7 @@ class PurchaseOrderGUI:
 	def post_purchase_order(self, widget = None):
 		comment = self.builder.get_object('entry2').get_text()
 		purchase_order = purchase_ordering.Setup(self.db, 
-												self.purchase_order_store, 
+												self.p_o_store, 
 												self.vendor_id, comment, 
 												self.datetime, 
 												self.purchase_order_id)
@@ -437,7 +436,7 @@ class PurchaseOrderGUI:
 			self.vendor_selected(vendor_id)
 		
 	def vendor_selected(self, vendor_id):
-		self.purchase_order_store.clear()
+		self.p_o_store.clear()
 		self.builder.get_object ('checkbutton1').set_active(False)
 		if vendor_id != None and self.populating == False:
 			self.vendor_id = vendor_id
@@ -482,17 +481,13 @@ class PurchaseOrderGUI:
 
 	def qty_edited(self, widget, path, text):
 		t = Decimal(text).quantize(self.qty_places, rounding = ROUND_HALF_UP)
-		_iter = self.purchase_order_store.get_iter(path)
-		self.purchase_order_store[_iter][1] = t
+		_iter = self.p_o_store.get_iter(path)
+		self.p_o_store[_iter][1] = t
 		self.calculate_row_total (_iter)
 		self.calculate_totals ()
 		self.save_purchase_order_line (_iter)
 
 	################## start order number
-
-	def check_order_number (self, order_number, path):
-		self.purchase_order_store[path][3] = order_number
-		return
 
 	def order_number_editing_started (self, renderer, entry, path):
 		entry.set_completion(self.order_number_completion)
@@ -500,15 +495,15 @@ class PurchaseOrderGUI:
 
 	def order_number_edited(self, widget, path, text):
 		order_number = text
-		product_id = self.purchase_order_store[path][2]
-		if order_number != self.purchase_order_store[path][3]:
+		product_id = self.p_o_store[path][2]
+		if order_number != self.p_o_store[path][3]:
 			self.show_temporary_permanent_dialog(order_number, product_id)
-		self.check_order_number(order_number, path)
+		self.p_o_store[path][3] = order_number
 		self.save_purchase_order_line (path)
 
 	def order_number_match_selected (self, completion, store, _iter):
 		product_id = store[_iter][0]
-		_iter = self.purchase_order_store.get_iter(self.path)
+		_iter = self.p_o_store.get_iter(self.path)
 		self.product_edited (_iter, product_id)
 
 	def show_temporary_permanent_dialog (self, order_number, product_id):
@@ -544,8 +539,8 @@ class PurchaseOrderGUI:
 		
 	def price_edited(self, widget, path, text):
 		t = Decimal(text).quantize(self.price_places, rounding = ROUND_HALF_UP)
-		_iter = self.purchase_order_store.get_iter(path)
-		self.purchase_order_store[_iter][8] = t
+		_iter = self.p_o_store.get_iter(path)
+		self.p_o_store[_iter][8] = t
 		self.calculate_row_total(_iter)
 		self.calculate_totals()
 		self.save_purchase_order_line (_iter)
@@ -553,8 +548,8 @@ class PurchaseOrderGUI:
 	################## start remark
 
 	def remark_edited(self, widget, path, text):
-		_iter = self.purchase_order_store.get_iter(path)
-		self.purchase_order_store[_iter][7] = text
+		_iter = self.p_o_store.get_iter(path)
+		self.p_o_store[_iter][7] = text
 		self.save_purchase_order_line (_iter)
 
 	################## end remark
@@ -565,7 +560,7 @@ class PurchaseOrderGUI:
 
 	def product_renderer_changed (self, widget, path, iter_):
 		product_id = self.product_store[iter_][0]
-		_iter = self.purchase_order_store.get_iter(path)
+		_iter = self.p_o_store.get_iter(path)
 		self.product_edited (_iter, product_id)
 
 	def product_renderer_editing_started (self, renderer, combo, path):
@@ -627,9 +622,9 @@ class PurchaseOrderGUI:
 		self.builder.get_object ('button1').set_sensitive(True)
 
 	def product_widget_removed (self, combo, path):
-		if self.purchase_order_store[path][4] == True:
+		if self.p_o_store[path][4] == True:
 			return
-		_iter = self.purchase_order_store.get_iter(path)
+		_iter = self.p_o_store.get_iter(path)
 		entry = combo.get_child()
 		product_text = entry.get_text()
 		self.populate_account_store ()
@@ -649,9 +644,9 @@ class PurchaseOrderGUI:
 												self.vendor_id, product_name,
 												product_number, expense_account,
 												revenue_account)
-			self.purchase_order_store[_iter][2] = product_id
-			self.purchase_order_store[_iter][3] = product_number
-			self.purchase_order_store[_iter][5] = product_name
+			self.p_o_store[_iter][2] = product_id
+			self.p_o_store[_iter][3] = product_number
+			self.p_o_store[_iter][5] = product_name
 		self.builder.get_object ('entry3').set_text('')
 		self.builder.get_object ('button1').set_sensitive(False)
 		self.calculate_row_total (_iter)
@@ -665,27 +660,29 @@ class PurchaseOrderGUI:
 		self.save_product (_iter, product_id)
 
 	def save_product (self, _iter, product_id):
-		vendor_id = self.purchase_order_store[_iter][11]
-		self.purchase_order_store[_iter][2] = product_id
-		self.cursor.execute("SELECT name, cost, ext_name, stock "
-							"FROM products WHERE id = %s", (product_id, ))
+		vendor_id = self.p_o_store[_iter][11]
+		self.p_o_store[_iter][2] = product_id
+		self.cursor.execute("SELECT "
+								"name, "
+								"cost, "
+								"ext_name, "
+								"stock, "
+								"COALESCE(vendor_sku, '') "
+							"FROM products AS p "
+							"LEFT JOIN vendor_product_numbers AS vpn "
+							"ON vpn.product_id = p.id AND vendor_id = %s"
+							"WHERE p.id = %s", (self.vendor_id, product_id))
 		for row in self.cursor.fetchall():
 			name = row[0]
 			price = row[1]
 			ext_name = row[2]
 			stock = row[3]
-			self.purchase_order_store[_iter][5] = name
-			self.purchase_order_store[_iter][8] = price
-			self.purchase_order_store[_iter][6] = ext_name
-			self.purchase_order_store[_iter][4] = stock
-		self.cursor.execute("SELECT vendor_sku FROM vendor_product_numbers "
-							"WHERE (vendor_id, product_id) = (%s, %s)", 
-							(vendor_id, product_id))
-		for row in self.cursor.fetchall():
-			self.purchase_order_store[_iter][3] = row[0]
-			break
-		else:
-			self.purchase_order_store[_iter][3] = ""
+			order_number = row[4]
+			self.p_o_store[_iter][5] = name
+			self.p_o_store[_iter][8] = price
+			self.p_o_store[_iter][6] = ext_name
+			self.p_o_store[_iter][4] = stock
+			self.p_o_store[_iter][3] = order_number
 		self.calculate_row_total (_iter)
 		self.calculate_totals ()
 		self.save_purchase_order_line (_iter)
@@ -702,16 +699,14 @@ class PurchaseOrderGUI:
 		product_name = model[iter_][1]
 		model, path_list = self.builder.get_object('treeview-selection').get_selected_rows()
 		path = path_list[0].to_string()
-		_iter = self.purchase_order_store.get_iter(path)
+		_iter = self.p_o_store.get_iter(path)
 		self.product_edited (_iter, product_id)
 
 	def check_for_duplicate_products(self, product_id, _iter ):
-		rows = self.purchase_order_store.iter_n_children ()
-		row = 0
-		for row in self.purchase_order_store:
-			if row == _iter:
-				#row += 1 # increment the row or we create a nonexiting loop
-				continue # the cursor is on the cell we are checking so continue with the rest of the liststore
+		path = self.p_o_store.get_path (_iter)
+		for row in self.p_o_store:
+			if row.path == path:
+				continue # continue with the rest of the liststore
 			if product_id == row[2]: # the liststore has duplicates
 				product_name = row[5]
 				self.builder.get_object('label5').set_label(product_name)
@@ -735,14 +730,14 @@ class PurchaseOrderGUI:
 				return True
 
 	def calculate_row_total(self, _iter):
-		line = self.purchase_order_store[_iter]
+		line = self.p_o_store[_iter]
 		price = line[8]
 		qty = line[1]
 		ext_price = price * qty
 		line[9] = ext_price
 
 	def save_purchase_order_line (self, _iter):
-		line = self.purchase_order_store[_iter]
+		line = self.p_o_store[_iter]
 		if line[2] == 0:
 			return # no valid product yet
 		row_id = line[0]
@@ -787,12 +782,12 @@ class PurchaseOrderGUI:
 	def calculate_totals(self):
 		self.tax = 0  #we need to make a global variable with subtotal, tax, and total so we can store it to
 		self.total = Decimal()  #the database without all the fancy formatting (making it easier to retrieve later on)
-		for row in self.purchase_order_store:
+		for row in self.p_o_store:
 			if row[14] == False:
 				self.total += row[9]
 		total = '${:,.2f}'.format(self.total)
 		self.builder.get_object('entry5').set_text(total)
-		rows = len(self.purchase_order_store)
+		rows = len(self.p_o_store)
 		self.builder.get_object('rows_entry').set_text(str(rows))
 
 	def check_po_id (self):
@@ -813,26 +808,18 @@ class PurchaseOrderGUI:
 	def add_entry (self):
 		self.check_po_id ()
 		self.db.commit()
-		self.purchase_order_store.append([0, Decimal(1.0), 0, "Select order number", 
-										False, "Select a stock item" , "", "", 
-										Decimal(1), Decimal(1), True, int(self.vendor_id), '', 
-										self.purchase_order_id, False])
+		self.p_o_store.append([0, Decimal(1.0), 0, "Select order number", 
+								False, "Select a stock item" , "", "", 
+								Decimal(1), Decimal(1), True, int(self.vendor_id),
+								'', self.purchase_order_id, False])
 
 	def select_new_entry (self):
 		treeview = self.builder.get_object('treeview2')
-		for index, row in enumerate(self.purchase_order_store):
+		for index, row in enumerate(self.p_o_store):
 			if row[10] == True:
 				c = treeview.get_column(0)
 				treeview.set_cursor(index , c, True)
 				break
-
-	def get_new_entry_path (self):
-		treeview = self.builder.get_object('treeview2')
-		for index, row in enumerate(self.purchase_order_store):
-			if row[10] == True:
-				c = treeview.get_column(0)
-				treeview.set_cursor(index , c, False)
-				return index
 
 	def delete_entry_activated (self, menuitem = None):
 		model, path = self.builder.get_object("treeview-selection").get_selected_rows ()
@@ -888,7 +875,7 @@ class PurchaseOrderGUI:
 				return
 			keyname = Gdk.keyval_name(event.keyval)
 			if keyname == 'Return' or keyname == "KP_Enter": # enter key(s)
-				for index, row in enumerate(self.purchase_order_store):
+				for index, row in enumerate(self.p_o_store):
 					if row[2] == product_id:
 						row[1] -= 1
 						self.save_purchase_order_line (index)
@@ -917,20 +904,20 @@ class PurchaseOrderGUI:
 			barcode_error_dialog.run()
 			barcode_error_dialog.hide()
 			return
-		for index, row in enumerate(self.purchase_order_store):
+		for index, row in enumerate(self.p_o_store):
 			if row[2] == product_id:
 				row[1] += 1
 				self.save_purchase_order_line (index)
 				break
 			continue
 		else:
-			self.purchase_order_store.append([0, 1, 0, '', True, '', 
+			self.p_o_store.append([0, 1, 0, '', True, '', 
 											'', '', 0.00, 0.00, False, 
 											int(self.vendor_id), '', 
 											self.purchase_order_id, False])
-			path = self.purchase_order_store.iter_n_children ()
+			path = self.p_o_store.iter_n_children ()
 			path -= 1 #iter_n_children starts at 1 ; path starts at 0
-			_iter = self.purchase_order_store.get_iter(path)
+			_iter = self.p_o_store.get_iter(path)
 			self.product_edited (_iter, product_id)
 
 	def calendar_day_selected (self, calendar):
