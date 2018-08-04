@@ -147,17 +147,18 @@ class ManufacturingGUI:
 				qty = self.builder.get_object('spinbutton1').get_text()
 				manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
 			self.cursor.execute("SELECT COUNT(DISTINCT(employee_id)), "
-								"SUM(stop_time - start_time) "
+								"SUM(stop_time - start_time)::text "
 								"FROM time_clock_entries "
-								"WHERE (project_id, state) = "
-								"(%s, 'complete') GROUP BY project_id", 
+								"WHERE (project_id, running) = "
+								"(%s, False) GROUP BY project_id", 
 								(time_clock_projects_id,))
 			for row in self.cursor.fetchall():
 				employee_count = row[0]
-				formatted_time = str(row[1])
+				formatted_time = row[1].split('.')[0]
 				time_label = self.builder.get_object('label3')
 				time_string = ("%s employee(s) spent "
-								"%s hour(s) on this manufacturing process")\
+								"%s (hour:minute:second) "
+								"on this manufacturing process")\
 								% (employee_count, formatted_time)
 				time_label.set_label(time_string)
 			self.builder.get_object('button4').set_sensitive(True)
