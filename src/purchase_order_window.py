@@ -154,7 +154,8 @@ class PurchaseOrderGUI:
 											int(self.vendor_id), '', 
 											self.purchase_order_id, False])
 		path = self.get_new_entry_path ()
-		self.product_edited(path, product_id)
+		_iter = self.purchase_order_store.get_iter(path)
+		self.product_edited(_iter, product_id)
 
 	def export_to_csv_activated (self, menuitem):
 		import csv 
@@ -507,7 +508,8 @@ class PurchaseOrderGUI:
 
 	def order_number_match_selected (self, completion, store, _iter):
 		product_id = store[_iter][0]
-		self.product_edited (self.path, product_id)
+		_iter = self.purchase_order_store.get_iter(self.path)
+		self.product_edited (_iter, product_id)
 
 	def show_temporary_permanent_dialog (self, order_number, product_id):
 		if self.builder.get_object('checkbutton2').get_active() == True:
@@ -656,9 +658,8 @@ class PurchaseOrderGUI:
 		self.calculate_totals ()
 		self.save_purchase_order_line (_iter)
 		
-	def product_edited(self, path, product_id):
+	def product_edited(self, _iter, product_id):
 		product_id = int(product_id)
-		_iter = self.purchase_order_store.get_iter(path)
 		if self.check_for_duplicate_products (product_id, _iter) == True:
 			return	# skip the rest of the code
 		self.save_product (_iter, product_id)
@@ -701,7 +702,8 @@ class PurchaseOrderGUI:
 		product_name = model[iter_][1]
 		model, path_list = self.builder.get_object('treeview-selection').get_selected_rows()
 		path = path_list[0].to_string()
-		self.product_edited (path, product_id)
+		_iter = self.purchase_order_store.get_iter(path)
+		self.product_edited (_iter, product_id)
 
 	def check_for_duplicate_products(self, product_id, _iter ):
 		rows = self.purchase_order_store.iter_n_children ()
@@ -926,9 +928,10 @@ class PurchaseOrderGUI:
 											'', '', 0.00, 0.00, False, 
 											int(self.vendor_id), '', 
 											self.purchase_order_id, False])
-			last = self.purchase_order_store.iter_n_children ()
-			last -= 1 #iter_n_children starts at 1 ; path starts at 0
-			self.product_edited (product_id, last)
+			path = self.purchase_order_store.iter_n_children ()
+			path -= 1 #iter_n_children starts at 1 ; path starts at 0
+			_iter = self.purchase_order_store.get_iter(path)
+			self.product_edited (_iter, product_id)
 
 	def calendar_day_selected (self, calendar):
 		self.datetime = calendar.get_date()
