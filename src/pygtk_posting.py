@@ -568,8 +568,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		kit_products.KitProductsGUI(self)
 
 	def data_import_activated (self, widget):
-		import external_data_import
-		external_data_import.external_data_import_ui(self.db)
+		from admin import data_import
+		data_import.DataImportUI(self.db)
 
 	def data_export_activated (self, widget):
 		from admin import data_export
