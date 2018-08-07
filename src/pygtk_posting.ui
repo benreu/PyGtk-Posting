@@ -752,6 +752,39 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Data</property>
+                        <property name="use_underline">True</property>
+                        <child type="submenu">
+                          <object class="GtkMenu">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Data export</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="data_export_activated" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem45">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Data import</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="data_import_activated" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem21">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
@@ -759,16 +792,6 @@
                         <property name="label" translatable="yes">Duplicate contact finder</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="duplicate_contact_finder_activated" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem45">
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">External data import</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="external_data_import" swapped="no"/>
                       </object>
                     </child>
                     <child>

@@ -567,9 +567,13 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		import kit_products
 		kit_products.KitProductsGUI(self)
 
-	def external_data_import(self, widget):
+	def data_import_activated (self, widget):
 		import external_data_import
 		external_data_import.external_data_import_ui(self.db)
+
+	def data_export_activated (self, widget):
+		from admin import data_export
+		data_export.DataExportUI(self.db)
 		
 	def write_check(self, widget):
 		import write_check
