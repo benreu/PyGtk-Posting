@@ -616,7 +616,7 @@ class GUI(Connection, Admin):
 	def select_contact (self):
 		self.cursor.execute("SELECT name, ext_name, address, city, state, zip, "
 							"phone, fax, email, label, tax_number, vendor, "
-							"customer, employee, organization, custom1, "
+							"customer, employee, custom1, "
 							"custom2, custom3, custom4, notes, "
 							"terms_and_discounts_id::text, service_provider, "
 							"checks_payable_to, markup_percent_id::text "
@@ -637,15 +637,15 @@ class GUI(Connection, Admin):
 			self.vendor_widget.set_active(row[11])
 			self.customer_widget.set_active(row[12])
 			self.employee_widget.set_active(row[13])
-			self.custom1_widget.set_text(row[15])
-			self.custom2_widget.set_text(row[16])
-			self.custom3_widget.set_text(row[17])
-			self.custom4_widget.set_text(row[18])
-			self.note.set_text(row[19])
-			self.builder.get_object('combobox1').set_active_id(row[20])
-			self.service_provider_widget.set_active(row[21])
-			self.builder.get_object('entry13').set_text(row[22])
-			self.builder.get_object('combobox4').set_active_id(row[23])
+			self.custom1_widget.set_text(row[14])
+			self.custom2_widget.set_text(row[15])
+			self.custom3_widget.set_text(row[16])
+			self.custom4_widget.set_text(row[17])
+			self.note.set_text(row[18])
+			self.builder.get_object('combobox1').set_active_id(row[19])
+			self.service_provider_widget.set_active(row[20])
+			self.builder.get_object('entry13').set_text(row[21])
+			self.builder.get_object('combobox4').set_active_id(row[22])
 		
 		self.initiate_mailing_info()
 		# clear the individual contact entries
