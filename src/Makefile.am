@@ -30,7 +30,6 @@ pygtk_posting_PYTHON = \
 	manufacturing.py \
 	documenting.py \
 	testxlwt.py \
-	external_data_import.py \
 	time_clock.py \
 	view_log.py \
 	invoice_window.py \
@@ -70,7 +69,6 @@ pygtk_posting_PYTHON = \
 	product_location.ui \
 	manufacturing.ui \
 	testxlwt.ui \
-	external_data_import.ui \
 	time_clock.ui \
 	view_log.ui \
 	invoice_window.ui \
