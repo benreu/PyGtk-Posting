@@ -33,6 +33,25 @@ class DataImportUI:
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		self.populate_combos()
+
+	def populate_combos (self):
+		markup_combo = self.builder.get_object('markup_combo')
+		c = self.db.cursor()
+		c.execute("SELECT id::text, name "
+					"FROM customer_markup_percent "
+					"WHERE deleted = False ORDER BY name")
+		for row in c.fetchall():
+			markup_combo.append(row[0], row[1])
+		markup_combo.set_active(0)
+		terms_combo = self.builder.get_object('terms_combo')
+		c = self.db.cursor()
+		c.execute("SELECT id::text, name "
+					"FROM terms_and_discounts WHERE deleted = False "
+					"ORDER BY name")
+		for row in c.fetchall():
+			terms_combo.append(row[0], row[1])
+		terms_combo.set_active(0)
 
 	def import_contacts_file_set (self, filechooser):
 		self.filename = filechooser.get_filename()
@@ -118,12 +137,59 @@ class DataImportUI:
 
 ####### end import to treeview
 
+	def treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.builder.get_object('right click menu')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+
+	def delete_contact_activated (self, menu):
+		selection = self.builder.get_object('xls_import_selection')
+		model, path = selection.get_selected_rows ()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		model.remove(iter_)
+
 	def import_clicked (self, button):
+		term_id = self.builder.get_object('terms_combo').get_active_id()
+		markup_id = self.builder.get_object('markup_combo').get_active_id()
 		model = self.builder.get_object('xls_import_store')
 		c = self.db.cursor()
 		for row in model:
-			c.execute ("INSERT INTO contacts VALUES ()")
+			c.execute ("INSERT INTO contacts ("
+												"name, "
+												"ext_name, "
+												"address, "
+												"city, "
+												"state, "
+												"zip, "
+												"fax, "
+												"phone, "
+												"email, "
+												"label, "
+												"tax_number, "
+												"customer, "
+												"vendor, "
+												"employee, "
+												"service_provider, "
+												"custom1, "
+												"custom2, "
+												"custom3, "
+												"custom4, "
+												"notes, "
+												"terms_and_discounts_id, "
+												"markup_percent_id )"
+						"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
+								"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s )",
+						(row[0],row[1],row[2],row[3],row[4],row[5],row[6],
+						row[7],row[8],row[9],row[10],row[11],row[12],row[13],
+						row[14],row[15],row[16],row[17],row[18],row[19],
+						term_id, markup_id))
 		c.close()
+		self.db.commit()
+		stack = self.builder.get_object('main_stack')
+		stack.set_visible_child_name('main_page')
 
 	def show_message (self, error):
 		dialog = Gtk.MessageDialog( self.window,
