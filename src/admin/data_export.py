@@ -91,6 +91,7 @@ class DataExportUI:
 		rows = float(len(model))
 		progressbar = self.builder.get_object('progressbar1')
 		for rowx, row in enumerate(model):
+			rowx += 1 # we already have a row
 			for colx, cell in enumerate(row):
 				sheet.write(rowx, colx, cell)
 			progressbar.set_fraction(float(rowx)/rows)
@@ -98,5 +99,12 @@ class DataExportUI:
 				Gtk.main_iteration()
 		progressbar.set_fraction(1.00)
 		book.close()
+
+	def main_page_clicked (self, button):
+		stack = self.builder.get_object('main_stack')
+		stack.set_visible_child_name('start_page')
+
+
+
 
 

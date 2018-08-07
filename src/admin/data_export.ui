@@ -111,7 +111,7 @@
             </child>
           </object>
           <packing>
-            <property name="name">page0</property>
+            <property name="name">start_page</property>
             <property name="title" translatable="yes">page0</property>
           </packing>
         </child>
@@ -477,10 +477,11 @@
                 <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkButton">
-                    <property name="label" translatable="yes">Cancel</property>
+                    <property name="label" translatable="yes">Main page</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="main_page_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
