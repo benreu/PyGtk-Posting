@@ -107,31 +107,31 @@ class DataImportUI:
 										'one or more columns')
 				return False
 			try:
-				store.append([	name, 
-								ext_name,
-								address,
-								city,
-								state,
-								zip,
-								fax,
-								phone,
-								email,
-								misc,
-								tax_number,
-								customer,
-								vendor,
-								employee,
-								service_provider,
-								custom1,
-								custom2,
-								custom3,
-								custom4,
-								notes    ])
+				store.append([	str(name), 
+								str(ext_name),
+								str(address),
+								str(city),
+								str(state),
+								str(zip),
+								str(fax),
+								str(phone),
+								str(email),
+								str(misc),
+								str(tax_number),
+								bool(customer),
+								bool(vendor),
+								bool(employee),
+								bool(service_provider),
+								str(custom1),
+								str(custom2),
+								str(custom3),
+								str(custom4),
+								str(notes)    ])
 			except Exception as e:
 				print (e)
 				self.show_message (str(e) + '\n\nPlease export some data '
 										'from Posting and match that format.'
-										'\nHint : You have wrong cell data-types')
+										'\nHint : You have wrong cell data')
 				return False
 		return True
 
