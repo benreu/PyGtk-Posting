@@ -67,7 +67,12 @@ class DataImportUI:
 	def load_xls (self):
 		store = self.builder.get_object('xls_import_store')
 		store.clear()
-		book = xlrd.open_workbook(self.filename)
+		try:
+			book = xlrd.open_workbook(self.filename)
+		except XLRDError as e:
+			print (e)
+			self.show_message (e)
+			return False
 		try:
 			sheet = book.sheet_by_name ('Contacts')
 		except XLRDError as e:
