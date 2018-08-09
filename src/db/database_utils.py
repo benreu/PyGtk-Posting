@@ -1320,6 +1320,7 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE products ALTER COLUMN expense SET NOT NULL")
 		cursor.execute("ALTER TABLE products ALTER COLUMN manufacturer_sku SET NOT NULL")
 		cursor.execute("ALTER TABLE products ALTER COLUMN job SET NOT NULL")
+		cursor.execute("ALTER TABLE public.products RENAME CONSTRAINT products_income_account_fkey TO products_revenue_account_fkey;")
 		cursor.execute("UPDATE settings SET version = '128'")
 	cursor.close()
 	db.commit()
