@@ -1276,7 +1276,7 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE products DROP COLUMN level_4_price")
 		cursor.execute("ALTER TABLE products ALTER COLUMN name SET DEFAULT ''")
 		cursor.execute("ALTER TABLE products ALTER COLUMN description SET DEFAULT ''")
-		cursor.execute("ALTER TABLE products ALTER COLUMN barcode SET DEFAULT ''")
+		cursor.execute("ALTER TABLE products ALTER COLUMN barcode SET DEFAULT nextval( 'products_id_seq'::regclass)")
 		cursor.execute("ALTER TABLE products ALTER COLUMN unit SET DEFAULT 1")
 		cursor.execute("ALTER TABLE products ALTER COLUMN cost SET DEFAULT 0.00")
 		cursor.execute("ALTER TABLE products ALTER COLUMN sellable SET DEFAULT True")
