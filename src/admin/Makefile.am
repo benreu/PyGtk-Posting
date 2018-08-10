@@ -9,4 +9,8 @@ python_PYTHON = time_clock_tool.py \
 	data_export.ui \
 	data_export.py \
 	data_import.py \
-	data_import.ui
+	data_import.ui \
+	contact_import.py \
+	contact_import.ui \
+	product_import.py \
+	product_import.ui
