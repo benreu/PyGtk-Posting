@@ -33,13 +33,18 @@ class DataExportUI:
 		window = self.builder.get_object('window1')
 		window.show_all()
 
-	def export_contacts_clicked (self, button):
+	def contacts_page_clicked (self, button):
 		stack = self.builder.get_object('main_stack')
-		stack.set_visible_child_name('export_contacts_xls')
+		stack.set_visible_child_name('export_contacts_page')
 		self.populate_contacts ()
 
+	def product_page_clicked (self, button):
+		stack = self.builder.get_object('main_stack')
+		stack.set_visible_child_name('export_products_page')
+		self.populate_products ()
+
 	def populate_contacts (self):
-		store = self.builder.get_object('xls_export_store')
+		store = self.builder.get_object('contact_export_store')
 		store.clear()
 		c = self.db.cursor ()
 		c.execute ("SELECT "
@@ -63,26 +68,60 @@ class DataExportUI:
 							"custom3, "
 							"custom4, "
 							"notes "
-					"FROM contacts")
+					"FROM contacts WHERE deleted = False")
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
 
-	def export_to_file_clicked (self, button):
-		chooser = self.builder.get_object('xls_export_chooser')
+	def populate_products (self):
+		store = self.builder.get_object('product_export_store')
+		store.clear()
+		c = self.db.cursor ()
+		c.execute ("SELECT "
+							"name, "
+							"ext_name, "
+							"description, "
+							"barcode, "
+							"cost::float, "
+							"weight::float, "
+							"tare::float, "
+							"sellable, "
+							"purchasable, "
+							"manufactured, "
+							"job, "
+							"stock "
+					"FROM products WHERE (deleted, expense) = (False, False)")
+		for row in c.fetchall():
+			store.append(row)
+		c.close()
+
+	def export_products_clicked (self, button):
+		chooser = self.builder.get_object('export_file_chooser')
 		response = chooser.run()
 		chooser.hide()
 		if response == Gtk.ResponseType.ACCEPT:
 			filename = chooser.get_filename()
 			if not filename.endswith('.xls'):
 				filename = filename + '.xls'
-			self.write_xls (filename)
+			treeview = self.builder.get_object('product_treeview')
+			self.write_xls (filename, treeview, "Products")
 		subprocess.Popen(['soffice', filename])
 
-	def write_xls(self, file_name):
+	def export_contacts_clicked (self, button):
+		chooser = self.builder.get_object('export_file_chooser')
+		response = chooser.run()
+		chooser.hide()
+		if response == Gtk.ResponseType.ACCEPT:
+			filename = chooser.get_filename()
+			if not filename.endswith('.xls'):
+				filename = filename + '.xls'
+			treeview = self.builder.get_object('contact_treeview')
+			self.write_xls (filename, treeview, "Contacts")
+		subprocess.Popen(['soffice', filename])
+
+	def write_xls(self, file_name, treeview, sheet_name):
 		book = xlsxwriter.Workbook(file_name)
-		sheet = book.add_worksheet('Contacts')
-		treeview = self.builder.get_object('xls_export_treeview')
+		sheet = book.add_worksheet(sheet_name)
 		for index, column in enumerate(treeview.get_columns()):
 			title = column.get_title()
 			sheet.write(0, index, title)
