@@ -28,13 +28,12 @@ def add_non_stock_product (db, vendor_id, product_name, product_number,
 	cursor.execute("SELECT id FROM tax_rates WHERE standard = True")
 	default_tax_rate = cursor.fetchone()[0]
 	cursor.execute("INSERT INTO products (name, description, unit, cost, "
-					"level_1_price, level_2_price, level_3_price, "
-					"level_4_price, tax_rate_id, deleted, sellable, "
+					" tax_rate_id, deleted, sellable, "
 					"purchasable, min_inventory, reorder_qty, tax_exemptible, "
 					"manufactured, weight, tare, ext_name, stock, "
 					"inventory_enabled, default_expense_account, "
 					"revenue_account) "
-					"VALUES (%s, '', 1, 1.00, 1.40, 1.30, 1.20, 1.10, "
+					"VALUES (%s, '', 1, 1.00, "
 					"%s, False, False, True, 0, 0, True, False, 0.00, 0.00, "
 					"'', False, False, %s, %s) RETURNING id", ( product_name, 
 					default_tax_rate, expense_account, revenue_account))

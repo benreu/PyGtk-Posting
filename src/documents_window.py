@@ -689,7 +689,7 @@ class DocumentGUI:
 	def barcode_entry_activated (self, entry2):
 		barcode = entry2.get_text()
 		entry2.set_text('')
-		self.cursor.execute("SELECT id, name, level_1_price, ext_name "
+		self.cursor.execute("SELECT id, name, 1.00, ext_name "
 								"FROM products WHERE barcode = %s",(barcode, ))
 		for i in self.cursor.fetchall():
 			product_id = i[0]

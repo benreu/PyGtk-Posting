@@ -635,7 +635,8 @@ class InvoiceGUI:
 		try:
 			self.cursor.execute("UPDATE invoice_items SET qty = %s "
 								"WHERE id = %s;"
-								"SELECT qty::text, ext_price::text, tax::text "
+								"SELECT qty::text, price::text, "
+									"ext_price::text, tax::text "
 								"FROM invoice_items WHERE id = %s", 
 								(text, line_id, line_id))
 			self.db.commit()
@@ -645,9 +646,11 @@ class InvoiceGUI:
 			return
 		for row in self.cursor.fetchall():
 			qty = row[0]
-			ext_price = row[1]
-			tax = row[2]
+			price = row[1]
+			ext_price = row[2]
+			tax = row[3]
 			self.invoice_store[iter_][1] = qty
+			self.invoice_store[iter_][6] = price
 			self.invoice_store[iter_][7] = tax
 			self.invoice_store[iter_][8] = ext_price
 		self.check_serial_numbers ()
@@ -1003,15 +1006,17 @@ class InvoiceGUI:
 			self.populate_document_list()
 
 	def new_item_clicked (self, button):
-		self.cursor.execute("SELECT id, name, level_1_price::text "
-							"FROM products WHERE (deleted, sellable, stock) = "
-							"(False, True, True) ORDER BY id LIMIT 1")
+		self.cursor.execute("SELECT id, name "
+							"FROM products "
+							"WHERE (deleted, sellable, stock) = "
+									"(False, True, True) "
+							"ORDER BY invoice_serial_numbers ASC, id ASC "
+							"LIMIT 1")
 		for i in self.cursor.fetchall():
 			product_id = i[0]
 			product_name = i[1]
-			price = i[2]
 			iter_ = self.invoice_store.append([0, '1', product_id, product_name,
-												"", "", price, '1', '1', "", 
+												"", "", '1', '1', '1', "", 
 												True, '', False])
 			self.check_invoice_item_id (iter_)
 			treeview = self.builder.get_object('treeview2')
