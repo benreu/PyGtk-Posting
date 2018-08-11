@@ -103,7 +103,7 @@
               </packing>
             </child>
             <child>
-            <object class="GtkCheckButton" id="checkbutton1">
+            <object class="GtkCheckButton" id="checkbutton2">
                 <property name="label" translatable="yes">View all</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
