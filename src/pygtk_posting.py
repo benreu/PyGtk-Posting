@@ -55,7 +55,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 				database_to_connect = None
 				self.log_file = variable
 		except Exception as e:
-			print ("%s when trying to retrieve sys args" % e)
+			print ("Non-fatal: %s when trying to retrieve sys args" % e)
 			database_to_connect = None
 			self.set_admin_menus(True) # started from Anjuta, developer mode
 			import main
