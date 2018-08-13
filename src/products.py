@@ -104,8 +104,8 @@ class ProductsGUI:
 		if self.main.admin == True:
 			self.builder.get_object('treeview2').set_tooltip_column(0)
 		
-		window = self.builder.get_object('window')
-		window.show_all()
+		self.window = self.builder.get_object('window')
+		self.window.show_all()
 		if product_id != None:
 			self.select_product(product_id)
 
@@ -783,48 +783,61 @@ class ProductsGUI:
 		locator_visible = self.builder.get_object('checkbutton1').get_active()
 		location_id = self.builder.get_object('comboboxtext6').get_active_id()
 		
-		if self.product_id == 0:
-			self.cursor.execute("INSERT INTO products (name, description, "
+		if self.product_id == 0:  #new product
+			try:
+				self.cursor.execute("INSERT INTO products (name, description, "
 								"barcode, unit, cost, tax_rate_id, deleted, "
 								"sellable, purchasable, min_inventory, "
 								"reorder_qty, tax_exemptible, manufactured, "
-								"weight, tare, ext_name, stock, revenue_account, "
+								"weight, tare, ext_name, stock, "
+								"default_expense_account, revenue_account, "
 								"manufacturer_sku, job, invoice_serial_numbers) "
 								"VALUES "
-								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
 								"RETURNING id",
 								(name, description, barcode, unit, cost, tax, 
 								False, sellable, purchasable, min_stock, 
 								reorder_qty, tax_exemptible, manufactured, 
-								weight, tare, ext_name, True, self.new_revenue_account,
+								weight, tare, ext_name, True, 
+								self.new_expense_account, 
+								self.new_revenue_account,
 								manufacturer_number, job, 
 								invoice_serial))
-			self.product_id = self.cursor.fetchone()[0]
-			if barcode == '':
-				barcode = self.product_id
-				self.cursor.execute("UPDATE products SET barcode = %s "
-									"WHERE id = %s",(barcode, self.product_id))
+				self.product_id = self.cursor.fetchone()[0]
+				if barcode != '':
+					self.cursor.execute("UPDATE products SET barcode = %s "
+										"WHERE id = %s",
+										(barcode, self.product_id))
+				else:
+					barcode = self.product_id 
+					self.builder.get_object('entry2').set_text(barcode)
+			except Exception as e:
+				self.show_message(str(e))
+				self.db.rollback()
 			self.vendor_sku_changed ()
 			self.vendor_barcode_changed()
-		else:
-			if barcode == '':
-				barcode = self.product_id
-			self.cursor.execute("UPDATE products SET (name, description, "
-								"barcode, unit, cost, tax_rate_id, sellable, "
-								"purchasable, min_inventory, reorder_qty, "
-								"tax_exemptible, manufactured, weight, tare, "
-								"ext_name, stock, manufacturer_sku, job, "
-								"invoice_serial_numbers) = "
-								"( %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-								"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-								"WHERE id = %s",
-								(name, description, barcode, unit, cost, tax, 
-								sellable, purchasable, min_stock, reorder_qty, 
-								tax_exemptible, manufactured, weight, tare, 
-								ext_name, True, manufacturer_number, job, 
-								invoice_serial, self.product_id))
-			
+		else:  # just save the existing product
+			try:
+				if barcode == '':
+					barcode = self.product_id
+				self.cursor.execute("UPDATE products SET (name, description, "
+									"barcode, unit, cost, tax_rate_id, sellable, "
+									"purchasable, min_inventory, reorder_qty, "
+									"tax_exemptible, manufactured, weight, tare, "
+									"ext_name, stock, manufacturer_sku, job, "
+									"invoice_serial_numbers) = "
+									"( %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+									"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+									"WHERE id = %s",
+									(name, description, barcode, unit, cost, tax, 
+									sellable, purchasable, min_stock, reorder_qty, 
+									tax_exemptible, manufactured, weight, tare, 
+									ext_name, True, manufacturer_number, job, 
+									invoice_serial, self.product_id))
+			except Exception as e:
+				self.show_message(str(e))
+				self.db.rollback()
 		c = self.db.cursor()
 		c.execute("INSERT INTO product_location "
 					"(product_id, location_id, aisle, rack, cart, "
@@ -913,12 +926,29 @@ class ProductsGUI:
 			break
 		else:
 			raise Exception("No revenue accounts available")
+			self.show_message ("No revenue accounts available")
+		self.cursor.execute("SELECT number, name FROM gl_accounts "
+							"WHERE expense_account = True "
+							"ORDER BY number LIMIT 1")
+		for row in self.cursor.fetchall():
+			self.new_expense_account = row[0]
+			self.builder.get_object('combobox-entry').set_text(row[1])
+			break
+		else:
+			raise Exception("No expense accounts available")
+			self.show_message ("No expense accounts available")
 		self.cursor.execute("SELECT id FROM tax_rates WHERE standard = True ")
 		default_id = self.cursor.fetchone()[0]
 		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
 		self.set_price_listbox_to_default ()
 		
-		
-		
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
 
 
