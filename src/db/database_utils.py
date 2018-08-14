@@ -1321,7 +1321,15 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE products ALTER COLUMN manufacturer_sku SET NOT NULL")
 		cursor.execute("ALTER TABLE products ALTER COLUMN job SET NOT NULL")
 		cursor.execute("ALTER TABLE public.products RENAME CONSTRAINT products_income_account_fkey TO products_revenue_account_fkey;")
-		cursor.execute("UPDATE settings SET version = '128'")
+	if version <= '128':
+		progressbar (128)
+		cursor.execute("ALTER TABLE public.vendor_product_numbers ADD CONSTRAINT vendor_product_numbers_product_id_vendor_id_key EXCLUDE USING btree (vendor_id WITH =, product_id WITH =) WHERE (deleted = false);")
+		cursor.execute("ALTER TABLE public.vendor_product_numbers ALTER COLUMN vendor_sku SET DEFAULT '';")
+		cursor.execute("ALTER TABLE public.vendor_product_numbers ALTER COLUMN vendor_sku SET NOT NULL;")
+		cursor.execute("ALTER TABLE public.vendor_product_numbers ADD COLUMN deleted boolean DEFAULT False")
+		cursor.execute("UPDATE public.vendor_product_numbers SET deleted = False")
+		cursor.execute("ALTER TABLE public.vendor_product_numbers ALTER COLUMN deleted SET NOT NULL")
+		cursor.execute("UPDATE settings SET version = '129'")
 	cursor.close()
 	db.commit()
 
