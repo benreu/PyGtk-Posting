@@ -40,7 +40,8 @@ class GUI():
 								"cost_decrease_alert, "
 								"backup_frequency_days, "
 								"date_format, "
-								"timestamp_format "
+								"timestamp_format, "
+								"request_po_attachment "
 							"FROM public.settings")
 		for row in self.cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
@@ -55,6 +56,7 @@ class GUI():
 			self.builder.get_object('spinbutton5').set_value(row[6])
 			self.builder.get_object('entry7').set_text(row[7])
 			self.builder.get_object('entry8').set_text(row[8])
+			self.builder.get_object('checkbutton2').set_active(row[9])
 		self.load_precision()
 
 		self.time_clock_store = self.builder.get_object('time_clock_projects_store')
@@ -159,6 +161,13 @@ class GUI():
 							"FROM settings.document_columns ORDER BY id")
 		for row in self.cursor.fetchall():
 			store.append(row)
+
+	def request_po_attachment_toggled (self, togglebutton):
+		active = togglebutton.get_active()
+		self.cursor.execute("UPDATE settings "
+							"SET request_po_attachment = %s",
+							(active,))
+		self.db.commit()
 
 	def invoice_column_visible_toggled (self, toggle, path):
 		store = self.builder.get_object('invoice_columns_store')

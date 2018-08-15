@@ -63,8 +63,11 @@ class GUI:
 			self.qty_places = Decimal(10) ** -qty_prec
 			self.price_places = Decimal(10) ** -price_prec
 
-		self.cursor.execute("SELECT cost_decrease_alert FROM settings")
-		self.cost_decrease = self.cursor.fetchone()[0]
+		self.cursor.execute("SELECT cost_decrease_alert, "
+							"request_po_attachment FROM settings")
+		for row in self.cursor.fetchall():
+			self.cost_decrease = row[0]
+			self.request_po_attachment = row[1]
 		
 		qty_renderer = self.builder.get_object('cellrenderertext1')
 		qty_column = self.builder.get_object('treeviewcolumn1')
@@ -197,6 +200,15 @@ class GUI:
 			self.check_current_cost (index)
 
 	def save_invoice_button_clicked (self, button):
+		if self.request_po_attachment and not self.attachment:
+			dialog = self.builder.get_object('missing_attachment_dialog')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.CANCEL:
+				return 
+			elif result == 0:
+				if not self.attach_button_clicked():
+					return
 		invoice_number = self.builder.get_object('entry6').get_text()
 		self.cursor.execute("UPDATE purchase_orders "
 							"SET (amount_due, invoiced, total, "
@@ -253,8 +265,8 @@ class GUI:
 		self.purchase_order_id = po_id
 		self.populate_purchase_order_items_store ()
 		self.builder.get_object("button7").set_sensitive(True)
-		attachment = self.po_store[path][3]
-		self.builder.get_object("button15").set_sensitive(attachment)
+		self.attachment = self.po_store[path][3]
+		self.builder.get_object("button15").set_sensitive(self.attachment)
 
 	def populate_purchase_order_items_store (self):
 		self.purchase_order_items_store.clear()
@@ -521,7 +533,7 @@ class GUI:
 									(self.product_id, terms_id, sell_price))
 		self.db.commit()
 
-	def attach_button_clicked (self, button):
+	def attach_button_clicked (self, button = None):
 		import pdf_attachment
 		dialog = pdf_attachment.Dialog(self.window)
 		result = dialog.run()
@@ -536,6 +548,9 @@ class GUI:
 			active = self.builder.get_object("combobox1").get_active()
 			self.po_store[active][3] = True
 			self.builder.get_object("button15").set_sensitive(True)
+			self.attachment = True
+			return True
+		return False
 
 	def expense_products_clicked (self, button):
 		self.populate_expense_products_store ()
@@ -629,5 +644,4 @@ class GUI:
 
 
 
-		
-		
+

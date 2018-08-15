@@ -1334,7 +1334,11 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("ALTER TABLE public.vendor_product_numbers DROP CONSTRAINT vendor_product_numbers_product_id_vendor_id_key;")
 		cursor.execute("DELETE FROM vendor_product_numbers WHERE deleted = True")
 		cursor.execute("ALTER TABLE public.vendor_product_numbers ADD UNIQUE (vendor_id, product_id)")
-		cursor.execute("UPDATE settings SET version = '130'")
+	if version <= '130':
+		progressbar (130)
+		cursor.execute("ALTER TABLE public.settings ADD COLUMN request_po_attachment boolean")
+		cursor.execute("UPDATE public.settings SET request_po_attachment = True")
+		cursor.execute("UPDATE settings SET version = '131'")
 	cursor.close()
 	db.commit()
 
