@@ -1329,7 +1329,12 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("UPDATE public.vendor_product_numbers SET deleted = False")
 		cursor.execute("ALTER TABLE public.vendor_product_numbers ALTER COLUMN deleted SET NOT NULL")
 		cursor.execute("ALTER TABLE public.vendor_product_numbers ADD CONSTRAINT vendor_product_numbers_product_id_vendor_id_key EXCLUDE USING btree (vendor_id WITH =, product_id WITH =) WHERE (deleted = false);")
-		cursor.execute("UPDATE settings SET version = '129'")
+	if version <= '129':
+		progressbar (129)
+		cursor.execute("ALTER TABLE public.vendor_product_numbers DROP CONSTRAINT vendor_product_numbers_product_id_vendor_id_key;")
+		cursor.execute("DELETE FROM vendor_product_numbers WHERE deleted = True")
+		cursor.execute("ALTER TABLE public.vendor_product_numbers ADD UNIQUE (vendor_id, product_id)")
+		cursor.execute("UPDATE settings SET version = '130'")
 	cursor.close()
 	db.commit()
 
