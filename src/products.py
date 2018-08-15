@@ -241,19 +241,8 @@ class ProductsGUI:
 			store.append(row)
 
 	def vendor_combo_changed(self, combo):
-		vendor_id = combo.get_active_id()
-		if self.product_id == 0 or vendor_id == None or vendor_id == '': 
-			return
-		c = self.db.cursor()
-		c.execute("INSERT INTO vendor_product_numbers "
-					"(product_id, vendor_id) VALUES (%s, %s) "
-					"ON CONFLICT ON CONSTRAINT "
-						"vendor_product_numbers_product_id_vendor_id_key "
-					"DO NOTHING",
-					(self.product_id, vendor_id))
-		c.close()
-		self.db.commit()
-		self.populate_vendor_order_numbers ()
+		if self.populating == False:
+			self.clear_vendor_info ()
 
 	def delete_order_number_menu_activated (self, menuitem):
 		selection = self.builder.get_object('vendor_order_number_selection')
@@ -261,7 +250,7 @@ class ProductsGUI:
 		if path == []:
 			return
 		row_id = model[path][0]
-		self.cursor.execute("UPDATE vendor_product_numbers SET deleted = True "
+		self.cursor.execute("DELETE FROM vendor_product_numbers "
 							"WHERE id = %s", (row_id,))
 		self.db.commit()
 		self.populate_vendor_order_numbers ()
@@ -297,6 +286,7 @@ class ProductsGUI:
 		self.populate_account_combos ()
 
 	def populate_account_combos(self):
+		self.populating = True
 		tax_combobox = self.builder.get_object('comboboxtext4')
 		current_tax = tax_combobox.get_active_id()
 		tax_combobox.remove_all()
@@ -307,7 +297,7 @@ class ProductsGUI:
 		if current_tax != None:
 			tax_combobox.set_active_id(current_tax)
 		vendor_combobox = self.builder.get_object('comboboxtext2')
-		#current_vendor = vendor_combobox.get_active_id()
+		current_vendor = vendor_combobox.get_active_id()
 		vendor_combobox.remove_all()
 		vendor_combobox.append('', '')
 		self.cursor.execute("SELECT id, name FROM contacts "	
@@ -315,7 +305,7 @@ class ProductsGUI:
 							"ORDER BY name")
 		for item in self.cursor.fetchall():
 			vendor_combobox.append(str(item[0]),item[1])
-		vendor_combobox.set_active (0)
+		vendor_combobox.set_active_id (current_vendor)
 		location_combo = self.builder.get_object('comboboxtext6')
 		active_location = location_combo.get_active()
 		location_combo.remove_all()
@@ -327,6 +317,7 @@ class ProductsGUI:
 		if active_location  == -1:
 			active_location = 0
 		location_combo.set_active(active_location)
+		self.populating = False
 		
 	def unit_combobox_changed(self, widget):
 		self.builder.get_object('comboboxtext1').get_active_text()
@@ -852,6 +843,27 @@ class ProductsGUI:
 		else:
 			button.set_sensitive(True)
 			button.set_label("Adjust inventory")
+		vendor_id = self.builder.get_object('comboboxtext2').get_active_id()
+		order_number = self.builder.get_object('order_number_entry').get_text()
+		barcode = self.builder.get_object('order_barcode_entry').get_text()
+		self.cursor.execute("INSERT INTO vendor_product_numbers AS vpn "
+					"(product_id, vendor_id, vendor_sku, vendor_barcode) "
+					"VALUES (%s, %s, %s, %s) "
+					"ON CONFLICT (product_id, vendor_id) "
+					"DO UPDATE SET "
+					"(product_id, vendor_id, vendor_sku, vendor_barcode) "
+					"= (%s, %s, %s, %s) "
+					"WHERE (vpn.product_id, vpn.vendor_id) = "
+					"(%s, %s)",
+					(self.product_id, vendor_id, order_number, barcode,
+					self.product_id, vendor_id, order_number, barcode,
+					self.product_id, vendor_id))
+		self.db.commit()
+		self.populate_vendor_order_numbers ()
+
+	def clear_vendor_info (self):
+		self.builder.get_object('order_number_entry').set_text('')
+		self.builder.get_object('order_barcode_entry').set_text('')
 
 	def delete_product_activated (self, widget):
 		try:
@@ -922,6 +934,7 @@ class ProductsGUI:
 		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
 		self.set_price_listbox_to_default ()
 		self.builder.get_object('vendor_order_store').clear()
+		self.clear_vendor_info ()
 		
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog( self.window,
