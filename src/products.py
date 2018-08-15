@@ -771,17 +771,17 @@ class ProductsGUI:
 		if self.product_id == 0:  #new product
 			try:
 				self.cursor.execute("INSERT INTO products (name, description, "
-								"barcode, unit, cost, tax_rate_id, deleted, "
+								"unit, cost, tax_rate_id, deleted, "
 								"sellable, purchasable, min_inventory, "
 								"reorder_qty, tax_exemptible, manufactured, "
 								"weight, tare, ext_name, stock, "
 								"default_expense_account, revenue_account, "
 								"manufacturer_sku, job, invoice_serial_numbers) "
 								"VALUES "
-								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
 								"RETURNING id",
-								(name, description, barcode, unit, cost, tax, 
+								(name, description, unit, cost, tax, 
 								False, sellable, purchasable, min_stock, 
 								reorder_qty, tax_exemptible, manufactured, 
 								weight, tare, ext_name, True, 
@@ -789,19 +789,17 @@ class ProductsGUI:
 								self.new_revenue_account,
 								manufacturer_number, job, 
 								invoice_serial))
-				self.product_id = self.cursor.fetchone()[0]
-				if barcode != '':
-					self.cursor.execute("UPDATE products SET barcode = %s "
-										"WHERE id = %s",
-										(barcode, self.product_id))
-				else:
-					barcode = self.product_id 
-					self.builder.get_object('entry2').set_text(barcode)
 			except Exception as e:
 				self.show_message(str(e))
 				self.db.rollback()
-			self.vendor_sku_changed ()
-			self.vendor_barcode_changed()
+			self.product_id = self.cursor.fetchone()[0]
+			if barcode != '':
+				self.cursor.execute("UPDATE products SET barcode = %s "
+										"WHERE id = %s",
+										(barcode, self.product_id))
+			else:
+				barcode = self.product_id 
+				self.builder.get_object('entry2').set_text(str(barcode))
 		else:  # just save the existing product
 			try:
 				if barcode == '':
@@ -847,7 +845,6 @@ class ProductsGUI:
 		self.db.commit()
 		self.populate_product_store ()
 		self.repopulated = True
-		self.update_vendor_product_info ()
 		button = self.builder.get_object('button2')
 		if self.builder.get_object('combobox-entry4').get_text() == '':
 			button.set_sensitive(False)
