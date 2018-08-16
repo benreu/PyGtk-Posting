@@ -843,7 +843,14 @@ class ProductsGUI:
 		else:
 			button.set_sensitive(True)
 			button.set_label("Adjust inventory")
+		self.save_vendor_info ()
+		self.db.commit()
+		self.populate_vendor_order_numbers ()
+
+	def save_vendor_info (self):
 		vendor_id = self.builder.get_object('comboboxtext2').get_active_id()
+		if vendor_id == None:
+			return
 		order_number = self.builder.get_object('order_number_entry').get_text()
 		barcode = self.builder.get_object('order_barcode_entry').get_text()
 		self.cursor.execute("INSERT INTO vendor_product_numbers AS vpn "
@@ -858,8 +865,6 @@ class ProductsGUI:
 					(self.product_id, vendor_id, order_number, barcode,
 					self.product_id, vendor_id, order_number, barcode,
 					self.product_id, vendor_id))
-		self.db.commit()
-		self.populate_vendor_order_numbers ()
 
 	def clear_vendor_info (self):
 		self.builder.get_object('order_number_entry').set_text('')
