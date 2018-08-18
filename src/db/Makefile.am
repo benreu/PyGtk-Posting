@@ -10,4 +10,9 @@ python_PYTHON = database_tools.py \
 	backup_restore.py \
 	backup_restore.ui \
 	sql_window.py \
-	sql_window.ui
+	sql_window.ui \
+	create_db.sql \
+	insert_basic.sql \
+	update_db_major.sql \
+	update_db_minor.sql \
+	version.py

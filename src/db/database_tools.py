@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 #
 # Copyright (C) 2016 reuben 
@@ -17,7 +16,7 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import os, subprocess, time, psycopg2, apsw
+import subprocess, psycopg2, re
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from main import get_apsw_cursor
@@ -27,7 +26,7 @@ UI_FILE = "src/db/database_tools.ui"
 
 
 class GUI:
-	def __init__(self, db, error):
+	def __init__(self, db, error = False):
 
 		self.error = error
 		self.builder = Gtk.Builder()
@@ -134,6 +133,9 @@ class GUI:
 		self.builder.get_object('label13').set_label(db_version)
 		self.builder.get_object('label14').set_label(db_name)
 
+	def upgrade_old_version (self):
+		database_utils.check_and_update_version (self.db, self.statusbar)
+
 	def login_multiple_clicked(self, widget):
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
@@ -146,7 +148,9 @@ class GUI:
 			db = psycopg2.connect( database= selected, host= sql_host, 
 									user=sql_user, password = sql_password, 
 									port = sql_port)
-			database_utils.check_and_update_version (db, self.statusbar)
+			cursor = db.cursor()
+			cursor.close()
+			db.commit()
 			self.error = False
 			self.window.close()
 			subprocess.Popen(["./src/pygtk_posting.py", 
@@ -166,7 +170,6 @@ class GUI:
 										user=sql_user, password = sql_password, 
 										port = sql_port)
 			self.cursor = self.db.cursor()
-			database_utils.check_and_update_version (self.db, self.statusbar)
 			cursor_sqlite.execute("UPDATE connection SET db_name = '%s'" % (selected))
 			self.error = False
 			self.window.close()
@@ -207,7 +210,7 @@ class GUI:
 		self.cursor = pysql.cursor()
 		pysql.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 		try:
-			self.cursor.execute('CREATE DATABASE ' + db_name)
+			self.cursor.execute("""CREATE DATABASE "%s";""" % db_name)
 		except Exception as e:
 			print (e)
 			if (e.pgcode == "42P04"):
@@ -215,25 +218,87 @@ class GUI:
 			return
 		while Gtk.events_pending():
 			Gtk.main_iteration()
-		db = psycopg2.connect( database= db_name, host= sql_host, 
+		self.db = psycopg2.connect( database= db_name, host= sql_host, 
 								user=sql_user, password = sql_password, 
 								port = sql_port)
-		database_utils.add_new_tables (db, self.statusbar)
+		self.db_name = db
+		if not self.create_tables ():
+			self.close_db (db_name)
+			return
+		if not self.add_primary_data ():
+			self.close_db (db_name)
+			return
+		if not self.update_tables_major ():
+			self.close_db (db_name)
+			return
+		if not self.update_tables_minor ():
+			self.close_db (db_name)
+			return
+		self.db.commit()
 		cursor_sqlite.execute("UPDATE connection SET db_name = ('%s')" % (db_name))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
-		GLib.idle_add (self.add_db_done, db_name)
+		subprocess.Popen(["./src/pygtk_posting.py"])
+		GLib.timeout_add_seconds (1, Gtk.main_quit)
 
-	def add_db_done (self, db_name):
-		time.sleep(1)
-		subprocess.Popen(["./src/pygtk_posting.py", db_name])
-		Gtk.main_quit()
+	def close_db (self, db_name):
+		self.db.close()
+		self.cursor.execute('DROP DATABASE ' + db_name)
 
-	def label_update(self):
-		self.builder.get_object('label12').set_text(self.message)
+	def execute_file (self, sql_file):
+		contents = sql_file.read()
+		commands = re.split(''';(?=(?:[^'"]|'[^']*'|"[^"]*")*$)''', contents)
+		length = len(commands) - 1
+		if length == 0:
+			return
+		lines = 0
+		cursor = self.db.cursor()
+		for index, command in enumerate(commands):
+			lines += command.count('\n')
+			self.progressbar.set_fraction(float(index) / float(length))
+			if index == length : 
+				continue # last line is blank
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+			try:
+				cursor.execute(command)
+			except Exception as e:
+				sql_buffer = self.builder.get_object('sql_command_buffer')
+				error = 'Line number %d in %s:' % (lines + 1, sql_file.name)
+				sql_buffer.set_text(error)
+				end_iter = sql_buffer.get_end_iter()
+				sql_buffer.insert(end_iter, command)
+				self.builder.get_object('error_label').set_label(str(e))
+				dialog = self.builder.get_object('sql_error_dialog')
+				dialog.run()
+				dialog.hide()
+				cursor.close()
+				raise Exception(e)
+				return False
+		cursor.close()
+		return True
+
+	def create_tables (self):
+		with open('./src/db/create_db.sql', 'r') as sql_file:
+			return self.execute_file(sql_file)
+
+	def update_tables_major (self):
+		self.status_update("Updating tables (major) ...")
+		with open('./src/db/update_db_major.sql', 'r') as sql_file:
+			return self.execute_file(sql_file)
+
+	def update_tables_minor (self):
+		self.status_update("Updating tables (minor) ...")
+		with open('./src/db/update_db_minor.sql', 'r') as sql_file:
+			return self.execute_file(sql_file)
+
+	def add_primary_data (self):
+		self.status_update("Creating basic information...")
+		with open('./src/db/insert_basic.sql', 'r') as sql_file:
+			return self.execute_file(sql_file)
 
 	def delete_button(self,widget):
-		self.warning_dialog = self.builder.get_object('dialog1')
+		self.warning_dialog = self.builder.get_object('db_delete_dialog')
 		warning_label = self.builder.get_object('label11')
 		self.db_name = self.builder.get_object('combobox1').get_active_id()
 		warning = 'Do you really want to delete\n "%s" ?' % self.db_name
