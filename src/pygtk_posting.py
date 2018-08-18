@@ -76,6 +76,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		result, db_connection, self.db_name = self.connect_to_db(database_to_connect)
 		if result == True:
 			self.db = db_connection
+			self.check_db_version()
 			self.cursor = self.db.cursor()
 			self.window.set_title('PyGtk Posting (%s)' % self.db_name)
 			self.window.connect("focus-in-event", self.focus) #connect the focus signal only if we successfully connect
@@ -90,6 +91,11 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
+
+	def check_db_version (self):
+		posting_version = self.builder.get_object('aboutdialog1').get_version()
+		from db import version
+		version.check_db_version(self, posting_version)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window

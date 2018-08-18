@@ -13,5 +13,4 @@ python_PYTHON = time_clock_tool.py \
 	contact_import.py \
 	contact_import.ui \
 	product_import.py \
-	product_import.ui \
-	../db/create.sql
+	product_import.ui
