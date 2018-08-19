@@ -72,15 +72,15 @@ class LoanGUI :
 		cellrenderer.set_property("text", amount)
 
 	def period_cell_func (self, column, cellrenderer, model, iter1, data):
-		string = model[iter1][6]
+		string = model[iter1][7]
 		if string == "day":
-			cellrenderer.set_property("text", 'Daily')
+			cellrenderer.set_property("text", 'Day(s)')
 		elif string == "week":
-			cellrenderer.set_property("text", 'Weekly')
+			cellrenderer.set_property("text", 'Week(s)')
 		elif string == "month":
-			cellrenderer.set_property("text", 'Monthly')
+			cellrenderer.set_property("text", 'Month(s)')
 		elif string == "year":
-			cellrenderer.set_property("text", 'Yearly')
+			cellrenderer.set_property("text", 'Year(s)')
 		else:
 			cellrenderer.set_property("text", 'Wrong format, please check database')
 
@@ -118,6 +118,7 @@ class LoanGUI :
 								"format_date(l.date_received), "
 								"l.description, "
 								"l.amount, "
+								"l.period_amount, "
 								"l.period "
 							"FROM loans AS l "
 							"JOIN contacts AS c ON c.id = l.contact_id "
@@ -181,20 +182,23 @@ class LoanGUI :
 	def save_clicked (self, button):
 		gl_entries_id = transactor.create_loan(self.db, self.date, 
 												self.amount, self.account)
+		period_amount = self.builder.get_object('period_amount_spin').get_text()
 		self.cursor.execute("INSERT INTO loans "
 								"(description, "
 								"contact_id, "
 								"date_received, "
 								"amount, "
 								"period, "
+								"period_amount, "
 								"last_payment_date, "
 								"gl_entries_id) "
-							"VALUES (%s, %s, %s, %s, %s, now(), %s) ",
+							"VALUES (%s, %s, %s, %s, %s, %s, now(), %s) ",
 							(self.description,
 							self.contact_id,
 							self.date,
 							self.amount,
 							self.payment_period,
+							period_amount, 
 							gl_entries_id))
 		self.db.commit()
 		self.populate_loans ()

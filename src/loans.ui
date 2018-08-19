@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
@@ -56,9 +56,17 @@
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
-      <!-- column-name reminder -->
+      <!-- column-name period_amount -->
+      <column type="gint"/>
+      <!-- column-name period -->
       <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkAdjustment" id="period_adjustment">
+    <property name="lower">1</property>
+    <property name="upper">1000</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -69,6 +77,9 @@
     <property name="default_height">500</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="destroy" handler="window_destroy" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -208,24 +219,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="comboboxtext1">
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
-                        <items>
-                          <item id="day" translatable="yes">Daily</item>
-                          <item id="week" translatable="yes">Weekly</item>
-                          <item id="month" translatable="yes">Monthly</item>
-                          <item id="year" translatable="yes">Yearly</item>
-                        </items>
-                        <signal name="changed" handler="payment_period_combo_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel" id="label2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -265,6 +258,50 @@
                       </object>
                       <packing>
                         <property name="left_attach">3</property>
+                        <property name="top_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkSpinButton" id="period_amount_spin">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="xalign">1</property>
+                            <property name="adjustment">period_adjustment</property>
+                            <property name="numeric">True</property>
+                            <property name="value">1</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="comboboxtext1">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">False</property>
+                            <items>
+                              <item id="day" translatable="yes">Day(s)</item>
+                              <item id="week" translatable="yes">Week(s)</item>
+                              <item id="month" translatable="yes">Month(s)</item>
+                              <item id="year" translatable="yes">Year(s)</item>
+                            </items>
+                            <signal name="changed" handler="payment_period_combo_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
                         <property name="top_attach">2</property>
                       </packing>
                     </child>
@@ -358,6 +395,7 @@
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext4">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                         <signal name="edited" handler="description_edited" swapped="no"/>
                       </object>
                       <attributes>
@@ -382,11 +420,19 @@
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn5">
                     <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Periodical</property>
+                    <property name="title" translatable="yes">Period</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">6</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">6</attribute>
+                      </attributes>
+                    </child>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6"/>
+                      <attributes>
+                        <attribute name="text">7</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
