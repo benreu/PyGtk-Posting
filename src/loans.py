@@ -46,10 +46,6 @@ class LoanGUI :
 		
 		contact_completion = self.builder.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
-
-		period_column = self.builder.get_object ('treeviewcolumn5')
-		period_renderer = self.builder.get_object ('cellrenderertext6')
-		period_column.set_cell_data_func(period_renderer, self.period_cell_func)
 		
 		amount_column = self.builder.get_object ('treeviewcolumn4')
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
@@ -70,19 +66,6 @@ class LoanGUI :
 	def amount_cell_func (self, column, cellrenderer, model, iter1, data):
 		amount = "{:,.2f}".format(model[iter1][5])
 		cellrenderer.set_property("text", amount)
-
-	def period_cell_func (self, column, cellrenderer, model, iter1, data):
-		string = model[iter1][7]
-		if string == "day":
-			cellrenderer.set_property("text", 'Day(s)')
-		elif string == "week":
-			cellrenderer.set_property("text", 'Week(s)')
-		elif string == "month":
-			cellrenderer.set_property("text", 'Month(s)')
-		elif string == "year":
-			cellrenderer.set_property("text", 'Year(s)')
-		else:
-			cellrenderer.set_property("text", 'Wrong format, please check database')
 
 	def populate_contacts (self):
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
@@ -119,7 +102,7 @@ class LoanGUI :
 								"l.description, "
 								"l.amount, "
 								"l.period_amount, "
-								"l.period "
+								"l.period||'(s)' "
 							"FROM loans AS l "
 							"JOIN contacts AS c ON c.id = l.contact_id "
 							"WHERE finished = False")
