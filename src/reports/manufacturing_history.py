@@ -48,29 +48,27 @@ class ManufacturingHistoryGUI:
 		self.cursor.execute("SELECT sn.id, serial_number, COALESCE(c.name, '') "
 							"FROM serial_numbers AS sn "
 							"LEFT JOIN invoice_items AS ili "
-							"ON ili.id = sn.invoice_line_item_id "
+							"ON ili.id = sn.invoice_item_id "
 							"LEFT JOIN invoices AS i ON i.id = ili.invoice_id "
 							"LEFT JOIN contacts AS c ON c.id = i.customer_id "
 							"WHERE manufacturing_id = %s", (manufacturing_id,))
 		for row in self.cursor.fetchall():
-			serial_id = row[0]
-			serial_number = row[1]
-			customer_name = row[2]
-			serial_number_store.append([serial_id, serial_number, customer_name])
+			serial_number_store.append(row)
 
 	def populate_manufacturing_store (self):
-		self.cursor.execute("SELECT m.id, m.name, p.name, qty, "
-								"ROUND( "
-									"(SUM(stop_time::numeric) - "
-									"SUM(start_time::numeric)) / 3600"
-									", 2)::text, "
-								"COUNT(DISTINCT(employee_id)) "
-								"FROM manufacturing_projects AS m "
-								"JOIN products AS p ON p.id = m.product_id "
-								"JOIN time_clock_entries AS tce "
-								"ON tce.project_id = m.time_clock_projects_id "
-								"GROUP BY m.id, m.name, p.name, qty "
-								"ORDER BY m.id")
+		self.cursor.execute("SELECT "
+								"m.id, m.name, "
+								"p.name, "
+								"qty, "
+								"SUM(stop_time - start_time)::text, "
+								"COUNT(DISTINCT(employee_id)), "
+								"active "
+							"FROM manufacturing_projects AS m "
+							"JOIN products AS p ON p.id = m.product_id "
+							"JOIN time_clock_entries AS tce "
+							"ON tce.project_id = m.time_clock_projects_id "
+							"GROUP BY m.id, m.name, p.name, qty "
+							"ORDER BY m.id")
 		for row in self.cursor.fetchall():
 			manufacturing_id = row[0]
 			manufacturing_name = row[1]
@@ -78,12 +76,7 @@ class ManufacturingHistoryGUI:
 			qty = row[3]
 			time = row[4]
 			employee_count = row[5]
-			self.manufacturing_store.append([manufacturing_id, 
-											manufacturing_name,
-											product_name,
-											qty,
-											time,
-											employee_count])
+			self.manufacturing_store.append(row)
 
 	def filter_changed (self, entry):
 		entry = self.builder.get_object('searchentry1')
