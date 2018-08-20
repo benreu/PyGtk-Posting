@@ -16,7 +16,7 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-ALTER TABLE loans ADD COLUMN period_amount smallint DEFAULT 1;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS period_amount smallint DEFAULT 1;
 UPDATE loans SET period_amount = 1 WHERE period_amount IS NULL;
 ALTER TABLE loans ALTER COLUMN period_amount SET NOT NULL;
 --version 0.4.1
