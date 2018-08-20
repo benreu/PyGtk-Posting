@@ -485,7 +485,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 							"WHERE date_trunc"
 							"(l.period, l.last_payment_date) <= "
 							"date_trunc(l.period, "
-								"CURRENT_DATE - ('1 '||l.period)::interval "
+								"CURRENT_DATE - "
+									"(l.period_amount||' '||l.period)::interval "
 							")")
 		for row in self.cursor.fetchall():
 			loan_id = row[0]

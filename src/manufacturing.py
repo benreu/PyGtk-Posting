@@ -43,6 +43,10 @@ class ManufacturingGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def history_clicked (self, button):
+		from reports import manufacturing_history 
+		manufacturing_history.ManufacturingHistoryGUI (self.main)
+
 	def product_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
 		for text in split_search_text:

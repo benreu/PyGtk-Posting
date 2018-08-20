@@ -46,10 +46,6 @@ class LoanGUI :
 		
 		contact_completion = self.builder.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
-
-		period_column = self.builder.get_object ('treeviewcolumn5')
-		period_renderer = self.builder.get_object ('cellrenderertext6')
-		period_column.set_cell_data_func(period_renderer, self.period_cell_func)
 		
 		amount_column = self.builder.get_object ('treeviewcolumn4')
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
@@ -70,19 +66,6 @@ class LoanGUI :
 	def amount_cell_func (self, column, cellrenderer, model, iter1, data):
 		amount = "{:,.2f}".format(model[iter1][5])
 		cellrenderer.set_property("text", amount)
-
-	def period_cell_func (self, column, cellrenderer, model, iter1, data):
-		string = model[iter1][6]
-		if string == "day":
-			cellrenderer.set_property("text", 'Daily')
-		elif string == "week":
-			cellrenderer.set_property("text", 'Weekly')
-		elif string == "month":
-			cellrenderer.set_property("text", 'Monthly')
-		elif string == "year":
-			cellrenderer.set_property("text", 'Yearly')
-		else:
-			cellrenderer.set_property("text", 'Wrong format, please check database')
 
 	def populate_contacts (self):
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
@@ -118,7 +101,8 @@ class LoanGUI :
 								"format_date(l.date_received), "
 								"l.description, "
 								"l.amount, "
-								"l.period "
+								"l.period_amount, "
+								"l.period||'(s)' "
 							"FROM loans AS l "
 							"JOIN contacts AS c ON c.id = l.contact_id "
 							"WHERE finished = False")
@@ -181,20 +165,23 @@ class LoanGUI :
 	def save_clicked (self, button):
 		gl_entries_id = transactor.create_loan(self.db, self.date, 
 												self.amount, self.account)
+		period_amount = self.builder.get_object('period_amount_spin').get_text()
 		self.cursor.execute("INSERT INTO loans "
 								"(description, "
 								"contact_id, "
 								"date_received, "
 								"amount, "
 								"period, "
+								"period_amount, "
 								"last_payment_date, "
 								"gl_entries_id) "
-							"VALUES (%s, %s, %s, %s, %s, now(), %s) ",
+							"VALUES (%s, %s, %s, %s, %s, %s, now(), %s) ",
 							(self.description,
 							self.contact_id,
 							self.date,
 							self.amount,
 							self.payment_period,
+							period_amount, 
 							gl_entries_id))
 		self.db.commit()
 		self.populate_loans ()
