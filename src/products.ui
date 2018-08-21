@@ -1296,7 +1296,7 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
                                         <property name="id_column">0</property>
                                         <signal name="changed" handler="default_expense_account_combo_changed" swapped="no"/>
                                         <child internal-child="entry">
-                                          <object class="GtkEntry" id="combobox-entry1">
+                                          <object class="GtkEntry" id="expensebox-entry">
                                             <property name="can_focus">True</property>
                                           </object>
                                         </child>
@@ -1315,7 +1315,7 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
                                         <property name="id_column">0</property>
                                         <signal name="changed" handler="revenue_account_combo_changed" swapped="no"/>
                                         <child internal-child="entry">
-                                          <object class="GtkEntry" id="combobox-entry">
+                                          <object class="GtkEntry" id="revenuebox-entry">
                                             <property name="can_focus">True</property>
                                           </object>
                                         </child>
@@ -1334,7 +1334,7 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
                                         <property name="id_column">0</property>
                                         <signal name="changed" handler="inventory_account_combo_changed" swapped="no"/>
                                         <child internal-child="entry">
-                                          <object class="GtkEntry" id="combobox-entry4">
+                                          <object class="GtkEntry" id="inventorybox-entry">
                                             <property name="can_focus">True</property>
                                           </object>
                                         </child>
