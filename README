@@ -15,6 +15,7 @@ Dependencies
 Gtk+ 3.22 or higher
 gir1.2-poppler-0.18
 gir1.2-gtkspell3-3.0
+gir1.2-evince-3.0
 python3-xlsxwriter
 python3-xlrd
 python3-sane

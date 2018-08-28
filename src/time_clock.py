@@ -21,7 +21,7 @@ from gi.repository import Gtk, GLib
 from datetime import datetime
 
 class TimeClockGUI :
-	
+	entry_id = 0
 	def __init__(self, main):
 		
 		self.builder = Gtk.Builder()
@@ -74,11 +74,11 @@ class TimeClockGUI :
 				return
 		self.employee_id = self.employee_store[path][0]
 		employee_name = self.employee_store[path][1]
-		if self.employee_store[path][3] == False:
+		if self.employee_store[path][3] == False:  # not punched in
 			self.stack.set_visible_child_name ('job_page')
 			self.populate_job_store ()
 			self.builder.get_object('employee_label').set_label(employee_name)
-		else:
+		else:  # punched in
 			self.entry_id = self.employee_store[path][4]
 			self.builder.get_object('employee_label1').set_label(employee_name)
 			project_name = self.employee_store[path][5]
@@ -111,13 +111,19 @@ class TimeClockGUI :
 							"FROM time_clock_projects "
 							"WHERE active = TRUE "
 							"ORDER BY id"
-							")", 
+							") "
+							"UNION ALL "
+							"SELECT 0, 'Cancel'", 
 							(self.employee_id,))
 		for row in self.cursor.fetchall():
 			self.project_store.append(row)
 
 	def job_row_activated (self, treeview, path, treeviewcolumn):
-		self.project_id = self.project_store[path][0]
+		project_id = self.project_store[path][0]
+		if project_id == 0: # cancel row clicked
+			self.stack.set_visible_child_name ('employee_page')
+			return
+		self.project_id = project_id
 		job_name = self.project_store[path][1]
 		self.builder.get_object('project_label').set_label(job_name)
 		self.stack.set_visible_child_name ('punchin_page')
@@ -138,7 +144,6 @@ class TimeClockGUI :
 							(self.employee_id, self.project_id))
 		self.db.commit()
 		self.stack.set_visible_child_name ('employee_page')
-		self.populate_employees ()
 
 	def manual_punch_in_clicked (self, button):
 		self.cursor.execute("INSERT INTO time_clock_entries "
@@ -160,7 +165,6 @@ class TimeClockGUI :
 							self.clock_in_out_time))
 		self.db.commit()
 		self.stack.set_visible_child_name ('employee_page')
-		self.populate_employees ()
 
 	def punch_out_clicked (self, button):
 		self.cursor.execute("UPDATE time_clock_entries "
@@ -169,7 +173,6 @@ class TimeClockGUI :
 							"WHERE id = %s", (self.entry_id,))
 		self.db.commit()
 		self.stack.set_visible_child_name ('employee_page')
-		self.populate_employees ()
 
 	def manual_punch_out_clicked (self, button):
 		self.cursor.execute("UPDATE time_clock_entries "
@@ -179,11 +182,9 @@ class TimeClockGUI :
 							(self.clock_in_out_time, self.entry_id))
 		self.db.commit()
 		self.stack.set_visible_child_name ('employee_page')
-		self.populate_employees ()
 
 	def cancel_clicked (self, button):
 		self.stack.set_visible_child_name ('employee_page')
-		self.populate_employees ()
 		
 	def increase_day (self, widget):
 		self.clock_in_out_time += 86400
@@ -230,6 +231,7 @@ class TimeClockGUI :
 		self.show_punched_in_calculated_time()
 
 	def show_punched_in_calculated_time (self):
+		''' self.entry_id may be 0, resulting in nothing'''
 		self.db.commit()
 		self.cursor.execute("SELECT "
 								"DATE_TRUNC('second',("
@@ -239,8 +241,9 @@ class TimeClockGUI :
 								")::text "
 							"FROM time_clock_entries WHERE id = %s", 
 							(self.clock_in_out_time, self.entry_id))
-		interval = self.cursor.fetchone()[0]
-		self.builder.get_object('time_label_manual_out').set_label(interval)
+		for row in self.cursor.fetchall():
+			interval = row[0]
+			self.builder.get_object('time_label_manual_out').set_label(interval)
 
 	def time_renderer_editing_started (self, cellrenderer, celleditable, path):
 		celleditable.set_editable(False)
@@ -261,4 +264,3 @@ class TimeClockGUI :
 
 
 
-		

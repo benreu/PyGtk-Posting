@@ -642,9 +642,9 @@ class ProductsGUI:
 			self.builder.get_object('spinbutton14').set_text(str(row[13]))
 			self.builder.get_object('entry10').set_text(row[14])
 			expense_account_name = row[15] #set active id does not work with treestore
-			self.builder.get_object('combobox-entry').set_text(expense_account_name)
+			self.builder.get_object('expensebox-entry').set_text(expense_account_name)
 			revenue_account_name = row[16]
-			self.builder.get_object('combobox-entry1').set_text(revenue_account_name)
+			self.builder.get_object('revenuebox-entry').set_text(revenue_account_name)
 			inventory_account_name = row[17]
 			button = self.builder.get_object('button2')
 			if inventory_account_name == '':
@@ -653,7 +653,7 @@ class ProductsGUI:
 			else:
 				button.set_label("Adjust inventory")
 				button.set_sensitive(True)
-			self.builder.get_object('combobox-entry4').set_text(inventory_account_name)
+			self.builder.get_object('inventorybox-entry').set_text(inventory_account_name)
 			self.builder.get_object('entry13').set_text(row[18])
 			self.builder.get_object('checkbutton6').set_active(row[19])
 			self.builder.get_object('checkbutton7').set_active(row[20])
@@ -837,7 +837,7 @@ class ProductsGUI:
 		self.populate_product_store ()
 		self.repopulated = True
 		button = self.builder.get_object('button2')
-		if self.builder.get_object('combobox-entry4').get_text() == '':
+		if self.builder.get_object('inventorybox-entry').get_text() == '':
 			button.set_sensitive(False)
 			button.set_label("No inventory account")
 		else:
@@ -849,7 +849,7 @@ class ProductsGUI:
 
 	def save_vendor_info (self):
 		vendor_id = self.builder.get_object('comboboxtext2').get_active_id()
-		if vendor_id == None:
+		if vendor_id == None or vendor_id == '':
 			return
 		order_number = self.builder.get_object('order_number_entry').get_text()
 		barcode = self.builder.get_object('order_barcode_entry').get_text()
@@ -919,7 +919,7 @@ class ProductsGUI:
 							"ORDER BY number LIMIT 1")
 		for row in self.cursor.fetchall():
 			self.new_revenue_account = row[0]
-			self.builder.get_object('combobox-entry1').set_text(row[1])
+			self.builder.get_object('revenuebox-entry').set_text(row[1])
 			break
 		else:
 			raise Exception("No revenue accounts available")
@@ -929,7 +929,7 @@ class ProductsGUI:
 							"ORDER BY number LIMIT 1")
 		for row in self.cursor.fetchall():
 			self.new_expense_account = row[0]
-			self.builder.get_object('combobox-entry').set_text(row[1])
+			self.builder.get_object('expensebox-entry').set_text(row[1])
 			break
 		else:
 			raise Exception("No expense accounts available")
