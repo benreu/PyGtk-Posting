@@ -35,7 +35,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
 	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	admin = False
 	log_file = None
@@ -261,7 +262,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 
 	def resource_management (self, widget):
 		import resource_management
-		resource_management.ResourceManagementGUI(self.db)
+		resource_management.ResourceManagementGUI(self)
 
 	def invoice_history (self, widget):
 		from reports import invoice_history
@@ -604,6 +605,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 			self.unpaid_invoices_window.present()
 
 	def destroy(self, widget):
+		self.emit("shutdown")
 		Gtk.main_quit()
 		self.cursor.execute("UNLISTEN products")
 		self.cursor.execute("UNLISTEN contacts")
