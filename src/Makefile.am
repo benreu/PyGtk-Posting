@@ -29,7 +29,6 @@ pygtk_posting_PYTHON = \
 	product_location.py \
 	manufacturing.py \
 	documenting.py \
-	testxlwt.py \
 	time_clock.py \
 	view_log.py \
 	invoice_window.py \
@@ -68,7 +67,6 @@ pygtk_posting_PYTHON = \
 	customer_tax_exemptions.ui \
 	product_location.ui \
 	manufacturing.ui \
-	testxlwt.ui \
 	time_clock.ui \
 	view_log.ui \
 	invoice_window.ui \
@@ -133,7 +131,8 @@ pygtk_posting_PYTHON = \
 	loans.ui \
 	pdf_attachment.py \
 	pdf_attachment.ui \
-	contact_hub.py
+	contact_hub.py \
+	calculator.py
 
 
 EXTRA_DIST = $(ui_DATA)

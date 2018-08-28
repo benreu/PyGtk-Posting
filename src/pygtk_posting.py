@@ -566,10 +566,6 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		import time_clock
 		time_clock.TimeClockGUI(self)
 
-	def xlwttest(self, widget):
-		import testxlwt
-		testxlwt.testxlwt_ui(self.db)
-
 	def kit_products_activated (self, db):
 		import kit_products
 		kit_products.KitProductsGUI(self)
