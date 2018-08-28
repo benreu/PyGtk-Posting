@@ -22,7 +22,7 @@ from datetime import datetime
 
 class TimeClockGUI :
 	entry_id = 0
-	def __init__(self, main):
+	def __init__(self, main, parent = None):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -38,12 +38,19 @@ class TimeClockGUI :
 
 		self.populate_employees ()
 
-		window = self.builder.get_object('window1')
-		window.show_all()
+		self.window = self.builder.get_object('window1')
+		self.window.show_all()
+
+		self.parent = parent
+
+	def present (self):
+		self.window.present()
 
 	def destroy (self, window):
 		self.main.disconnect(self.handler)
 		self.cursor.close()
+		if self.parent:
+			self.parent.time_clock = None
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
