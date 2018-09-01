@@ -20,6 +20,7 @@ import os, subprocess, psycopg2
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
+import spell_check
 
 UI_FILE = "src/invoice_window.ui"
 
@@ -77,6 +78,9 @@ class InvoiceGUI:
 		self.handler_p_id = main.connect ("products_changed", self.populate_product_store )
 		self.customer_id = 0
 		self.menu_visible = False
+		
+		textview = self.builder.get_object('comment_textview')
+		spell_check.add_checker_to_widget (textview)
 			
 		self.customer_store = self.builder.get_object('customer_store')
 		self.product_store = self.builder.get_object('product_store')
