@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
@@ -70,17 +70,8 @@
         <signal name="activate" handler="block_number_activated" swapped="no"/>
       </object>
     </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem3">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Child of ...</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="child_of_activated" swapped="no"/>
-      </object>
-    </child>
   </object>
-  <object class="GtkTreeStore" id="resource_store">
+  <object class="GtkListStore" id="resource_store">
     <columns>
       <!-- column-name row_id -->
       <column type="gint"/>
@@ -90,8 +81,8 @@
       <column type="gint"/>
       <!-- column-name contact_name -->
       <column type="gchararray"/>
-      <!-- column-name timed -->
-      <column type="gboolean"/>
+      <!-- column-name ext_name -->
+      <column type="gchararray"/>
       <!-- column-name time_seconds -->
       <column type="glong"/>
       <!-- column-name time_formatted -->
@@ -136,6 +127,9 @@
     <property name="default_height">500</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="focus-in-event" handler="focus_in_event" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -212,22 +206,6 @@
                 <property name="position">4</property>
               </packing>
             </child>
-            <child>
-              <object class="GtkCheckButton" id="checkbutton2">
-                <property name="label" translatable="yes">Threaded</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="xalign">0</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="resource_threaded_checkbutton_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">5</property>
-              </packing>
-            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -261,6 +239,7 @@
                         <property name="enable_grid_lines">both</property>
                         <property name="activate_on_single_click">True</property>
                         <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
+                        <signal name="key-release-event" handler="treeview_key_release_event" swapped="no"/>
                         <signal name="row-activated" handler="row_activated" swapped="no"/>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection" id="treeview-selection1"/>
@@ -311,16 +290,13 @@
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn3">
                             <property name="resizable">True</property>
-                            <property name="title" translatable="yes">Timed</property>
+                            <property name="title" translatable="yes">Ext name</property>
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">4</property>
                             <child>
-                              <object class="GtkCellRendererToggle" id="cellrenderertoggle1">
-                                <property name="radio">True</property>
-                                <signal name="toggled" handler="timed_toggled" swapped="no"/>
-                              </object>
+                              <object class="GtkCellRendererText"/>
                               <attributes>
-                                <attribute name="active">4</attribute>
+                                <attribute name="text">4</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -469,12 +445,13 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button2">
-                        <property name="label" translatable="yes">New child</property>
+                      <object class="GtkButton">
+                        <property name="label" translatable="yes">Time clock project</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="clicked" handler="new_child_clicked" swapped="no"/>
+                        <property name="tooltip_text" translatable="yes">This adds this resource entry to the time clock for tracking time</property>
+                        <signal name="clicked" handler="time_clock_project_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -484,12 +461,12 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="button3">
-                        <property name="label" translatable="yes">New top level</property>
+                        <property name="label" translatable="yes">New entry</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="can_default">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="clicked" handler="new_top_level_clicked" swapped="no"/>
+                        <signal name="clicked" handler="new_entry_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -541,26 +518,27 @@
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="parent_dialog">
+  <object class="GtkDialog" id="time_clock_create_dialog">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Child of</property>
+    <property name="title" translatable="yes">Create time clock project</property>
     <property name="window_position">center</property>
-    <property name="default_width">500</property>
-    <property name="default_height">400</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+      <object class="GtkBox">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area1">
+          <object class="GtkButtonBox">
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="button7">
+              <object class="GtkButton" id="button2">
                 <property name="label" translatable="yes">Cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -574,7 +552,7 @@
             </child>
             <child>
               <object class="GtkButton" id="button6">
-                <property name="label" translatable="yes">Apply parent</property>
+                <property name="label" translatable="yes">Create project</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -593,94 +571,48 @@
           </packing>
         </child>
         <child>
-          <object class="GtkBox" id="box6">
+          <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow3">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
-                <child>
-                  <object class="GtkTreeView" id="treeview2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="model">resource_store</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection2"/>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn8">
-                        <property name="title" translatable="yes">Subject</property>
-                        <property name="expand">True</property>
-                        <property name="sort_column_id">1</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext6"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn9">
-                        <property name="title" translatable="yes">Contact</property>
-                        <property name="expand">True</property>
-                        <property name="sort_column_id">3</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext7"/>
-                          <attributes>
-                            <attribute name="text">3</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn10">
-                        <property name="title" translatable="yes">Dated for</property>
-                        <property name="sort_column_id">7</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext8"/>
-                          <attributes>
-                            <attribute name="text">7</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn11">
-                        <property name="title" translatable="yes">Tag</property>
-                        <property name="sort_column_id">9</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext9"/>
-                          <attributes>
-                            <attribute name="text">9</attribute>
-                            <attribute name="foreground-rgba">10</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
+            <property name="label" translatable="yes">Do you wish to create a time clock project with this name?
+If a project exists already, the name will be updated.</property>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkEntry" id="project_name_entry">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="time_clock_checkbutton">
+            <property name="label" translatable="yes">Open time clock</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="tooltip_text" translatable="yes">Automatically open a time clock window after the project is created</property>
+            <property name="draw_indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
     </child>
     <action-widgets>
-      <action-widget response="-6">button7</action-widget>
+      <action-widget response="-6">button2</action-widget>
       <action-widget response="-3">button6</action-widget>
     </action-widgets>
   </object>

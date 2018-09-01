@@ -17,20 +17,23 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-from dateutils import DateTimeCalendar, seconds_to_compact_string, \
-						text_to_datetime, seconds_to_user_format
+from dateutils import DateTimeCalendar
+import spell_check
 
 UI_FILE = "src/resource_management.ui"
 
 class ResourceManagementGUI:
-	def __init__(self, db, id_ = None):
+	timeout_id = None
+	def __init__(self, main, id_ = None):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		main.connect("shutdown", self.main_shutdown)
+		self.main = main
+		self.db = main.db
+		self.cursor = main.db.cursor()
 		self.editing = False
 		self.timer_timeout = None
 		
@@ -39,6 +42,9 @@ class ResourceManagementGUI:
 		self.contact_completion = self.builder.get_object('contact_completion')
 		self.contact_completion.set_match_func(self.contact_match_func)
 		self.tag_store = self.builder.get_object('tag_store')
+		
+		textview = self.builder.get_object('textview1')
+		spell_check.add_checker_to_widget (textview)
 
 		self.dated_for_calendar = DateTimeCalendar()
 		no_date_button = self.builder.get_object('button5')
@@ -48,7 +54,6 @@ class ResourceManagementGUI:
 		self.dated_for_calendar.connect('day-selected', self.dated_for_calendar_day_selected )
 		
 		self.older_than_calendar = DateTimeCalendar()
-		self.older_than_calendar.set_today()
 		self.older_than_calendar.connect('day-selected', self.older_than_date_selected )
 		self.older_than_calendar.set_today()
 		self.populate_stores()
@@ -72,6 +77,10 @@ class ResourceManagementGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def main_shutdown (self, main):
+		if self.timeout_id:
+			self.save_notes()
 
 	def focus_in_event (self, window, event):
 		self.populate_stores ()
@@ -101,7 +110,7 @@ class ResourceManagementGUI:
 									"WHERE id = %s", (row_id,))
 				self.db.commit()
 			except Exception as e:
-				print (e)
+				self.show_message (e)
 				self.db.rollback()
 			self.populate_resource_store()
 
@@ -116,10 +125,12 @@ class ResourceManagementGUI:
 							(phone_number,))
 				self.db.commit()
 			except Exception as e:
-				print (e)
+				self.show_message (e)
 				self.db.rollback()
 
 	def row_activated (self, treeview, path, treeview_column):
+		if self.timeout_id:
+			self.save_notes()
 		self.editing_buffer = True
 		row_id = self.resource_store[path][0]
 		self.cursor.execute("SELECT notes FROM resources "
@@ -139,18 +150,17 @@ class ResourceManagementGUI:
 				return False # no match
 		return True # it's a hit!
 
-	def contact_match_selected(self, completion, model, iter):
-		self.editing = False
-		contact_id = model[iter][0]
-		contact_name = model[iter][1]
-		contact_phone = model[iter][3]
+	def contact_match_selected(self, completion, model, iter_):
+		contact_id = model[iter_][0]
 		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		if path != []:
-			model[path][2] = int(contact_id)
-			model[path][3] = contact_name
-			model[path][11] = contact_phone
-		self.save_row (str(path[0]))
+		tree_model, path = selection.get_selected_rows()
+		id_ = tree_model[path][0]
+		self.cursor.execute("UPDATE resources "
+							"SET contact_id = %s "
+							"WHERE id = %s", (contact_id, id_))
+		self.db.commit()
+		self.editing = False
+		self.populate_resource_store(id_)
 
 	def contact_editing_started (self, renderer_combo, combobox, path):
 		self.editing = True
@@ -159,13 +169,13 @@ class ResourceManagementGUI:
 
 	def contact_changed (self, renderer_combo, path, tree_iter):
 		contact_id = self.contact_store[tree_iter][0]
-		contact_name = self.contact_store[tree_iter][1]
-		contact_phone = self.contact_store[tree_iter][3]
-		self.resource_store[path][2] = int(contact_id)
-		self.resource_store[path][3] = contact_name
-		self.resource_store[path][11] = contact_phone
+		id_ = self.resource_store[path][0]
+		self.cursor.execute("UPDATE resources "
+							"SET contact_id = %s "
+							"WHERE id = %s", (contact_id, id_))
+		self.db.commit()
 		self.editing = False
-		self.save_row (path)
+		self.populate_resource_store(id_)
 
 	def contact_edited (self, renderer_combo, path, text):
 		self.editing = False
@@ -200,61 +210,44 @@ class ResourceManagementGUI:
 				if row[8] == tag_id:
 					row[10] = rgba
 
-	def new_top_level_clicked (self, button):
-		self.resource_store.append(None,[0, 'New subject', 0, '', False, 0,  '',
-										'', 0, '', Gdk.RGBA(0,0,0,1), 
-										'0', 0, '', False])
-
-	def child_of_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		child_id = model[path][0] 
-		dialog = self.builder.get_object('parent_dialog')
-		result = dialog.run()
-		dialog.hide()
-		if result == Gtk.ResponseType.ACCEPT:
-			selection = self.builder.get_object('treeview-selection2')
-			model, path = selection.get_selected_rows()
-			parent_id = model[path][0]
-			if child_id == parent_id:
-				return
-			self.cursor.execute("UPDATE resources "
-								"SET parent_id = %s WHERE id = %s", 
-								(parent_id, child_id))
-			self.db.commit()
-			
-	def new_child_clicked (self, button):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		if path != []:
-			tree_iter = model.get_iter(path)
-			self.resource_store.append(tree_iter,[0, 'New child', 0, '',
-							False, 0, '', '', 0, '', Gdk.RGBA(0,0,0,1), 
-							0, 0, '', False])
-															
+	def new_entry_clicked (self, button):
+		self.cursor.execute("INSERT INTO resources "
+								"(tag_id) "
+								"SELECT id FROM resource_tags "
+									"WHERE finished = False LIMIT 1 "
+								"RETURNING id")
+		new_id = self.cursor.fetchone()[0]
+		self.populate_resource_store(new_id, new = True)
+		
 	def subject_editing_started (self, renderer_entry, entry, path):
 		self.editing = True
 		
 	def subject_edited (self, renderer_text, path, text):
 		self.editing = False
+		id_ = self.resource_store[path][0]
+		self.cursor.execute("UPDATE resources "
+							"SET subject = %s "
+							"WHERE id = %s", (text, id_))
+		self.db.commit()
 		self.resource_store[path][1] = text
-		self.save_row (path)
 
 	def subject_editing_canceled (self, renderer):
 		self.editing = False
 
 	def dated_for_calendar_day_selected (self, calendar):
-		text = calendar.get_text()
+		date = calendar.get_date()
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
-		model[path][7] = text
-		p = path[0]
-		self.save_row (str(p))
+		id_ = model[path][0]
+		self.cursor.execute("UPDATE resources "
+							"SET dated_for = %s "
+							"WHERE id = %s", (date, id_))
+		self.db.commit()
+		self.populate_resource_store(id_)
 
 	def dated_for_editing_started (self, widget, entry, text):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
-		text = model[path][7]
 		row_id = model[path][0]
 		self.cursor.execute("SELECT dated_for FROM resources "
 							"WHERE id = %s AND dated_for IS NOT NULL", (row_id,))
@@ -263,7 +256,7 @@ class ResourceManagementGUI:
 			break
 		else:
 			self.dated_for_calendar.set_today()
-		self.dated_for_calendar.show()
+		GLib.idle_add(self.dated_for_calendar.show)
 
 	def tag_editing_started (self, renderer_combo, combobox, path):
 		self.editing = True
@@ -271,145 +264,56 @@ class ResourceManagementGUI:
 	def tag_changed (self, renderer_combo, path, tree_iter):
 		self.editing = False
 		tag_id = self.tag_store[tree_iter][0]
-		self.cursor.execute("SELECT tag, red, green, blue, alpha "
-							"FROM resource_tags "
-							"WHERE id = %s", (tag_id,))
-		for row in self.cursor.fetchall():
-			tag_name = row[0]
-			red = row[1]
-			green = row[2]
-			blue = row[3]
-			alpha = row[4]
-			rgba = Gdk.RGBA(red, green, blue, alpha)
-			self.resource_store[path][8] = int(tag_id)
-			self.resource_store[path][9] = tag_name
-			self.resource_store[path][10] = rgba
-		self.save_row (path)
-		self.populate_resource_store ()
+		id_ = self.resource_store[path][0]
+		self.cursor.execute("UPDATE resources "
+							"SET tag_id = %s "
+							"WHERE id = %s; "
+							"UPDATE time_clock_projects AS tcp "
+							"SET active = NOT rt.finished "
+							"FROM resource_tags AS rt "
+							"WHERE (rt.id, rt.finished) = (%s, True) "
+							"AND tcp.resource_id = %s",
+							(tag_id, id_, tag_id, id_))
+		self.db.commit()
+		self.populate_resource_store(id_)
 
 	def tag_editing_canceled (self, renderer):
 		self.editing = False
 
-	def turn_off_timer (self, store, treeiter, selected_path):
-		while treeiter != None:
-			path = store.get_path(treeiter)
-			if path != selected_path:
-				if store[path][4] == True:
-					GLib.source_remove(self.timer_timeout)
-					store[path][4] = False
-			if store.iter_has_child(treeiter):
-				childiter = store.iter_children(treeiter)
-				self.turn_off_timer(store, childiter, selected_path)
-			treeiter = store.iter_next(treeiter)
-
-	def timed_toggled (self, renderer, path):
-		selected_path = Gtk.TreePath(path)
-		tree_iter = self.resource_store.get_iter_first()
-		self.turn_off_timer (self.resource_store, tree_iter, selected_path)
-		active = not self.resource_store[path][4]
-		self.resource_store[path][4] = active
-		if active == True:
-			self.time = self.resource_store[path][5]
-			self.timer_timeout = GLib.timeout_add_seconds(1, self.track_time, path)
-		else:
-			GLib.source_remove(self.timer_timeout)
-
-	def track_time (self, path):
-		self.time += 1
-		if self.time % 60 == 0:
-			row_id = self.resource_store[path][0]
-			self.cursor.execute("UPDATE resources "
-								"SET timed_seconds = INTERVAL '%s' "
-								"WHERE id = %s", 
-								(self.time, row_id))
-			self.db.commit()
-		if self.editing == False:
-			self.resource_store[path][5] = self.time
-			self.resource_store[path][6] = seconds_to_compact_string (self.time)
-		return True
-
-	def text_buffer_changed (self, textbuffer):
-		self.save_notes ()
-
-	def save_notes (self):
+	def text_buffer_changed (self, text_buffer):
 		if self.editing_buffer == True:
 			return
-		text_buffer = self.builder.get_object('textbuffer1')
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
+			self.show_message("Please select a row")
 			return
-		row_id = model[path][0]
-		if row_id != 0:
-			start = text_buffer.get_start_iter()
-			end = text_buffer.get_end_iter()
-			notes = text_buffer.get_text(start,end,True)
-			self.cursor.execute("UPDATE resources SET notes = %s "
-								"WHERE id = %s", (notes, row_id))
-			self.db.commit()
+		self.row_id = model[path][0]
+		start = text_buffer.get_start_iter()
+		end = text_buffer.get_end_iter()
+		self.notes = text_buffer.get_text(start,end,True)
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
+		self.timeout_id = GLib.timeout_add_seconds(10, self.save_notes)
 
-	def save_row (self, path):
-		split_path = path.split(':')
-		if len(split_path) > 1:
-			split_path.pop()
-		parent_path = split_path[-1]
-		parent_id = self.resource_store[parent_path][0]
-		if parent_id == 0:
-			parent_id = None
-		line = self.resource_store[path]
-		row_id = line[0]
-		subject = line[1]
-		contact_id = line[2]
-		time_seconds = line[5]
-		dated_for = line[7]
-		tag_id = line[8]
-		phone_number = line[11]
-		if tag_id == 0:
-			tag_id = None
-		if contact_id == 0:
-			contact_id = None
-		if dated_for == '' or dated_for == None:
-			dated_for = None
-		else:
-			dated_for = text_to_datetime (dated_for)
-		if row_id == 0:
-			self.cursor.execute("INSERT INTO resources "
-								"(subject, contact_id, timed_seconds, "
-								"date_created, dated_for, tag_id, parent_id, "
-								"phone_number) "
-								"VALUES (%s, %s, INTERVAL '%s', CURRENT_DATE, "
-								"%s, %s, %s, %s) "
-								"RETURNING id", 
-								(subject, contact_id, time_seconds, 
-								dated_for, tag_id, parent_id, phone_number))
-			line[0] = self.cursor.fetchone()[0]
-		else:
-			self.cursor.execute("UPDATE resources "
-								"SET (subject, contact_id, timed_seconds, "
-								"dated_for, tag_id, phone_number) = "
-								"(%s, %s, INTERVAL '%s', %s, %s, %s) "
-								"WHERE id = %s", 
-								(subject, contact_id, time_seconds, 
-								dated_for, tag_id, phone_number, row_id))
-		self.save_notes ()
+	def save_notes (self ):
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
+		self.cursor.execute("UPDATE resources SET notes = %s "
+							"WHERE id = %s", (self.notes, self.row_id))
 		self.db.commit()
+		self.timeout_id = None
 
-	def populate_resource_store (self):
+	def populate_resource_store (self, id_ = None, new = False):
 		self.resource_store.clear()
 		row_limit = self.builder.get_object('spinbutton1').get_value()
 		finished = self.builder.get_object('checkbutton3').get_active()
-		if self.builder.get_object('checkbutton2').get_active() == True:
-			self.populate_resource_store_threaded (row_limit, finished)
-		else:
-			self.populate_resource_store_flat (row_limit, finished)
-
-	def populate_resource_store_flat (self, row_limit, finished):
 		self.cursor.execute("SELECT "
 								"rm.id, "
 								"subject, "
 								"COALESCE(contact_id, 0), "
 								"COALESCE(name, ''), "
-								"to_char(timed_seconds, 'SS')::bigint, "
+								"COALESCE(ext_name, ''), "
 								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
 								"dated_for, "
 								"format_date(dated_for), "
@@ -430,7 +334,7 @@ class ResourceManagementGUI:
 							"ON rm.contact_id = contacts.id "
 							"WHERE date_created <= %s "
 							"AND finished != %s OR finished IS NULL "
-							"AND diary != True "
+							"AND diary != True ORDER BY rm.id "
 							"LIMIT %s", (self.older_than_date, finished, 
 							row_limit))
 		for row in self.cursor.fetchall():
@@ -439,7 +343,7 @@ class ResourceManagementGUI:
 			subject = row[1]
 			contact_id = row[2]
 			contact_name = row[3]
-			timed_seconds = row[4]
+			ext_name = row[4]
 			time_formatted = row[5]
 			dated_for = row[6]
 			date_formatted = row[7]
@@ -457,148 +361,56 @@ class ResourceManagementGUI:
 			call_received_time = row[15]
 			c_r_time_formatted = row[16]
 			to_do = row[17]
-			self.resource_store.append(None,[row_id, subject, contact_id,
-										contact_name, False, timed_seconds, 
+			iter_ = self.resource_store.append([row_id, subject, contact_id,
+										contact_name, ext_name, 0, 
 										time_formatted, date_formatted, tag_id, 
 										tag_name, rgba, phone_number,
 										call_received_time, 
 										c_r_time_formatted, to_do])
-
-	def populate_resource_store_threaded (self, row_limit, finished):
-		self.cursor.execute("SELECT "
-								"rm.id, "
-								"subject, "
-								"COALESCE(contact_id, 0), "
-								"COALESCE(name, ''), "
-								"to_char(timed_seconds, 'SS')::bigint, "
-								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
-								"dated_for, "
-								"format_date(dated_for), "
-								"rmt.id, "
-								"tag, "
-								"red, "
-								"green, "
-								"blue, "
-								"alpha, "
-								"phone_number, "
-								"call_received_time, "
-								"format_timestamp(call_received_time), "
-								"to_do "
-							"FROM resources AS rm "
-							"LEFT JOIN resource_tags AS rmt "
-							"ON rmt.id = rm.tag_id "
-							"LEFT JOIN contacts "
-							"ON rm.contact_id = contacts.id "
-							"WHERE (finished != %s OR finished IS NULL) "
-							"AND date_created <= %s AND parent_id IS NULL "
-							"AND diary != True "
-							"LIMIT %s", (finished, self.older_than_date,  
-							row_limit))
-		for row in self.cursor.fetchall():
-			rgba = Gdk.RGBA(1, 1, 1, 1)
-			row_id = row[0]
-			subject = row[1]
-			contact_id = row[2]
-			contact_name = row[3]
-			timed_seconds = row[4]
-			time_formatted = row[5]
-			dated_for = row[6]
-			date_formatted = row[7]
-			tag_id = row[8]
-			tag_name = row[9]
-			if tag_id == None:
-				tag_id = 0
-				tag_name = ''
-			else:
-				rgba.red = row[10]
-				rgba.green = row[11]
-				rgba.blue = row[12]
-				rgba.alpha = row[13]
-			phone_number = row[14]
-			call_received_time = row[15]
-			c_r_time_formatted = row[16]
-			to_do = row[17]
-			parent_iter = self.resource_store.append(None,[row_id, subject, 
-													contact_id,contact_name, 
-													False, timed_seconds, 
-													time_formatted, 
-													date_formatted, tag_id, 
-													tag_name, rgba, 
-													phone_number,
-													call_received_time,
-													c_r_time_formatted, to_do])
-			self.add_resource_children (row_id, parent_iter, finished)
-
-	def add_resource_children (self, parent_id, parent_iter, finished):
-		self.cursor.execute("SELECT "
-								"rm.id, "
-								"subject, "
-								"COALESCE(contact_id, 0), "
-								"COALESCE(name, ''), "
-								"to_char(timed_seconds, 'SS')::bigint, "
-								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
-								"dated_for, "
-								"format_date(dated_for), "
-								"rmt.id, "
-								"tag, "
-								"red, "
-								"green, "
-								"blue, "
-								"alpha, "
-								"phone_number, "
-								"call_received_time, "
-								"format_timestamp(call_received_time), "
-								"to_do "
-							"FROM resources AS rm "
-							"LEFT JOIN resource_tags AS rmt "
-							"ON rmt.id = rm.tag_id "
-							"LEFT JOIN contacts "
-							"ON rm.contact_id = contacts.id "
-							"WHERE rm.parent_id = %s "
-							"AND (finished != %s OR finished IS NULL) "
-							"AND diary != True", 
-							(parent_id, finished ))
-		for row in self.cursor.fetchall():
-			rgba = Gdk.RGBA(1, 1, 1, 1)
-			row_id = row[0]
-			subject = row[1]
-			contact_id = row[2]
-			contact_name = row[3]
-			timed_seconds = row[4]
-			time_formatted = row[5]
-			dated_for = row[6]
-			date_formatted = row[7]
-			tag_id = row[8]
-			tag_name = row[9]
-			if tag_id == None:
-				tag_id = 0
-				tag_name = ''
-			else:
-				rgba.red = row[10]
-				rgba.green = row[11]
-				rgba.blue = row[12]
-				rgba.alpha = row[13]
-			phone_number = row[14]
-			call_received_time = row[15]
-			c_r_time_formatted = row[16]
-			to_do = row[17]
-			parent = self.resource_store.append(parent_iter,
-															[row_id, 
-															subject, 
-															contact_id, 
-															contact_name, 
-															False, 
-															timed_seconds, 
-															time_formatted, 
-															date_formatted, 
-															tag_id, 
-															tag_name, rgba, 
-															phone_number,
-															call_received_time,
-															c_r_time_formatted,
-															to_do])
-			self.add_resource_children (row_id, parent, finished)
+			if row_id == id_:
+				self.builder.get_object('treeview-selection1').select_iter(iter_)
+		if new == True:
+			treeview = self.builder.get_object('treeview1')
+			c = treeview.get_column(0)
+			path = self.resource_store.get_path(iter_)
+			treeview.set_cursor(path, c, True)
 		
+	def time_clock_project_clicked (self, button):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			self.show_message("Please select a row")
+			return
+		resource_id = model[path][0]
+		subject = model[path][1]
+		self.builder.get_object('project_name_entry').set_text(subject)
+		dialog = self.builder.get_object('time_clock_create_dialog')
+		result = dialog.run()
+		dialog.hide()
+		if result != Gtk.ResponseType.ACCEPT:
+			return
+		subject  = self.builder.get_object('project_name_entry').get_text()
+		try:
+			self.cursor.execute("INSERT INTO time_clock_projects "
+								"(name, start_date, active, permanent, "
+								"resource_id) "
+								"VALUES (%s, now(), True, False, %s)"
+								"ON CONFLICT (resource_id) "
+								"DO UPDATE SET name = %s "
+								"WHERE time_clock_projects.resource_id = %s", 
+								(subject, resource_id, subject, resource_id))
+		except Exception as e:
+			self.show_message (e)
+			self.db.rollback ()
+			return
+		self.db.commit()
+		if self.builder.get_object('time_clock_checkbutton').get_active() == True:
+			if not self.time_clock:
+				import time_clock
+				self.time_clock = time_clock.TimeClockGUI(self.main)
+			else:
+				self.time_clock.present()
+
 	def older_than_entry_icon_released (self, entry, icon, event):
 		self.older_than_calendar.set_relative_to(entry)
 		self.older_than_calendar.show()
@@ -616,9 +428,14 @@ class ResourceManagementGUI:
 	def no_date_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
-		model[path][7] = ''
-		p = path[0]
-		self.save_row (str(p))
+		if path == []:
+			return
+		id_ = model[path][0]
+		self.cursor.execute("UPDATE resources "
+							"SET dated_for = NULL "
+							"WHERE id = %s", ( id_, ))
+		self.db.commit()
+		self.populate_resource_store(id_)
 		self.dated_for_calendar.hide()
 
 	def to_do_toggled (self, renderer, path):
@@ -628,9 +445,37 @@ class ResourceManagementGUI:
 		self.cursor.execute("UPDATE resources SET to_do = %s "
 							"WHERE id = %s", (active, id_))
 		self.db.commit()
-
-
 		
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									str(message))
+		dialog.run()
+		dialog.destroy()
+
+	def treeview_key_release_event (self, treeview, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		path, col = treeview.get_cursor()
+		# only visible columns!!
+		columns = [c for c in treeview.get_columns() if c.get_visible()]
+		colnum = columns.index(col)
+		if keyname=="Tab" or keyname=="Esc":
+			if colnum + 1 < len(columns):
+				next_column = columns[colnum + 1]
+			else:
+				tmodel = treeview.get_model()
+				titer = tmodel.iter_next(tmodel.get_iter(path))
+				if titer is None:
+					titer = tmodel.get_iter_first()
+					path = tmodel.get_path(titer)
+					next_column = columns[0]
+			if keyname == 'Tab':
+				GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
+			elif keyname == 'Escape':
+				pass
 
 
-		
+
+
