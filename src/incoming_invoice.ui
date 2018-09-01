@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
@@ -89,6 +89,23 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkEntryCompletion" id="provider_completion">
+    <property name="model">service_provider_store</property>
+    <property name="text_column">1</property>
+    <signal name="match-selected" handler="provider_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Incoming Invoice</property>
@@ -97,6 +114,9 @@
     <property name="default_height">460</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -220,19 +240,21 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="model">service_provider_store</property>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">1</property>
                     <property name="id_column">0</property>
                     <signal name="changed" handler="service_provider_combo_changed" swapped="no"/>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                      <attributes>
-                        <attribute name="text">1</attribute>
-                      </attributes>
-                    </child>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5"/>
                       <attributes>
                         <attribute name="text">2</attribute>
                       </attributes>
+                    </child>
+                    <child internal-child="entry">
+                      <object class="GtkEntry">
+                        <property name="can_focus">True</property>
+                        <property name="completion">provider_completion</property>
+                      </object>
                     </child>
                   </object>
                   <packing>

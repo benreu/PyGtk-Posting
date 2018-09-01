@@ -45,6 +45,8 @@ class IncomingInvoiceGUI:
 		price_column = self.builder.get_object ('treeviewcolumn2')
 		price_renderer = self.builder.get_object ('cellrenderertext1')
 		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
+		provider_completion = self.builder.get_object('provider_completion')
+		provider_completion.set_match_func(self.provider_match_func)
 		
 		self.populating = False
 		self.service_provider_store = self.builder.get_object(
@@ -63,6 +65,13 @@ class IncomingInvoiceGUI:
 		self.window.show_all()
 		
 		self.file_data = None
+
+	def provider_match_func(self, completion, key, iter_):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.service_provider_store[iter_][1].lower():
+				return False
+		return True
 
 	def amount_focus_in_event (self, entry, event):
 		GLib.idle_add(self.highlight, entry)
@@ -115,14 +124,19 @@ class IncomingInvoiceGUI:
 	def service_provider_clicked (self, button):
 		import contacts
 		contacts.GUI(self.main)
+		
+	def provider_match_selected(self, completion, model, iter_):
+		provider_id = model[iter_][0]
+		self.builder.get_object('combobox1').set_active_id(provider_id)
 
 	def service_provider_combo_changed (self, combo):
 		if self.populating == True:
 			return
-		self.check_if_all_entries_valid ()
 		a_iter = combo.get_active_iter()
-		path = self.service_provider_store.get_path(a_iter)
-		contact_name = self.service_provider_store[path][1]
+		if a_iter == None:
+			return
+		self.check_if_all_entries_valid ()
+		contact_name = self.service_provider_store[a_iter][1]
 		self.builder.get_object('label14').set_label(contact_name)
 
 	def add_percentage_row_clicked (self, button):
