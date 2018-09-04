@@ -38,8 +38,23 @@ class Setup:
 		self.operation.set_embed_page_setup(True)
 		self.operation.connect('begin-print', self.begin_print, None)
 		self.operation.connect('draw-page', self.draw_page, None)
+		self.operation.connect('create-custom-widget', self.create_custom_widget, None)
 
 		self.doc = Poppler.Document.new_from_file(file_uri)
+
+	def create_custom_widget (self, operation, args):
+		operation.set_custom_tab_label('PyGtk Posting')
+		box = Gtk.Box (orientation = Gtk.Orientation.VERTICAL)
+		box.set_halign (Gtk.Align.CENTER)
+		button = Gtk.Button(label = "Cancel printing")
+		button.set_tooltip_text("This button really doesn't do anything, it is here for reference")
+		button.connect('clicked', self.cancel, operation)
+		box.pack_start(button, False, False, 50)
+		box.show_all()
+		return box
+
+	def cancel (self, button, operation):
+		operation.cancel()
 
 	def begin_print(self, operation, print_ctx, print_data):
 		operation.set_n_pages(self.doc.get_n_pages())
