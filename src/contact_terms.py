@@ -78,7 +78,7 @@ class ContactTermsGUI:
 			text3 = row[11]
 			text4 = row[12]
 			self.builder.get_object('entry1').set_text(name)
-			self.builder.get_object('checkbutton3').set_active(cash_only)
+			self.builder.get_object('cash_only').set_active(cash_only)
 			self.builder.get_object('spinbutton1').set_value(discount_percent)
 			self.builder.get_object('radiobutton1').set_active(paid_in_days_active)
 			self.builder.get_object('spinbutton2').set_value(paid_in_days)
@@ -93,7 +93,7 @@ class ContactTermsGUI:
 
 	def cash_only_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.builder.get_object('grid2').set_visible(not active)
+		#self.builder.get_object('grid2').set_visible(not active)
 
 	def paid_by_day_of_month_toggled (self, togglebutton):
 		active = togglebutton.get_active()
@@ -145,7 +145,7 @@ class ContactTermsGUI:
 
 	def save_button_clicked (self, button):
 		term_name = self.builder.get_object('entry1').get_text()
-		cash_only = self.builder.get_object('checkbutton3').get_active()
+		cash_only = self.builder.get_object('cash_only').get_active()
 		discount = self.builder.get_object('spinbutton1').get_value()
 		paid_in_days_active = self.builder.get_object('radiobutton1').get_active()
 		paid_in_days = self.builder.get_object('spinbutton2').get_value()
