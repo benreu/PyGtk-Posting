@@ -42,7 +42,6 @@ pygtk_posting_PYTHON = \
 	customer_statement.py \
 	printing.py \
 	dateutils.py \
-	contact_terms.py \
 	pricing.py \
 	incoming_invoice.py \
 	check_writing.py \
@@ -76,7 +75,6 @@ pygtk_posting_PYTHON = \
 	receive_orders.ui \
 	locations.ui \
 	customer_statement.ui \
-	contact_terms.ui \
 	incoming_invoice.ui \
 	product_search.py \
 	product_search.ui \
@@ -132,7 +130,9 @@ pygtk_posting_PYTHON = \
 	pdf_attachment.py \
 	pdf_attachment.ui \
 	contact_hub.py \
-	calculator.py
+	calculator.py \
+	customer_terms.py \
+	customer_terms.ui
 
 
 EXTRA_DIST = $(ui_DATA)
