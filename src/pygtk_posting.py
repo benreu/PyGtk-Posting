@@ -242,8 +242,8 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		payments_received.PaymentsReceivedGUI(self.db)
 
 	def customer_terms_clicked (self, menuitem):
-		import contact_terms
-		contact_terms.ContactTermsGUI(self.db)
+		import customer_terms
+		customer_terms.CustomerTermsGUI(self.db)
 				
 	def time_clock_history (self, widget):
 		from reports import time_clock_history
