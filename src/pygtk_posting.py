@@ -512,7 +512,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 
 	def resource_window (self, id_):
 		import resource_management
-		resource_management.ResourceManagementGUI(self.db, id_)
+		resource_management.ResourceManagementGUI(self, id_)
 		
 	def focus (self, widget = None, d = None):
 		self.populate_to_do_treeview()
