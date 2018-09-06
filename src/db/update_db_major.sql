@@ -15,3 +15,5 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+--version 0.5.0
+ALTER TABLE terms_and_discounts DROP COLUMN IF EXISTS markup_percent;
