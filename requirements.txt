@@ -1,0 +1,12 @@
+python3-apsw
+python3-cairocffi
+python3-genshi
+python3-lxml
+python3-matplotlib
+python3-psycopg2
+python3-sane
+python3-tk
+python3-uno
+unoconv
+python3-xlrd
+python3-xlsxwriter
