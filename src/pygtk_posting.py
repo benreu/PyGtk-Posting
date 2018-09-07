@@ -22,7 +22,8 @@ from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
-from main import Connection, Admin, Accounts
+import main
+from main import Connection, Accounts
 
 UI_FILE = "src/pygtk_posting.ui"
 
@@ -30,7 +31,7 @@ invoice_window = None
 ccm = None
 
 
-class MainGUI (GObject.GObject, Connection, Admin, Accounts):
+class MainGUI (GObject.GObject, Connection, Accounts):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
@@ -38,7 +39,6 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
 	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
-	admin = False
 	log_file = None
 	def __init__(self):
 		GObject.GObject.__init__(self)
@@ -159,11 +159,11 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 			ccm.window.present()
 
 	def admin_login_clicked (self, menuitem):
-		if menuitem.get_label() == "Admin logout":
+		if main.is_admin == True:
 			self.set_admin_menus (False)
 			menuitem.set_label("Admin login")
-			return
-		self.check_admin (False)
+		else:
+			self.check_admin (False)
 
 	def set_admin_menus (self, value):
 		self.builder.get_object('menuitem10').set_sensitive(value)
@@ -177,8 +177,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 		self.builder.get_object('menuitem64').set_sensitive(value)
 		self.builder.get_object('menuitem49').set_sensitive(value)
 		self.builder.get_object('menuitem80').set_sensitive(value)
-		self.admin = value
-		self.set_admin(value)
+		main.is_admin = value
 
 	def blank_clicked (self, button):
 		pass
@@ -408,7 +407,7 @@ class MainGUI (GObject.GObject, Connection, Admin, Accounts):
 
 	def check_admin (self, external = True):
 		"check for admin, external option to show extra alert for not being admin"
-		if self.admin == False:
+		if main.is_admin == False:
 			dialog = self.builder.get_object('admin_dialog')
 			self.builder.get_object('label21').set_visible(external)
 			result = dialog.run()

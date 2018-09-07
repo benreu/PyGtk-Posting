@@ -247,15 +247,7 @@ class Connection:
 			print (e.args)
 			return False, None, None
 
-class Admin:
-	is_admin = False
-	@staticmethod
-	def set_admin (value):
-		Admin.is_admin = value
-
-	@staticmethod
-	def get_admin ():
-		return Admin.is_admin
+is_admin = False
 
 cur_dir = os.getcwd()
 if cur_dir.split("/")[1] == "usr":

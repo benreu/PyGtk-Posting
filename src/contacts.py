@@ -18,7 +18,8 @@ from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-from main import Connection, Admin
+from main import Connection
+import main
 
 dev = None
 
@@ -27,16 +28,16 @@ UI_FILE = "src/contacts.ui"
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
-class GUI(Connection, Admin):
-	def __init__(self, main, contact_id = 0):
+class GUI (Connection):
+	def __init__(self, main_class, contact_id = 0):
 		#Connection.__init__(self)
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.db = main.db
+		self.main = main_class
+		self.db = main_class.db
 		self.cursor = self.get_cursor()
 		self.contact_id = contact_id
 		
@@ -80,7 +81,7 @@ class GUI(Connection, Admin):
 		else:
 			self.select_contact ()
 
-		if self.main.admin == True:
+		if main.is_admin == True:
 			self.builder.get_object('treeview1').set_tooltip_column(0)
 
 		self.initiate_mailing_info()
@@ -100,7 +101,7 @@ class GUI(Connection, Admin):
 		mailing_lists.MailingListsGUI(self.main)
 
 	def customer_markup_percent_clicked (self, button):
-		if self.get_admin() == False:
+		if main.is_admin == False:
 			return
 		self.window.present()
 		import customer_markup_percent
@@ -207,7 +208,7 @@ class GUI(Connection, Admin):
 		self.populate_tax_exemptions ()
 
 	def terms_clicked (self, button):
-		if self.get_admin() == False:
+		if main.is_admin == False:
 			return
 		self.window.present()
 		import contact_terms
@@ -264,7 +265,7 @@ class GUI(Connection, Admin):
 	def delete_file_clicked (self, widget):
 		dialog = self.builder.get_object('dialog1')
 		combo = self.builder.get_object('comboboxtext3')
-		if self.get_admin() == False:
+		if main.is_admin == False:
 			self.builder.get_object('button17').set_sensitive(False)
 			self.builder.get_object('label17').set_label("You are not admin !")
 		else:

@@ -17,7 +17,7 @@
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess
-import spell_check
+import spell_check, main
 
 UI_FILE = "src/products.ui"
 
@@ -52,7 +52,7 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class ProductsGUI:
-	def __init__(self, main, product_id = None, product_location_tab = False, 
+	def __init__(self, main_class, product_id = None, product_location_tab = False, 
 					manufactured = False):
 
 		self.previous_keyname = None
@@ -61,15 +61,15 @@ class ProductsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.db = main.db
+		self.main = main_class
+		self.db = main_class.db
 		self.cursor = self.db.cursor()
 		self.repopulated = False
 		self.populating = True
-		self.handler_id = main.connect("products_changed", self.populate_product_store)
-		self.builder.get_object('combobox1').set_model(main.product_expense_acc)
-		self.builder.get_object('combobox2').set_model(main.product_revenue_acc)
-		self.builder.get_object('combobox3').set_model(main.product_inventory_acc)
+		self.handler_id = main_class.connect("products_changed", self.populate_product_store)
+		self.builder.get_object('combobox1').set_model(main_class.product_expense_acc)
+		self.builder.get_object('combobox2').set_model(main_class.product_revenue_acc)
+		self.builder.get_object('combobox3').set_model(main_class.product_inventory_acc)
 
 		textview = self.builder.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
@@ -101,7 +101,7 @@ class ProductsGUI:
 			self.builder.get_object('notebook1').set_current_page(1)
 		if manufactured == True:
 			self.builder.get_object('radiobutton3').set_active(True)
-		if self.main.admin == True:
+		if main.is_admin == True:
 			self.builder.get_object('treeview2').set_tooltip_column(0)
 		
 		self.window = self.builder.get_object('window')
