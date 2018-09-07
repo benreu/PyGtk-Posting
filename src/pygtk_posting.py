@@ -23,7 +23,7 @@ from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
 from db import database_tools
 import main
-from main import Connection, Accounts
+from main import Accounts
 
 UI_FILE = "src/pygtk_posting.ui"
 
@@ -31,7 +31,7 @@ invoice_window = None
 ccm = None
 
 
-class MainGUI (GObject.GObject, Connection, Accounts):
+class MainGUI (GObject.GObject, Accounts):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
@@ -59,7 +59,6 @@ class MainGUI (GObject.GObject, Connection, Accounts):
 			print ("Non-fatal: %s when trying to retrieve sys args" % e)
 			database_to_connect = None
 			self.set_admin_menus(True) # started from Anjuta, developer mode
-			import main
 			main.dev_mode = True
 			self.builder.get_object('menuitem35').set_label("Admin logout")
 
@@ -74,7 +73,7 @@ class MainGUI (GObject.GObject, Connection, Accounts):
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		result, db_connection, self.db_name = self.connect_to_db(database_to_connect)
+		result, db_connection, self.db_name = main.connect_to_db(database_to_connect)
 		if result == True:
 			self.db = db_connection
 			self.window.set_title('PyGtk Posting (%s)' % self.db_name)

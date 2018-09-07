@@ -18,7 +18,6 @@ from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-from main import Connection
 import main
 
 dev = None
@@ -28,7 +27,7 @@ UI_FILE = "src/contacts.ui"
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
-class GUI (Connection):
+class GUI:
 	def __init__(self, main_class, contact_id = 0):
 		#Connection.__init__(self)
 
@@ -38,7 +37,7 @@ class GUI (Connection):
 
 		self.main = main_class
 		self.db = main_class.db
-		self.cursor = self.get_cursor()
+		self.cursor = self.db.cursor()
 		self.contact_id = contact_id
 		
 		self.name_widget = self.builder.get_object('entry1')

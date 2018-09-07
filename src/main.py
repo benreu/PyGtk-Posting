@@ -18,48 +18,20 @@
 from gi.repository import Gtk
 import psycopg2, apsw, os
 
-class Connection:
-	database = None
-	@staticmethod
-	def get_cursor ():
-		return Connection.database.cursor()
+cursor = None
 
-	@staticmethod
-	def connect_to_db (name):
-		Connection.database = name
-		cursor_sqlite = get_apsw_cursor ()
-		if name == None:
-			for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
-				sql_database = row[0]
-		else:
-			sql_database = name
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
-		try:
-			Connection.database = psycopg2.connect (dbname = sql_database, 
-													host = sql_host, 
-													user = sql_user, 
-													password = sql_password, 
-													port = sql_port)
-			return True, Connection.database, sql_database
-		except psycopg2.OperationalError as e:
-			print (e.args)
-			return False, None, None
-			
-class Accounts(Connection):
+class Accounts:
 	expense_acc = Gtk.TreeStore(int, str)
 	revenue_acc = Gtk.TreeStore(int, str)
 	product_expense_acc = Gtk.TreeStore(str, str)
 	product_inventory_acc = Gtk.TreeStore(str, str)
 	product_revenue_acc = Gtk.TreeStore(str, str)
 	def __init__ (self):
-		Connection.__init__(self)
+		pass
+		
 	@staticmethod
 	def populate_accounts ():
-		cursor = Connection.get_cursor()
+		global cursor
 		Accounts.expense_acc.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
 							"AND parent_number IS NULL")
@@ -116,11 +88,10 @@ class Accounts(Connection):
 				show = True
 			if show == False:
 				Accounts.product_inventory_acc.remove(parent)
-		cursor.close()
 
 	@staticmethod
 	def populate_child_product_inventory (number, parent):
-		cursor = Connection.get_cursor()
+		global cursor
 		show = False
 		cursor.execute("SELECT number, name, inventory_account, is_parent "
 							"FROM gl_accounts WHERE parent_number = %s",
@@ -139,12 +110,11 @@ class Accounts(Connection):
 					c_show = True
 				if c_show == False:
 					Accounts.product_inventory_acc.remove(p)
-		cursor.close()
 		return show
 
 	@staticmethod
 	def populate_child_revenue (number, parent):
-		cursor = Connection.get_cursor()
+		global cursor
 		show = False
 		cursor.execute("SELECT number, name, is_parent "
 							"FROM gl_accounts WHERE parent_number = %s",
@@ -154,11 +124,10 @@ class Accounts(Connection):
 			name = row[1]
 			p = Accounts.revenue_acc.append(parent,[number, name])
 			Accounts.populate_child_revenue(number, p)
-		cursor.close()
 
 	@staticmethod
 	def populate_child_product_revenue (number, parent):
-		cursor = Connection.get_cursor()
+		global cursor
 		show = False
 		cursor.execute("SELECT number, name, revenue_account, is_parent "
 							"FROM gl_accounts WHERE parent_number = %s",
@@ -177,12 +146,11 @@ class Accounts(Connection):
 					c_show = True
 				if c_show == False:
 					Accounts.product_revenue_acc.remove(p)
-		cursor.close()
 		return show
 
 	@staticmethod
 	def populate_child_product_expense (number, parent):
-		cursor = Connection.get_cursor()
+		global cursor
 		show = False
 		cursor.execute("SELECT number, name, expense_account, is_parent "
 							"FROM gl_accounts WHERE parent_number = %s",
@@ -201,12 +169,11 @@ class Accounts(Connection):
 					c_show = True
 				if c_show == False:
 					Accounts.product_expense_acc.remove(p)
-		cursor.close()
 		return show
 
 	@staticmethod
 	def populate_child_expense (number, parent):
-		cursor = Connection.get_cursor()
+		global cursor
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE "
 							"parent_number = %s", (number,))
 		for row in cursor.fetchall():
@@ -214,38 +181,31 @@ class Accounts(Connection):
 			name = row[1]
 			p = Accounts.expense_acc.append(parent,[number, name])
 			Accounts.populate_child_expense(number, p)
-		cursor.close()
-		
-class Connection:
-	database = None
-	@staticmethod
-	def get_cursor ():
-		return Connection.database.cursor()
 
-	@staticmethod
-	def connect_to_db (name):
-		Connection.database = name
-		cursor_sqlite = get_apsw_cursor ()
-		if name == None:
-			for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
-				sql_database = row[0]
-		else:
-			sql_database = name
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
-		try:
-			Connection.database = psycopg2.connect (dbname = sql_database, 
-													host = sql_host, 
-													user = sql_user, 
-													password = sql_password, 
-													port = sql_port)
-			return True, Connection.database, sql_database
-		except psycopg2.OperationalError as e:
-			print (e.args)
-			return False, None, None
+def connect_to_db (name):
+	global cursor
+	cursor_sqlite = get_apsw_cursor ()
+	if name == None:
+		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
+			sql_database = row[0]
+	else:
+		sql_database = name
+	for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sql_user = row[0]
+		sql_password = row[1]
+		sql_host = row[2]
+		sql_port = row[3]
+	try:
+		database = psycopg2.connect (dbname = sql_database, 
+												host = sql_host, 
+												user = sql_user, 
+												password = sql_password, 
+												port = sql_port)
+		cursor = database.cursor()
+		return True, database, sql_database
+	except psycopg2.OperationalError as e:
+		print (e.args)
+		return False, None, None
 
 is_admin = False
 
