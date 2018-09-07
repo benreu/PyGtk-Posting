@@ -257,6 +257,12 @@ class Admin:
 	def get_admin ():
 		return Admin.is_admin
 
+cur_dir = os.getcwd()
+if cur_dir.split("/")[1] == "usr":
+	ui_directory = "/usr/local/share/pygtk_posting/ui/"
+else:
+	ui_directory = os.path.join(os.getcwd(), "src")
+
 
 dev_mode = False
 preferences_path = None
