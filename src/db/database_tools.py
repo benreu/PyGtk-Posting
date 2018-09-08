@@ -221,7 +221,7 @@ class GUI:
 		self.db = psycopg2.connect( database= db_name, host= sql_host, 
 								user=sql_user, password = sql_password, 
 								port = sql_port)
-		self.db_name = db
+		#self.db_name = db_name
 		if not self.create_tables ():
 			self.close_db (db_name)
 			return
