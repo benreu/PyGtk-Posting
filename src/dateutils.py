@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GObject, GLib
 from datetime import datetime, date, timedelta
-from main import Connection
+from main import cursor
 import time
 
 PARSE_STRING = "%b %d %Y"
@@ -142,7 +142,7 @@ def seconds_to_compact_string (start_seconds):
 
 #### calendar class ####
 
-class DateTimeCalendar (Gtk.Popover, Connection):
+class DateTimeCalendar (Gtk.Popover):
 	'''A Gtk Calendar within a Gtk Popover that recognizes Python datetimes'''
 	__gsignals__ = { 'day_selected': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())}
 	
@@ -241,8 +241,8 @@ class DateTimeCalendar (Gtk.Popover, Connection):
 		self.set_datetime (date_time)
 
 	def day_selected (self, calendar, date_label, fiscal_label, override):
+		global cursor
 		date_time = self.get_datetime ()
-		cursor = self.get_cursor()
 		cursor.execute("SELECT id FROM fiscal_years "
 							"WHERE active = True AND %s >= start_date "
 							"AND %s <= end_date", (date_time, date_time))
@@ -263,7 +263,6 @@ class DateTimeCalendar (Gtk.Popover, Connection):
 				self.timeout = None		
 		date_label.set_label(str(date_string))
 		self.emit('day-selected')
-		cursor.close()
 
 	def force_show (self):
 		self.show()
