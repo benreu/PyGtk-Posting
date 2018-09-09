@@ -15,4 +15,5 @@ python_PYTHON = database_tools.py \
 	insert_basic.sql \
 	update_db_major.sql \
 	update_db_minor.sql \
-	version.py
+	version.py \
+	version.ui
