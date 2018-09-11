@@ -20,7 +20,7 @@ from multiprocessing import Queue, Process
 from queue import Empty
 import main
 
-dev = None
+
 
 UI_FILE = "src/contacts.ui"
 
@@ -28,6 +28,7 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class GUI:
+	scanner = None
 	def __init__(self, main_class, contact_id = 0):
 		#Connection.__init__(self)
 
@@ -161,11 +162,10 @@ class GUI:
 		self.check_scan_button_validity ()
 				
 	def scan_file_clicked (self, widget):
-		global device
-		if device == None:
+		if self.scanner == None:
 			device_address = self.builder.get_object("combobox2").get_active_id()
-			device = sane.open(device_address)
-		document = device.scan()
+			self.scanner = sane.open(device_address)
+		document = self.scanner.scan()
 		misc_file_radiobutton = self.builder.get_object("radiobutton6")
 		if misc_file_radiobutton.get_active() == True: #scan misc. file
 			file_name = self.builder.get_object("entry16").get_text()
@@ -592,6 +592,8 @@ class GUI:
 		self.populating = False
 		
 	def destroy(self, window):
+		if self.scanner != None:
+			self.scanner.close()
 		self.cursor.close()
 
 	def tax_exempt_clicked(self, widget):
