@@ -43,4 +43,9 @@ ALTER TABLE resource_tags ALTER COLUMN alpha SET NOT NULL;
 --					VALUES ('To do', 0, 0, 0, 1, False)
 
 ALTER TABLE time_clock_projects ADD COLUMN IF NOT EXISTS resource_id bigint UNIQUE REFERENCES resources ON UPDATE RESTRICT ON DELETE RESTRICT;
+-- version 0.4.3
+ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS ext_price numeric (12, 2) DEFAULT 0.00;
+UPDATE credit_memo_items SET ext_price = (qty * price) WHERE ext_price IS NULL;
+ALTER TABLE credit_memo_items ALTER COLUMN ext_price SET NOT NULL;
+
 
