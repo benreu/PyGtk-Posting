@@ -66,7 +66,7 @@ class ManufacturingGUI:
 
 	def reprint_serial_number_clicked (self, button):
 		barcode = self.builder.get_object('spinbutton3').get_value_as_int()
-		self.print_serial_number(barcode)
+		self.print_serial_number(barcode, 1)
 
 	def print_serial_number_clicked (self, button):
 		serial_start = self.builder.get_object('spinbutton2').get_value_as_int()
