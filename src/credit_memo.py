@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import subprocess, re
+import subprocess, re, psycopg2
 from dateutils import DateTimeCalendar
 
 UI_FILE = "src/credit_memo.ui"
@@ -52,8 +52,8 @@ class CreditMemoGUI:
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
-		window = self.builder.get_object('window1')
-		window.show_all()
+		self.window = self.builder.get_object('window1')
+		self.window.show_all()
 		
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -62,10 +62,73 @@ class CreditMemoGUI:
 				return False
 		return True
 
+	def product_renderer_changed (self, combo, path, tree_iter):
+		invoice_item_id = self.product_store[tree_iter][0]
+		product_name = self.product_store[tree_iter][1]
+		_iter= self.credit_items_store.get_iter (path)
+		self.credit_items_store[_iter][6] = int(invoice_item_id)
+		self.credit_items_store[_iter][3] = product_name
+		self.save_line(_iter)
+
 	def product_editing_started (self, renderer, combo, path):
 		entry = combo.get_child()
 		entry.set_completion(self.builder.get_object('product_completion'))
 	
+	def price_edited (self, cellrenderer, path, text):
+		row_id = self.credit_items_store[path][0]
+		try:
+			self.cursor.execute("UPDATE credit_memo_items "
+								"SET (price, ext_price) = (%s, qty*%s) "
+								"WHERE id = %s "
+								"RETURNING price::text, ext_price::text", 
+								(text, text, row_id))
+			self.db.commit()
+		except psycopg2.DataError as e:
+			self.show_message(str(e))
+			self.db.rollback()
+			return
+		for row in self.cursor.fetchall():
+			price = row[0]
+			ext_price = row[1]
+		self.credit_items_store[path][5] = price
+		self.credit_items_store[path][6] = ext_price
+
+	def qty_edited (self, cellrenderertext, path, text):
+		row_id = self.credit_items_store[path][0]
+		try:
+			self.cursor.execute("UPDATE credit_memo_items "
+								"SET (qty, ext_price) = (%s, %s*price) "
+								"WHERE id = %s "
+								"RETURNING qty::text, ext_price::text", 
+								(text, text, row_id))
+			self.db.commit()
+		except psycopg2.DataError as e:
+			self.show_message(str(e))
+			self.db.rollback()
+			return
+		for row in self.cursor.fetchall():
+			qty = row[0]
+			ext_price = row[1]
+		self.credit_items_store[path][1] = qty
+		self.credit_items_store[path][6] = ext_price
+
+	def tax_edited (self, cellrenderertext, path, text):
+		row_id = self.credit_items_store[path][0]
+		try:
+			self.cursor.execute("UPDATE credit_memo_items "
+								"SET tax = %s "
+								"WHERE id = %s "
+								"RETURNING tax::text", 
+								(text, row_id))
+			self.db.commit()
+		except psycopg2.DataError as e:
+			self.show_message(str(e))
+			self.db.rollback()
+			return
+		for row in self.cursor.fetchall():
+			tax = row[0]
+		self.credit_items_store[path][7] = tax
+
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
 		for text in split_search_text:
@@ -96,34 +159,43 @@ class CreditMemoGUI:
 
 	def select_customer(self, customer_id):
 		self.customer_id = customer_id
-		self.cursor.execute("SELECT id FROM credit_memos "
-							"WHERE (customer_id, posted) = (%s, False)", 
+		self.cursor.execute("SELECT "
+								"address, COALESCE(cm.id, NULL) "
+							"FROM contacts AS c "
+							"LEFT JOIN credit_memos AS cm "
+							"ON cm.customer_id = c.id "
+							"WHERE c.id = %s", 
 							(customer_id,))
 		for row in self.cursor.fetchall():
-			self.credit_memo_id = row[0]
-			self.populate_credit_memo ()
-			break
+			address = row[0]
+			self.credit_memo_id = row[1]
+			self.builder.get_object('address_entry').set_text(address)
+		self.populate_credit_memo ()
+		if self.populate_product_store ():
+			self.builder.get_object('menuitem2').set_sensitive(True)
+			self.builder.get_object('button1').set_sensitive(True)
+			self.builder.get_object('button2').set_sensitive(True)
 		else:
-			self.credit_items_store.clear()
-			self.credit_memo_id = None
-		self.populate_product_store ()
-		self.builder.get_object('menuitem2').set_sensitive(True)
+			self.show_message ("There are no returnable "
+								"products for this customer!\n"
+								"You will not be able to create a credit memo.")
 
 	def populate_credit_memo (self):
 		c = self.db.cursor()
 		self.credit_items_store.clear()
 		c.execute("SELECT "
 						"cmi.id, "
-						"cmi.qty, "
+						"cmi.qty::text, "
 						"p.id, "
 						"p.name, "
 						"p.ext_name, "
-						"cmi.price::float, "
+						"cmi.price::text, "
+						"cmi.ext_price::text, "
+						"cmi.tax::text, "
 						"cmi.invoice_item_id, "
 						"ili.invoice_id, "
 						"date_returned::text, "
 						"format_date(date_returned)," 
-						"cmi.tax, "
 						"COALESCE(sn.serial_number, '') "
 					"FROM credit_memo_items AS cmi "
 					"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
@@ -147,6 +219,10 @@ class CreditMemoGUI:
 					"ORDER BY p.name", (self.customer_id,))
 		for row in c.fetchall():
 			self.product_store.append(row)
+			continue
+		else:        # this customer has bought no products yet
+			c.close()
+			return False
 		c.close()
 
 	def product_combo_changed (self, combo):
@@ -241,11 +317,6 @@ class CreditMemoGUI:
 		invoice_item_id = self.credit_items_store[_iter][6]
 		tax = self.credit_items_store[_iter][10]
 		if row_id == 0:
-			c.execute("INSERT INTO credit_memo_items "
-						"(credit_memo_id, qty, invoice_item_id, "
-							"price, date_returned, tax) "
-						"VALUES (%s, %s, %s, %s, now(), %s) RETURNING id", 
-						(self.credit_memo_id, qty, invoice_item_id, price, tax))
 			row_id = c.fetchone()[0]
 			self.credit_items_store[_iter][0] = row_id
 		else:
@@ -255,6 +326,20 @@ class CreditMemoGUI:
 							(qty, invoice_item_id, price, tax, row_id))
 		self.db.commit()
 		c.close()
+
+	def new_item_clicked (self, button):
+		c = self.db.cursor()
+		self.check_credit_memo_id()
+		invoice_item_id = self.product_store[0][0]
+		c.execute("INSERT INTO credit_memo_items "
+					"(credit_memo_id, qty, invoice_item_id, "
+						"price, date_returned, tax) "
+					"VALUES (%s, 1, %s, 1.00, now(), "
+						"(SELECT tax FROM invoice_items WHERE id = %s)"
+					") RETURNING id", 
+					(self.credit_memo_id, invoice_item_id, invoice_item_id))
+		
+		self.credit_items_store.append([0,1,0,'','','1.00',0,0,'','',0.00,'']) 
 
 	def check_credit_memo_id (self):
 		if self.credit_memo_id == None:
@@ -273,7 +358,17 @@ class CreditMemoGUI:
 					"JOIN "
 					")", ())
 		c.close()
-
+	
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
+		
+		
 ########################  py3o template to document generator
 
 	def create_odt(self ):
@@ -308,19 +403,24 @@ class CreditMemoGUI:
 			company.fax = row[8]
 			company.email = row[9]
 			company.website = row[10]
-			company.tax_number = row[11]		
+			company.tax_number = row[11]
 		items = list()
+		'''self.cursor.execute("SELECT qty, p.name, p.ext_name, price, ii.tax "
+							"FROM credit_memo_items AS cmi "
+							"JOIN invoice_items AS ii "
+								"ON ii.id = cmi.invoice_item_id "
+							"JOIN products AS p ON p.id = ii.product_id")'''
 		for i in self.credit_items_store:
 			item = Item()
-			item.qty = round(i[1], 1)
+			item.qty = i[1]
 			product_id = i[2]
 			item.product = i[3]
 			ext_name = i[4]
 			if ext_name != "":
 				item.ext_name = " , " + i[4]
-			item.price = '${:,.2f}'.format(i[5])
-			item.tax = '${:,.2f}'.format(i[10])
-			#item.ext_price = '${:,.2f}'.format(i[11])
+			item.price = i[5]
+			item.ext_price = i[6]
+			item.tax = i[7]
 			items.append(item)
 
 		document = Item()
