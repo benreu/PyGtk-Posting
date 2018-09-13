@@ -278,7 +278,7 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
                     </child>
                     <child>
                       <object class="GtkRadioButton" id="radiobutton4">
-                        <property name="label" translatable="yes">Kit</property>
+                        <property name="label" translatable="yes">Job</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>

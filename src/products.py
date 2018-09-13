@@ -509,7 +509,7 @@ class ProductsGUI:
 								"OR id = %s ORDER BY name", (self.product_id,))
 		elif self.builder.get_object('radiobutton4').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
-								"WHERE (deleted, kit) = (False, True) "
+								"WHERE (deleted, job) = (False, True) "
 								"OR id = %s ORDER BY name", (self.product_id,))
 		elif self.builder.get_object('radiobutton5').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
