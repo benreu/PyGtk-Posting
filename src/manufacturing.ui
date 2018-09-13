@@ -455,13 +455,12 @@ Usually starts at the last used serial number plus one.</property>
             <property name="margin_top">10</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkButton" id="button4">
-                <property name="label" translatable="yes">Update</property>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">History</property>
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="update_clicked" swapped="no"/>
+                <signal name="clicked" handler="history_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -470,12 +469,13 @@ Usually starts at the last used serial number plus one.</property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton">
-                <property name="label" translatable="yes">History</property>
+              <object class="GtkButton" id="button4">
+                <property name="label" translatable="yes">Update</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="history_clicked" swapped="no"/>
+                <signal name="clicked" handler="update_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
