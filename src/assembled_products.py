@@ -145,7 +145,7 @@ class AssembledProductsGUI:
 
 	def products_clicked (self, button):
 		import products
-		products.ProductsGUI(self.db)
+		products.ProductsGUI(self.main)
 
 	def qty_edited(self, widget, path, text):
 		self.assembly_store[path][1] = int(text) # update all values related to the price and quantity
