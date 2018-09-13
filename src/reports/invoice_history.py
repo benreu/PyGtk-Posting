@@ -19,12 +19,13 @@
 from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
+import main
 
 UI_FILE = "src/reports/invoice_history.ui"
 
 class InvoiceHistoryGUI:
 	exists = True
-	def __init__(self, main):
+	def __init__(self, main_class):
 
 		self.search_iter = 0
 		
@@ -45,8 +46,8 @@ class InvoiceHistoryGUI:
 		treeview.drag_source_set_target_list([dnd])
 
 		self.customer_id = 0
-		self.main = main
-		self.db = main.db
+		self.main = main_class
+		self.db = main_class.db
 		self.cursor = self.db.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
@@ -64,7 +65,7 @@ class InvoiceHistoryGUI:
 		amount_renderer = self.builder.get_object ('cellrenderertext5')
 		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
 		
-		if self.main.admin == True:
+		if main.is_admin == True:
 			self.builder.get_object('treeview2').set_tooltip_column(0)
 		
 		self.product_name = ''
