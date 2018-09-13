@@ -28,8 +28,6 @@
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
       <column type="gchararray"/>
-      <!-- column-name serial_number -->
-      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="credit_products_store">
@@ -103,20 +101,12 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
-      <object class="GtkMenuItem" id="menuitem3">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Apply serial number</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="apply_serial_number_activated" swapped="no"/>
-      </object>
-    </child>
-    <child>
       <object class="GtkMenuItem" id="menuitem1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Delete item</property>
         <property name="use_underline">True</property>
+        <signal name="activate" handler="delete_item_clicked" swapped="no"/>
       </object>
     </child>
     <child>
@@ -147,6 +137,11 @@
       <!-- column-name serial_number -->
       <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkAdjustment" id="tax_adjustment">
+    <property name="upper">10000</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -280,6 +275,7 @@
                 <property name="can_focus">True</property>
                 <property name="model">credit_items_store</property>
                 <signal name="cursor-changed" handler="treeview_cursor_changed" swapped="no"/>
+                <signal name="key-release-event" handler="treeview_key_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
@@ -378,7 +374,9 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">7</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext14">
+                      <object class="GtkCellRendererSpin">
+                        <property name="adjustment">tax_adjustment</property>
+                        <property name="digits">2</property>
                         <signal name="edited" handler="tax_edited" swapped="no"/>
                       </object>
                       <attributes>
@@ -414,26 +412,7 @@
                         <signal name="editing-started" handler="date_returned_editing_started" swapped="no"/>
                       </object>
                       <attributes>
-                        <attribute name="text">10</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn8">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Serial number</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">12</property>
-                    <child>
-                      <object class="GtkCellRendererCombo" id="cellrenderercombo1">
-                        <property name="editable">True</property>
-                        <property name="model">serial_number_store</property>
-                        <property name="text_column">1</property>
-                        <signal name="changed" handler="serial_number_changed" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="text">12</attribute>
+                        <attribute name="text">11</attribute>
                       </attributes>
                     </child>
                   </object>

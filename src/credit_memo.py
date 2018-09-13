@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk, GLib
 import subprocess, re, psycopg2
 from dateutils import DateTimeCalendar
 
@@ -62,58 +62,156 @@ class CreditMemoGUI:
 				return False
 		return True
 
+	def product_match_selected (self, completion, model, _iter_):
+		invoice_item_id = model[_iter_][0]
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows ()
+		if path == []:
+			return
+		self.update_product_row (path, invoice_item_id)
+
 	def product_renderer_changed (self, combo, path, tree_iter):
 		invoice_item_id = self.product_store[tree_iter][0]
-		product_name = self.product_store[tree_iter][1]
-		_iter= self.credit_items_store.get_iter (path)
-		self.credit_items_store[_iter][6] = int(invoice_item_id)
-		self.credit_items_store[_iter][3] = product_name
-		self.save_line(_iter)
+		self.update_product_row (path, invoice_item_id)
+
+	def update_product_row (self, path, invoice_item_id):
+		c = self.db.cursor()
+		iter_ = self.credit_items_store.get_iter (path)
+		self.check_row_id (iter_)
+		row_id = self.credit_items_store[iter_][0]
+		c.execute(	"WITH tax_cte AS "
+						"(SELECT tr.rate / 100 AS rate, price "
+						"FROM invoice_items AS ii "
+						"JOIN tax_rates AS tr ON tr.id = ii.tax_rate_id "
+						"WHERE ii.id = %s"
+						") "
+					"UPDATE credit_memo_items AS cmi "
+					"SET (invoice_item_id, "
+						"price, "
+						"ext_price, "
+						"tax"
+						") "
+					"= "
+						"(%s, "
+						"(SELECT price FROM tax_cte), "
+						"qty * (SELECT price FROM tax_cte), "
+						"qty * ext_price * (SELECT rate FROM tax_cte)"
+						") "
+					"WHERE id = %s; " #new sql; this updates values
+					"SELECT "
+						"p.id, "
+						"p.name, "
+						"p.ext_name, "
+						"ii.price::text, "
+						"cmi.ext_price::text, "
+						"cmi.tax::text, "
+						"cmi.invoice_item_id, "
+						"ii.invoice_id "
+					"FROM credit_memo_items AS cmi "
+					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
+					"JOIN products AS p ON p.id = ii.product_id "
+					"WHERE cmi.id = %s", 
+					(invoice_item_id, invoice_item_id, row_id, row_id))
+		for row in c.fetchall():
+			self.credit_items_store[iter_][2] = row[0]
+			self.credit_items_store[iter_][3] = row[1]
+			self.credit_items_store[iter_][4] = row[2]
+			self.credit_items_store[iter_][5] = row[3]
+			self.credit_items_store[iter_][6] = row[4]
+			self.credit_items_store[iter_][7] = row[5]
+			self.credit_items_store[iter_][8] = row[6]
+			self.credit_items_store[iter_][9] = row[7]
+		self.db.commit()
 
 	def product_editing_started (self, renderer, combo, path):
+		renderer_invoice = Gtk.CellRendererText()
+		combo.pack_start(renderer_invoice, True)
+		combo.add_attribute(renderer_invoice, "text", 2)
+		renderer_date = Gtk.CellRendererText()
+		combo.pack_start(renderer_date, True)
+		combo.add_attribute(renderer_date, "text", 3)
 		entry = combo.get_child()
 		entry.set_completion(self.builder.get_object('product_completion'))
 	
 	def price_edited (self, cellrenderer, path, text):
-		row_id = self.credit_items_store[path][0]
+		c = self.db.cursor()
+		iter_ = self.credit_items_store.get_iter(path)
+		self.check_row_id (iter_)
+		row_id = self.credit_items_store[iter_][0]
+		invoice_item_id = self.credit_items_store[iter_][8]
 		try:
-			self.cursor.execute("UPDATE credit_memo_items "
-								"SET (price, ext_price) = (%s, qty*%s) "
-								"WHERE id = %s "
-								"RETURNING price::text, ext_price::text", 
-								(text, text, row_id))
+			c.execute(	"WITH tax_cte AS "
+							"(SELECT tr.rate / 100 AS rate "
+							"FROM invoice_items AS ii "
+							"JOIN tax_rates AS tr ON tr.id = ii.tax_rate_id "
+							"WHERE ii.id = %s"
+							") "
+						"UPDATE credit_memo_items "
+							"SET "
+								"(price, "
+								"ext_price, "
+								"tax) "
+							"= "
+								"(%s, "
+								"qty*%s, "
+								"qty*%s*(SELECT rate FROM tax_cte)) "
+							"WHERE id = %s "
+							"RETURNING price::text, ext_price::text, tax::text", 
+							(invoice_item_id, text, text, text, row_id))
 			self.db.commit()
 		except psycopg2.DataError as e:
 			self.show_message(str(e))
 			self.db.rollback()
 			return
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			price = row[0]
 			ext_price = row[1]
-		self.credit_items_store[path][5] = price
-		self.credit_items_store[path][6] = ext_price
+			tax = row[2]
+		self.credit_items_store[iter_][5] = price
+		self.credit_items_store[iter_][6] = ext_price
+		self.credit_items_store[iter_][7] = tax
+		c.close ()
 
 	def qty_edited (self, cellrenderertext, path, text):
-		row_id = self.credit_items_store[path][0]
+		c = self.db.cursor()
+		iter_ = self.credit_items_store.get_iter(path)
+		self.check_row_id (iter_)
+		row_id = self.credit_items_store[iter_][0]
 		try:
-			self.cursor.execute("UPDATE credit_memo_items "
-								"SET (qty, ext_price) = (%s, %s*price) "
-								"WHERE id = %s "
-								"RETURNING qty::text, ext_price::text", 
-								(text, text, row_id))
+			c.execute(	"WITH tax_cte AS "
+							"(SELECT tr.rate / 100 AS rate "
+							"FROM invoice_items AS ii "
+							"JOIN tax_rates AS tr ON tr.id = ii.tax_rate_id "
+							"WHERE ii.id = %s"
+							") "
+						"UPDATE credit_memo_items "
+						"SET "
+							"(qty, "
+							"ext_price, "
+							"tax) "
+						"= "
+							"(%s, "
+							"%s*price, "
+							"%s*price*(SELECT rate FROM tax_cte)) "
+						"WHERE id = %s "
+						"RETURNING qty::text, ext_price::text", 
+						(invoice_item_id, text, text, text, row_id))
 			self.db.commit()
 		except psycopg2.DataError as e:
 			self.show_message(str(e))
 			self.db.rollback()
 			return
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			qty = row[0]
 			ext_price = row[1]
-		self.credit_items_store[path][1] = qty
-		self.credit_items_store[path][6] = ext_price
+		self.credit_items_store[iter_][1] = qty
+		self.credit_items_store[iter_][6] = ext_price
+		c.close()
 
-	def tax_edited (self, cellrenderertext, path, text):
-		row_id = self.credit_items_store[path][0]
+	def tax_edited (self, cellrendererspin, path, text):
+		iter_ = self.credit_items_store.get_iter(path)
+		self.check_row_id (iter_)
+		row_id = self.credit_items_store[iter_][0]
 		try:
 			self.cursor.execute("UPDATE credit_memo_items "
 								"SET tax = %s "
@@ -127,7 +225,7 @@ class CreditMemoGUI:
 			return
 		for row in self.cursor.fetchall():
 			tax = row[0]
-		self.credit_items_store[path][7] = tax
+		self.credit_items_store[iter_][7] = tax
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -157,7 +255,7 @@ class CreditMemoGUI:
 		customer_id = model[_iter][0]
 		self.select_customer (customer_id)
 
-	def select_customer(self, customer_id):
+	def select_customer (self, customer_id):
 		self.customer_id = customer_id
 		self.cursor.execute("SELECT "
 								"address, COALESCE(cm.id, NULL) "
@@ -171,14 +269,10 @@ class CreditMemoGUI:
 			self.credit_memo_id = row[1]
 			self.builder.get_object('address_entry').set_text(address)
 		self.populate_credit_memo ()
-		if self.populate_product_store ():
-			self.builder.get_object('menuitem2').set_sensitive(True)
-			self.builder.get_object('button1').set_sensitive(True)
-			self.builder.get_object('button2').set_sensitive(True)
-		else:
-			self.show_message ("There are no returnable "
-								"products for this customer!\n"
-								"You will not be able to create a credit memo.")
+		self.populate_product_store ()
+		self.builder.get_object('menuitem2').set_sensitive(True)
+		self.builder.get_object('button1').set_sensitive(True)
+		self.builder.get_object('button2').set_sensitive(True)
 
 	def populate_credit_memo (self):
 		c = self.db.cursor()
@@ -195,14 +289,12 @@ class CreditMemoGUI:
 						"cmi.invoice_item_id, "
 						"ili.invoice_id, "
 						"date_returned::text, "
-						"format_date(date_returned)," 
-						"COALESCE(sn.serial_number, '') "
+						"format_date(date_returned) " 
 					"FROM credit_memo_items AS cmi "
 					"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
 					"JOIN products AS p ON p.id = ili.product_id "
-					"LEFT JOIN serial_number_history AS snh ON snh.credit_memo_item_id = cmi.id "
-					"LEFT JOIN serial_numbers AS sn ON sn.id = snh.serial_number_id "
-					"WHERE credit_memo_id = %s", (self.credit_memo_id,))
+					"WHERE (credit_memo_id, cmi.deleted) = (%s, False) ", 
+					(self.credit_memo_id,))
 		for row in c.fetchall():
 			self.credit_items_store.append(row)
 		c.close()
@@ -219,48 +311,7 @@ class CreditMemoGUI:
 					"ORDER BY p.name", (self.customer_id,))
 		for row in c.fetchall():
 			self.product_store.append(row)
-			continue
-		else:        # this customer has bought no products yet
-			c.close()
-			return False
 		c.close()
-
-	def product_combo_changed (self, combo):
-		invoice_item_id = combo.get_active_id()
-		if invoice_item_id != None:
-			self.invoice_item_selected(invoice_item_id)
-
-	def product_match_selected (self, completion, model, _iter_):
-		invoice_item_id = model[_iter_][0]
-		self.invoice_item_selected(invoice_item_id)
-
-	def invoice_item_selected (self, invoice_item_id):
-		self.check_credit_memo_id()
-		c = self.db.cursor()
-		c.execute("SELECT "
-					"0, "
-					"1.0, "
-					"product_id, "
-					"p.name, "
-					"p.ext_name, "
-					"ili.price, "
-					"ili.id, "
-					"i.id, "
-					"i.dated_for::text, "
-					"format_date(i.dated_for), "
-					"ili.tax::float, "
-					"'' "
-					"FROM products AS p "
-					"JOIN invoice_items AS ili ON ili.product_id = p.id "
-					"JOIN invoices AS i ON ili.invoice_id = i.id "
-					"WHERE ili.id = %s ", (invoice_item_id,))
-		for row in c.fetchall():
-			_iter = self.credit_items_store.append(row)
-			self.save_line(_iter)
-		c.close()
-
-	def apply_serial_number_activated (self, menuitem):
-		pass
 
 	def treeview_cursor_changed (self, treeview):
 		selection = treeview.get_selection()
@@ -289,9 +340,18 @@ class CreditMemoGUI:
 	def return_day_selected (self, calendar):
 		date = calendar.get_date()
 		_iter = self.credit_items_store.get_iter(self.path)
-		self.credit_items_store[_iter][8] = str(date)
-		#self.credit_items_store[_iter][9] = date_formatted
-		self.save_line(_iter)
+		row_id = self.credit_items_store[_iter][0]
+		self.cursor.execute("UPDATE credit_memo_items "
+							"SET date_returned = %s "
+							"WHERE id = %s "
+							"RETURNING date_returned::text, "
+								"format_date (date_returned)", 
+							(date, row_id))
+		for row in self.cursor.fetchall():
+			date = row[0]
+			date_formatted = row[1]
+			self.credit_items_store[_iter][10] = str(date)
+			self.credit_items_store[_iter][11] = date_formatted
 
 	def date_entry_icon_released (self, entry, icon, position):
 		self.date_calendar.set_relative_to(entry)
@@ -304,26 +364,25 @@ class CreditMemoGUI:
 
 	def date_returned_editing_started (self, renderer, entry, path):
 		self.path = path
-		current_date = self.credit_items_store[path][8]
+		current_date = self.credit_items_store[path][10]
 		self.date_returned_calendar.set_date(current_date)
-		self.date_returned_calendar.show_all()
+		GLib.idle_add(self.date_returned_calendar.show_all)
 		entry.destroy()
 
-	def save_line (self, _iter):
+	def check_row_id (self, _iter):
 		c = self.db.cursor()
 		row_id = self.credit_items_store[_iter][0]
 		qty = self.credit_items_store[_iter][1]
 		price = self.credit_items_store[_iter][5]
-		invoice_item_id = self.credit_items_store[_iter][6]
-		tax = self.credit_items_store[_iter][10]
+		tax = self.credit_items_store[_iter][7]
+		invoice_item_id = self.credit_items_store[_iter][8]
 		if row_id == 0:
+			c.execute("INSERT INTO credit_memo_items VALUES "
+							"(qty, invoice_item_id, price, tax, date_returned) "
+							"= (%s, %s, %s, %s, %s) RETURNING id", 
+							(qty, invoice_item_id, price, tax, self.date))
 			row_id = c.fetchone()[0]
 			self.credit_items_store[_iter][0] = row_id
-		else:
-			c.execute("UPDATE credit_memo_items SET "
-							"(qty, invoice_item_id, price, tax) "
-							"= (%s, %s, %s, %s) WHERE id = %s", 
-							(qty, invoice_item_id, price, tax, row_id))
 		self.db.commit()
 		c.close()
 
@@ -331,15 +390,63 @@ class CreditMemoGUI:
 		c = self.db.cursor()
 		self.check_credit_memo_id()
 		invoice_item_id = self.product_store[0][0]
-		c.execute("INSERT INTO credit_memo_items "
-					"(credit_memo_id, qty, invoice_item_id, "
-						"price, date_returned, tax) "
-					"VALUES (%s, 1, %s, 1.00, now(), "
-						"(SELECT tax FROM invoice_items WHERE id = %s)"
-					") RETURNING id", 
-					(self.credit_memo_id, invoice_item_id, invoice_item_id))
+		c.execute("SELECT "
+						"cmi.id, "
+						"cmi.qty::text, "
+						"p.id, "
+						"p.name, "
+						"p.ext_name, "
+						"cmi.price::text, "
+						"cmi.ext_price::text, "
+						"cmi.tax::text, "
+						"cmi.invoice_item_id, "
+						"ii.invoice_id, "
+						"date_returned::text, "
+						"format_date(date_returned) " 
+					"FROM credit_memo_items AS cmi "
+					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
+					"JOIN products AS p ON p.id = ii.product_id "
+					"WHERE ii.id = %s LIMIT 1", 
+					(invoice_item_id,))
+		for row in c.fetchall():
+			iter_ = self.credit_items_store.append(row)
+			treeview = self.builder.get_object('treeview1')
+			column = treeview.get_column(0)
+			path = self.credit_items_store.get_path(iter_)
+			treeview.set_cursor(path, column, True)
+	
+	def delete_item_clicked (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return 
+		row_id = model[path][0]
+		self.cursor.execute("UPDATE credit_memo_items "
+							"SET deleted = True "
+							"WHERE id = %s", (row_id,))
+		self.db.commit()
+		self.populate_credit_memo ()
 		
-		self.credit_items_store.append([0,1,0,'','','1.00',0,0,'','',0.00,'']) 
+	def treeview_key_release_event (self, treeview, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		path, col = treeview.get_cursor()
+		# only visible columns!!
+		columns = [c for c in treeview.get_columns() if c.get_visible()]
+		colnum = columns.index(col)
+		if keyname=="Tab" or keyname=="Esc":
+			if colnum + 1 < len(columns):
+				next_column = columns[colnum + 1]
+			else:
+				tmodel = treeview.get_model()
+				titer = tmodel.iter_next(tmodel.get_iter(path))
+				if titer is None:
+					titer = tmodel.get_iter_first()
+					path = tmodel.get_path(titer)
+					next_column = columns[0]
+			if keyname == 'Tab':
+				GLib.idle_add(treeview.set_cursor, path, next_column, True)
+			elif keyname == 'Escape':
+				pass 
 
 	def check_credit_memo_id (self):
 		if self.credit_memo_id == None:
