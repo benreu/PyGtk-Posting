@@ -51,5 +51,9 @@ ALTER TABLE credit_memo_items ALTER COLUMN ext_price SET NOT NULL;
 ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS deleted boolean DEFAULT False;
 UPDATE credit_memo_items SET deleted = False WHERE deleted IS NULL;
 ALTER TABLE credit_memo_items ALTER COLUMN deleted SET NOT NULL;
+-- version 0.4.5
+ALTER TABLE products ADD COLUMN IF NOT EXISTS assembly_notes varchar DEFAULT '';
+UPDATE products SET assembly_notes = '' WHERE assembly_notes IS NULL;
+ALTER TABLE products ALTER COLUMN assembly_notes SET NOT NULL;
 
 

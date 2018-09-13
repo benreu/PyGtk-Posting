@@ -244,15 +244,26 @@ class AssembledProductsGUI:
 							"WHERE manufactured_product_id = %s",
 							(self.manufactured_product_id,))
 		for row in self.cursor.fetchall():
-			line_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			cost = row[4]
-			remark = row[5]
-			ext_cost = cost * qty
 			self.assembly_store.append(row)
+		self.populating = True
+		self.cursor.execute ("SELECT assembly_notes "
+								"FROM products WHERE id = %s", 
+								(self.manufactured_product_id,))
+		for row in self.cursor.fetchall():
+			self.builder.get_object('notes_buffer').set_text(row[0])
 		self.calculate_totals ()
+		self.populating = False
+
+	def notes_buffer_changed (self, textbuffer):
+		if self.populating == True:
+			return
+		start = textbuffer.get_start_iter()
+		end = textbuffer.get_end_iter()
+		notes = textbuffer.get_text(start, end, True)
+		self.cursor.execute("UPDATE products SET assembly_notes = %s "
+							"WHERE id = %s", 
+							(notes,  self.manufactured_product_id))
+		self.db.commit()
 		
 	def delete_item_clicked (self, button):
 		self.delete_entry()

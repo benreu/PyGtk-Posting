@@ -119,11 +119,13 @@ class ManufacturingGUI:
 		self.builder.get_object('label10').set_label(str(qty + serial_number))
 		
 	def product_selected (self):
-		self.cursor.execute("SELECT name, serial_number FROM products "
+		self.cursor.execute("SELECT name, serial_number, assembly_notes "
+							"FROM products "
 							"WHERE id = %s", (self.product_id,))
 		for row in self.cursor.fetchall():
 			product_name = row[0]
 			serial_number = row[1]
+			self.builder.get_object('notes_buffer').set_text(row[2])
 		self.builder.get_object('spinbutton2').set_value(int(serial_number))
 		self.builder.get_object('serial_adjustment').set_lower(int(serial_number))
 		self.builder.get_object('label2').set_label(" units of '%s'" % product_name)
