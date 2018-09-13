@@ -200,11 +200,12 @@ class DateTimeCalendar (Gtk.Popover):
 		return date_time
 
 	def get_text(self):
+		global cursor
 		if self.error == True:
 			return ''
-		date_time = self.get_datetime ()
-		date_string = datetime.strftime(date_time, PARSE_STRING)
-		return date_string
+		date = self.get_datetime().date()
+		cursor.execute("SELECT format_date(%s)", (date,))
+		return cursor.fetchone()[0]
 
 	def set_datetime (self, date_time):
 		date_time = str(date_time)
