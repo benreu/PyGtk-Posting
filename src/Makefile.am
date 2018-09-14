@@ -132,7 +132,8 @@ pygtk_posting_PYTHON = \
 	contact_hub.py \
 	calculator.py \
 	customer_terms.py \
-	customer_terms.ui
+	customer_terms.ui \
+	credit_memo_template.py
 
 
 EXTRA_DIST = $(ui_DATA)
