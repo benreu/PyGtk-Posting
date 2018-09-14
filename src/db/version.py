@@ -20,71 +20,105 @@ from gi.repository import Gtk, GLib
 UI_FILE = "src/db/version.ui"
 
 
-def check_db_version (main, version):
+class CheckVersion :
+	def __init__ (self, main, version):
 
-	from db import database_tools
-	d = database_tools.GUI(main.db)
-	d.window.hide()
-	while Gtk.events_pending():
-		Gtk.main_iteration()
-	d.upgrade_old_version()
-	window = main.window
-	builder = Gtk.Builder()
-	builder.add_from_file(UI_FILE)
-	for dialog in (['db_major_upgrade', 'db_newer_dialog', 'db_minor_upgrade']):
-		builder.get_object(dialog).set_transient_for(window)
-	db = main.db
-	c = db.cursor()
-	c.execute("SELECT "
-				"major_version::text, "	
-				"minor_version::text, "
-				"version "
-				"FROM settings")
-	for row in c.fetchall():
-		major_db_version = row[0]
-		minor_db_version = row[1]
-		old_version = row[2]
-	#if old_version < '132':
-	#	raise Exception("Please upgrade to version 0.4.0 before continuing")
-	major_posting_version = version[2:3]
-	minor_posting_version = version[4:5]
-	if major_db_version < major_posting_version:  # major version upgrade 
-		dialog = builder.get_object('db_major_upgrade')
-		result = dialog.run()
-		dialog.hide()
-		if result == Gtk.ResponseType.ACCEPT:
-			d.update_tables_major ()
-			d.update_tables_minor ()
-			c.execute("UPDATE settings "
-						"SET (major_version, minor_version) = (%s, %s)", 
-						(major_posting_version, minor_posting_version))
-		else:
-			GLib.idle_add(Gtk.main_quit)
-	elif major_db_version > major_posting_version:  # major version behind
-		dialog = builder.get_object('db_newer_dialog')
-		result = dialog.run()
-		dialog.hide()
-		if result == Gtk.ResponseType.DELETE_EVENT:
-			GLib.idle_add(Gtk.main_quit)
-	elif minor_db_version < minor_posting_version:   # minor version upgrade
-		dialog = builder.get_object('db_minor_upgrade')
-		result = dialog.run()
-		dialog.hide()
-		if result == Gtk.ResponseType.ACCEPT:
-			d.update_tables_minor ()
-			c.execute("UPDATE settings "
-						"SET minor_version = %s", (minor_posting_version,))
-		else:
-			GLib.idle_add(Gtk.main_quit)
-	elif minor_db_version > minor_posting_version:  # minor version behind
-		dialog = builder.get_object('db_newer_dialog')
-		result = dialog.run()
-		dialog.hide()
-		if result == Gtk.ResponseType.DELETE_EVENT:
-			GLib.idle_add(Gtk.main_quit)
-	d.window.destroy()
-	c.close()
-	db.commit()
+		from db import database_tools
+		d = database_tools.GUI(main.db)
+		d.window.hide()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
+		d.upgrade_old_version()
+		window = main.window
+		self.builder = Gtk.Builder()
+		self.builder.add_from_file(UI_FILE)
+		self.builder.connect_signals(self)
+		for dialog in (['db_major_upgrade', 'db_newer_dialog', 
+						'db_minor_upgrade', 'credit_memo_dialog']):
+			self.builder.get_object(dialog).set_transient_for(window)
+		self.db = main.db
+		c = self.db.cursor()
+		c.execute("SELECT "
+					"major_version::text, "	
+					"minor_version::text, "
+					"version "
+					"FROM settings")
+		for row in c.fetchall():
+			major_db_version = row[0]
+			minor_db_version = row[1]
+			old_version = row[2]
+		upgrade = True
+		if major_db_version < '4' and minor_db_version < '6':
+			self.populate_liabilities_store ()
+			dialog = self.builder.get_object('credit_memo_dialog')
+			response = dialog.run()
+			if response == Gtk.ResponseType.ACCEPT:
+				account = self.builder.get_object('account_combo').get_active_id()
+				c.execute("ALTER TABLE public.gl_account_flow "
+							"DROP COLUMN IF EXISTS id; "
+							"ALTER TABLE public.gl_account_flow "
+							"ADD PRIMARY KEY (function); "
+							"INSERT INTO gl_account_flow (function, account) "
+							"VALUES ('post_credit_memo', %s)", (account,))
+			elif response == Gtk.ResponseType.REJECT:
+				upgrade = False
+			else:
+				upgrade = False
+				GLib.idle_add(Gtk.main_quit)
+			dialog.hide()
+		if upgrade == True:
+			self.run_updates (version, major_db_version, minor_db_version)
+		d.window.destroy()
+
+	def populate_liabilities_store (self):
+		c = self.db.cursor()
+		store = self.builder.get_object('credit_memo_account_store')
+		c.execute("SELECT number::text, name FROM gl_accounts "
+					"WHERE (is_parent, type) = (False, 5)")
+		for row in c.fetchall():
+			store.append (row)
+		c.close()
+
+	def run_updates (self, version, major_db_version, minor_db_version):
+		c = self.db.cursor()
+		major_posting_version = version[2:3]
+		minor_posting_version = version[4:5]
+		if major_db_version < major_posting_version:  # major version upgrade 
+			dialog = self.builder.get_object('db_major_upgrade')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.ACCEPT:
+				d.update_tables_major ()
+				d.update_tables_minor ()
+				c.execute("UPDATE settings "
+							"SET (major_version, minor_version) = (%s, %s)", 
+							(major_posting_version, minor_posting_version))
+			else:
+				GLib.idle_add(Gtk.main_quit)
+		elif major_db_version > major_posting_version:  # major version behind
+			dialog = self.builder.get_object('db_newer_dialog')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.DELETE_EVENT:
+				GLib.idle_add(Gtk.main_quit)
+		elif minor_db_version < minor_posting_version:   # minor version upgrade
+			dialog = self.builder.get_object('db_minor_upgrade')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.ACCEPT:
+				d.update_tables_minor ()
+				c.execute("UPDATE settings "
+							"SET minor_version = %s", (minor_posting_version,))
+			else:
+				GLib.idle_add(Gtk.main_quit)
+		elif minor_db_version > minor_posting_version:  # minor version behind
+			dialog = self.builder.get_object('db_newer_dialog')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.DELETE_EVENT:
+				GLib.idle_add(Gtk.main_quit)
+		c.close()
+		self.db.commit()
 
 
 
