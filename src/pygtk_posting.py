@@ -95,7 +95,7 @@ class MainGUI (GObject.GObject, Accounts):
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
-		version.check_db_version(self, posting_version)
+		version.CheckVersion(self, posting_version)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
