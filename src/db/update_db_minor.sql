@@ -55,5 +55,13 @@ ALTER TABLE credit_memo_items ALTER COLUMN deleted SET NOT NULL;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS assembly_notes varchar DEFAULT '';
 UPDATE products SET assembly_notes = '' WHERE assembly_notes IS NULL;
 ALTER TABLE products ALTER COLUMN assembly_notes SET NOT NULL;
+-- version 0.4.6
+ALTER TABLE credit_memos ADD COLUMN IF NOT EXISTS dated_for date DEFAULT now();
+UPDATE credit_memos SET dated_for = now() WHERE dated_for IS NULL;
+ALTER TABLE credit_memos ALTER COLUMN dated_for SET NOT NULL;
+ALTER TABLE credit_memos ADD COLUMN IF NOT EXISTS comments varchar DEFAULT '';
+UPDATE credit_memos SET comments = '' WHERE comments IS NULL;
+ALTER TABLE credit_memos ALTER COLUMN comments SET NOT NULL;
+ALTER TABLE credit_memos ADD COLUMN IF NOT EXISTS pdf_data bytea;
 
 
