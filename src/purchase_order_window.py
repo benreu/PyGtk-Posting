@@ -496,6 +496,12 @@ class PurchaseOrderGUI:
 	def order_number_edited(self, widget, path, text):
 		order_number = text
 		product_id = self.p_o_store[path][2]
+		if product_id == 0:
+			self.show_message ("Please select a product first.\n"
+								"Alternatively, you can type in a "
+								"partial order number\nand select an "
+								"order number from the popup.")
+			return
 		if order_number != self.p_o_store[path][3]:
 			self.show_temporary_permanent_dialog(order_number, product_id)
 		self.p_o_store[path][3] = order_number
@@ -928,4 +934,13 @@ class PurchaseOrderGUI:
 	def calendar_entry_icon_release (self, widget, icon, void):
 		self.calendar.set_relative_to (widget)
 		self.calendar.show()
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
 
