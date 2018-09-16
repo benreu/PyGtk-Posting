@@ -369,7 +369,7 @@ class GUI:
 									"WHERE (customer_id, misc_income) = (%s, False)"
 									") pi, "
 									"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
-									"FROM credit_memos WHERE customer_id = %s"
+									"FROM credit_memos WHERE (customer_id, posted) = (%s, True)"
 									") cm "
 							") pt "
 						")"
