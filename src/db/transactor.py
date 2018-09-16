@@ -300,10 +300,26 @@ def post_credit_memo(db, credit_memo_id):
 					"(SELECT id FROM gl_transaction), "
 					"CURRENT_DATE"
 					")RETURNING id "
-				") "
-				"UPDATE credit_memos SET gl_entries_id = "
-					"(SELECT id FROM gl_entry) WHERE id = %s", 
-				(credit_memo_id, credit_memo_id)) 
+				"), "
+				"gl_tax_entry AS (INSERT INTO gl_entries "
+					"(debit_account,"
+					"amount, "
+					"gl_transaction_id, "
+					"date_inserted"
+					") "
+					"VALUES "
+					"((SELECT account FROM gl_account_flow "
+						"WHERE function = 'credit_memo_returned_taxes'), "
+					"(SELECT tax FROM credit_memos WHERE id = %s), "
+					"(SELECT id FROM gl_transaction), "
+					"CURRENT_DATE"
+					")RETURNING id "
+				")  "
+				"UPDATE credit_memos "
+					"SET (gl_entries_id, gl_entries_tax_id) = "
+					"((SELECT id FROM gl_entry), (SELECT id FROM gl_tax_entry))"
+					"WHERE id = %s", 
+				(credit_memo_id, credit_memo_id, credit_memo_id)) 
 	c.close()
 
 def post_invoice_receivables (db, amount, date, invoice_id, gl_entries_id):
