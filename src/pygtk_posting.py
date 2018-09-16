@@ -187,7 +187,7 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def contact_product_view_clicked (self, button):
 		import contact_product_view
-		contact_product_view.ContactProductViewGUI(self.db)
+		contact_product_view.ContactProductViewGUI(self)
 
 	def fiscal_year_activated (self, menuitem):
 		import fiscal_years

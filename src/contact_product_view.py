@@ -21,13 +21,14 @@ from gi.repository import Gtk, GLib
 UI_FILE = 'src/contact_product_view.ui'
 
 class ContactProductViewGUI :
-	def __init__ (self, db):
+	def __init__ (self, main):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.main = main
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
 		self.window = self.builder.get_object('window')
@@ -90,6 +91,26 @@ class ContactProductViewGUI :
 		for row in c.fetchall():
 			self.products_store.append(row)
 		c.close()
+
+	def contact_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.builder.get_object('contact_menu')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+
+	def product_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.builder.get_object('product_menu')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+
+	def contact_hub_activated (self, menuitem):
+		import contact_hub
+		contact_hub.ContactHubGUI(self.main, self.contact_id)
+
+	def product_hub_activated (self, menuitem):
+		import product_hub
+		product_hub.ProductHubGUI(self.main, self.product_id)
 
 	def contact_treeview_selection_changed (self, selection):
 		model, path = selection.get_selected_rows()
