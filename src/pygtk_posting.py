@@ -185,6 +185,10 @@ class MainGUI (GObject.GObject, Accounts):
 		from reports import deposits
 		deposits.DepositsGUI(self.db)
 
+	def contact_product_view_clicked (self, button):
+		import contact_product_view
+		contact_product_view.ContactProductViewGUI(self.db)
+
 	def fiscal_year_activated (self, menuitem):
 		import fiscal_years
 		fiscal_years.FiscalYearGUI(self.db)
