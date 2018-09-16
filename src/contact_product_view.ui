@@ -28,8 +28,12 @@
       <column type="gboolean"/>
     </columns>
   </object>
-  <object class="GtkTextBuffer" id="description_buffer"/>
-  <object class="GtkTextBuffer" id="notes_buffer"/>
+  <object class="GtkTextBuffer" id="description_buffer">
+    <signal name="changed" handler="description_changed" swapped="no"/>
+  </object>
+  <object class="GtkTextBuffer" id="notes_buffer">
+    <signal name="changed" handler="notes_changed" swapped="no"/>
+  </object>
   <object class="GtkListStore" id="products_store">
     <columns>
       <!-- column-name id -->
@@ -115,7 +119,9 @@
                         <property name="can_focus">True</property>
                         <property name="model">contacts_store</property>
                         <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
+                          <object class="GtkTreeSelection">
+                            <signal name="changed" handler="contact_treeview_selection_changed" swapped="no"/>
+                          </object>
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn">
@@ -128,6 +134,7 @@
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
                                 <property name="ellipsize">middle</property>
+                                <signal name="edited" handler="contact_name_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
@@ -144,6 +151,7 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <signal name="edited" handler="contact_ext_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">2</attribute>
@@ -154,7 +162,6 @@
                         <child>
                           <object class="GtkTreeViewColumn">
                             <property name="resizable">True</property>
-                            <property name="sizing">autosize</property>
                             <property name="title" translatable="yes">Address</property>
                             <property name="expand">True</property>
                             <property name="reorderable">True</property>
@@ -162,6 +169,8 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <property name="ellipsize">middle</property>
+                                <signal name="edited" handler="address_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">3</attribute>
@@ -178,6 +187,7 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <signal name="edited" handler="city_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">4</attribute>
@@ -194,6 +204,7 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <signal name="edited" handler="state_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">5</attribute>
@@ -210,6 +221,7 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <signal name="edited" handler="zip_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">6</attribute>
@@ -226,6 +238,7 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <signal name="edited" handler="phone_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">7</attribute>
@@ -240,7 +253,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">8</property>
                             <child>
-                              <object class="GtkCellRendererToggle"/>
+                              <object class="GtkCellRendererToggle">
+                                <signal name="toggled" handler="is_customer_toggled" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="active">8</attribute>
                               </attributes>
@@ -254,7 +269,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">9</property>
                             <child>
-                              <object class="GtkCellRendererToggle"/>
+                              <object class="GtkCellRendererToggle">
+                                <signal name="toggled" handler="is_vendor_toggled" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="active">9</attribute>
                               </attributes>
@@ -268,7 +285,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">10</property>
                             <child>
-                              <object class="GtkCellRendererToggle"/>
+                              <object class="GtkCellRendererToggle">
+                                <signal name="toggled" handler="is_service_provider_toggled" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="active">10</attribute>
                               </attributes>
@@ -293,6 +312,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="tooltip_text" translatable="yes">Notes</property>
+                        <property name="wrap_mode">word-char</property>
                         <property name="buffer">notes_buffer</property>
                       </object>
                     </child>
@@ -339,7 +359,9 @@
                         <property name="can_focus">True</property>
                         <property name="model">products_store</property>
                         <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
+                          <object class="GtkTreeSelection">
+                            <signal name="changed" handler="product_treeview_selection_changed" swapped="no"/>
+                          </object>
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn">
@@ -352,6 +374,7 @@
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
                                 <property name="ellipsize">middle</property>
+                                <signal name="edited" handler="product_name_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
@@ -368,6 +391,7 @@
                             <child>
                               <object class="GtkCellRendererText">
                                 <property name="editable">True</property>
+                                <signal name="edited" handler="product_ext_name_edited" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="text">2</attribute>
@@ -396,7 +420,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">5</property>
                             <child>
-                              <object class="GtkCellRendererToggle"/>
+                              <object class="GtkCellRendererToggle">
+                                <signal name="toggled" handler="is_sellable_edited" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="active">5</attribute>
                               </attributes>
@@ -410,7 +436,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">6</property>
                             <child>
-                              <object class="GtkCellRendererToggle"/>
+                              <object class="GtkCellRendererToggle">
+                                <signal name="toggled" handler="is_purchasable_edited" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="active">6</attribute>
                               </attributes>
@@ -424,7 +452,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">7</property>
                             <child>
-                              <object class="GtkCellRendererToggle"/>
+                              <object class="GtkCellRendererToggle">
+                                <signal name="toggled" handler="is_manufactured_edited" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="active">7</attribute>
                               </attributes>
@@ -449,6 +479,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="tooltip_text" translatable="yes">Description</property>
+                        <property name="wrap_mode">word-char</property>
                         <property name="buffer">description_buffer</property>
                       </object>
                     </child>

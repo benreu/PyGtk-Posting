@@ -32,10 +32,11 @@ class ContactProductViewGUI :
 
 		self.window = self.builder.get_object('window')
 		self.window.maximize()
+		self.contacts_store = self.builder.get_object('contacts_store')
+		self.products_store = self.builder.get_object('products_store')
 		self.populate_contacts()
 		self.populate_products()
 		self.window.show_all()
-		#self.window.set_keep_below(True)
 		self.size_widgets()
 
 	def size_widgets (self):
@@ -47,14 +48,11 @@ class ContactProductViewGUI :
 		self.builder.get_object('center_pane').set_position(width)
 		self.builder.get_object('notes_pane').set_position(height)
 		self.builder.get_object('description_pane').set_position(height)
-		#self.window.set_keep_below(False)
-		#self.window.present()
-		#self.window.maximize()
 
 	def populate_contacts (self):
-		store = self.builder.get_object('contacts_store')
-		store.clear()
-		self.cursor.execute("SELECT "
+		self.contacts_store.clear()
+		c = self.db.cursor()
+		c.execute("SELECT "
 								"id, "
 								"name, "
 								"ext_name, "
@@ -68,12 +66,12 @@ class ContactProductViewGUI :
 								"service_provider "
 								"FROM contacts WHERE deleted = False "
 								"ORDER BY name, ext_name")
-		for row in self.cursor.fetchall():
-			store.append(row)
+		for row in c.fetchall():
+			self.contacts_store.append(row)
+		c.close()
 
 	def populate_products (self):
-		store = self.builder.get_object('products_store')
-		store.clear()
+		self.products_store.clear()
 		c = self.db.cursor()
 		c.execute("SELECT "
 					"p.id, "
@@ -85,13 +83,172 @@ class ContactProductViewGUI :
 					"purchasable, "
 					"manufactured "
 					"FROM products AS p "
-					"JOIN products_markup_prices AS pmp ON pmp.product_id = p.id "
-					"JOIN customer_markup_percent AS cmp ON cmp.id = pmp.markup_id "
-					"WHERE p.deleted = False "
+					"LEFT JOIN products_markup_prices AS pmp ON pmp.product_id = p.id "
+					"LEFT JOIN customer_markup_percent AS cmp ON cmp.id = pmp.markup_id "
+					"WHERE (p.deleted, stock) = (False, True) "
 					"ORDER BY name, ext_name")
 		for row in c.fetchall():
-			store.append(row)
+			self.products_store.append(row)
+		c.close()
 
+	def contact_treeview_selection_changed (self, selection):
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		self.populating = True
+		self.contact_id = model[path][0]
+		self.cursor.execute("SELECT notes FROM contacts WHERE id = %s", 
+							(self.contact_id,))
+		notes = self.cursor.fetchone()[0]
+		self.builder.get_object('notes_buffer').set_text(notes)
+		self.populating = False
+
+	def product_treeview_selection_changed (self, selection):
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		self.populating = True
+		self.product_id = model[path][0]
+		self.cursor.execute("SELECT description FROM products WHERE id = %s", 
+							(self.product_id,))
+		description = self.cursor.fetchone()[0]
+		self.builder.get_object('description_buffer').set_text(description)
+		self.populating = False
+
+	def notes_changed (self, textbuffer):
+		if self.populating == True:
+			return
+		start = textbuffer.get_start_iter()
+		end = textbuffer.get_end_iter()
+		text = textbuffer.get_text(start, end, True)
+		self.cursor.execute("UPDATE contacts SET notes = %s "
+							"WHERE id = %s", (text, self.contact_id))
+		self.db.commit()
+
+	def description_changed (self, textbuffer):
+		if self.populating == True:
+			return
+		start = textbuffer.get_start_iter()
+		end = textbuffer.get_end_iter()
+		text = textbuffer.get_text(start, end, True)
+		self.cursor.execute("UPDATE products SET description = %s "
+							"WHERE id = %s", (text, self.product_id))
+		self.db.commit()
+
+	def contact_name_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET name = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][1] = text
+		self.db.commit()
+
+	def contact_ext_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET ext_name = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][2] = text
+		self.db.commit()
+
+	def address_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET address = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][3] = text
+		self.db.commit()
+
+	def city_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET city = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][4] = text
+		self.db.commit()
+
+	def state_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET state = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][5] = text
+		self.db.commit()
+
+	def zip_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET zip = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][6] = text
+		self.db.commit()
+
+	def phone_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE contacts SET phone = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][7] = text
+		self.db.commit()
+
+	def is_customer_toggled (self, cellrenderertoggle, path):
+		row_id = self.contacts_store[path][0]
+		active = not self.contacts_store[path][8]
+		self.cursor.execute("UPDATE contacts SET customer = %s WHERE id = %s", 
+							(active, row_id))
+		self.contacts_store[path][8] = active
+		self.db.commit()
+
+	def is_vendor_toggled (self, cellrenderertoggle, path):
+		row_id = self.contacts_store[path][0]
+		active = not self.contacts_store[path][9]
+		self.cursor.execute("UPDATE contacts SET vendor = %s WHERE id = %s", 
+							(active, row_id))
+		self.contacts_store[path][9] = active
+		self.db.commit()
+
+	def is_service_provider_toggled (self, cellrenderertoggle, path):
+		row_id = self.contacts_store[path][0]
+		active = not self.contacts_store[path][10]
+		self.cursor.execute("UPDATE contacts SET service_provider = %s "
+							"WHERE id = %s", (active, row_id))
+		self.contacts_store[path][10] = active
+		self.db.commit()
+
+	def product_name_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE products SET name = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][1] = text
+		self.db.commit()
+
+	def product_ext_name_edited (self, cellrenderertext, path, text):
+		row_id = self.contacts_store[path][0]
+		self.cursor.execute("UPDATE products SET ext_name = %s WHERE id = %s", 
+							(text, row_id))
+		self.contacts_store[path][2] = text
+		self.db.commit()
+
+	def is_sellable_edited (self, cellrenderertoggle, path):
+		row_id = self.contacts_store[path][0]
+		active = not self.contacts_store[path][5]
+		self.cursor.execute("UPDATE products SET sellable = %s "
+							"WHERE id = %s", (active, row_id))
+		self.contacts_store[path][5] = active
+		self.db.commit()
+
+	def is_purchasable_edited (self, cellrenderertoggle, path):
+		row_id = self.contacts_store[path][0]
+		active = not self.contacts_store[path][6]
+		self.cursor.execute("UPDATE products SET purchasable = %s "
+							"WHERE id = %s", (active, row_id))
+		self.contacts_store[path][6] = active
+		self.db.commit()
+
+	def is_manufactured_edited (self, cellrenderertoggle, path):
+		row_id = self.contacts_store[path][0]
+		active = not self.contacts_store[path][7]
+		self.cursor.execute("UPDATE products SET manufactured = %s "
+							"WHERE id = %s", (active, row_id))
+		self.contacts_store[path][7] = active
+		self.db.commit()
+
+		
+
+		
 
 
 		
