@@ -142,6 +142,11 @@ class Setup():
 							"WHERE statement_id IS NULL "
 							"AND customer_id = %s", 
 							(self.statement_id, self.customer_id))
+		self.cursor.execute("UPDATE credit_memos "
+							"SET statement_id = %s "
+							"WHERE statement_id IS NULL "
+							"AND customer_id = %s", 
+							(self.statement_id, self.customer_id))
 		self.db.commit()
 
 
