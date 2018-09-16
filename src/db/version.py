@@ -29,13 +29,13 @@ class CheckVersion :
 		while Gtk.events_pending():
 			Gtk.main_iteration()
 		d.upgrade_old_version()
-		window = main.window
+		self.window = main.window
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		for dialog in (['db_major_upgrade', 'db_newer_dialog', 
 						'db_minor_upgrade', 'credit_memo_dialog']):
-			self.builder.get_object(dialog).set_transient_for(window)
+			self.builder.get_object(dialog).set_transient_for(self.window)
 		self.db = main.db
 		c = self.db.cursor()
 		c.execute("SELECT "
@@ -48,7 +48,7 @@ class CheckVersion :
 			minor_db_version = row[1]
 			old_version = row[2]
 		upgrade = True
-		if major_db_version < '4' and minor_db_version < '6':
+		if major_db_version <= '4' and minor_db_version < '6':
 			self.populate_liabilities_store ()
 			dialog = self.builder.get_object('credit_memo_dialog')
 			response = dialog.run()
@@ -66,20 +66,39 @@ class CheckVersion :
 				upgrade = False
 				GLib.idle_add(Gtk.main_quit)
 			dialog.hide()
+		if major_db_version <= '4' and minor_db_version < '7':
+			self.populate_liabilities_store ()
+			label = "Select an account to post Credit Memo taxes to.\n"\
+					"These are taxes returned that have already been collected.\n"\
+					"Some states require these to be declared separately."
+			self.builder.get_object('message_label').set_label(label)
+			dialog = self.builder.get_object('credit_memo_dialog')
+			response = dialog.run()
+			if response == Gtk.ResponseType.ACCEPT:
+				account = self.builder.get_object('account_combo').get_active_id()
+				c.execute("INSERT INTO gl_account_flow (function, account) "
+							"VALUES ('credit_memo_returned_taxes', %s)", (account,))
+			elif response == Gtk.ResponseType.REJECT:
+				upgrade = False
+			else:
+				upgrade = False
+				GLib.idle_add(Gtk.main_quit)
+			dialog.hide()
 		if upgrade == True:
-			self.run_updates (version, major_db_version, minor_db_version)
+			self.run_updates (d, version, major_db_version, minor_db_version)
 		d.window.destroy()
 
 	def populate_liabilities_store (self):
 		c = self.db.cursor()
 		store = self.builder.get_object('credit_memo_account_store')
+		store.clear()
 		c.execute("SELECT number::text, name FROM gl_accounts "
 					"WHERE (is_parent, type) = (False, 5)")
 		for row in c.fetchall():
 			store.append (row)
 		c.close()
 
-	def run_updates (self, version, major_db_version, minor_db_version):
+	def run_updates (self, d, version, major_db_version, minor_db_version):
 		c = self.db.cursor()
 		major_posting_version = version[2:3]
 		minor_posting_version = version[4:5]
@@ -119,6 +138,15 @@ class CheckVersion :
 				GLib.idle_add(Gtk.main_quit)
 		c.close()
 		self.db.commit()
+		
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
 
 
 
