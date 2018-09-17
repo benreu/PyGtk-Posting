@@ -247,7 +247,7 @@ class GUI:
 
 	def execute_file (self, sql_file):
 		contents = sql_file.read()
-		commands = re.split(''';(?=(?:[^'"]|'[^']*'|"[^"]*")*$)''', contents)
+		commands = contents.split("--")
 		length = len(commands) - 1
 		if length == 0:
 			return
@@ -256,12 +256,12 @@ class GUI:
 		for index, command in enumerate(commands):
 			lines += command.count('\n')
 			self.progressbar.set_fraction(float(index) / float(length))
-			if index == length : 
-				continue # last line is blank
+			if index == 0 : 
+				continue # first command is blank
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 			try:
-				cursor.execute(command)
+				cursor.execute("--" + command)
 			except Exception as e:
 				sql_buffer = self.builder.get_object('sql_command_buffer')
 				error = 'Line number %d in %s:' % (lines + 1, sql_file.name)

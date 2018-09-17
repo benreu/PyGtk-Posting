@@ -1,19 +1,19 @@
--- update_db_minor.sql
---
--- Copyright (C) 2016 - reuben
---
--- This program is free software, you can redistribute it and/or modify
--- it under the terms of the GNU Lesser General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY, without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program. If not, see <http://www.gnu.org/licenses/>.
+/* update_db_minor.sql
+
+ Copyright (C) 2016 - reuben
+
+ This program is free software, you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY, without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 
 --version 0.4.1
@@ -39,8 +39,7 @@ ALTER TABLE resource_tags ALTER COLUMN red SET NOT NULL;
 ALTER TABLE resource_tags ALTER COLUMN blue SET NOT NULL;
 ALTER TABLE resource_tags ALTER COLUMN green SET NOT NULL;
 ALTER TABLE resource_tags ALTER COLUMN alpha SET NOT NULL;
---INSERT INTO resource_tags (tag, red, green, blue, alpha, finished) 
---					VALUES ('To do', 0, 0, 0, 1, False)
+--INSERT INTO resource_tags (tag, red, green, blue, alpha, finished) VALUES ('To do', 0, 0, 0, 1, False);
 
 ALTER TABLE time_clock_projects ADD COLUMN IF NOT EXISTS resource_id bigint UNIQUE REFERENCES resources ON UPDATE RESTRICT ON DELETE RESTRICT;
 -- version 0.4.3
@@ -63,5 +62,26 @@ ALTER TABLE credit_memos ADD COLUMN IF NOT EXISTS comments varchar DEFAULT '';
 UPDATE credit_memos SET comments = '' WHERE comments IS NULL;
 ALTER TABLE credit_memos ALTER COLUMN comments SET NOT NULL;
 ALTER TABLE credit_memos ADD COLUMN IF NOT EXISTS pdf_data bytea;
+--version 0.4.8
+CREATE OR REPLACE FUNCTION public.before_accounts_edited()
+	RETURNS trigger AS 
+$BODY$ 
+	DECLARE counter integer; 
+	BEGIN 
+		SELECT COUNT (id) FROM public.gl_entries WHERE debit_account = NEW.parent_number INTO counter; 
+			IF counter > 0 THEN RAISE EXCEPTION 'Account % is not allowed as a parent -> already used in gl_entries', NEW.parent_number; 
+		END IF; 
+		SELECT COUNT (id) FROM public.gl_entries WHERE credit_account = NEW.parent_number INTO counter; 
+			IF counter > 0 THEN RAISE EXCEPTION 'Account % is not allowed as a parent -> already used in gl_entries', NEW.parent_number; 
+		END IF; 
+		SELECT COUNT (function) FROM public.gl_account_flow WHERE account = NEW.parent_number INTO counter; 
+			IF counter > 0 THEN RAISE EXCEPTION 'Account % is not allowed as a parent -> already used in gl_account_flow', NEW.parent_number; 
+		END IF; 
+	RETURN NEW; 
+	END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
 
 
