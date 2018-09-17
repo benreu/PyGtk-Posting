@@ -51,6 +51,9 @@ class CreditMemoGUI:
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def window_destroy (self, window):
+		self.cursor.close()
 		
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -298,7 +301,7 @@ class CreditMemoGUI:
 								"COALESCE(dated_for, now())"
 							"FROM contacts AS c "
 							"LEFT JOIN credit_memos AS cm "
-							"ON cm.customer_id = c.id "
+							"ON cm.customer_id = c.id AND cm.posted = False "
 							"WHERE c.id = %s", 
 							(customer_id,))
 		for row in self.cursor.fetchall():
@@ -514,9 +517,11 @@ class CreditMemoGUI:
 												self.credit_items_store,
 												self.credit_memo_id,
 												self.customer_id)
-		self.credit_memo_template.print_pdf()
+		self.credit_memo_template.print_pdf(self.window)
 		self.credit_memo_template.post()
 		c.close()
+		self.db.commit()
+		self.window.destroy()
 
 	def view_document_activated (self, button):
 		if not self.credit_memo_template:
