@@ -75,7 +75,7 @@ class GUI():
 
 	def account_treerow_activated (self, treeview, path, treeviewcolumn = None):
 		treeiter = self.account_treestore.get_iter(path)
-		self.active_account_number = self.account_treestore.get_value(treeiter, 2)
+		self.active_account_number = self.account_treestore[treeiter][1]
 		self.check_if_used_account ()
 		self.check_if_deleteable_account()
 
@@ -105,15 +105,15 @@ class GUI():
 			self.parent_account_store.append([str(account_number), account_name])
 
 	def edit_account_clicked (self, menuitem):
-		self.cursor.execute("SELECT id, parent_number FROM gl_accounts "
+		self.cursor.execute("SELECT number, parent_number FROM gl_accounts "
 							"WHERE number = %s", (self.active_account_number,))
 		for row in self.cursor.fetchall():
 			if row[1] == None:
 				return #do not allow changing top level accounts
-			account_id = row[0]
+			account_number = row[0]
 			parent_number = row[1]
 		self.populate_parent_account_store()
-		self.builder.get_object('spinbutton3').set_value(self.active_account_number)
+		self.builder.get_object('spinbutton3').set_value(account_number)
 		self.builder.get_object('combobox1').set_active_id(str(parent_number))
 		dialog = self.builder.get_object('dialog3')
 		result = dialog.run()
@@ -122,8 +122,8 @@ class GUI():
 			account_number = self.builder.get_object('spinbutton3').get_value()
 			parent_number = self.builder.get_object('combobox1').get_active_id()
 			self.cursor.execute("UPDATE gl_accounts SET (number, parent_number) "
-								"= (%s, %s) WHERE id = %s", 
-								(account_number, parent_number, account_id))
+								"= (%s, %s) WHERE number = %s", 
+								(account_number, parent_number, account_number))
 			self.db.commit()
 			self.populate_account_treestore ()
 		
@@ -135,42 +135,38 @@ class GUI():
 
 	def populate_account_treestore (self):
 		self.account_treestore.clear()
-		self.cursor.execute("SELECT id, name, number, type FROM gl_accounts "
+		self.cursor.execute("SELECT name, number, type FROM gl_accounts "
 							"WHERE parent_number IS NULL ORDER BY number")
 		for row in self.cursor.fetchall():
-			account_id = row[0]
-			account_name = row[1]
-			account_number = row[2]
-			account_type = row[3]
+			account_name = row[0]
+			account_number = row[1]
+			account_type = row[2]
 			parent = self.account_treestore.append(None, 
-														[account_id, 
-														account_name, 
+														[account_name, 
 														account_number, 
 														account_type])
 			self.get_child_accounts (parent, account_number)
 
 	def get_child_accounts (self, parent_tree, parent_number):
-		self.cursor.execute("SELECT id, name, number, type FROM gl_accounts "
+		self.cursor.execute("SELECT name, number, type FROM gl_accounts "
 							"WHERE parent_number = %s ORDER BY number", 
 							(parent_number,))
 		for row in self.cursor.fetchall():
-			account_id = row[0]
-			account_name = row[1]
-			account_number = row[2]
-			account_type = row[3]
+			account_name = row[0]
+			account_number = row[1]
+			account_type = row[2]
 			parent = self.account_treestore.append(parent_tree, 
-														[account_id, 
-														account_name, 
+														[account_name, 
 														account_number, 
 														account_type])
 			self.get_child_accounts (parent, account_number)
 
 	def account_name_edited (self, cellrenderer_text, path, account_text):
-		account_id = self.account_treestore[path][0]
-		self.cursor.execute("UPDATE gl_accounts SET name = %s WHERE id = %s", 
-													(account_text, account_id))
+		account_number = self.account_treestore[path][1]
+		self.cursor.execute("UPDATE gl_accounts SET name = %s WHERE number = %s", 
+													(account_text, account_number))
 		self.db.commit()
-		self.account_treestore[path][1] = account_text
+		self.account_treestore[path][0] = account_text
 
 	def customer_discount_combo_changed (self, combo):
 		if self.populating is True:
@@ -187,10 +183,15 @@ class GUI():
 		name = self.builder.get_object('entry1').get_text()
 		number = self.builder.get_object('spinbutton1').get_value_as_int()
 		acc_type = str(number)[0:1]
-		self.cursor.execute("INSERT INTO gl_accounts "
-							"(name, type, number, parent_number) "
-							"VALUES (%s, %s, %s, %s)", 
-							(name, acc_type, number, self.parent_id))
+		try:
+			self.cursor.execute("INSERT INTO gl_accounts "
+								"(name, type, number, parent_number) "
+								"VALUES (%s, %s, %s, %s)", 
+								(name, acc_type, number, self.parent_number))
+		except Exception as e:
+			self.db.rollback()
+			self.show_message(str(e))
+			return
 		self.db.commit()
 		self.builder.get_object('spinbutton1').set_value(0)
 		self.builder.get_object('entry1').set_text("")
@@ -381,8 +382,8 @@ class GUI():
 		self.builder.get_object('checkbutton6').set_active(inventory_account_bool)
 		self.builder.get_object('checkbutton7').set_active(deposits_bool)
 		self.builder.get_object('checkbutton2').set_active(check_writing_bool)
-		self.cursor.execute("SELECT id FROM gl_account_flow WHERE account = %s", 
-															(account_number,))
+		self.cursor.execute("SELECT function FROM gl_account_flow "
+							"WHERE account = %s", (account_number,))
 		for row in self.cursor.fetchall():
 			return
 		# no active account, maybe we can add an account: continue ->
@@ -392,7 +393,7 @@ class GUI():
 		for row in self.cursor.fetchall():
 			return
 		#no transactions for this account, we can add a child
-		self.parent_id = account_number
+		self.parent_number = account_number
 		self.builder.get_object('label9').set_text(account_name)
 
 	def new_account_number_changed (self, spinbutton):
@@ -413,7 +414,7 @@ class GUI():
 		if len(str(new_account_number)) < 4: #enforce at least 4 character account numbers
 			button.set_label("Number too short")
 			return
-		self.cursor.execute("SELECT id FROM gl_accounts WHERE number = %s", 
+		self.cursor.execute("SELECT number FROM gl_accounts WHERE number = %s", 
 													(new_account_number, ))
 		for row in self.cursor.fetchall():
 			button.set_label("Number in use")
@@ -439,17 +440,17 @@ class GUI():
 							(self.active_account_number, ))
 		for row in self.cursor.fetchall():
 			account_number = row[0]
-			parent_id = row[1]
-			if parent_id == None: #block deleting top level accounts as there is no way to add them (yet)
+			parent_number = row[1]
+			if parent_number == None: #block deleting top level accounts as there is no way to add them (yet)
 				delete_button.set_label("Top level account")
 				return
-		self.cursor.execute("SELECT id FROM gl_accounts "
+		self.cursor.execute("SELECT number FROM gl_accounts "
 							"WHERE parent_number = %s", (account_number, ))
 		for row in self.cursor.fetchall():
 			delete_button.set_label("Has child account")
 			return
 		# no dependants, maybe we can delete this account: continue ->
-		self.cursor.execute("SELECT id FROM gl_account_flow "
+		self.cursor.execute("SELECT function FROM gl_account_flow "
 							"WHERE account = %s", (account_number,))
 		for row in self.cursor.fetchall():
 			delete_button.set_label("Account used in configuration")
@@ -466,7 +467,14 @@ class GUI():
 		delete_button.set_label("Delete")
 		delete_button.set_sensitive(True) #set the delete button active
 
-
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
 			
 		
 
