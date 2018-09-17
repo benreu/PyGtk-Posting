@@ -255,9 +255,11 @@ class GUI:
 		cursor = self.db.cursor()
 		for index, command in enumerate(commands):
 			lines += command.count('\n')
-			self.progressbar.set_fraction(float(index) / float(length))
 			if index == 0 : 
 				continue # first command is blank
+			self.progressbar.set_fraction(float(index) / float(length))
+			description = command[0:command.index("\n")]
+			self.progressbar.set_text(description)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 			try:

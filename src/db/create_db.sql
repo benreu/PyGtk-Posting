@@ -1,31 +1,34 @@
--- create.sql
---
--- Copyright (C) 2016 - reuben
---
--- This program is free software, you can redistribute it and/or modify
--- it under the terms of the GNU Lesser General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY, without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program. If not, see <http://www.gnu.org/licenses/>.
+/* create_db.sql
+
+ Copyright (C) 2016 - reuben
+
+ This program is free software, you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY, without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
 
+--CREATE SCHEMA payroll
 CREATE SCHEMA payroll;
+--CREATE SCHEMA settings
 CREATE SCHEMA settings;
+--CREATE SCHEMA sql
 CREATE SCHEMA sql;
 
-
+--Create EXTENSION plpgsql
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
-
+--CREATE TABLE public.terms_and_discounts
 CREATE TABLE public.terms_and_discounts (
     id bigserial primary key,
     name character varying NOT NULL,
@@ -44,7 +47,7 @@ CREATE TABLE public.terms_and_discounts (
     text4 character varying DEFAULT '' NOT NULL,
     deleted boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.customer_markup_percent
 CREATE TABLE public.customer_markup_percent (
     id bigserial primary key,
     name character varying NOT NULL,
@@ -52,7 +55,7 @@ CREATE TABLE public.customer_markup_percent (
     standard boolean DEFAULT false NOT NULL,
     deleted boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.contacts
 CREATE TABLE public.contacts (
     id bigserial primary key,
     name character varying DEFAULT ''::character varying NOT NULL,
@@ -81,7 +84,7 @@ CREATE TABLE public.contacts (
     checks_payable_to character varying DEFAULT ''::character varying NOT NULL,
     markup_percent_id integer NOT NULL REFERENCES public.customer_markup_percent(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE payroll.employee_info
 CREATE TABLE payroll.employee_info (
     id bigserial primary key,
     employee_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -106,7 +109,7 @@ CREATE TABLE payroll.employee_info (
     document bytea,
     current boolean DEFAULT true NOT NULL
 );
-
+--CREATE TABLE payroll.tax_table
 CREATE TABLE payroll.tax_table (
     id bigserial primary key,
     tax_term date NOT NULL,
@@ -126,7 +129,7 @@ CREATE TABLE payroll.tax_table (
     monthly_deposit numeric(12,2) NOT NULL,
     daily_deposit numeric(12,2) NOT NULL
 );
-
+--CREATE TABLE payroll.pay_stubs
 CREATE TABLE payroll.pay_stubs (
     id bigserial primary key,
     employee_id bigint  NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -149,7 +152,7 @@ CREATE TABLE payroll.pay_stubs (
     gross_payment_amnt numeric(12,2) NOT NULL,
     employee_info_id bigint NOT NULL REFERENCES payroll.employee_info(id) ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.gl_accounts
 CREATE TABLE public.gl_accounts (
     id bigserial,
     name character varying NOT NULL,
@@ -166,20 +169,20 @@ CREATE TABLE public.gl_accounts (
     deposits boolean DEFAULT false NOT NULL,
     check_writing boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.gl_account_flow
 CREATE TABLE public.gl_account_flow (
     id serial primary key,
     function character varying NOT NULL,
     account bigint NOT NULL REFERENCES public.gl_accounts(number) ON UPDATE CASCADE ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.gl_transactions
 CREATE TABLE public.gl_transactions (
     id bigserial primary key,
     date_inserted date DEFAULT now() NOT NULL,
     contact_id bigint REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     loan_payment boolean DEFAULT false
 );
-
+--CREATE TABLE public.gl_entries
 CREATE TABLE public.gl_entries (
     id bigserial primary key,
     date_inserted date DEFAULT now() NOT NULL,
@@ -195,7 +198,7 @@ CREATE TABLE public.gl_entries (
     gl_transaction_id bigint NOT NULL REFERENCES public.gl_transactions(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT credit_or_debit_is_not_null CHECK (((credit_account IS NOT NULL) OR (debit_account IS NOT NULL)))
 );
-
+--CREATE TABLE payroll.employee_payments
 CREATE TABLE payroll.employee_payments (
     id bigserial primary key,
     employee_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -204,7 +207,7 @@ CREATE TABLE payroll.employee_payments (
     account_transaction_id bigint REFERENCES public.gl_transactions(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     pay_stub_id bigint REFERENCES payroll.pay_stubs(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE payroll.employee_pdf_archive
 CREATE TABLE payroll.employee_pdf_archive (
     id bigserial primary key,
     employee_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -214,7 +217,7 @@ CREATE TABLE payroll.employee_pdf_archive (
     archived boolean DEFAULT false NOT NULL,
     date_inserted date
 );
-
+--CREATE TABLE public.tax_rates
 CREATE TABLE public.tax_rates (
     id serial primary key,
     name character varying NOT NULL,
@@ -226,7 +229,7 @@ CREATE TABLE public.tax_rates (
     tax_letter character varying NOT NULL,
     tax_received_account bigint NOT NULL REFERENCES public.gl_accounts(number) ON UPDATE CASCADE ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.products
 CREATE TABLE public.products (
     id bigserial primary key,
     name character varying DEFAULT ''::character varying NOT NULL,
@@ -263,7 +266,7 @@ CREATE TABLE public.products (
     CONSTRAINT products_manufacturer_sku_check CHECK ((manufacturer_sku IS NOT NULL)),
     CONSTRAINT products_serial_number_check CHECK ((serial_number IS NOT NULL))
 );
-
+--CREATE TABLE public.company_info
 CREATE TABLE public.company_info (
     id serial primary key,
     name character varying DEFAULT '' NOT NULL,
@@ -278,7 +281,7 @@ CREATE TABLE public.company_info (
     website character varying DEFAULT '' NOT NULL,
     tax_number character varying DEFAULT '' NOT NULL
 );
-
+--CREATE TABLE public.contact_individuals
 CREATE TABLE public.contact_individuals (
     id bigserial primary key,
     name character varying DEFAULT '' NOT NULL,
@@ -294,7 +297,7 @@ CREATE TABLE public.contact_individuals (
     role character varying DEFAULT '' NOT NULL,
     extension character varying DEFAULT '' NOT NULL
 );
-
+--CREATE TABLE public.statements
 CREATE TABLE public.statements (
     id bigserial primary key,
     name character varying,
@@ -305,7 +308,7 @@ CREATE TABLE public.statements (
     pdf bytea,
     printed boolean DEFAULT False NOT NULL
 );
-
+--CREATE TABLE public.payments_incoming
 CREATE TABLE public.payments_incoming (
     id bigserial primary key,
     date_inserted date DEFAULT now() NOT NULL,
@@ -324,7 +327,7 @@ CREATE TABLE public.payments_incoming (
     payment_receipt_pdf bytea,
     statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.invoices
 CREATE TABLE public.invoices (
     id bigserial primary key,
     name character varying DEFAULT '' NOT NULL,
@@ -349,7 +352,7 @@ CREATE TABLE public.invoices (
     statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     dated_for date
 );
-
+--CREATE TABLE public.invoice_items
 CREATE TABLE public.invoice_items (
     id bigserial primary key,
     invoice_id bigint NOT NULL REFERENCES public.invoices(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -364,7 +367,7 @@ CREATE TABLE public.invoice_items (
     gl_entries_id bigint REFERENCES public.gl_entries(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     tax_rate_id integer NOT NULL REFERENCES public.tax_rates(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.credit_memos
 CREATE TABLE public.credit_memos (
     id bigserial primary key,
     name character varying,
@@ -379,7 +382,7 @@ CREATE TABLE public.credit_memos (
     statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     posted boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.credit_memo_items
 CREATE TABLE public.credit_memo_items (
     id bigserial primary key,
     credit_memo_id bigint NOT NULL REFERENCES public.credit_memos(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -389,7 +392,7 @@ CREATE TABLE public.credit_memo_items (
     date_returned date NOT NULL,
     tax numeric(12,2) NOT NULL
 );
-
+--CREATE TABLE public.customer_tax_exemptions
 CREATE TABLE public.customer_tax_exemptions (
     id bigserial primary key,
     customer_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -397,7 +400,7 @@ CREATE TABLE public.customer_tax_exemptions (
     pdf_data bytea,
     pdf_available boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.document_types
 CREATE TABLE public.document_types (
     id serial primary key,
     name character varying DEFAULT '' NOT NULL,
@@ -414,7 +417,7 @@ CREATE TABLE public.document_types (
     text11 character varying DEFAULT '' NOT NULL,
     text12 character varying DEFAULT '' NOT NULL
 );
-
+--CREATE TABLE public.documents
 CREATE TABLE public.documents (
     id bigserial primary key,
     name character varying,
@@ -435,7 +438,7 @@ CREATE TABLE public.documents (
     invoice_id integer REFERENCES public.invoices(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     comments character varying
 );
-
+--CREATE TABLE public.document_lines
 CREATE TABLE public.document_lines (
     id bigserial primary key,
     document_id bigint REFERENCES public.documents(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -459,7 +462,7 @@ CREATE TABLE public.document_lines (
     qa_contact_id integer REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     s_price numeric(12,4) DEFAULT 0 NOT NULL
 );
-
+--CREATE TABLE public.files
 CREATE TABLE public.files (
     id bigserial primary key,
     file_data bytea NOT NULL,
@@ -467,7 +470,7 @@ CREATE TABLE public.files (
     name character varying NOT NULL,
     date_inserted date NOT NULL
 );
-
+--CREATE TABLE public.fiscal_years
 CREATE TABLE public.fiscal_years (
     id serial primary key,
     name character varying NOT NULL,
@@ -475,7 +478,7 @@ CREATE TABLE public.fiscal_years (
     end_date date NOT NULL,
     active boolean NOT NULL
 );
-
+--CREATE TABLE public.incoming_invoices
 CREATE TABLE public.incoming_invoices (
     id bigserial primary key,
     contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -487,12 +490,12 @@ CREATE TABLE public.incoming_invoices (
     amount numeric(12,2),
     attached_pdf bytea
 );
-
+--CREATE TABLE public.locations
 CREATE TABLE public.locations (
     id serial primary key,
     name character varying NOT NULL
 );
-
+--CREATE TABLE public.purchase_orders
 CREATE TABLE public.purchase_orders (
     id bigserial primary key,
     name character varying DEFAULT '' NOT NULL,
@@ -516,7 +519,7 @@ CREATE TABLE public.purchase_orders (
     amount_due numeric(12,2),
     attached_pdf bytea
 );
-
+--CREATE TABLE public.purchase_order_line_items
 CREATE TABLE public.purchase_order_line_items (
     id bigserial primary key,
     purchase_order_id bigint NOT NULL REFERENCES public.purchase_orders(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -532,12 +535,12 @@ CREATE TABLE public.purchase_order_line_items (
     order_number character varying,
     hold boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.job_types
 CREATE TABLE public.job_types (
     id serial primary key,
     name character varying NOT NULL
 );
-
+--CREATE TABLE public.job_sheets
 CREATE TABLE public.job_sheets (
     id bigserial primary key,
     contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -549,7 +552,7 @@ CREATE TABLE public.job_sheets (
     completed boolean DEFAULT False NOT NULL,
     time_clock boolean DEFAULT False NOT NULL
 );
-
+--CREATE TABLE public.job_sheet_line_items
 CREATE TABLE public.job_sheet_line_items (
     id bigserial primary key,
     job_sheet_id integer REFERENCES public.job_sheets(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -557,7 +560,7 @@ CREATE TABLE public.job_sheet_line_items (
     product_id bigint REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     remark character varying
 );
-
+--CREATE TABLE public.time_clock_projects
 CREATE TABLE public.time_clock_projects (
     id bigserial primary key,
     name character varying NOT NULL,
@@ -568,7 +571,7 @@ CREATE TABLE public.time_clock_projects (
     permanent boolean DEFAULT False NOT NULL,
     job_sheet_id bigint REFERENCES public.job_sheets(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.time_clock_entries
 CREATE TABLE public.time_clock_entries (
     id bigserial primary key,
     start_time timestamp with time zone,
@@ -583,7 +586,7 @@ CREATE TABLE public.time_clock_entries (
     invoice_line_id bigint REFERENCES public.invoice_items(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     running boolean NOT NULL DEFAULT FALSE
 );
-
+--CREATE TABLE public.manufacturing_projects
 CREATE TABLE public.manufacturing_projects (
     id bigserial primary key,
     name character varying NOT NULL,
@@ -592,7 +595,7 @@ CREATE TABLE public.manufacturing_projects (
     qty integer NOT NULL,
     active boolean NOT NULL DEFAULT True
 );
-
+--CREATE TABLE public.inventory_transactions
 CREATE TABLE public.inventory_transactions (
     id bigserial primary key,
     product_id integer REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -608,7 +611,7 @@ CREATE TABLE public.inventory_transactions (
     reason character varying,
     CONSTRAINT check_transaction_not_null CHECK (((invoice_line_id IS NOT NULL) OR (purchase_order_line_id IS NOT NULL) OR (manufacturing_id IS NOT NULL) OR (reason IS NOT NULL)))
 );
-
+--CREATE TABLE public.loans
 CREATE TABLE public.loans (
     id bigserial primary key,
     description character varying NOT NULL,
@@ -620,7 +623,7 @@ CREATE TABLE public.loans (
     gl_entries_id bigint NOT NULL REFERENCES public.gl_entries(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     last_payment_date date NOT NULL
 );
-
+--CREATE TABLE public.loan_payments
 CREATE TABLE public.loan_payments (
     id bigserial primary key,
     loan_id bigint NOT NULL REFERENCES public.loans(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -629,14 +632,14 @@ CREATE TABLE public.loan_payments (
     gl_entries_total_id bigint NOT NULL REFERENCES public.gl_entries(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.mailing_lists
 CREATE TABLE public.mailing_lists (
     id serial primary key,
     name character varying NOT NULL,
     active boolean DEFAULT true NOT NULL,
     date_inserted date DEFAULT now() NOT NULL
 );
-
+--CREATE TABLE public.mailing_list_register
 CREATE TABLE public.mailing_list_register (
     id bigserial primary key,
     contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -644,13 +647,13 @@ CREATE TABLE public.mailing_list_register (
     mailing_list_id bigint NOT NULL REFERENCES public.mailing_lists(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     date_inserted date DEFAULT now() NOT NULL
 );
-
+--CREATE TABLE public.phone_blacklist
 CREATE TABLE public.phone_blacklist (
     number character varying NOT NULL,
     date_called date,
     blocked_calls integer
 );
-
+--CREATE TABLE public.product_assembly_items
 CREATE TABLE public.product_assembly_items (
     id bigserial primary key,
     manufactured_product_id integer REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -659,7 +662,7 @@ CREATE TABLE public.product_assembly_items (
     remark character varying,
     alternative_to_id integer
 );
-
+--CREATE TABLE public.product_location
 CREATE TABLE public.product_location (
     id bigserial primary key,
     product_id integer NOT NULL REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -673,14 +676,14 @@ CREATE TABLE public.product_location (
     aisle character varying NOT NULL,
     bin character varying NOT NULL
 );
-
+--CREATE TABLE public.products_markup_prices
 CREATE TABLE public.products_markup_prices (
     id bigserial primary key,
     product_id bigint NOT NULL REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     markup_id bigint NOT NULL REFERENCES public.customer_markup_percent(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     price numeric(12,2) NOT NULL
 );
-
+--CREATE TABLE public.resource_tag
 CREATE TABLE public.resource_tags (
     id serial primary key,
     tag character varying NOT NULL,
@@ -691,7 +694,7 @@ CREATE TABLE public.resource_tags (
     finished boolean DEFAULT false NOT NULL,
     phone_default boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE public.resources
 CREATE TABLE public.resources (
     id bigserial primary key,
     parent_id integer REFERENCES public.resources(id) ON DELETE RESTRICT,
@@ -707,7 +710,7 @@ CREATE TABLE public.resources (
     to_do boolean DEFAULT false,
     timed_seconds interval second
 );
-
+--CREATE TABLE public.serial_numbers
 CREATE TABLE public.serial_numbers (
     id bigserial primary key,
     product_id bigint NOT NULL REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -717,7 +720,7 @@ CREATE TABLE public.serial_numbers (
     purchase_order_line_item_id bigint REFERENCES public.purchase_order_line_items(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     manufacturing_id bigint REFERENCES public.manufacturing_projects(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.serial_number_history
 CREATE TABLE public.serial_number_history (
     id bigserial primary key,
     serial_number_id bigint NOT NULL REFERENCES public.serial_numbers(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -726,7 +729,7 @@ CREATE TABLE public.serial_number_history (
     contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     credit_memo_item_id bigint REFERENCES public.credit_memo_items(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
-
+--CREATE TABLE public.settings
 CREATE TABLE public.settings (
     id serial primary key,
     print_direct boolean NOT NULL,
@@ -746,7 +749,7 @@ CREATE TABLE public.settings (
     major_version smallint NOT NULL,
     minor_version smallint NOT NULL
 );
-
+--CREATE TABLE public.vendor_product_numbers
 CREATE TABLE public.vendor_product_numbers (
     id bigserial primary key,
     vendor_id integer NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -757,34 +760,34 @@ CREATE TABLE public.vendor_product_numbers (
     price numeric(12,2) DEFAULT 0 NOT NULL,
     deleted boolean DEFAULT false NOT NULL
 );
-
+--CREATE TABLE settings.document_columns
 CREATE TABLE settings.document_columns (
     id bigserial primary key,
     column_id character varying NOT NULL,
     column_name character varying NOT NULL,
     visible boolean NOT NULL
 );
-
+--CREATE TABLE settings.invoice_columns
 CREATE TABLE settings.invoice_columns (
     id serial primary key,
     column_id character varying NOT NULL,
     column_name character varying NOT NULL,
     visible boolean NOT NULL
 );
-
+--CREATE TABLE settings.po_columns
 CREATE TABLE settings.po_columns (
     id serial primary key,
     column_id character varying NOT NULL,
     column_name character varying NOT NULL,
     visible boolean NOT NULL
 );
-
+--CREATE TABLE settings.purchase_order
 CREATE TABLE settings.purchase_order (
     id serial primary key,
     qty_prec integer NOT NULL,
     price_prec integer NOT NULL
 );
-
+--CREATE TABLE sql.history
 CREATE TABLE sql.history (
     name character varying NOT NULL,
     command character varying NOT NULL,
@@ -792,7 +795,7 @@ CREATE TABLE sql.history (
     current boolean
 );
 
-
+--Add UNIQUE constraints
 ALTER TABLE ONLY public.purchase_orders
     ADD CONSTRAINT gl_entries_id_unique UNIQUE (gl_entries_id);
 
@@ -825,96 +828,153 @@ ALTER TABLE ONLY sql.history
 
 ALTER TABLE ONLY sql.history
     ADD CONSTRAINT history_pkey PRIMARY KEY (name);
-    
 
+--CREATE FUNCTION public.after_accounts_edited
 CREATE FUNCTION public.after_accounts_edited() RETURNS trigger
-    LANGUAGE plpgsql
-    AS ' DECLARE table_record gl_accounts%ROWTYPE; DECLARE parents integer; BEGIN FOR table_record IN (SELECT * FROM gl_accounts ) LOOP UPDATE gl_accounts SET is_parent = True WHERE number = table_record.parent_number; SELECT COUNT (id) FROM gl_accounts WHERE parent_number = table_record.number INTO parents; IF parents = 0 THEN UPDATE gl_accounts SET is_parent = False WHERE id = table_record.id; END  IF; END LOOP; RETURN OLD; END; ';
+	LANGUAGE plpgsql
+	AS 
+$BODY$  
+	DECLARE table_record gl_accounts%ROWTYPE; 
+	DECLARE parents integer; 
+	BEGIN FOR table_record IN (SELECT * FROM gl_accounts ) 
+		LOOP UPDATE gl_accounts SET is_parent = True WHERE number = table_record.parent_number; 
+			SELECT COUNT (id) FROM gl_accounts WHERE parent_number = table_record.number INTO parents; 
+			IF parents = 0 THEN UPDATE gl_accounts SET is_parent = False WHERE id = table_record.id; 
+			END  IF; 
+		END LOOP; 
+	RETURN OLD; 
+	END;
+$BODY$ 
 
-
+--CREATE FUNCTION public.after_gl_entries_inserted
 CREATE FUNCTION public.after_gl_entries_inserted() RETURNS trigger
     LANGUAGE plpgsql
-    AS ' DECLARE new_date date;BEGIN IF NEW.date_inserted IS NULL THEN SELECT date_inserted FROM gl_transactions WHERE gl_transactions.id = NEW.gl_transaction_id INTO new_date; UPDATE gl_entries SET date_inserted = new_date WHERE id = NEW.id; END IF; RETURN NEW; END;';
+    AS 
+$BODY$  
+	DECLARE new_date date;
+	BEGIN 
+		IF NEW.date_inserted IS NULL 
+			THEN SELECT date_inserted FROM gl_transactions WHERE gl_transactions.id = NEW.gl_transaction_id INTO new_date;
+			UPDATE gl_entries SET date_inserted = new_date WHERE id = NEW.id; 
+		END IF; 
+		RETURN NEW; 
+	END;
+$BODY$ 
 
+--CREATE FUNCTION public.before_accounts_edited
 CREATE FUNCTION public.before_accounts_edited() RETURNS trigger
-    LANGUAGE plpgsql
-    AS ' DECLARE counter integer; BEGIN SELECT COUNT (id) FROM public.gl_entries WHERE debit_account = NEW.parent_number INTO counter; IF counter > 0 THEN RAISE EXCEPTION ''Account % is not allowed as a parent -> already used in gl_entries'', NEW.parent_number; END IF; SELECT COUNT (id) FROM public.gl_entries WHERE credit_account = NEW.parent_number INTO counter; IF counter > 0 THEN RAISE EXCEPTION ''Account % is not allowed as a parent -> already used in gl_entries'', NEW.parent_number; END IF; SELECT COUNT (id) FROM gl_account_flow WHERE account = NEW.parent_number INTO counter; IF counter > 0 THEN RAISE EXCEPTION ''Account % is not allowed as a parent-> already used in gl_account_flow'', NEW.parent_number; END IF; RETURN NEW; END;';
+	LANGUAGE plpgsql
+	AS 
+$BODY$  
+	DECLARE counter integer; 
+	BEGIN 
+		SELECT COUNT (id) FROM public.gl_entries WHERE debit_account = NEW.parent_number INTO counter; 
+		IF counter > 0 THEN RAISE EXCEPTION 'Account % is not allowed as a parent -> already used in gl_entries', NEW.parent_number; 
+		END IF; 
+		SELECT COUNT (id) FROM public.gl_entries WHERE credit_account = NEW.parent_number INTO counter; 
+		IF counter > 0 THEN RAISE EXCEPTION 'Account % is not allowed as a parent -> already used in gl_entries', NEW.parent_number; 
+		END IF; SELECT COUNT (id) FROM gl_account_flow WHERE account = NEW.parent_number INTO counter; 
+		IF counter > 0 THEN RAISE EXCEPTION 'Account % is not allowed as a parent-> already used in gl_account_flow', NEW.parent_number; 
+		END IF; 
+	RETURN NEW; 
+	END;
+$BODY$ 
 
+--CREATE FUNCTION public.calculate_invoice_item
 CREATE FUNCTION public.calculate_invoice_item() RETURNS trigger
     LANGUAGE plpgsql
-    AS ' 
-  BEGIN 
-    UPDATE invoice_items SET ext_price = (qty*price) WHERE id = NEW.id;
-    UPDATE invoice_items SET tax = (((SELECT rate FROM tax_rates WHERE id = NEW.tax_rate_id) * ext_price) / 100) WHERE id = NEW.id;
-  RETURN NEW; 
-  END; 
-';
+    AS 
+$BODY$  
+	BEGIN 
+		UPDATE invoice_items SET ext_price = (qty*price) WHERE id = NEW.id;
+		UPDATE invoice_items SET tax = (((SELECT rate FROM tax_rates WHERE id = NEW.tax_rate_id) * ext_price) / 100) WHERE id = NEW.id;
+	RETURN NEW; 
+	END;
+$BODY$ 
 
+--CREATE FUNCTION public.check_tax_rate_id
 CREATE FUNCTION public.check_tax_rate_id() RETURNS trigger
     LANGUAGE plpgsql
-    AS ' 
-  BEGIN 
-    IF (SELECT tax_exemptible FROM products WHERE id = NEW.product_id) = FALSE OR NEW.tax_rate_id IS NULL THEN 
-       NEW.tax_rate_id = (SELECT tax_rates.id FROM tax_rates JOIN products ON tax_rates.id = products.tax_rate_id WHERE products.id = NEW.product_id);
-    END IF;
-  RETURN NEW;
-  END;
-';
+    AS 
+$BODY$  
+	BEGIN 
+	IF (SELECT tax_exemptible FROM products WHERE id = NEW.product_id) = FALSE OR NEW.tax_rate_id IS NULL THEN 
+		NEW.tax_rate_id = (SELECT tax_rates.id FROM tax_rates JOIN products ON tax_rates.id = products.tax_rate_id WHERE products.id = NEW.product_id);
+	END IF;
+	RETURN NEW;
+	END;
+$BODY$ 
 
+--CREATE FUNCTION public.format_date
 CREATE FUNCTION public.format_date(date_in date) RETURNS character varying
     LANGUAGE sql
-    AS ' 
-	SELECT to_char(date_in, (SELECT date_format FROM settings))
-	';
+    AS 
+$BODY$  
+	SELECT to_char(date_in, (SELECT date_format FROM settings));
+$BODY$ 
 
+--CREATE FUNCTION public.format_timestamp
 CREATE FUNCTION public.format_timestamp(timestamp_in timestamp with time zone) RETURNS character varying
-    LANGUAGE sql
-    AS ' 
-	SELECT to_char(timestamp_in, (SELECT timestamp_format FROM settings))
-	';
+	LANGUAGE sql
+	AS 
+$BODY$ 
+	SELECT to_char(timestamp_in, (SELECT timestamp_format FROM settings));
+$BODY$ 
 
+--CREATE FUNCTION public.payment_info
 CREATE FUNCTION public.payment_info(payments_incoming_id bigint) RETURNS character varying
     LANGUAGE plpgsql
-    AS '
- DECLARE table_record payments_incoming%ROWTYPE; 
-BEGIN SELECT * FROM payments_incoming WHERE id = payments_incoming_id INTO table_record; 
-IF table_record.check_payment = True THEN 
-RETURN ''Check ''::varchar || table_record.payment_text; 
-						ELSEIF table_record.cash_payment = True THEN 
-							RETURN ''Cash ''::varchar || table_record.payment_text; 
-						ELSEIF table_record.credit_card_payment = True THEN 
-							RETURN ''Credit card ''::varchar || table_record.payment_text; 
-						ELSE RETURN ''''; 
-						END IF;
-						END; 
-						';
+    AS 
+$BODY$ 
+	DECLARE table_record payments_incoming%ROWTYPE; 
+	BEGIN SELECT * FROM payments_incoming WHERE id = payments_incoming_id INTO table_record; 
+	IF table_record.check_payment = True THEN 
+		RETURN 'Check '::varchar || table_record.payment_text; 
+	ELSEIF table_record.cash_payment = True THEN 
+		RETURN 'Cash '::varchar || table_record.payment_text; 
+	ELSEIF table_record.credit_card_payment = True THEN 
+		RETURN 'Credit card '::varchar || table_record.payment_text; 
+	ELSE RETURN ''''; 
+	END IF;
+	END;
+$BODY$ 
 
+--CREATE FUNCTION public.process_invoice_barcode
 CREATE FUNCTION public.process_invoice_barcode(_barcode character varying, _invoice_id bigint, OUT invoice_item_id bigint) RETURNS bigint
     LANGUAGE plpgsql
-    AS ' 
-DECLARE _product_id BIGINT; _tax_rate_id BIGINT; 
-BEGIN 
-SELECT id, tax_rate_id INTO _product_id, _tax_rate_id FROM products WHERE (barcode, deleted) = (_barcode, FALSE); 
-IF FOUND THEN 
-IF EXISTS (SELECT id FROM invoice_items WHERE (invoice_id, product_id)= (_invoice_id, _product_id)) THEN 
-UPDATE invoice_items SET qty = qty + 1 
-WHERE (invoice_id, product_id) = (_invoice_id, _product_id) RETURNING id INTO invoice_item_id; 
-ELSE 
-INSERT INTO invoice_items (invoice_id, product_id, tax_rate_id) 
-VALUES (_invoice_id, _product_id, _tax_rate_id) RETURNING id INTO invoice_item_id; 
-END IF; 
-ELSE 
-invoice_item_id = 0; 
-END IF; 
-RETURN; 
-END 
-';
+    AS 
+$BODY$ 
+	DECLARE _product_id BIGINT; _tax_rate_id BIGINT; 
+	BEGIN 
+	SELECT id, tax_rate_id INTO _product_id, _tax_rate_id FROM products WHERE (barcode, deleted) = (_barcode, FALSE); 
+		IF FOUND THEN 
+			IF EXISTS (SELECT id FROM invoice_items WHERE (invoice_id, product_id)= (_invoice_id, _product_id)) THEN 
+				UPDATE invoice_items SET qty = qty + 1 
+				WHERE (invoice_id, product_id) = (_invoice_id, _product_id) RETURNING id INTO invoice_item_id; 
+			ELSE 
+				INSERT INTO invoice_items (invoice_id, product_id, tax_rate_id) 
+				VALUES (_invoice_id, _product_id, _tax_rate_id) RETURNING id INTO invoice_item_id; 
+			END IF; 
+		ELSE invoice_item_id = 0; 
+		END IF; 
+	RETURN; 
+	END ;
+$BODY$
 
+--CREATE FUNCTION public.update_time_entry_seconds
 CREATE FUNCTION public.update_time_entry_seconds() RETURNS trigger
     LANGUAGE plpgsql
-    AS ' DECLARE seconds integer; BEGIN SELECT EXTRACT (''epoch'' FROM stop_time - start_time) INTO seconds FROM time_clock_entries WHERE id = OLD.id; UPDATE time_clock_entries SET (actual_seconds, adjusted_seconds) = (seconds, seconds) WHERE id = OLD.id; RETURN OLD; END; ';
+    AS 
+$BODY$ 
+	DECLARE seconds integer; 
+	BEGIN 
+		SELECT EXTRACT ('epoch' FROM stop_time - start_time) INTO seconds FROM time_clock_entries WHERE id = OLD.id; 
+		UPDATE time_clock_entries SET (actual_seconds, adjusted_seconds) = (seconds, seconds) WHERE id = OLD.id; 
+	RETURN OLD; 
+	END; 
+$BODY$ 
 
-
+--Create RULES
 CREATE RULE account_changed_rule AS
     ON UPDATE TO public.gl_accounts DO
  NOTIFY accounts, 'account_changed';
@@ -955,7 +1015,7 @@ CREATE RULE time_clock_entries_inserted_rule AS
 CREATE RULE time_clock_entries_updated_rule AS
     ON UPDATE TO public.time_clock_entries DO
  NOTIFY time_clock_entries, 'time_clock_entry_updated';
-
+--Create TRIGGERS
 CREATE TRIGGER a_check_tax_rate_id BEFORE INSERT OR UPDATE OF tax_rate_id ON public.invoice_items FOR EACH ROW WHEN ((pg_trigger_depth() < 1)) EXECUTE PROCEDURE public.check_tax_rate_id();
 
 CREATE TRIGGER after_accounts_edited AFTER INSERT OR UPDATE OF number, parent_number ON public.gl_accounts FOR EACH STATEMENT EXECUTE PROCEDURE public.after_accounts_edited();
