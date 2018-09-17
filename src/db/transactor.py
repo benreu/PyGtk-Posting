@@ -296,7 +296,7 @@ def post_credit_memo(db, credit_memo_id):
 					"VALUES "
 					"((SELECT account FROM gl_account_flow "
 						"WHERE function = 'post_credit_memo'), "
-					"(SELECT amount_due FROM credit_memos WHERE id = %s), "
+					"(SELECT amount_owed FROM credit_memos WHERE id = %s), "
 					"(SELECT id FROM gl_transaction), "
 					"CURRENT_DATE"
 					")RETURNING id "
