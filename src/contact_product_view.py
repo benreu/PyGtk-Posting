@@ -243,7 +243,7 @@ class ContactProductViewGUI :
 		self.contacts_store[path][2] = text
 		self.db.commit()
 
-	def is_sellable_edited (self, cellrenderertoggle, path):
+	def is_sellable_toggled (self, cellrenderertoggle, path):
 		row_id = self.contacts_store[path][0]
 		active = not self.contacts_store[path][5]
 		self.cursor.execute("UPDATE products SET sellable = %s "
@@ -251,7 +251,7 @@ class ContactProductViewGUI :
 		self.contacts_store[path][5] = active
 		self.db.commit()
 
-	def is_purchasable_edited (self, cellrenderertoggle, path):
+	def is_purchasable_toggled (self, cellrenderertoggle, path):
 		row_id = self.contacts_store[path][0]
 		active = not self.contacts_store[path][6]
 		self.cursor.execute("UPDATE products SET purchasable = %s "
@@ -259,7 +259,7 @@ class ContactProductViewGUI :
 		self.contacts_store[path][6] = active
 		self.db.commit()
 
-	def is_manufactured_edited (self, cellrenderertoggle, path):
+	def is_manufactured_toggled (self, cellrenderertoggle, path):
 		row_id = self.contacts_store[path][0]
 		active = not self.contacts_store[path][7]
 		self.cursor.execute("UPDATE products SET manufactured = %s "

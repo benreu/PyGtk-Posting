@@ -88,6 +88,9 @@
     <property name="default_height">600</property>
     <property name="icon">PyGtk_Posting.svg</property>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkPaned" id="center_pane">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
@@ -422,7 +425,7 @@
                             <property name="sort_column_id">5</property>
                             <child>
                               <object class="GtkCellRendererToggle">
-                                <signal name="toggled" handler="is_sellable_edited" swapped="no"/>
+                                <signal name="toggled" handler="is_sellable_toggled" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="active">5</attribute>
@@ -438,7 +441,7 @@
                             <property name="sort_column_id">6</property>
                             <child>
                               <object class="GtkCellRendererToggle">
-                                <signal name="toggled" handler="is_purchasable_edited" swapped="no"/>
+                                <signal name="toggled" handler="is_purchasable_toggled" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="active">6</attribute>
@@ -454,7 +457,7 @@
                             <property name="sort_column_id">7</property>
                             <child>
                               <object class="GtkCellRendererToggle">
-                                <signal name="toggled" handler="is_manufactured_edited" swapped="no"/>
+                                <signal name="toggled" handler="is_manufactured_toggled" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="active">7</attribute>
