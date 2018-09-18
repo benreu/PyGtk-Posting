@@ -287,7 +287,8 @@ def post_credit_memo(db, credit_memo_id):
 	c.execute ("WITH gl_transaction AS "
 					"(INSERT INTO gl_transactions (date_inserted) "
 					"VALUES (CURRENT_DATE) RETURNING id), "
-				"gl_entry AS (INSERT INTO gl_entries "
+				"gl_entry AS "
+				"(INSERT INTO gl_entries "
 					"(credit_account,"
 					"amount, "
 					"gl_transaction_id, "
@@ -301,7 +302,8 @@ def post_credit_memo(db, credit_memo_id):
 					"CURRENT_DATE"
 					")RETURNING id "
 				"), "
-				"gl_tax_entry AS (INSERT INTO gl_entries "
+				"gl_tax_entry AS "
+				"(INSERT INTO gl_entries "
 					"(debit_account,"
 					"amount, "
 					"gl_transaction_id, "
@@ -314,12 +316,36 @@ def post_credit_memo(db, credit_memo_id):
 					"(SELECT id FROM gl_transaction), "
 					"CURRENT_DATE"
 					")RETURNING id "
-				")  "
-				"UPDATE credit_memos "
+				"), "
+				"update_credit_memos_entry_ids AS "
+				"(UPDATE credit_memos "
 					"SET (gl_entries_id, gl_entries_tax_id) = "
 					"((SELECT id FROM gl_entry), (SELECT id FROM gl_tax_entry))"
+					"WHERE id = %s)"
+				"SELECT default_expense_account, cmi.ext_price, cmi.id, "
+					"(SELECT id FROM gl_transaction) "
+					"FROM products AS p "
+					"JOIN invoice_items AS ii ON ii.product_id = p.id "
+					"JOIN credit_memo_items AS cmi "
+						"ON cmi.invoice_item_id = ii.id "
+					"WHERE (cmi.credit_memo_id, cmi.deleted) = (%s, False) "
+					"ORDER BY cmi.id", 
+				(credit_memo_id, credit_memo_id, credit_memo_id, credit_memo_id)) 
+	for row in c.fetchall():
+		account = row[0]
+		amount = row[1]
+		cmi_id = row[2]
+		transaction_id = row[3]
+		c.execute(	"WITH cte AS "
+						"(INSERT INTO gl_entries AS ge "
+						"(debit_account, amount, gl_transaction_id) VALUES "
+						"(%s, %s, %s) RETURNING id "
+						") "
+					"UPDATE credit_memo_items SET gl_entry_id = "
+					"(SELECT id FROM cte) "
 					"WHERE id = %s", 
-				(credit_memo_id, credit_memo_id, credit_memo_id)) 
+					(account, amount, transaction_id, cmi_id))
+		
 	c.close()
 
 def post_invoice_receivables (db, amount, date, invoice_id, gl_entries_id):
