@@ -379,6 +379,7 @@
                     <property name="sort_column_id">7</property>
                     <child>
                       <object class="GtkCellRendererSpin">
+                        <property name="editable">True</property>
                         <property name="adjustment">tax_adjustment</property>
                         <property name="digits">2</property>
                         <signal name="edited" handler="tax_edited" swapped="no"/>
