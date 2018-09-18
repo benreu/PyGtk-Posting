@@ -122,6 +122,7 @@ class CreditMemoGUI:
 			self.credit_items_store[iter_][8] = row[6]
 			self.credit_items_store[iter_][9] = row[7]
 		self.db.commit()
+		self.calculate_totals ()
 
 	def product_editing_started (self, renderer, combo, path):
 		renderer_invoice = Gtk.CellRendererText()
@@ -177,6 +178,7 @@ class CreditMemoGUI:
 		iter_ = self.credit_items_store.get_iter(path)
 		self.check_row_id (iter_)
 		row_id = self.credit_items_store[iter_][0]
+		invoice_item_id = self.credit_items_store[iter_][8]
 		try:
 			c.execute(	"WITH tax_cte AS "
 							"(SELECT tr.rate / 100 AS rate "
@@ -431,10 +433,21 @@ class CreditMemoGUI:
 		tax = self.credit_items_store[_iter][7]
 		invoice_item_id = self.credit_items_store[_iter][8]
 		if row_id == 0:
-			c.execute("INSERT INTO credit_memo_items VALUES "
-							"(qty, invoice_item_id, price, tax, date_returned) "
-							"= (%s, %s, %s, %s, %s) RETURNING id", 
-							(qty, invoice_item_id, price, tax, self.date))
+			c.execute(	"INSERT INTO credit_memo_items "
+							"(qty, "
+							"invoice_item_id, "
+							"price, "
+							"tax, "
+							"date_returned, "
+							"credit_memo_id) "
+						"VALUES "
+							"(%s, %s, %s, %s, %s, %s) RETURNING id", 
+						(qty, 
+						invoice_item_id, 
+						price, 
+						tax, 
+						self.date, 
+						self.credit_memo_id))
 			row_id = c.fetchone()[0]
 			self.credit_items_store[_iter][0] = row_id
 		self.db.commit()
@@ -445,20 +458,19 @@ class CreditMemoGUI:
 		self.check_credit_memo_id()
 		invoice_item_id = self.product_store[0][0]
 		c.execute("SELECT "
-						"cmi.id, "
-						"cmi.qty::text, "
+						"0, "
+						"1.0::text, "
 						"p.id, "
 						"p.name, "
 						"p.ext_name, "
-						"cmi.price::text, "
-						"cmi.ext_price::text, "
-						"cmi.tax::text, "
-						"cmi.invoice_item_id, "
+						"1.00::text, "
+						"1.00::text, "
+						"0.00::text, "
+						"ii.id, "
 						"ii.invoice_id, "
-						"date_returned::text, "
-						"format_date(date_returned) " 
-					"FROM credit_memo_items AS cmi "
-					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
+						"CURRENT_DATE::text, "
+						"format_date(CURRENT_DATE) " 
+					"FROM invoice_items AS ii "
 					"JOIN products AS p ON p.id = ii.product_id "
 					"WHERE ii.id = %s LIMIT 1", 
 					(invoice_item_id,))
