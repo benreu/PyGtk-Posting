@@ -358,7 +358,7 @@ class CreditMemoGUI:
 					"FROM products AS p "
 					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON ili.invoice_id = i.id "
-					"WHERE (customer_id, paid) = (%s, True) "
+					"WHERE (customer_id, posted) = (%s, True) "
 					"ORDER BY p.name", (self.customer_id,))
 		for row in c.fetchall():
 			self.product_store.append(row)
