@@ -19,9 +19,7 @@
 from gi.repository import Gtk
 import subprocess
 from datetime import datetime
-from dateutils import   datetime_to_user_date_time, \
-						datetime_to_compact_string, \
-						seconds_to_compact_string
+from dateutils import seconds_to_compact_string
 						
 
 UI_FILE = "src/reports/time_clock_project.ui"
@@ -53,7 +51,7 @@ class GUI:
 	def populate_project_store (self):
 		self.project_store.clear()
 		self.cursor.execute("SELECT time_clock_projects.id, name, "
-							"SUM(adjusted_seconds) "
+							"SUM(stop_time-start_time)::text "
 							"FROM time_clock_projects "
 							"JOIN time_clock_entries "
 							"ON time_clock_projects.id = "
@@ -63,7 +61,7 @@ class GUI:
 		for row in self.cursor.fetchall():
 			project_id = row[0]
 			project_name = row[1]
-			time = seconds_to_compact_string (row[2])
+			time = row[2]
 			self.project_store.append([str(project_id), project_name, time])
 
 	def project_combo_changed (self, combo):
@@ -192,8 +190,12 @@ class GUI:
 									actual_seconds, adjusted_seconds])
 		#self.builder.get_object('label3').set_label(total_actual)
 		#self.builder.get_object('label5').set_label(total_adjusted)
-		self.cursor.execute("SELECT time_clock_entries.id, name, start_time, "
-							"stop_time, adjusted_seconds "
+		self.cursor.execute("SELECT "
+								"time_clock_entries.id, "
+								"name, "
+								"format_timestamp(start_time), "
+								"format_timestamp(stop_time), "
+								"adjusted_seconds "
 							"FROM time_clock_entries "
 							"JOIN contacts "
 							"ON time_clock_entries.employee_id = contacts.id "
@@ -201,14 +203,14 @@ class GUI:
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			employee_name = row[1]
-			in_time = datetime_to_user_date_time (row[2])
-			out_time = datetime_to_user_date_time (row[3])
+			in_time = row[2]
+			out_time = row[3]
 			seconds = seconds_to_compact_string (row[4])
 			self.employee_time_store.append([str(row_id), employee_name,
 											in_time, out_time, seconds])
 		self.cursor.execute("SELECT COUNT(employee_id) FROM "
-							"time_clock_entries WHERE (state, project_id) = "
-							"('running', %s)", (self.project_id,))
+							"time_clock_entries WHERE (running, project_id) = "
+							"(True, %s)", (self.project_id,))
 		count = self.cursor.fetchone()[0]
 		if int(count) == 0:
 			message = "There are no employees punched in to this WO."
