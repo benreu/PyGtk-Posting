@@ -59,7 +59,7 @@ class TimeClockHistoryGUI:
 		first_day = self.first_day
 		for i in range(7):
 			current_day = datetime.fromtimestamp(current_time)
-			self.cursor.execute("SELECT format_date(%s)", (current_day))
+			self.cursor.execute("SELECT format_date(%s)", (current_day.date(),))
 			formatted_date = self.cursor.fetchone()[0]
 			day_of_week = datetime.weekday(current_day)
 			bold_date = "<b>%s</b>" % formatted_date 
