@@ -270,6 +270,7 @@ class CreditMemoGUI:
 			self.builder.get_object('total_entry').set_text(total)
 		c.close()
 		self.db.commit()
+		self.credit_memo_template = None # credit memo changed, force regenerate
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
