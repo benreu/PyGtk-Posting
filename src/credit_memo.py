@@ -95,7 +95,7 @@ class CreditMemoGUI:
 						"(%s, "
 						"(SELECT price FROM tax_cte), "
 						"qty * (SELECT price FROM tax_cte), "
-						"qty * ext_price * (SELECT rate FROM tax_cte)"
+						"qty * (SELECT price FROM tax_cte) * (SELECT rate FROM tax_cte)"
 						") "
 					"WHERE id = %s; " #new sql; this updates values
 					"SELECT "
@@ -121,7 +121,6 @@ class CreditMemoGUI:
 			self.credit_items_store[iter_][7] = row[5]
 			self.credit_items_store[iter_][8] = row[6]
 			self.credit_items_store[iter_][9] = row[7]
-		self.db.commit()
 		self.calculate_totals ()
 
 	def product_editing_started (self, renderer, combo, path):
@@ -243,7 +242,8 @@ class CreditMemoGUI:
 							"SUM(ext_price) AS subtotal, "
 							"SUM(tax) AS tax, "
 							"SUM(tax + ext_price) AS total "
-						"FROM credit_memo_items WHERE credit_memo_id = %s"
+						"FROM credit_memo_items WHERE "
+							"(credit_memo_id, deleted) = (%s, False) "
 						")"
 					"UPDATE credit_memos "
 					"SET "
@@ -343,7 +343,8 @@ class CreditMemoGUI:
 					"FROM credit_memo_items AS cmi "
 					"JOIN invoice_items AS ili ON ili.id = cmi.invoice_item_id "
 					"JOIN products AS p ON p.id = ili.product_id "
-					"WHERE (credit_memo_id, cmi.deleted) = (%s, False) ", 
+					"WHERE (credit_memo_id, cmi.deleted) = (%s, False) "
+					"ORDER BY cmi.id", 
 					(self.credit_memo_id,))
 		for row in c.fetchall():
 			self.credit_items_store.append(row)
@@ -463,15 +464,16 @@ class CreditMemoGUI:
 						"p.id, "
 						"p.name, "
 						"p.ext_name, "
-						"1.00::text, "
-						"1.00::text, "
-						"0.00::text, "
+						"price::text, "
+						"price::text, "
+						"ROUND(1.0 * price * tr.rate/100, 2)::text, "
 						"ii.id, "
 						"ii.invoice_id, "
 						"CURRENT_DATE::text, "
 						"format_date(CURRENT_DATE) " 
 					"FROM invoice_items AS ii "
 					"JOIN products AS p ON p.id = ii.product_id "
+					"JOIN tax_rates AS tr ON tr.id = ii.tax_rate_id "
 					"WHERE ii.id = %s LIMIT 1", 
 					(invoice_item_id,))
 		for row in c.fetchall():
