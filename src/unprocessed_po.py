@@ -609,12 +609,15 @@ class GUI:
 	def new_expense_product_clicked (self, button):
 		self.cursor.execute("INSERT INTO products "
 								"(name, "
+								"unit, "
 								"cost, "
 								"expense, "
 								"tax_rate_id, "
-								"revenue_account ) "
+								"revenue_account, "
+								"default_expense_account) "
 							"VALUES "
 								"('New expense product', "
+								"1, "
 								"0.00, "
 								"True, "
 								"(SELECT id FROM tax_rates "
@@ -622,6 +625,9 @@ class GUI:
 									"), "
 								"(SELECT number FROM gl_accounts "
 									"WHERE revenue_account = True LIMIT 1 "
+									"), "
+								"(SELECT number FROM gl_accounts "
+									"WHERE expense_account = True LIMIT 1 "
 									"))")
 		self.db.commit()
 		self.populate_expense_products_store ()
