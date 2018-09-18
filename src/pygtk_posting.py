@@ -76,7 +76,7 @@ class MainGUI (GObject.GObject, Accounts):
 		result, db_connection, self.db_name = main.connect_to_db(database_to_connect)
 		if result == True:
 			self.db = db_connection
-			self.window.set_title('PyGtk Posting (%s)' % self.db_name)
+			self.window.set_title('%s - PyGtk Posting' % self.db_name)
 			self.check_db_version()
 			self.cursor = self.db.cursor()
 			self.window.connect("focus-in-event", self.focus) #connect the focus signal only if we successfully connect
