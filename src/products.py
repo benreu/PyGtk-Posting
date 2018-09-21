@@ -853,6 +853,8 @@ class ProductsGUI:
 			return
 		order_number = self.builder.get_object('order_number_entry').get_text()
 		barcode = self.builder.get_object('order_barcode_entry').get_text()
+		if order_number == '' and barcode == '':
+			return
 		self.cursor.execute("INSERT INTO vendor_product_numbers AS vpn "
 					"(product_id, vendor_id, vendor_sku, vendor_barcode) "
 					"VALUES (%s, %s, %s, %s) "

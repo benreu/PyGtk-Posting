@@ -83,9 +83,9 @@ class Setup :
 		document = Item()
 		self.cursor.execute("SELECT "
 								"format_date(dated_for), "
-								"total::money, "
-								"tax::money, "
-								"amount_owed::money "
+								"(-total)::money, "
+								"(-tax)::money, "
+								"(-amount_owed)::money "
 							"FROM credit_memos WHERE id = %s ", 
 							(self.credit_memo_id,))
 		for row in self.cursor.fetchall():

@@ -113,6 +113,7 @@ class CheckVersion :
 							"SET (major_version, minor_version) = (%s, %s)", 
 							(major_posting_version, minor_posting_version))
 			else:
+				self.db.rollback()
 				GLib.idle_add(Gtk.main_quit)
 		elif major_db_version > major_posting_version:  # major version behind
 			dialog = self.builder.get_object('db_newer_dialog')
@@ -129,6 +130,7 @@ class CheckVersion :
 				c.execute("UPDATE settings "
 							"SET minor_version = %s", (minor_posting_version,))
 			else:
+				self.db.rollback()
 				GLib.idle_add(Gtk.main_quit)
 		elif minor_db_version > minor_posting_version:  # minor version behind
 			dialog = self.builder.get_object('db_newer_dialog')
