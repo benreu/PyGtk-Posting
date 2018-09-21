@@ -154,27 +154,34 @@ class GUI:
 		treeview_selection = self.builder.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
 		model.clear()
-		total = Decimal()
-		self.cursor.execute("SELECT "
-								"i.id, "
-								"i.name, "
-								"c.id, "
-								"c.name, "
-								"dated_for::text, "
-								"format_date(dated_for), "
-								"amount_due "
-							"FROM invoices AS i "
-							"JOIN contacts AS c ON i.customer_id = c.id "
-							"WHERE (canceled, paid, posted) = "
-							"(False, False, True) "
-							"ORDER BY i.id")
-		tupl = self.cursor.fetchall()
+		c = self.db.cursor()
+		c.execute("SELECT "
+						"i.id, "
+						"i.name, "
+						"c.id, "
+						"c.name, "
+						"dated_for::text, "
+						"format_date(dated_for), "
+						"amount_due "
+					"FROM invoices AS i "
+					"JOIN contacts AS c ON i.customer_id = c.id "
+					"WHERE (canceled, paid, posted) = "
+					"(False, False, True) "
+					"ORDER BY i.id")
+		tupl = c.fetchall()
 		for row in tupl:
 			model.append(row)
 		if path != [] and tupl != []:
 			treeview_selection.select_path(path)
 			self.builder.get_object('treeview1').scroll_to_cell(path)
-		self.builder.get_object('label3').set_label('Total: ${:,.2f}'.format (total))
+		c.execute("SELECT COALESCE(i.amount_due - pi.amount, 0.00)::money "
+					"FROM (SELECT SUM(amount_due) AS amount_due FROM invoices "
+					"WHERE (posted, canceled, active) = (True, False, True)) i, "
+					"(SELECT SUM(amount) AS amount FROM payments_incoming "
+					"WHERE (misc_income) = (False)) pi ")
+		unpaid = c.fetchone()[0]
+		self.builder.get_object('label3').set_label(unpaid)
+		c.close()
 
 	def row_activated(self, treeview, path, treeviewcolumn):
 		treeiter = self.store.get_iter(path)
