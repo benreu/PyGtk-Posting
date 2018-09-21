@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-#
-# main.py
+# resource_calendar.py
 # Copyright (C) 2017 reuben 
 # 
 # pygtk-calendar is free software: you can redistribute it and/or modify it
