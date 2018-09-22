@@ -47,10 +47,15 @@ def copy_files (folder, dest_folder):
 				py_dest = JOIN(py_dest, obj.name)
 				shutil.copy2(py_file, py_dest)
 
-package_name = "pygtk_posting_5.1-1"
+with open ("./Makefile", 'r') as mf:
+	for line in mf.read().split('\n'):
+		if line[0:14] == 'PACKAGE_STRING': # get current version of Posting
+			tupl = line.split()
+			version = tupl[-1]
+package_name = "pygtk_posting_%s-1" % version
 package_folder = JOIN(CWD, package_name)
 if os.path.exists(package_folder):
-	shutil.rmtree (package_folder)
+	print ("folder %s already exists, please remove before generating package" % package_folder)
 ui_dest_folder = JOIN(package_folder, "usr/share/pygtk_posting/ui")
 os.makedirs (ui_dest_folder)
 py_dest_folder = JOIN(package_folder, "usr/lib/python3/dist-packages/pygtk_posting")
@@ -66,7 +71,6 @@ with os.scandir(JOIN(CWD, "templates")) as odts:
 exec_dest_folder = JOIN(package_folder, "usr/bin")
 os.makedirs (exec_dest_folder)
 shutil.copy2(JOIN(CWD, "pygtk_posting"), exec_dest_folder)
-#shutil.chown(JOIN(exec_dest_folder, "posting"), 'root', 'root')
 desktop_dest_folder = JOIN(package_folder, "usr/share/applications")
 os.makedirs (desktop_dest_folder)
 shutil.copy2(JOIN(CWD, "pygtk-posting.desktop"), desktop_dest_folder)
@@ -77,4 +81,7 @@ shutil.copy2(JOIN(CWD, "control"), debian_folder)
 shutil.copy2(JOIN(CWD, "postinst"), debian_folder)
 subprocess.call(["dpkg-deb", "--build", package_name])
 subprocess.call(["lintian", package_name+".deb"])
+shutil.rmtree (package_folder)
+
+	
 
