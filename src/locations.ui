@@ -16,7 +16,7 @@
     <property name="window_position">center</property>
     <property name="default_width">440</property>
     <property name="default_height">250</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>

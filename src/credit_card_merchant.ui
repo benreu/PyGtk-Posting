@@ -34,7 +34,7 @@
     <property name="window_position">center</property>
     <property name="default_width">400</property>
     <property name="default_height">600</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">

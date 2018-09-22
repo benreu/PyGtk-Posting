@@ -33,7 +33,6 @@
     <property name="title" translatable="yes">Sales Tax Report</property>
     <property name="window_position">center</property>
     <property name="default_height">300</property>
-    <property name="icon">PyGtk_Posting.svg</property>
     <child>
       <placeholder/>
     </child>

@@ -51,7 +51,6 @@
     <property name="window_position">center</property>
     <property name="default_width">600</property>
     <property name="default_height">300</property>
-    <property name="icon">PyGtk_Posting.svg</property>
     <child>
       <placeholder/>
     </child>
@@ -103,14 +102,10 @@
               </packing>
             </child>
             <child>
-            <object class="GtkCheckButton" id="checkbutton2">
-                <property name="label" translatable="yes">View all</property>
+              <object class="GtkLabel" id="label3">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="active">True</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="view_all_checkbutton_toggled" swapped="no"/>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes"> Fiscal </property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -119,10 +114,14 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="label3">
+              <object class="GtkCheckButton" id="checkbutton2">
+                <property name="label" translatable="yes">View all</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes"> Fiscal </property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+                <signal name="toggled" handler="view_all_checkbutton_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

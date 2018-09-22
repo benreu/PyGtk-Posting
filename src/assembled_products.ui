@@ -72,7 +72,7 @@
     <property name="window_position">center</property>
     <property name="default_width">800</property>
     <property name="default_height">400</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <signal name="key-release-event" handler="window_key_release_event" swapped="no"/>
     <child>

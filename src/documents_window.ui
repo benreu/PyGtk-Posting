@@ -152,7 +152,7 @@
     <property name="window_position">center</property>
     <property name="default_width">700</property>
     <property name="default_height">500</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <signal name="key-release-event" handler="window_key_event" swapped="no"/>
@@ -858,7 +858,7 @@
     <property name="title" translatable="yes">Existing Documents</property>
     <property name="default_width">400</property>
     <property name="default_height">150</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <child>

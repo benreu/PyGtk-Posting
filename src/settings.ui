@@ -121,7 +121,7 @@
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Settings</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <placeholder/>
     </child>
@@ -2003,7 +2003,7 @@ column visibility.</property>
     <property name="title" translatable="yes">Accrual based accounting</property>
     <property name="window_position">center</property>
     <property name="destroy_with_parent">True</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
     <child>
@@ -2082,7 +2082,7 @@ invoices (or purchase orders), but not canceling them (yet).
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Precision warning</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
     <child>

@@ -223,7 +223,7 @@
     <property name="window_position">center</property>
     <property name="default_width">700</property>
     <property name="default_height">500</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <signal name="key-release-event" handler="window_key_event" swapped="no"/>
@@ -754,7 +754,7 @@
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Barcode error!</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <child>
@@ -900,7 +900,7 @@
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Duplicate products !</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <child>
@@ -1036,7 +1036,7 @@ Do you want to update the quantity to </property>
     <property name="window_position">center</property>
     <property name="default_width">320</property>
     <property name="default_height">260</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <property name="action">save</property>
@@ -1102,7 +1102,7 @@ Do you want to update the quantity to </property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Create non stock product</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <child>
@@ -1350,7 +1350,7 @@ Do you want to update the quantity to </property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Update order number</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <child>

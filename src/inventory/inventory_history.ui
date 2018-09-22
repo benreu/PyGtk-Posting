@@ -48,7 +48,6 @@
     <property name="window_position">center</property>
     <property name="default_width">600</property>
     <property name="default_height">500</property>
-    <property name="icon">PyGtk_Posting.svg</property>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <child>
       <placeholder/>

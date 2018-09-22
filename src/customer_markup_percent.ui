@@ -26,7 +26,7 @@
     <property name="window_position">center</property>
     <property name="default_width">440</property>
     <property name="default_height">250</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -157,7 +157,7 @@
     <property name="window_position">center</property>
     <property name="default_width">320</property>
     <property name="default_height">260</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
     <child internal-child="vbox">

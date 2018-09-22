@@ -16,7 +16,7 @@
     <property name="border_width">10</property>
     <property name="title" translatable="yes">Resource Diary</property>
     <property name="window_position">center</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <placeholder/>
     </child>

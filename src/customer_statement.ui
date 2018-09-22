@@ -63,7 +63,7 @@
     <property name="window_position">center</property>
     <property name="default_width">600</property>
     <property name="default_height">400</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <child>
       <placeholder/>
@@ -324,7 +324,7 @@
     <property name="window_position">center</property>
     <property name="default_width">350</property>
     <property name="default_height">300</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
     <child>

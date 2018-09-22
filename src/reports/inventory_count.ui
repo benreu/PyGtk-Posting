@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="inventory_store">
@@ -24,7 +24,9 @@
     <property name="window_position">center</property>
     <property name="default_width">500</property>
     <property name="default_height">700</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>

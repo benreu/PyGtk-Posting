@@ -82,7 +82,6 @@
     <property name="title" translatable="yes">Employee Info</property>
     <property name="default_width">900</property>
     <property name="default_height">500</property>
-    <property name="icon">PyGtk_Posting.svg</property>
     <child>
       <placeholder/>
     </child>
@@ -705,7 +704,6 @@ withholding status</property>
     <property name="title" translatable="yes">Scan file</property>
     <property name="default_width">320</property>
     <property name="default_height">260</property>
-    <property name="icon">PyGtk_Posting.svg</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
     <child>

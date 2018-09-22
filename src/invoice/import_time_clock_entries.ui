@@ -46,7 +46,6 @@
     <property name="window_position">center</property>
     <property name="default_width">500</property>
     <property name="default_height">300</property>
-    <property name="icon">PyGtk_Posting.svg</property>
     <child>
       <placeholder/>
     </child>

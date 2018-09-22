@@ -195,7 +195,7 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
     <property name="window_position">center</property>
     <property name="default_width">900</property>
     <property name="default_height">600</property>
-    <property name="icon">PyGtk_Posting.svg</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus_in_populate_comboboxes" swapped="no"/>
     <signal name="key-press-event" handler="window_key_press_event" swapped="no"/>
