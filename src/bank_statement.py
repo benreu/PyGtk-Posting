@@ -22,8 +22,9 @@ from datetime import datetime
 from db import transactor
 from decimal import Decimal
 from dateutils import DateTimeCalendar
+import main
 
-UI_FILE = "src/bank_statement.ui"
+UI_FILE = main.ui_directory + "/bank_statement.ui"
 
 class GUI:
 	def __init__(self, main):

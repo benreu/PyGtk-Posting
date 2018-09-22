@@ -17,8 +17,9 @@
 
 from gi.repository import Gtk
 from datetime import datetime
+import main
 
-UI_FILE = "src/job_sheet.ui"
+UI_FILE = main.ui_directory + "/job_sheet.ui"
 
 class JobSheetGUI:
 	def __init__(self, main):

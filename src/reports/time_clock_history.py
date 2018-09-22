@@ -19,8 +19,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject, Pango
 from datetime import datetime
 import time, ssl
+import main
 
-UI_FILE = "src/reports/time_clock_history.ui"
+UI_FILE = main.ui_directory + "/reports/time_clock_history.ui"
 
 
 class TimeClockHistoryGUI:

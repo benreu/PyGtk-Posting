@@ -21,8 +21,9 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from main import get_apsw_cursor
 import log_utils
+import main
 
-UI_FILE = "src/db/database_tools.ui"
+UI_FILE = main.ui_directory + "/db/database_tools.ui"
 
 
 class GUI:

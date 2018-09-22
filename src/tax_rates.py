@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/tax_rates.ui"
+UI_FILE = main.ui_directory + "/tax_rates.ui"
 
 class TaxRateGUI:
 	def __init__(self, db):

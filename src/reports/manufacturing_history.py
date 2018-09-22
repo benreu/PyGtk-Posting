@@ -17,8 +17,9 @@
 
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/reports/manufacturing_history.ui"
+UI_FILE = main.ui_directory + "/reports/manufacturing_history.ui"
 
 class ManufacturingHistoryGUI:
 	def __init__(self, main):

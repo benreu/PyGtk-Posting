@@ -17,8 +17,9 @@
 
 from gi.repository import Gtk, Gdk, GLib
 import os, sys
+import main
 
-UI_FILE = "src/assembled_products.ui"
+UI_FILE = main.ui_directory + "/assembled_products.ui"
 
 
 class AssembledProductsGUI:

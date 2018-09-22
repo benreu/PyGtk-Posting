@@ -16,8 +16,9 @@
 
 from gi.repository import Gtk
 from datetime import datetime
+import main
 
-UI_FILE = "src/inventory/inventory_adjustment.ui"
+UI_FILE = main.ui_directory + "/inventory/inventory_adjustment.ui"
 
 class InventoryAdjustmentGUI:
 	def __init__(self, db, product_id):

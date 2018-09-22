@@ -22,8 +22,9 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from datetime import datetime, date
 from db.database_tools import get_apsw_cursor
+import main
 
-UI_FILE = "src/db/backup_restore.ui"
+UI_FILE = main.ui_directory + "/db/backup_restore.ui"
 
 class Utilities:
 	def __init__(self, parent):

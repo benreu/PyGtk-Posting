@@ -19,8 +19,9 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
+import main
 
-UI_FILE = "src/product_serial_numbers.ui"
+UI_FILE = main.ui_directory + "/product_serial_numbers.ui"
 
 class ProductSerialNumbersGUI:
 	def __init__(self, main):

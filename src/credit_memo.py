@@ -18,8 +18,9 @@
 from gi.repository import Gtk, Gdk, GLib
 import psycopg2
 from dateutils import DateTimeCalendar
+import main
 
-UI_FILE = "src/credit_memo.ui"
+UI_FILE = main.ui_directory + "/credit_memo.ui"
 
 class CreditMemoGUI:
 	credit_memo_template = None

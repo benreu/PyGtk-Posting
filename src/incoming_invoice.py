@@ -21,8 +21,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 from check_writing import set_written_ck_amnt_text, get_check_number
 from db import transactor
+import main
 
-UI_FILE = "src/incoming_invoice.ui"
+UI_FILE = main.ui_directory + "/incoming_invoice.ui"
 
 class IncomingInvoiceGUI:
 	def __init__(self, main):

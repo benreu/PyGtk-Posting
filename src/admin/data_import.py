@@ -18,8 +18,9 @@
 from gi.repository import Gtk
 import xlrd
 from xlrd.biffh import XLRDError
+import main
 
-UI_FILE = "src/admin/data_import.ui"
+UI_FILE = main.ui_directory + "/admin/data_import.ui"
 
 
 class DataImportUI:

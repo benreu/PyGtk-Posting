@@ -20,11 +20,9 @@ import os, sys
 from datetime import datetime
 import invoice_window
 from pricing import get_customer_product_price
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/jobs_to_invoice.ui"
-#UI_FILE = "/usr/local/share/pygtk_accounting/ui/pygtk_accounting.ui"
+UI_FILE = main.ui_directory + "/jobs_to_invoice.ui"
 
 
 class GUI:

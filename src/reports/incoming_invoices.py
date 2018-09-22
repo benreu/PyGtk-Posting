@@ -18,8 +18,9 @@
 
 from gi.repository import Gtk
 import subprocess
+import main
 
-UI_FILE = "src/reports/incoming_invoices.ui"
+UI_FILE = main.ui_directory + "//reports/incoming_invoices.ui"
 
 class IncomingInvoiceGUI:
 	def __init__(self, db):

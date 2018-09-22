@@ -19,8 +19,9 @@
 from gi.repository import Gtk
 import dateutils
 from decimal import Decimal
+import main
 
-UI_FILE = "src/reports/payments_received.ui"
+UI_FILE = main.ui_directory + "/reports/payments_received.ui"
 
 
 

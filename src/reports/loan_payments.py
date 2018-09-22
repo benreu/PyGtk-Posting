@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/reports/loan_payments.ui"
+UI_FILE = main.ui_directory + "/reports/loan_payments.ui"
 
 class LoanPaymentsGUI:
 	def __init__(self, db):

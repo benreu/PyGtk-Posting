@@ -19,8 +19,9 @@ from gi.repository import Gtk, GLib
 import psycopg2
 from db import transactor
 from dateutils import DateTimeCalendar
+import main
 
-UI_FILE = "src/credit_card_statements.ui"
+UI_FILE = main.ui_directory + "/credit_card_statements.ui"
 
 class CreditCardStatementGUI:
 	def __init__(self, db):

@@ -20,8 +20,9 @@ from gi.repository import Gtk
 from datetime import timedelta
 from dateutils import DateTimeCalendar
 import spell_check
+import main
 
-UI_FILE = "src/resource_diary.ui"
+UI_FILE = main.ui_directory + "/resource_diary.ui"
 
 class ResourceDiaryGUI:
 	def __init__(self, db):

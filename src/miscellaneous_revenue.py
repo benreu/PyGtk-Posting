@@ -18,8 +18,9 @@
 from gi.repository import Gtk, GLib
 from db import transactor
 from dateutils import DateTimeCalendar
+import main
 
-UI_FILE = "src/miscellaneous_revenue.ui"
+UI_FILE = main.ui_directory + "//miscellaneous_revenue.ui"
 
 class MiscellaneousRevenueGUI:
 	def __init__ (self, main):

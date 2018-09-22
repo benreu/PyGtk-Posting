@@ -21,8 +21,9 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from subprocess import Popen, PIPE, STDOUT
 import os, sys, time, subprocess, sane, psycopg2
+import main
 
-UI_FILE = "src/reports/contact_transactions.ui"
+UI_FILE = main.ui_directory + "/reports/contact_transactions.ui"
 
 class GUI:
 	def __init__(self, main):

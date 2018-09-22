@@ -18,8 +18,9 @@
 from gi.repository import Gtk
 import subprocess, psycopg2
 import printing
+import main
 
-UI_FILE = "src/payment_receipt.ui"
+UI_FILE = main.ui_directory + "/payment_receipt.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

@@ -19,8 +19,9 @@ from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
 from dateutils import DateTimeCalendar
 import spell_check
+import main
 
-UI_FILE = "src/resource_management.ui"
+UI_FILE = main.ui_directory + "/resource_management.ui"
 
 class ResourceManagementGUI:
 	timeout_id = None

@@ -17,8 +17,9 @@
 
 
 from gi.repository import Gtk, GLib
+import main
 
-UI_FILE = "src/accounts_configuration.ui"
+UI_FILE = main.ui_directory + "/accounts_configuration.ui"
 
 
 class GUI():

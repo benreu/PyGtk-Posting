@@ -22,8 +22,9 @@ import subprocess, re
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
+import main
 
-UI_FILE = "src/documents_window.ui"
+UI_FILE = main.ui_directory + "/documents_window.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

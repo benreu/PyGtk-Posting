@@ -21,7 +21,7 @@ from decimal import Decimal
 import subprocess
 import main
 
-UI_FILE = "src/reports/invoice_history.ui"
+UI_FILE = main.ui_directory + "/reports/invoice_history.ui"
 
 class InvoiceHistoryGUI:
 	exists = True

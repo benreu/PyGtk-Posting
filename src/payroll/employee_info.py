@@ -24,8 +24,9 @@ from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
 import sane, psycopg2, subprocess
+import main
 
-UI_FILE = "src/payroll/employee_info.ui"
+UI_FILE = main.ui_directory + "/payroll/employee_info.ui"
 
 device = None
 

@@ -20,8 +20,9 @@ import subprocess
 from inventory import inventorying
 import locations, barcode_generator
 from pricing import product_retail_price
+import main
 
-UI_FILE = "src/receive_orders.ui"
+UI_FILE = main.ui_directory + "/receive_orders.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

@@ -17,8 +17,9 @@
 
 from gi.repository import Gtk, GLib
 from db import transactor
+import main
 
-UI_FILE = "src/settings.ui"
+UI_FILE = main.ui_directory + "/settings.ui"
 
 class GUI():
 	def __init__(self, db, setting_container = None):

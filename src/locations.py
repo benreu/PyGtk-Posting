@@ -17,11 +17,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/locations.ui"
-#UI_FILE = "/usr/local/share/pygtk_products/ui/pygtk_products.ui"
+UI_FILE = main.ui_directory + "/locations.ui"
 
 class LocationsGUI:
 	def __init__(self, db):

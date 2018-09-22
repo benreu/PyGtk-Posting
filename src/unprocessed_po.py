@@ -23,8 +23,9 @@ from datetime import datetime
 import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
+import main
 
-UI_FILE = "src/unprocessed_po.ui"
+UI_FILE = main.ui_directory + "/unprocessed_po.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

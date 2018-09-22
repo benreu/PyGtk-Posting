@@ -25,7 +25,7 @@ from db import database_tools
 import main
 from main import Accounts
 
-UI_FILE = "src/pygtk_posting.ui"
+UI_FILE = main.ui_directory + "/pygtk_posting.ui"
 
 invoice_window = None
 ccm = None

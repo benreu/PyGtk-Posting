@@ -17,8 +17,9 @@
 
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/reports/bank_statements.ui"
+UI_FILE = main.ui_directory + "/reports/bank_statements.ui"
 
 class BankStatementsGUI:
 	def __init__(self, db):

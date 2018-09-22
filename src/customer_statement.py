@@ -19,9 +19,9 @@ from gi.repository import Gtk, Gdk
 import os, sys, subprocess
 from datetime import datetime
 import customer_payment, statementing
+import main
 
-
-UI_FILE = "src/customer_statement.ui"
+UI_FILE = main.ui_directory + "/customer_statement.ui"
 
 class GUI:
 	def __init__(self, db):

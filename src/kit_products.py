@@ -17,8 +17,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys
+import main
 
-UI_FILE = "src/kit_products.ui"
+UI_FILE = main.ui_directory + "/kit_products.ui"
 
 
 class KitProductsGUI:

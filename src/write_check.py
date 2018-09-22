@@ -25,10 +25,9 @@ from db.transactor import post_incoming_invoice_expense,\
 							service_provider_transfer ,\
 							service_provider_cash_payment
 import contacts
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/incoming_invoice.ui"
+UI_FILE = main.ui_directory + "/incoming_invoice.ui"
 
 class WriteCheckGUI:
 	def __init__(self, db):

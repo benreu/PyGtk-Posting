@@ -18,8 +18,9 @@
 import gi
 gi.require_version('GtkSource', '3.0')
 from gi.repository import Gtk, GtkSource, GObject, Gdk
+import main
 
-UI_FILE = "src/db/sql_window.ui"
+UI_FILE = main.ui_directory + "/db/sql_window.ui"
 
 class SQLWindowGUI :
 	def __init__(self, db):

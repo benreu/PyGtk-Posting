@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-UI_FILE = "src/time_clock.ui"
-
 from gi.repository import Gtk, GLib
 from datetime import datetime
+import main
+
+UI_FILE = main.ui_directory + "/time_clock.ui"
+
 
 class TimeClockGUI :
 	entry_id = 0

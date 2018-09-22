@@ -18,11 +18,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
 import apsw, psycopg2, subprocess
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/add_files.ui"
-#UI_FILE = "/usr/local/share/pygtk_accounting/ui/pygtk_accounting.ui"
+UI_FILE = main.ui_directory + "/add_files.ui"
 
 class GUI:
 	def __init__(self, db):

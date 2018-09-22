@@ -17,9 +17,9 @@
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from dateutils import calendar_to_datetime, set_calendar_from_datetime 
+import main
 
-
-UI_FILE = "src/resource_calendar.ui"
+UI_FILE = main.ui_directory + "/resource_calendar.ui"
 
 
 class ResourceCalendarGUI:

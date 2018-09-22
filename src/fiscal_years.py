@@ -18,8 +18,9 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 from datetime import datetime, timedelta
+import main
 
-UI_FILE = "src/fiscal_years.ui"
+UI_FILE = main.ui_directory + "/fiscal_years.ui"
 
 class FiscalYearGUI:
 	def __init__(self, db):

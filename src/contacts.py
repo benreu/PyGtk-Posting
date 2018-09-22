@@ -20,9 +20,7 @@ from multiprocessing import Queue, Process
 from queue import Empty
 import main
 
-
-
-UI_FILE = "src/contacts.ui"
+UI_FILE = main.ui_directory + "/contacts.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

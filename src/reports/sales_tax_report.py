@@ -18,8 +18,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk
 from datetime import datetime, date, timedelta
 from dateutils import DateTimeCalendar
+import main
 
-UI_FILE = "src/reports/sales_tax_report.ui"
+UI_FILE = main.ui_directory + "/reports/sales_tax_report.ui"
 
 class SalesTaxReportGUI:
 	def __init__(self, db):

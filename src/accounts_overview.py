@@ -17,8 +17,9 @@
 
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/accounts_overview.ui"
+UI_FILE = main.ui_directory + "/accounts_overview.ui"
 
 class AccountsOverviewGUI:
 	def __init__(self, main):

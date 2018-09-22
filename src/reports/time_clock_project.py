@@ -20,9 +20,9 @@ from gi.repository import Gtk
 import subprocess
 from datetime import datetime
 from dateutils import seconds_to_compact_string
-						
+import main
 
-UI_FILE = "src/reports/time_clock_project.ui"
+UI_FILE = main.ui_directory + "/reports/time_clock_project.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

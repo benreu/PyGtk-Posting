@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
+import main
 
-UI_FILE = "src/product_hub.ui"
+UI_FILE = main.ui_directory + "/product_hub.ui"
 
 class ProductHubGUI:
 	def __init__(self, main, product_id):

@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/inventory/inventory_history.ui"
+UI_FILE = main.ui_directory + "/inventory/inventory_history.ui"
 
 class InventoryHistoryGUI:
 	def __init__(self, db, product_id = None):

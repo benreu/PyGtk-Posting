@@ -19,8 +19,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
+import main
 
-UI_FILE = "src/reports/product_history.ui"
+UI_FILE = main.ui_directory + "/reports/product_history.ui"
 
 class ProductHistoryGUI:
 	def __init__(self, main):

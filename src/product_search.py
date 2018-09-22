@@ -19,8 +19,9 @@
 
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
+import main
 
-UI_FILE = "src/product_search.ui"
+UI_FILE = main.ui_directory + "/product_search.ui"
 
 
 class ProductSearchGUI:

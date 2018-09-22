@@ -18,8 +18,9 @@
 from gi.repository import Gtk
 import re
 from dateutils import DateTimeCalendar
+import main
 
-UI_FILE = "src/resource_search.ui"
+UI_FILE = main.ui_directory + "/resource_search.ui"
 
 class ResourceSearchGUI:
 	def __init__ (self, db):

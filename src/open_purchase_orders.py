@@ -15,8 +15,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/open_purchase_orders.ui"
+UI_FILE = main.ui_directory + "/open_purchase_orders.ui"
 
 class OpenPurchaseOrderGUI:
 	def __init__(self, main):

@@ -18,8 +18,9 @@
 from gi.repository import Gtk, Gdk, GLib, GObject
 from dateutils import DateTimeCalendar
 from db.transactor import double_entry_transaction
+import main
 
-UI_FILE = "src/double_entry_transaction.ui"
+UI_FILE = main.ui_directory + "/double_entry_transaction.ui"
 
 
 class DoubleEntryTransactionGUI:

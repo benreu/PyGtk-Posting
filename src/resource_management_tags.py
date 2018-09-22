@@ -17,8 +17,9 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
+import main
 
-UI_FILE = "src/resource_management_tags.ui"
+UI_FILE = main.ui_directory + "/resource_management_tags.ui"
 
 class ResourceManagementTagsGUI:
 	def __init__(self, db):

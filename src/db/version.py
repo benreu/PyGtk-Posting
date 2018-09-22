@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
+import main
 
-UI_FILE = "src/db/version.ui"
+UI_FILE = main.ui_directory + "/db/version.ui"
 
 
 class CheckVersion :

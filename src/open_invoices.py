@@ -15,8 +15,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/open_invoices.ui"
+UI_FILE = main.ui_directory + "/open_invoices.ui"
 
 class OpenInvoicesGUI:
 	def __init__(self, main):

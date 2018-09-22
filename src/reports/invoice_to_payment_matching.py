@@ -17,8 +17,9 @@
 import gi
 gi.require_version('GooCanvas', '2.0')
 from gi.repository import Gtk, Gdk, GooCanvas
+import main
 
-UI_FILE = "src/reports/invoice_to_payment_matching.ui"
+UI_FILE = main.ui_directory + "/reports/invoice_to_payment_matching.ui"
 
 class GUI:
 	def __init__(self, db):

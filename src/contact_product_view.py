@@ -17,8 +17,9 @@
 
 
 from gi.repository import Gtk, GLib
+import main
 
-UI_FILE = 'src/contact_product_view.ui'
+UI_FILE = main.ui_directory + "/contact_product_view.ui"
 
 class ContactProductViewGUI :
 	def __init__ (self, main):

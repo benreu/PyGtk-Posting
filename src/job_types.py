@@ -17,11 +17,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/job_types.ui"
-#UI_FILE = "/usr/local/share/pygtk_accounting/ui/pygtk_accounting.ui"
+UI_FILE = main.ui_directory + "/job_types.ui"
 
 
 class GUI:

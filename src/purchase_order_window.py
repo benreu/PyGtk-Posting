@@ -22,9 +22,11 @@ import subprocess, re, os
 from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 import purchase_ordering
+import main
 
 items = list()
-UI_FILE = "src/purchase_order_window.ui"
+
+UI_FILE = main.ui_directory + "/purchase_order_window.ui"
 
 def add_expense_to_po (db, po_id, product_id, expense_amount ):
 	cursor = db.cursor ()

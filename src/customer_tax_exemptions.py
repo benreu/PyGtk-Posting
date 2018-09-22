@@ -18,11 +18,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/customer_tax_exemptions.ui"
-#UI_FILE = "/usr/local/share/pygtk_foobar_contacts/ui/pygtk_foobar_contacts.ui"
+UI_FILE = main.ui_directory + "/customer_tax_exemptions.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

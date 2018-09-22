@@ -17,8 +17,9 @@
 
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/product_location.ui"
+UI_FILE = main.ui_directory + "/product_location.ui"
 
 class ProductLocationGUI:
 	def __init__(self, main):

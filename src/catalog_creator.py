@@ -23,8 +23,9 @@ from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
 from com.sun.star.awt.FontWeight import BOLD, NORMAL
 from com.sun.star.awt import Size
+import main
 
-UI_FILE = "src/catalog_creator.ui"
+UI_FILE = main.ui_directory + "/catalog_creator.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

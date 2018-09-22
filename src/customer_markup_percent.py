@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/customer_markup_percent.ui"
+UI_FILE = main.ui_directory + "/customer_markup_percent.ui"
 
 class CustomerMarkupPercentGUI:
 	def __init__(self, main):

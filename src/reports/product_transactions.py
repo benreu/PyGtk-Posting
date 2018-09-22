@@ -18,8 +18,9 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject
+import main
 
-UI_FILE = "src/reports/product_transactions.ui"
+UI_FILE = main.ui_directory + "/reports/product_transactions.ui"
 
 
 

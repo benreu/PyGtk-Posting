@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
+import main
 
-
-UI_FILE = "src/reports/pay_stub_history.ui"
+UI_FILE = main.ui_directory + "/reports/pay_stub_history.ui"
 
 class PayStubHistoryGUI:
 	def __init__(self, db):

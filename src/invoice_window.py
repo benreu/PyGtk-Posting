@@ -21,8 +21,9 @@ from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
+import main
 
-UI_FILE = "src/invoice_window.ui"
+UI_FILE = main.ui_directory + "/invoice_window.ui"
 
 def create_new_invoice (cursor, date, customer_id):
 	from datetime import datetime

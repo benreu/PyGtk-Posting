@@ -18,12 +18,9 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
+import main
 
-
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/deposits.ui"
-#UI_FILE = "/usr/local/share/pygtk_unpaid_invoices/ui/pygtk_unpaid_invoices.ui"
+UI_FILE = main.ui_directory + "/deposits.ui"
 
 
 class GUI:

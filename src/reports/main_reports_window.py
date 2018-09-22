@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/reports/main_reports_window.ui"
+UI_FILE = main.ui_directory + "/reports/main_reports_window.ui"
 
 class MainReportsGUI:
 	def __init__(self, main):

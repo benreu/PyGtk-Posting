@@ -18,8 +18,9 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess
 import spell_check, main
+import main
 
-UI_FILE = "src/products.ui"
+UI_FILE = main.ui_directory + "/products.ui"
 
 def add_non_stock_product (db, vendor_id, product_name, product_number,
 							expense_account, revenue_account):

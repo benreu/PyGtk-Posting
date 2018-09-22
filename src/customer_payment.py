@@ -21,8 +21,9 @@ from datetime import date, timedelta
 import subprocess
 from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
+import main
 
-UI_FILE = "src/customer_payment.ui"
+UI_FILE = main.ui_directory + "/customer_payment.ui"
 
 class GUI:
 	def __init__(self, main, customer_id = None):

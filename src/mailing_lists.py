@@ -18,8 +18,9 @@
 
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/mailing_lists.ui"
+UI_FILE = main.ui_directory + "/mailing_lists.ui"
 
 
 class MailingListsGUI:

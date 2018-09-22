@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
-UI_FILE = "src/contact_hub.ui"
+UI_FILE = main.ui_directory + "/contact_hub.ui"
 
 class ContactHubGUI:
 	def __init__(self, main, contact_id):

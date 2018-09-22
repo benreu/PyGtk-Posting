@@ -20,12 +20,9 @@ import os, sys, subprocess, time, re, psycopg2
 from datetime import datetime, timedelta
 from dateutils import datetime_to_text, calendar_to_text, \
 					calendar_to_datetime, set_calendar_from_datetime 
+import main
 
-#Comment the first line and uncomment the second before installing
-#or making the tarball (alternatively, use project variables)
-UI_FILE = "src/employee_time.ui"
-
-#UI_FILE = "/usr/local/share/pygtk_accounting/ui/pygtk_accounting.ui"
+UI_FILE = main.ui_directory + "/employee_time.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

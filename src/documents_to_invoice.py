@@ -19,8 +19,9 @@
 from gi.repository import Gtk
 import invoice_window
 from datetime import datetime
+import main
 
-UI_FILE = "src/documents_to_invoice.ui"
+UI_FILE = main.ui_directory + "/documents_to_invoice.ui"
 
 class DocumentsToInvoiceGUI:
 	def __init__(self, db):

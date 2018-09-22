@@ -18,8 +18,9 @@
 from gi.repository import Gtk, GLib
 import subprocess
 import barcode_generator
+import main
 
-UI_FILE = "src/manufacturing.ui"
+UI_FILE = main.ui_directory + "/manufacturing.ui"
 
 
 class ManufacturingGUI:

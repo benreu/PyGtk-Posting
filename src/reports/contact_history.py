@@ -20,8 +20,9 @@ from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
 import dateutils
+import main
 
-UI_FILE = "src/reports/contact_history.ui"
+UI_FILE = main.ui_directory + "/reports/contact_history.ui"
 
 class ContactHistoryGUI:
 	def __init__(self, main):

@@ -19,8 +19,9 @@ from gi.repository import Gtk, Gdk, GLib, GObject
 from check_writing import set_written_ck_amnt_text, get_check_number
 from dateutils import DateTimeCalendar
 from db import transactor 
+import main
 
-UI_FILE = "src/loan_payment.ui"
+UI_FILE = main.ui_directory + "/loan_payment.ui"
 
 class LoanPaymentGUI:
 	def __init__(self, db, loan_id = None):

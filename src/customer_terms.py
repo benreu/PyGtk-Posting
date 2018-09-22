@@ -16,8 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
+import main
 
-UI_FILE = "src/customer_terms.ui"
+UI_FILE = main.ui_directory + "/customer_terms.ui"
 
 class CustomerTermsGUI:
 	def __init__(self, db):

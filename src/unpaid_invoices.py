@@ -19,8 +19,9 @@ from decimal import Decimal
 from db import transactor
 from dateutils import DateTimeCalendar
 import subprocess
+import main
 
-UI_FILE = "src/unpaid_invoices.ui"
+UI_FILE = main.ui_directory + "/unpaid_invoices.ui"
 Figure = None
 
 class GUI:
