@@ -7,4 +7,5 @@ python_PYTHON = __init__.py \
 	inventory_history.ui \
 	inventorying.py \
 	PyGtk_Posting.svg \
-	inventory_adjustment.ui
+	inventory_adjustment.ui \
+	invoiced.py
