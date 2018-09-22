@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# run this file with the command    fakeroot python3 ./create_deb.py
+
 import shutil, os, subprocess
 JOIN = os.path.join
 CWD = os.getcwd()
