@@ -95,7 +95,7 @@ class ManufacturingGUI:
 		bc.createImage(str(barcode), 20)
 		from py3o.template import Template
 		label_file = "/tmp/manufacturing_serial_label.odt"
-		t = Template("templates/manufacturing_serial_template.odt", label_file )
+		t = Template(main.template_dir+"/manufacturing_serial_template.odt", label_file )
 		t.set_image_path('staticimage.logo', '/tmp/product_barcode.png')
 		data = dict()
 		t.render(data) #the self.data holds all the info

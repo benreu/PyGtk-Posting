@@ -197,7 +197,7 @@ class ReceiveOrdersGUI:
 			data = dict(label = label)
 			from py3o.template import Template
 			label_file = "templates/product_label.odt"
-			t = Template("templates/product_label_template.odt", label_file )
+			t = Template(main.template_dir+"/product_label_template.odt", label_file )
 			t.set_image_path('staticimage.logo', '/tmp/product_barcode.png')
 			t.render(data) #the self.data holds all the info
 			subprocess.call("soffice -p --headless " + label_file, shell = True)

@@ -161,7 +161,7 @@ class GUI:
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
 		time_file = "/tmp/employee_time.odt"
 		time_file_pdf = "/tmp/employee_time.pdf"
-		t = Template("./templates/employee_time.odt", time_file , False)
+		t = Template(main.template_dir+"/employee_time.odt", time_file , False)
 		t.render(data) #the self.data holds all the info of the invoice
 		subprocess.call('odt2pdf ' + time_file, shell = True)
 		subprocess.Popen('soffice ' + time_file, shell = True)

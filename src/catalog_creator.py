@@ -237,7 +237,7 @@ class CatalogCreatorGUI:
 			product_list[name_id] = name
 			product_list[price_id] = price
 		catalog_file = "/tmp/catalog.odt"
-		t = Template("./templates/catalog_template.odt", catalog_file , False)
+		t = Template(main.template_dir+"/catalog_template.odt", catalog_file , False)
 		try:
 			t.render(product_list) #the product_list holds all the catalog info
 		except Exception as e:

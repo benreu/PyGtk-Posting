@@ -227,7 +227,7 @@ class EmployeePaymentGUI:
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
 		self.time_file = "/tmp/employee_time.odt"
 		self.time_file_pdf = "/tmp/employee_time.pdf"
-		t = Template("./templates/employee_time.odt", self.time_file , True)
+		t = Template(main.template_dir+"/employee_time.odt", self.time_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 				
 		subprocess.call('soffice ' + self.time_file, shell = True)

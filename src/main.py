@@ -212,8 +212,10 @@ is_admin = False
 cur_dir = os.getcwd()
 if cur_dir.split("/")[1] == "usr":
 	ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
+	template_dir = "/.config/posting/templates"
 else:
 	ui_directory = os.path.join(os.getcwd(), "src")
+	template_dir = os.path.join(os.getcwd(), "templates")
 
 
 dev_mode = False

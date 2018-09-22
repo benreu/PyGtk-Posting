@@ -353,7 +353,7 @@ class GUI:
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		env_file = "/tmp/env10_template.odt"
-		t = Template("./templates/env10_template.odt", env_file , True)
+		t = Template(main.template_dir+"env10_template.odt", env_file , True)
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.Popen("soffice --headless -p " + env_file, shell = True)
 		#subprocess.call("libreoffice " + label_file, shell = True)
@@ -388,7 +388,7 @@ class GUI:
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		label_file = "/tmp/letter_template.odt"
-		t = Template("./templates/letter_template.odt", label_file , True)
+		t = Template(main.template_dir+"letter_template.odt", label_file , True)
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.call("libreoffice " + label_file, shell = True)
 

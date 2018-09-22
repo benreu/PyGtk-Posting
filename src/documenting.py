@@ -19,7 +19,7 @@ import os, sys, subprocess, time, psycopg2
 from time import strftime
 from datetime import datetime, timedelta
 from db import transactor
-import printing
+import printing, main
 
 items = list()
 class Item(object):#this is used by py3o library see their example for more info
@@ -118,14 +118,14 @@ class Setup():
 	def view(self):
 		from py3o.template import Template 
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template("./templates/document_template.odt", purchase_order_file , True)
+		t = Template(main.template_dir+"/document_template.odt", purchase_order_file , True)
 		t.render(self.data) #the self.data holds all the info of the purchase_order
 		subprocess.Popen("libreoffice " + purchase_order_file, shell = True)
 
 	def print_dialog(self, window):
 		from py3o.template import Template 
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template("./templates/document_template.odt", purchase_order_file , True)
+		t = Template(main.template_dir+"/document_template.odt", purchase_order_file , True)
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Setup("/tmp/" + self.document_pdf, "document")
@@ -134,7 +134,7 @@ class Setup():
 	def print_directly(self):
 		from py3o.template import Template #import for every purchase order or there is an error about invalid magic header numbers
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template("./templates/document_template.odt", purchase_order_file , True)
+		t = Template(main.template_dir+"/document_template.odt", purchase_order_file , True)
 		t.render(self.data)
 		subprocess.Popen("libreoffice --nologo --headless -p " + purchase_order_file, shell = True)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)

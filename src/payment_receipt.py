@@ -217,7 +217,7 @@ class PaymentReceiptGUI:
 		data = dict(payment = payment, contact = customer, company = company)
 		from py3o.template import Template 
 		self.receipt_file = "/tmp/" + self.document_odt
-		t = Template("./templates/payment_receipt_template.odt", self.receipt_file , True)
+		t = Template(main.template_dir+"/payment_receipt_template.odt", self.receipt_file , True)
 		t.render(data) #the data holds all the info of the invoice
 
 
