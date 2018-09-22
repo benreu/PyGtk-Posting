@@ -19,6 +19,8 @@ from gi.repository import Gtk
 import psycopg2, apsw, os
 
 cursor = None
+dev_mode = False
+is_admin = False
 
 class Accounts:
 	expense_acc = Gtk.TreeStore(int, str)
@@ -207,26 +209,30 @@ def connect_to_db (name):
 		print (e.args)
 		return False, None, None
 
-is_admin = False
+home = os.path.expanduser('~')
+preferences_path = os.path.join(home, '.config/posting')
 
 cur_dir = os.getcwd()
-if cur_dir.split("/")[1] == "usr":
+if cur_dir.split("/")[1] == "usr": #posting is launching from an installed .deb
 	ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
-	template_dir = "/.config/posting/templates"
-else:
+	template_orig = os.path.relpath("/usr/share/pygtk_posting/templates/")
+	template_dir = os.path.join(home, ".config/posting/templates")
+	if not os.path.exists(template_dir): #copy templates
+		shutil.copytree(template_orig, template_dir)
+		print ("copied *.odt templates to %s" % template_dir)
+	modules_orig = os.path.relpath("/usr/lib/python3/dist-packages/pygtk_posting/modules/")
+	modules_dir = os.path.join(home, ".config/posting/modules/")
+	if not os.path.exists(modules_dir): #copy modules
+		shutil.copytree(modules_orig, modules_dir)
+		print ("copied *.py modules to %s" % modules_dir)
+else:                              # use local files
 	ui_directory = os.path.join(os.getcwd(), "src")
 	template_dir = os.path.join(os.getcwd(), "templates")
+	modules_dir = os.path.join(os.getcwd(), "src/modules/")
 
-
-dev_mode = False
-preferences_path = None
 
 def get_apsw_cursor ():
 	global dev_mode, preferences_path
-	home = os.path.expanduser('~')
-	preferences_path = os.path.join(home, '.config/posting')
-	if not os.path.exists(preferences_path):
-		os.mkdir(preferences_path)
 	if dev_mode == True:
 		pref_file = os.path.join(os.getcwd(), 'local_settings')
 	else:
