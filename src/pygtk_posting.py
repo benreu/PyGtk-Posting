@@ -125,7 +125,7 @@ class MainGUI (GObject.GObject, Accounts):
 	def populate_modules (self):
 		import importlib.util as i_utils
 		cwd = os.getcwd()
-		module_folder = cwd + "/src/modules/"
+		module_folder = main.modules_dir
 		files = os.listdir(module_folder)
 		menu = self.builder.get_object('menu11')
 		for file_ in files:
