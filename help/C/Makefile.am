@@ -2,4 +2,4 @@
 
 
 SUBDIRS = \
-	C
+	pygtk-posting

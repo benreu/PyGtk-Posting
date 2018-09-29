@@ -17,7 +17,7 @@
 
 # run this file with the command    fakeroot python3 ./create_deb.py
 
-import shutil, os, subprocess
+import shutil, os, subprocess, re
 JOIN = os.path.join
 CWD = os.getcwd()
 
@@ -54,6 +54,11 @@ with open ("./Makefile", 'r') as mf:
 		if line[0:14] == 'PACKAGE_STRING': # get current version of Posting
 			tupl = line.split()
 			version = tupl[-1]
+with open ("control", 'r') as c:
+	text = c.read()
+	text = re.sub("Version: 1", "Version: %s" % version, text)
+with open ("control", 'w') as c:
+	c.write(text)
 package_name = "pygtk_posting_%s-1" % version
 package_folder = JOIN(CWD, package_name)
 if os.path.exists(package_folder):
@@ -70,9 +75,15 @@ with os.scandir(JOIN(CWD, "templates")) as odts:
 		end = odt.name.endswith
 		if end(".odt") or end(".txt") or end(".pil") or end(".pbm"): 
 			shutil.copy2(odt, odt_dest_folder)
+help_dest_folder = JOIN(package_folder, "usr/share/help/C/pygtk-posting")
+os.makedirs (help_dest_folder)
+with os.scandir(JOIN(CWD, "help/C/pygtk-posting")) as pages:
+	for page in pages:
+		if page.name.endswith(".page") : 
+			shutil.copy2(page, help_dest_folder)
 exec_dest_folder = JOIN(package_folder, "usr/bin")
 os.makedirs (exec_dest_folder)
-shutil.copy2(JOIN(CWD, "pygtk_posting"), exec_dest_folder)
+shutil.copy2(JOIN(CWD, "pygtk-posting"), exec_dest_folder)
 desktop_dest_folder = JOIN(package_folder, "usr/share/applications")
 os.makedirs (desktop_dest_folder)
 shutil.copy2(JOIN(CWD, "pygtk-posting.desktop"), desktop_dest_folder)
