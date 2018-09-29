@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=PyGtk Posting
 Categories=Office
-Exec=pygtk_posting
+Exec=pygtk-posting
 Comment=Open source accounting and business management system
 Icon=pygtk-posting
 Type=Application

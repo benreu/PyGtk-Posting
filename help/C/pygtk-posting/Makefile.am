@@ -5,7 +5,7 @@ python_PYTHON = contacts.page \
 	invoice.page \
 	products.page \
 	purchase_order.page \
-	pygtk_posting.page \
 	statement.page \
 	tax_exemptions.page \
-	unpaid_invoices.page
+	unpaid_invoices.page \
+	index.page

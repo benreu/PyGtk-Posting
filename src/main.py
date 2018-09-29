@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import psycopg2, apsw, os
+import psycopg2, apsw, os, shutil
 
 cursor = None
 dev_mode = False
@@ -213,7 +213,7 @@ home = os.path.expanduser('~')
 preferences_path = os.path.join(home, '.config/posting')
 
 cur_dir = os.getcwd()
-if cur_dir.split("/")[1] == "usr": #posting is launching from an installed .deb
+if dev_mode == False: #posting is launching from an installed .deb
 	ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
 	template_orig = os.path.relpath("/usr/share/pygtk_posting/templates/")
 	template_dir = os.path.join(home, ".config/posting/templates")

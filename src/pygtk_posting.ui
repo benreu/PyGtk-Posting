@@ -1412,7 +1412,7 @@ Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
 </property>
     <property name="documenters">Reuben Rissler</property>
     <property name="artists">Reuben Rissler</property>
-    <property name="logo">PyGtk_Posting.svg</property>
+    <property name="logo_icon_name">pygtk-posting</property>
     <property name="license_type">gpl-3-0</property>
     <child>
       <placeholder/>

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Created by Anjuta application wizard.
 
-AC_INIT(pygtk_posting, 0.4.8, , pygtk_posting)
+AC_INIT(pygtk_posting, 0.5.1, , pygtk_posting)
 
 AC_CONFIG_HEADERS([config.h])
 
@@ -35,5 +35,7 @@ src/payroll/Makefile
 src/pdf_opt/Makefile
 src/modules/Makefile
 src/pdf_opt/pdfsizeopt_libexec/Makefile
+help/C/Makefile
+help/C/pygtk-posting/Makefile
 
 ])
