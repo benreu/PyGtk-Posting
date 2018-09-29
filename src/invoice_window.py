@@ -1068,7 +1068,7 @@ class InvoiceGUI:
 
 	def help_clicked (self, widget):
 		import subprocess
-		subprocess.Popen("yelp ./help/invoice.page", shell = True)
+		subprocess.Popen(["yelp", main.help_dir + "/invoice.page"])
 
 	def window_key_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

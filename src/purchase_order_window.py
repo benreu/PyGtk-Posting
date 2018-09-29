@@ -185,7 +185,7 @@ class PurchaseOrderGUI:
 				exportfile.writerow(row)
 
 	def help_clicked (self, widget):
-		subprocess.Popen("yelp ./help/purchase_order.page", shell = True)
+		subprocess.Popen(["yelp", main.help_dir + "/purchase_order.page"])
 
 	def view_all_toggled (self, checkbutton):
 		self.products_from_existing_po ()

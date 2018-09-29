@@ -55,7 +55,7 @@ class GUI:
 		dialog.hide()
 
 	def help_button_clicked (self, widget):
-		subprocess.Popen("yelp ./help/statement.page", shell=True)
+		subprocess.Popen(["yelp", main.help_dir + "/statement.page"])
 
 	def payment_window(self, widget):
 		customer_payment.GUI(self.db, customer_id = self.customer_id )

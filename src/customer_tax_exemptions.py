@@ -50,7 +50,7 @@ class CustomerTaxExemptionsGUI:
 		self.dialog.hide()
 
 	def help_clicked (self, widget):
-		subprocess.Popen("yelp ./help/tax_exemptions.page", shell = True)
+		subprocess.Popen(["yelp", main.help_dir + "/tax_exemptions.page"])
 
 	def populate_treeview (self):
 		self.tax_exemption_store.clear()

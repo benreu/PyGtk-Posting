@@ -321,7 +321,7 @@ class GUI:
 		self.db.commit()
 
 	def contact_help_clicked (self, widget):
-		subprocess.Popen("yelp ./help/contacts.page", shell = True)
+		subprocess.Popen(["yelp", main.help_dir + "/contacts.page"])
 
 	def print_10_env_clicked (self, button):
 		contact = Item()

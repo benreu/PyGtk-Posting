@@ -126,7 +126,7 @@ class ProductsGUI:
 		locations.LocationsGUI(self.db)
 
 	def help_button_activated (self, menuitem):
-		subprocess.Popen("yelp ./help/products.page", shell = True)
+		subprocess.Popen(["yelp", main.help_dir + "/products.page"])
 
 	def print_label(self, widget):
 		location_id = self.builder.get_object('comboboxtext6').get_active_id()

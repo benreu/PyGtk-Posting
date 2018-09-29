@@ -90,7 +90,7 @@ class GUI:
 		spinbutton.select_region(0, -1)
 
 	def help_button_clicked (self, button):
-		subprocess.Popen ("yelp ./help/", shell=True)
+		subprocess.Popen (["yelp", main.help_dir + "/customer_payment.page"])
 
 	def total_cell_func(self, column, cellrenderer, model, iter1, data):
 		amount = model.get_value(iter1, 4)
