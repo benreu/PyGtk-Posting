@@ -21,7 +21,6 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re
-from db import database_tools
 import main
 from main import Accounts
 
@@ -42,9 +41,6 @@ class MainGUI (GObject.GObject, Accounts):
 	log_file = None
 	def __init__(self):
 		GObject.GObject.__init__(self)
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
 		try:
 			variable = sys.argv[1]
 			if 'database ' in variable:
@@ -58,12 +54,15 @@ class MainGUI (GObject.GObject, Accounts):
 		except Exception as e:
 			print ("Non-fatal: %s when trying to retrieve sys args" % e)
 			database_to_connect = None
-			self.set_admin_menus(True) # started from Anjuta, developer mode
 			main.dev_mode = True
-			self.builder.get_object('menuitem35').set_label("Admin logout")
-
+			#self.builder.get_object('menuitem35').set_label("Admin logout")
+		main.set_directories()
+		self.builder = Gtk.Builder()
+		self.builder.add_from_file(main.ui_directory + "/pygtk_posting.ui")
+		self.builder.connect_signals(self)
 		self.window = self.builder.get_object('main_window')
 		self.window.show_all()
+		self.set_admin_menus(main.dev_mode)
 		about_window = self.builder.get_object('aboutdialog1')
 		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
 		about_window.add_credit_section("Suggestions/advice from (in no particular order)", 
@@ -88,6 +87,7 @@ class MainGUI (GObject.GObject, Accounts):
 			self.populate_accounts()
 			self.populate_modules ()
 		else:
+			from db import database_tools
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
@@ -303,7 +303,7 @@ class MainGUI (GObject.GObject, Accounts):
 		inventory_count.InventoryCountGUI(self.db)
 
 	def user_manual_help (self, widget):
-		subprocess.Popen("yelp ./help/pygtk_posting.page", shell = True)
+		subprocess.Popen(["yelp", main.help_dir + "/index.page"])
 
 	def create_document_clicked (self, widget):
 		import documents_window
@@ -646,6 +646,7 @@ class MainGUI (GObject.GObject, Accounts):
 		contacts.GUI(self)
 
 	def database_tools_activated(self, widget):
+		from db import database_tools
 		database_tools.GUI(self.db, False)
 
 	def new_purchase_order(self, widget):

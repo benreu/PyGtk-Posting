@@ -212,23 +212,31 @@ def connect_to_db (name):
 home = os.path.expanduser('~')
 preferences_path = os.path.join(home, '.config/posting')
 
+help_dir = ''
+ui_directory = ''
+template_dir = ''
+modules_dir = ''
 cur_dir = os.getcwd()
-if dev_mode == False: #posting is launching from an installed .deb
-	ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
-	template_orig = os.path.relpath("/usr/share/pygtk_posting/templates/")
-	template_dir = os.path.join(home, ".config/posting/templates")
-	if not os.path.exists(template_dir): #copy templates
-		shutil.copytree(template_orig, template_dir)
-		print ("copied *.odt templates to %s" % template_dir)
-	modules_orig = os.path.relpath("/usr/lib/python3/dist-packages/pygtk_posting/modules/")
-	modules_dir = os.path.join(home, ".config/posting/modules/")
-	if not os.path.exists(modules_dir): #copy modules
-		shutil.copytree(modules_orig, modules_dir)
-		print ("copied *.py modules to %s" % modules_dir)
-else:                              # use local files
-	ui_directory = os.path.join(os.getcwd(), "src")
-	template_dir = os.path.join(os.getcwd(), "templates")
-	modules_dir = os.path.join(os.getcwd(), "src/modules/")
+def set_directories ():
+	global help_dir, ui_directory, template_dir, modules_dir
+	if dev_mode == False: #posting is launching from an installed .deb
+		help_dir = os.path.relpath("/usr/share/help/C/pygtk-posting")
+		ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
+		template_orig = os.path.relpath("/usr/share/pygtk_posting/templates/")
+		template_dir = os.path.join(home, ".config/posting/templates")
+		if not os.path.exists(template_dir): #copy templates
+			shutil.copytree(template_orig, template_dir)
+			print ("copied *.odt templates to %s" % template_dir)
+		modules_orig = os.path.relpath("/usr/lib/python3/dist-packages/pygtk_posting/modules/")
+		modules_dir = os.path.join(home, ".config/posting/modules/")
+		if not os.path.exists(modules_dir): #copy modules
+			shutil.copytree(modules_orig, modules_dir)
+			print ("copied *.py modules to %s" % modules_dir)
+	else:                              # use local files
+		help_dir = os.path.join(cur_dir, "help/C/pygtk-posting")
+		ui_directory = os.path.join(cur_dir, "src")
+		template_dir = os.path.join(cur_dir, "templates")
+		modules_dir = os.path.join(cur_dir, "src/modules/")
 
 
 def get_apsw_cursor ():
