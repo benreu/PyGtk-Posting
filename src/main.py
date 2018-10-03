@@ -219,7 +219,7 @@ modules_dir = ''
 cur_dir = os.getcwd()
 def set_directories ():
 	global help_dir, ui_directory, template_dir, modules_dir
-	if dev_mode == False: #posting is launching from an installed .deb
+	if cur_dir.split('/')[1] == "usr": #posting is launching from an installed .deb
 		help_dir = os.path.relpath("/usr/share/help/C/pygtk-posting")
 		ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
 		template_orig = os.path.relpath("/usr/share/pygtk_posting/templates/")
