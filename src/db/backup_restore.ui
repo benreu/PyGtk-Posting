@@ -68,21 +68,26 @@
       <action-widget response="-3">button3</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkProgressBar" id="progressbar1">
+  <object class="GtkScrolledWindow" id="scrolled_window">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="margin_top">10</property>
+    <property name="can_focus">True</property>
     <property name="hexpand">True</property>
-    <property name="show_text">True</property>
+    <property name="vexpand">True</property>
+    <property name="shadow_type">in</property>
+    <child>
+      <placeholder/>
+    </child>
   </object>
   <object class="GtkFileChooserDialog" id="backupdialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Create a backup file</property>
     <property name="window_position">center</property>
+    <property name="default_width">500</property>
+    <property name="default_height">600</property>
     <property name="type_hint">menu</property>
     <property name="action">save</property>
     <property name="do_overwrite_confirmation">True</property>
-    <property name="extra_widget">progressbar1</property>
+    <property name="extra_widget">scrolled_window</property>
     <property name="filter">filefilter1</property>
     <child>
       <placeholder/>
@@ -155,6 +160,7 @@
   <object class="GtkTextBuffer" id="textbuffer1"/>
   <object class="GtkDialog" id="dialog1">
     <property name="can_focus">False</property>
+    <property name="window_position">center</property>
     <property name="type_hint">dialog</property>
     <child>
       <placeholder/>

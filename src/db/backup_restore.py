@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gdk
+import gi
+gi.require_version('Vte', '2.91')
+from gi.repository import Gtk, GLib, Gdk, Vte
 import os, sys, time, subprocess
 from subprocess import Popen, PIPE
 from multiprocessing import Queue, Process
@@ -34,6 +36,9 @@ class Utilities:
 		self.builder.connect_signals(self)
 		self.parent_window = parent.window
 		self.parent = parent
+		self.terminal = Vte.Terminal()
+		self.terminal.set_scroll_on_output(True)
+		self.builder.get_object('scrolled_window').add(self.terminal)
 
 	def backup_gui (self, database):
 		self.database = database
@@ -42,6 +47,7 @@ class Utilities:
 		backup_window.set_transient_for(self.parent_window)
 		day = time.strftime("%Y-%m-%d-%H:%M")
 		backup_window.set_current_name(database + "_" + day +".pbk")
+		backup_window.show_all()
 		result = backup_window.run()
 		if result == Gtk.ResponseType.ACCEPT:
 			self.backup_database ()
@@ -50,41 +56,41 @@ class Utilities:
 		return self.result
 
 	def backup_database (self):
+		self.error = False
 		cursor_sqlite = get_apsw_cursor ()
 		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
+			sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
 		backup_window = self.builder.get_object('backupdialog')
-		progressbar = self.builder.get_object('progressbar1')
-		progressbar.set_text("Back up running...")
 		db_name = backup_window.get_current_name()
 		path = backup_window.get_current_folder()
 		full_path = path + "/" + db_name
-		backup_command = ("pg_dump -C -F c -U%s -h%s -p%s -d%s -f'%s'" 
-															% (sql_user, 
-															sql_host, 
-															sql_port, 
-															self.database, 
-															full_path))
-		p = Popen(backup_command, shell = True, 
-					stdin = PIPE, stdout = PIPE, stderr = PIPE)
-		while p.poll() == None:
-			while Gtk.events_pending():
-				Gtk.main_iteration()
-			progressbar.pulse()
-			time.sleep(.05)
-		stderr, stdout = p.communicate()
-		stdout = stdout.decode(encoding="utf-8", errors="strict")
-		if stdout != '':
-			self.show_error_message(stdout)
-			self.result = False
-		else:
-			progressbar.set_fraction(1.0)
-			progressbar.set_text("Backed up successfully to %s/%s" 
-														% (path,db_name))
-			self.builder.get_object('button6').set_visible(True)
-			self.result = True
+		backup_command = ["/usr/lib/postgresql/10/bin/pg_dump", "-CWv", "-F", "c", "-U", sql_user, "-h", sql_host, "-p", sql_port, "-d", self.database, "-f", full_path]
+		self.terminal.spawn_sync(
+									Vte.PtyFlags.DEFAULT,
+									path,
+									backup_command,
+									[],
+									GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+									None,
+									None,
+									)
+		self.handler_id = self.terminal.connect("child-exited", self.dump_callback)
+		GLib.timeout_add_seconds(1, self.feed_password, sql_password)
+
+	def feed_password (self, sql_password):
+		'run this in a timeout to catch errors, otherwise the password shows up in the terminal'
+		if self.error == False:
+			self.terminal.feed_child(sql_password + '\n', -1)
+
+	def dump_callback (self, terminal, error):
+		terminal.disconnect(self.handler_id)
+		if error != 0:
+			self.error = True
+			self.builder.get_object('button6').set_label('Backup failed!')
+		self.builder.get_object('button6').set_visible(True)
 		self.builder.get_object('button1').set_visible(False)
 		self.builder.get_object('button2').set_visible(False)
 			
