@@ -15,7 +15,8 @@ dist_doc_DATA = \
 	pygtk_posting.anjuta \
 	POSTGRES_README \
 	requirements.txt \
-	setup.py 
+	setup.py \
+	create_deb.py 
 
 
 

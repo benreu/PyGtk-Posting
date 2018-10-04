@@ -54,11 +54,15 @@ with open ("./Makefile", 'r') as mf:
 		if line[0:14] == 'PACKAGE_STRING': # get current version of Posting
 			tupl = line.split()
 			version = tupl[-1]
-with open ("control", 'r') as c:
-	text = c.read()
-	text = re.sub("Version: 1", "Version: %s" % version, text)
-with open ("control", 'w') as c:
-	c.write(text)
+output = ''
+with open ("control", 'r') as old_c:
+	for row, text in enumerate(old_c.read().split('\n')):
+		if row == 1:
+			output += ("Version: %s\n" % version)
+		else:
+			output += (text + "\n")
+with open ("control", 'w') as new_c:
+	new_c.write(output)
 package_name = "pygtk_posting_%s-1" % version
 package_folder = JOIN(CWD, package_name)
 if os.path.exists(package_folder):
