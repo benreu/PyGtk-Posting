@@ -1,5 +1,5 @@
 Package: pygtk-posting
-Version: 0.5.1
+Version: 0.5.2
 Section: Office
 Priority: optional
 Architecture: all
@@ -10,3 +10,6 @@ Description: Accounting for Linux
  It is programmed in Python, uses Gtk for the GUI, and PostgreSQL for a backend.
  US taxes are at least partially supported, but no VAT.
  Features include invoicing, purchase orders, and time tracking.
+
+
+
