@@ -59,7 +59,7 @@ with open ("control", 'r') as old_c:
 	for row, text in enumerate(old_c.read().split('\n')):
 		if row == 1:
 			output += ("Version: %s\n" % version)
-		else:
+		elif text != '':
 			output += (text + "\n")
 with open ("control", 'w') as new_c:
 	new_c.write(output)
