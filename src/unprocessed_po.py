@@ -87,10 +87,6 @@ class GUI:
 		self.populate_expense_product_combo ()
 		self.window = self.builder.get_object('unprocessed')
 		self.window.show_all()
-		
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		if self.cursor.fetchone()[0] == True:
-			self.builder.get_object('button1').set_visible(False)
 
 	def spinbutton_focus_in_event (self, entry, event):
 		GLib.idle_add(self.highlight, entry)
