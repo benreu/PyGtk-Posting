@@ -407,11 +407,11 @@ class ProductsGUI:
 		cost = self.builder.get_object('spinbutton1').get_value()
 		sell_price = sell_spin.get_value ()
 		margin = sell_price - cost
-		markup = (margin / cost) * 100
-		markup_spin.set_value(markup)
+		if cost != 0.00:
+			markup = (margin / cost) * 100
+			markup_spin.set_value(markup)
 		if self.product_id == 0 or self.populating == True:
 			return
-		#print ('update price', self.product_id, sell_price, markup_id)
 		self.cursor.execute("UPDATE products_markup_prices SET price = %s "
 							"WHERE (product_id, markup_id) = (%s, %s) "
 							"RETURNING id", 
@@ -477,8 +477,9 @@ class ProductsGUI:
 				sell_price = float(row[0])
 				sell_spin.set_value(sell_price)
 				margin = sell_price - cost
-				markup = (margin / cost) * 100
-				markup_spin.set_value(markup)
+				if cost != 0.00:
+					markup = (margin / cost) * 100
+					markup_spin.set_value(markup)
 				break
 			else:
 				self.cursor.execute("SELECT markup_percent "
