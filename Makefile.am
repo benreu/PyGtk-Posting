@@ -16,7 +16,8 @@ dist_doc_DATA = \
 	POSTGRES_README \
 	requirements.txt \
 	setup.py \
-	create_deb.py 
+	create_deb.py \
+	control 
 
 
 
