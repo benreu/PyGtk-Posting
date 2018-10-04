@@ -136,7 +136,9 @@ pygtk_posting_PYTHON = \
 	credit_memo_template.py \
 	contact_product_view.ui \
 	contact_product_view.py \
-	contact_hub.ui
+	contact_hub.ui \
+	shipping_info.py \
+	shipping_info.ui
 
 
 EXTRA_DIST = $(ui_DATA)

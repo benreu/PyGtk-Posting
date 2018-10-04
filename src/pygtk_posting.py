@@ -213,6 +213,10 @@ class MainGUI (GObject.GObject, Accounts):
 		import miscellaneous_revenue
 		miscellaneous_revenue.MiscellaneousRevenueGUI (self)
 
+	def shipping_info_activated (self, menuitem):
+		import shipping_info 
+		shipping_info.ShippingInfoGUI(self)
+
 	def module_help_activated (self, menuitem):
 		module_help_dialog = self.builder.get_object('module_help_dialog')
 		module_help_dialog.set_keep_above(True)
