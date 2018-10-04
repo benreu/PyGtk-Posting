@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pygtk-posting
+Upstream-Contact: Reuben Rissler <pygtk.posting@gmail.com>
+Source: https://github.com/pygtk-posting
+Copyright: 2015-2018 Reuben Rissler <pygtk.posting@gmail.com>
+License:   GPL-3
+
+Files:     *
+Copyright: 2015-2018 Reuben Rissler <pygtk.posting@gmail.com>
+License:   GPL-3+
