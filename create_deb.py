@@ -48,6 +48,7 @@ def copy_files (folder, dest_folder):
 				py_file = JOIN(orig_folder, obj)
 				py_dest = JOIN(py_dest, obj.name)
 				shutil.copy2(py_file, py_dest)
+				os.chmod (py_dest, 0o644)
 
 with open ("./Makefile", 'r') as mf:
 	for line in mf.read().split('\n'):
