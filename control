@@ -3,7 +3,7 @@ Version: 0.5.2
 Section: Office
 Priority: optional
 Architecture: all
-Depends: python3, python3-sane, python3-apsw, gir1.2-gtk-3.0 (>=3.22.30), gir1.2-poppler-0.18, gir1.2-gtkspell3-3.0, gir1.2-evince-3.0, python3-xlsxwriter, python3-xlrd, python3-genshi, python3-apsw, python3-psycopg2, python3-tk, python3-matplotlib, python3-cairocffi, python3-uno, python3-lxml, unoconv
+Depends: python3, python3-sane, python3-apsw, gir1.2-gtk-3.0 (>=3.22.30), gir1.2-poppler-0.18, gir1.2-gtkspell3-3.0, gir1.2-evince-3.0, python3-xlsxwriter, python3-xlrd, python3-genshi, python3-apsw, python3-psycopg2, python3-tk, python3-matplotlib, python3-cairocffi, python3-uno, python3-lxml, unoconv, pdfsizeopt
 Maintainer: Reuben Rissler <pygtk.posting@gmail.com>
 Description: Accounting for Linux
  An open source accounting / business management system for Linux.
