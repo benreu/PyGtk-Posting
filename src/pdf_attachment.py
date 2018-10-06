@@ -108,7 +108,7 @@ class Dialog :
 		self.result_buffer.set_text('', -1)
 		self.sw = self.builder.get_object('scrolledwindow3')
 		self.file_name = chooser.get_filename()
-		p = Popen(['./src/pdf_opt/pdfsizeopt', self.file_name, '/tmp/opt.pdf'], 
+		p = Popen(['pdfsizeopt', self.file_name, '/tmp/opt.pdf'], 
 														stdout = PIPE,
 														stderr = STDOUT,
 														stdin = PIPE)

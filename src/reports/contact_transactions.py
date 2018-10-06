@@ -412,7 +412,7 @@ class GUI:
 		self.result_buffer.set_text('', -1)
 		self.sw = self.builder.get_object('scrolledwindow2')
 		file_a = chooser.get_filename()
-		cmd = "./src/pdf_opt/pdfsizeopt '%s' '/tmp/opt.pdf'" % file_a
+		cmd = "pdfsizeopt '%s' '/tmp/opt.pdf'" % file_a
 		p = Popen(cmd, stdout = PIPE,
 						stderr = STDOUT,
 						stdin = PIPE,
