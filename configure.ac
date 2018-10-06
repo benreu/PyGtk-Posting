@@ -32,7 +32,6 @@ src/db/Makefile
 src/reports/Makefile
 src/admin/Makefile
 src/payroll/Makefile
-src/pdf_opt/Makefile
 src/modules/Makefile
 src/pdf_opt/pdfsizeopt_libexec/Makefile
 help/C/Makefile

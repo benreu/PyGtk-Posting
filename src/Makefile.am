@@ -158,5 +158,4 @@ SUBDIRS = \
 	reports \
 	admin \
 	payroll \
-	pdf_opt \
 	modules
