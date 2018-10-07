@@ -33,7 +33,6 @@ src/reports/Makefile
 src/admin/Makefile
 src/payroll/Makefile
 src/modules/Makefile
-src/pdf_opt/pdfsizeopt_libexec/Makefile
 help/C/Makefile
 help/C/pygtk-posting/Makefile
 
