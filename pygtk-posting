@@ -3,9 +3,12 @@
 config_dir=$HOME"/.config/posting/"
 if [ ! -d $config_dir ]; then
 	mkdir $config_dir
-	mkdir $config_dir"logs/"
 fi
-LOG_FILE=$config_dir"logs/`echo $0|date +%Y-%m-%d:%H:%M:%S`"
+log_dir=$HOME"/.config/posting/logs"
+if [ ! -d $log_dir ]; then
+	mkdir $log_dir
+fi
+LOG_FILE=$log_dir`echo $0|date +%Y-%m-%d:%H:%M:%S`
 echo "log file is" $LOG_FILE
 cd /usr/lib/python3/dist-packages/pygtk_posting/
 python3 -u ./pygtk_posting.py "$LOG_FILE" &> "$LOG_FILE"
