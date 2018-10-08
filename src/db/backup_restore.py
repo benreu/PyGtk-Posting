@@ -36,6 +36,7 @@ class Utilities:
 		self.builder.connect_signals(self)
 		self.parent_window = parent.window
 		self.parent = parent
+		self.db = parent.db
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 		self.builder.get_object('scrolled_window').add(self.terminal)
@@ -67,9 +68,14 @@ class Utilities:
 		db_name = backup_window.get_current_name()
 		path = backup_window.get_current_folder()
 		full_path = path + "/" + db_name
-		backup_command = ["/usr/lib/postgresql/10/bin/pg_dump", "-CWv", "-F", "c", "-U", sql_user, "-h", sql_host, "-p", sql_port, "-d", self.database, "-f", full_path]
-		self.terminal.spawn_sync(
-									Vte.PtyFlags.DEFAULT,
+		backup_command = ["/usr/lib/postgresql/10/bin/pg_dump", 
+							"-CWv", "-F", "c", 
+							"-U", sql_user, 
+							"-h", sql_host, 
+							"-p", sql_port, 
+							"-d", self.database, 
+							"-f", full_path]
+		self.terminal.spawn_sync(   Vte.PtyFlags.DEFAULT,
 									path,
 									backup_command,
 									[],
@@ -95,6 +101,10 @@ class Utilities:
 		self.builder.get_object('button2').set_visible(False)
 			
 	def done_clicked (self, dialog):
+		c = self.db.cursor()
+		c.execute("UPDATE settings SET last_backup = CURRENT_DATE")
+		self.db.commit()
+		c.close()
 		dialog.destroy()
 
 	def restore_gui(self, db_name, parent):

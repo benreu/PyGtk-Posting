@@ -447,10 +447,7 @@ class MainGUI (GObject.GObject, Accounts):
 	def backup_window (self, n):
 		from db import backup_restore
 		u = backup_restore.Utilities(self)
-		result = u.backup_gui (self.db_name)
-		if result == True:
-			self.cursor.execute("UPDATE settings SET last_backup = CURRENT_DATE")
-			self.db.commit()
+		u.backup_gui (self.db_name)
 
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()
