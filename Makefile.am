@@ -17,7 +17,9 @@ dist_doc_DATA = \
 	requirements.txt \
 	setup.py \
 	create_deb.py \
-	control 
+	control \
+	copyright \
+	pygtk-posting 
 
 
 
