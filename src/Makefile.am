@@ -38,7 +38,6 @@ pygtk_posting_PYTHON = \
 	barcode_generator.py \
 	receive_orders.py \
 	locations.py \
-	Code128.py \
 	customer_statement.py \
 	printing.py \
 	dateutils.py \
