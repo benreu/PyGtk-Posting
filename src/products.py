@@ -18,7 +18,8 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess
 import spell_check, main
-import main
+import main, barcode_generator
+
 
 UI_FILE = main.ui_directory + "/products.ui"
 
@@ -157,7 +158,8 @@ class ProductsGUI:
 		for row in self.cursor.fetchall():
 			label.name= row[0]
 			label.description = row[1]
-			barcode = row[2]
+			label.code128 = barcode_generator.makeCode128(row[2])
+			label.barcode = row[2]
 		self.cursor.execute("SELECT id FROM customer_markup_percent "
 							"WHERE standard = True")
 		default_markup_id = self.cursor.fetchone()[0]
@@ -175,16 +177,12 @@ class ProductsGUI:
 			markup = float(self.cursor.fetchone()[0])
 			margin = (markup / 100) * cost
 			label.price = '${:,.2f}'.format(margin + cost)
-		import barcode_generator
-		bc = barcode_generator.Code128()
-		bc.createImage(barcode, 20)
 		data = dict(label = label)
 		from py3o.template import Template
 		label_file = "/tmp/product_label.odt"
 		t = Template(main.template_dir+"/product_label_template.odt", label_file )
-		t.set_image_path('staticimage.logo', '/tmp/product_barcode.png')
 		t.render(data) #the self.data holds all the info
-		subprocess.Popen("soffice " + label_file, shell = True)
+		subprocess.Popen(["soffice", label_file])
 
 	def product_column_sorted(self, treeview_column):
 		if self.ascending == True:

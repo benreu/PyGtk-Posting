@@ -23,6 +23,10 @@ import main
 UI_FILE = main.ui_directory + "/manufacturing.ui"
 
 
+class Item(object):#this is used by py3o library see their example for more info
+	pass
+
+
 class ManufacturingGUI:
 	def __init__(self, main):
 		self.builder = Gtk.Builder()
@@ -91,16 +95,16 @@ class ManufacturingGUI:
 		self.db.commit()
 
 	def print_serial_number (self, barcode, label_qty):
-		bc = barcode_generator.Code128()
-		bc.createImage(str(barcode), 20)
+		label = Item()
+		label.code128 = barcode_generator.makeCode128(barcode)
+		label.barcode = barcode
 		from py3o.template import Template
 		label_file = "/tmp/manufacturing_serial_label.odt"
 		t = Template(main.template_dir+"/manufacturing_serial_template.odt", label_file )
-		t.set_image_path('staticimage.logo', '/tmp/product_barcode.png')
-		data = dict()
+		data = dict(label = label)
 		t.render(data) #the self.data holds all the info
 		for i in range(label_qty):
-			subprocess.call("soffice --headless -p " + label_file, shell = True)
+			subprocess.call(["soffice", "--headless", "-p", label_file])
 
 	def start_serial_number_value_changed (self, spinbutton):
 		serial_number = spinbutton.get_value_as_int()
