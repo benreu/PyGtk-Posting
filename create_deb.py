@@ -85,7 +85,7 @@ os.makedirs (odt_dest_folder)
 with os.scandir(JOIN(CWD, "templates")) as odts:
 	for odt in odts:
 		end = odt.name.endswith
-		if end(".odt") or end(".txt") or end(".pil") or end(".pbm"): 
+		if end(".odt") or end(".txt"): 
 			shutil.copy2(odt, odt_dest_folder)
 #create .page help file directory
 help_dest_folder = JOIN(package_folder, "usr/share/help/C/pygtk-posting")
