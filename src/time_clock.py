@@ -93,6 +93,7 @@ class TimeClockGUI :
 			project_name = self.employee_store[path][5]
 			self.builder.get_object('project_label1').set_label(project_name)
 			self.stack.set_visible_child_name ('punchout_page')
+			self.db.commit()
 			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
 			self.clock_in_out_time = int(self.cursor.fetchone()[0])
 			self.show_date_from_seconds ()
@@ -136,6 +137,7 @@ class TimeClockGUI :
 		job_name = self.project_store[path][1]
 		self.builder.get_object('project_label').set_label(job_name)
 		self.stack.set_visible_child_name ('punchin_page')
+		self.db.commit()
 		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
 		self.clock_in_out_time = int(self.cursor.fetchone()[0])
 		self.show_date_from_seconds ()
