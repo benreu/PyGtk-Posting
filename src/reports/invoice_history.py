@@ -81,6 +81,12 @@ class InvoiceHistoryGUI:
 	def present(self):
 		self.window.present()
 
+	def select_all_invoices_toggled (self, checkbutton):
+		if checkbutton.get_active():
+			self.builder.get_object('treeview-selection1').select_all()
+		else:
+			self.builder.get_object('treeview-selection1').unselect_all()
+
 	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
 		price = '{:,.2f}'.format(model.get_value(iter1, 6))
 		cellrenderer.set_property("text" , price)
@@ -153,6 +159,7 @@ class InvoiceHistoryGUI:
 		self.load_customer_invoices ()
 		if active == True:
 			self.builder.get_object('checkbutton1').set_active(False)
+			self.builder.get_object('select_all_checkbutton').set_active(False)
 		
 	def customer_changed(self, combo):
 		customer_id = combo.get_active_id ()
@@ -161,12 +168,14 @@ class InvoiceHistoryGUI:
 		self.customer_id = customer_id
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton3').set_active(False)
+		self.builder.get_object('select_all_checkbutton').set_active(False)
 		self.load_customer_invoices ()
 
 	def customer_match_selected (self, completion, model, iter):
 		self.customer_id = model[iter][0]
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton3').set_active(False)
+		self.builder.get_object('select_all_checkbutton').set_active(False)
 		self.load_customer_invoices ()
 
 	def load_customer_invoices (self):
