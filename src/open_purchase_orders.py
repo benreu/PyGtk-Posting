@@ -40,6 +40,10 @@ class OpenPurchaseOrderGUI:
 		self.cursor.close()
 		return
 
+	def new_po_clicked (self, button):
+		import purchase_order_window
+		purchase_order_window.PurchaseOrderGUI(self.parent)
+
 	def focus_in_event (self, window, event):
 		self.populate_store()
 
