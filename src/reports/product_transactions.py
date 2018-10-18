@@ -15,23 +15,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, GObject
-import main
+from gi.repository import Gtk
+import main, product_hub
 
 UI_FILE = main.ui_directory + "/reports/product_transactions.ui"
 
 
 
 class ProductTransactionsGUI:
-	def __init__(self, db, product_id = None):
+	def __init__(self, main_class, product_id = None):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.main_class = main_class
+		self.db = main_class.db
+		self.cursor = self.db.cursor()
 
 		self.product_store = self.builder.get_object('product_store')
 		self.customer_transaction_store = self.builder.get_object('customer_transaction_store')
@@ -50,6 +49,9 @@ class ProductTransactionsGUI:
 
 	def destroy (self, window):
 		self.exists = False
+
+	def product_hub_clicked (self, button):
+		product_hub.ProductHubGUI(self.main_class, self.product_id)
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()

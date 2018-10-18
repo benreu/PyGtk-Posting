@@ -57,7 +57,7 @@ class ProductHubGUI:
 
 	def product_transactions_clicked (self, button):
 		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self.db, self.product_id)
+		product_transactions.ProductTransactionsGUI(self.main, self.product_id)
 		self.window.destroy()
 
 	def product_search_clicked (self, button):

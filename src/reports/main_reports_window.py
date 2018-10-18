@@ -62,7 +62,7 @@ class MainReportsGUI:
 
 	def product_transactions_clicked (self, button):
 		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self.db)
+		product_transactions.ProductTransactionsGUI(self.main)
 
 	def invoice_to_payment_matching (self, button):
 		from reports import invoice_to_payment_matching

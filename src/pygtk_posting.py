@@ -375,7 +375,7 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def product_transactions_clicked (self, widget):
 		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self.db)
+		product_transactions.ProductTransactionsGUI(self)
 
 	def resource_calendar (self, button):
 		import resource_calendar
