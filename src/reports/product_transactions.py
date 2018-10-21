@@ -61,12 +61,10 @@ class ProductTransactionsGUI:
 		return True
 
 	def populate_product_store (self):
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM products "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
+			self.product_store.append(row)
 
 	def product_match_selected(self, completion, model, iter_):
 		self.product_id = self.product_store[iter_][0]
