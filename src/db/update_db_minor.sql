@@ -88,6 +88,7 @@ ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERE
 CREATE TABLE IF NOT EXISTS public.shipping_info (id serial PRIMARY KEY, tracking_number varchar NOT NULL, reason varchar, invoice_id bigint REFERENCES invoices ON DELETE RESTRICT ON UPDATE RESTRICT, CONSTRAINT shipment_reason_not_null CHECK (reason IS NOT NULL OR invoice_id IS NOT NULL));
 ALTER TABLE public.shipping_info ADD UNIQUE (invoice_id); 
 ALTER TABLE public.shipping_info ADD UNIQUE (tracking_number); 
-
+--version 0.5.3
+ALTER TABLE files ALTER COLUMN date_inserted SET DEFAULT CURRENT_DATE;
 
 
