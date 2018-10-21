@@ -8,6 +8,8 @@
       <column type="gint"/>
       <!-- column-name qty -->
       <column type="gfloat"/>
+      <!-- column-name qty_text -->
+      <column type="gchararray"/>
       <!-- column-name date -->
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
@@ -18,6 +20,8 @@
       <column type="gchararray"/>
       <!-- column-name price -->
       <column type="gfloat"/>
+      <!-- column-name price_text -->
+      <column type="gchararray"/>
       <!-- column-name remark -->
       <column type="gchararray"/>
     </columns>
@@ -47,6 +51,8 @@
       <column type="gint"/>
       <!-- column-name qty -->
       <column type="gint"/>
+      <!-- column-name qty_text -->
+      <column type="gchararray"/>
       <!-- column-name date -->
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
@@ -57,6 +63,8 @@
       <column type="gchararray"/>
       <!-- column-name cost -->
       <column type="gfloat"/>
+      <!-- column-name cost_text -->
+      <column type="gchararray"/>
       <!-- column-name order_number -->
       <column type="gchararray"/>
       <!-- column-name remark -->
@@ -159,35 +167,27 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Qty</property>
-                    <property name="sort_column_id">1</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext1"/>
                       <attributes>
-                        <attribute name="text">1</attribute>
+                        <attribute name="text">2</attribute>
                       </attributes>
                     </child>
                   </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_indicator">True</property>
-                    <property name="sort_column_id">2</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                      <attributes>
-                        <attribute name="text">3</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
-                    <property name="title" translatable="yes">Customer</property>
-                    <property name="sort_column_id">4</property>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext3"/>
                       <attributes>
                         <attribute name="text">4</attribute>
                       </attributes>
@@ -195,8 +195,24 @@
                   </object>
                 </child>
                 <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Customer</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">5</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext3"/>
+                      <attributes>
+                        <attribute name="text">5</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Invoice</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">0</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5"/>
@@ -208,26 +224,30 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Price</property>
-                    <property name="sort_column_id">6</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">7</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext10"/>
                       <attributes>
-                        <attribute name="text">6</attribute>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Remark</property>
-                    <property name="sort_column_id">7</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">9</property>
                     <child>
                       <object class="GtkCellRendererText">
                         <property name="editable">True</property>
                       </object>
                       <attributes>
-                        <attribute name="text">7</attribute>
+                        <attribute name="text">9</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -293,8 +313,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Qty</property>
                     <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">1</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6"/>
@@ -306,25 +328,13 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
-                    <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_indicator">True</property>
-                    <property name="sort_column_id">2</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext7"/>
-                      <attributes>
-                        <attribute name="text">3</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
-                    <property name="title" translatable="yes">Vendor</property>
-                    <property name="clickable">True</property>
-                    <property name="sort_column_id">4</property>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext8"/>
                       <attributes>
                         <attribute name="text">4</attribute>
                       </attributes>
@@ -332,9 +342,24 @@
                   </object>
                 </child>
                 <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Vendor</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">5</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext8"/>
+                      <attributes>
+                        <attribute name="text">5</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Purchase Order</property>
-                    <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">0</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext9"/>
@@ -346,12 +371,14 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Cost</property>
-                    <property name="sort_column_id">6</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">7</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext11"/>
                       <attributes>
-                        <attribute name="text">6</attribute>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -361,27 +388,29 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Order number</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">7</property>
+                    <property name="sort_column_id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext12">
                         <property name="editable">True</property>
                       </object>
                       <attributes>
-                        <attribute name="text">7</attribute>
+                        <attribute name="text">9</attribute>
                       </attributes>
                     </child>
                   </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Remark</property>
-                    <property name="sort_column_id">8</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">10</property>
                     <child>
                       <object class="GtkCellRendererText">
                         <property name="editable">True</property>
                       </object>
                       <attributes>
-                        <attribute name="text">8</attribute>
+                        <attribute name="text">10</attribute>
                       </attributes>
                     </child>
                   </object>
