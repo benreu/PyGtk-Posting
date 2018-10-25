@@ -82,7 +82,7 @@ class AccountsOverviewGUI:
 							"JOIN gl_accounts "
 							"ON gl_accounts.number = gl_account_flow.account "
 							"WHERE function = 'credit_card_penalty'")
-		account = self.cursor.fetchone()[0]
+		#account = self.cursor.fetchone()[0]
 		#self.builder.get_object('button17').set_label(account)
 
 		self.cursor.execute("SELECT name FROM gl_account_flow "
