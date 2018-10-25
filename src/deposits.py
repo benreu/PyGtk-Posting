@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from dateutils import DateTimeCalendar, date_to_text
+from dateutils import DateTimeCalendar
 from db import transactor
 import main
 
@@ -67,7 +67,7 @@ class GUI:
 
 	def populate_deposit_store(self):
 		self.cursor.execute("SELECT p_i.id, amount, payment_text, customer_id,"
-							"name, date_inserted "
+							"name, date_inserted, format_date(date_inserted) "
 							"FROM payments_incoming AS p_i "
 							"JOIN contacts ON p_i.customer_id = contacts.id "
 							"WHERE (check_payment, check_deposited) = "
@@ -82,7 +82,7 @@ class GUI:
 				contact_id = check_transaction[3]
 				ck_name = check_transaction[4]
 				date = check_transaction[5]
-				date_formatted = date_to_text(date)
+				date_formatted = check_transaction[6]
 				self.deposit_store.append([transaction_id, ck_number, 
 											float(ck_amount), ck_name, str(date), 
 											date_formatted, True])
