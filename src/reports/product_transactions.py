@@ -61,12 +61,10 @@ class ProductTransactionsGUI:
 		return True
 
 	def populate_product_store (self):
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM products "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
+			self.product_store.append(row)
 
 	def product_match_selected(self, completion, model, iter_):
 		self.product_id = self.product_store[iter_][0]
@@ -84,11 +82,14 @@ class ProductTransactionsGUI:
 		qty_total = 0
 		self.cursor.execute("SELECT i.id, "
 								"qty, "
+								"qty::text, "
 								"i.date_created::text, "
 								"format_date(i.date_created), "
 								"c.name, "
 								"i.name, "
-								"price "
+								"price, "
+								"price::text, "
+								"remark "
 							"FROM invoice_items AS ili "
 							"JOIN invoices AS i "
 							"ON i.id = ili.invoice_id "
@@ -109,12 +110,15 @@ class ProductTransactionsGUI:
 		self.cursor.execute("SELECT "
 								"po.id, "
 								"qty, "
+								"qty::text, "
 								"po.date_created::text, "
 								"format_date(po.date_created), "
 								"c.name, "
 								"po.name, "
 								"price, "
-								"order_number "
+								"price::text, "
+								"order_number, "
+								"remark "
 							"FROM purchase_order_line_items AS pli "
 							"JOIN purchase_orders AS po "
 							"ON po.id = pli.purchase_order_id "
