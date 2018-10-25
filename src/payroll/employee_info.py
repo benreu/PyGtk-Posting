@@ -19,7 +19,7 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
-from dateutils import DateTimeCalendar, date_to_text, date_to_user_format
+from dateutils import DateTimeCalendar, date_to_user_format
 from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
@@ -130,7 +130,7 @@ class EmployeeInfoGUI:
 			self.builder.get_object('spinbutton6').set_value(row[4])
 			self.builder.get_object('spinbutton5').set_value(row[5])
 			self.builder.get_object('checkbutton4').set_active(row[6])
-			self.builder.get_object('label6').set_text(date_to_text(row[7]))
+			self.builder.get_object('label6').set_text(row[7])
 			self.builder.get_object('checkbutton2').set_active(row[8])
 			self.builder.get_object('spinbutton3').set_value(row[9])
 			self.builder.get_object('spinbutton2').set_value(row[10])
