@@ -79,6 +79,12 @@
                 <property name="entry_text_column">1</property>
                 <property name="id_column">0</property>
                 <signal name="changed" handler="customer_changed" swapped="no"/>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">2</attribute>
+                  </attributes>
+                </child>
                 <child internal-child="entry">
                   <object class="GtkEntry" id="combobox-entry">
                     <property name="can_focus">True</property>
