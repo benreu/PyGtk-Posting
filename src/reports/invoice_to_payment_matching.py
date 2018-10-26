@@ -33,7 +33,7 @@ class GUI:
 		self.customer_store = self.builder.get_object('customer_store')
 		self.customer_store.clear()
 		c.execute("SELECT id::text, name, ext_name FROM contacts "
-							"WHERE customer = True")
+					"WHERE customer = True ORDER BY name")
 		for row in c.fetchall():
 			self.customer_store.append(row)
 		sw = self.builder.get_object('scrolledwindow1')
