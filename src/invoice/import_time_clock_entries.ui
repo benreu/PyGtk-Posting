@@ -8,7 +8,7 @@
       <column type="gint"/>
       <!-- column-name project -->
       <column type="gchararray"/>
-      <!-- column-name time -->
+      <!-- column-name seconds -->
       <column type="glong"/>
       <!-- column-name time_formatted -->
       <column type="gchararray"/>
@@ -41,11 +41,13 @@
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
+    <property name="border_width">10</property>
     <property name="title" translatable="yes">Import hours to invoice</property>
     <property name="modal">True</property>
     <property name="window_position">center</property>
     <property name="default_width">500</property>
     <property name="default_height">300</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <placeholder/>
     </child>
@@ -53,10 +55,6 @@
       <object class="GtkBox" id="box2">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_left">10</property>
-        <property name="margin_right">10</property>
-        <property name="margin_top">10</property>
-        <property name="margin_bottom">20</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkScrolledWindow" id="scrolledwindow2">
@@ -110,7 +108,7 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date ended</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">3</property>
+                    <property name="sort_column_id">4</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext7"/>
                       <attributes>
@@ -124,7 +122,7 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Import</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">5</property>
+                    <property name="sort_column_id">6</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle2">
                         <signal name="toggled" handler="import_renderer_toggled" swapped="no"/>
@@ -293,18 +291,34 @@
           <object class="GtkBox" id="box7">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_top">10</property>
             <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Unselect all</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="unselect_all_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
             <child>
               <object class="GtkButton" id="button1">
                 <property name="label" translatable="yes">Select all</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="select_all_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -319,7 +333,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>

@@ -54,25 +54,29 @@ class ImportGUI():
 		return True
 
 	def populate_time_clock_import_store (self):
-		self.cursor.execute("SELECT entry.id, (stop_time - start_time), project.name, stop_time "
-							"FROM time_clock_entries AS entry "
-							"JOIN time_clock_projects AS project "
-							"ON project.id = entry.project_id "
-							"JOIN job_sheets "
-							"ON job_sheets.id = project.job_sheet_id "
-							"JOIN contacts "
-							"ON contacts.id = job_sheets.contact_id "
-							"WHERE (job_sheets.contact_id, entry.running, "
-								"entry.invoiced) = "
-							"(%s, False, False) ORDER BY start_time", 
-							(self.contact_id,))
-		for row in self.cursor.fetchall():
-			row_id = row[0]
-			seconds = row[1]
-			project_name = row[2]
-			date = row[3]
-			formatted_date = str(date)[0:10]
-			self.import_store.append([row_id, project_name, seconds.total_seconds(), str(seconds), str(date), formatted_date, True])
+		c = self.db.cursor()
+		c.execute("SELECT "
+						"entry.id, "
+						"project.name, "
+						"EXTRACT(epoch FROM (stop_time - start_time))::bigint, "
+						"(stop_time - start_time)::text, "
+						"stop_time::text, "
+						"format_timestamp(stop_time), "
+						"True "
+					"FROM time_clock_entries AS entry "
+					"JOIN time_clock_projects AS project "
+					"ON project.id = entry.project_id "
+					"JOIN job_sheets "
+					"ON job_sheets.id = project.job_sheet_id "
+					"JOIN contacts "
+					"ON contacts.id = job_sheets.contact_id "
+					"WHERE (job_sheets.contact_id, entry.running, "
+						"entry.invoiced) = "
+					"(%s, False, False) ORDER BY start_time", 
+					(self.contact_id,))
+		for row in c.fetchall():
+			self.import_store.append(row)
+		c.close()
 
 	def product_combo_changed (self, combo):
 		self.product_id = combo.get_active_id()
@@ -81,6 +85,14 @@ class ImportGUI():
 	def product_match_selected (self, completion, model, iter_):
 		product_id = model[iter_][0]
 		self.builder.get_object('combobox1').set_active_id(product_id)
+
+	def unselect_all_clicked (self, button):
+		for row in self.import_store:
+			row[6] = False
+
+	def select_all_clicked (self, button):
+		for row in self.import_store:
+			row[6] = True
 
 	def post_to_invoice_clicked (self, button):
 		price = get_customer_product_price (self.db, self.contact_id, self.product_id)
