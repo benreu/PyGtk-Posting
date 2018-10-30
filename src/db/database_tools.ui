@@ -624,6 +624,7 @@
     <property name="window_position">center</property>
     <property name="default_width">500</property>
     <property name="default_height">400</property>
+    <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
     <child>
