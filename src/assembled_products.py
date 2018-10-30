@@ -23,12 +23,14 @@ UI_FILE = main.ui_directory + "/assembled_products.ui"
 
 
 class AssembledProductsGUI:
+	timeout_id = None
 	def __init__(self, main):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-	
+
+		main.connect("shutdown", self.main_shutdown)
 		enforce_target = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
 		self.assembly_treeview = self.builder.get_object('treeview2')
 		self.assembly_treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.COPY)
@@ -255,16 +257,29 @@ class AssembledProductsGUI:
 		self.calculate_totals ()
 		self.populating = False
 
+	def main_shutdown (self, main):
+		if self.timeout_id:
+			self.save_notes()
+
 	def notes_buffer_changed (self, textbuffer):
 		if self.populating == True:
 			return
 		start = textbuffer.get_start_iter()
 		end = textbuffer.get_end_iter()
-		notes = textbuffer.get_text(start, end, True)
+		self.notes = textbuffer.get_text(start, end, True)
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
+		self.timeout_id = GLib.timeout_add_seconds(10, self.save_notes)
+		self.db.commit()
+
+	def save_notes (self ):
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
 		self.cursor.execute("UPDATE products SET assembly_notes = %s "
 							"WHERE id = %s", 
-							(notes,  self.manufactured_product_id))
+							(self.notes, self.manufactured_product_id))
 		self.db.commit()
+		self.timeout_id = None
 		
 	def delete_item_clicked (self, button):
 		self.delete_entry()
