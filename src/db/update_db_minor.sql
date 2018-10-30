@@ -106,8 +106,10 @@ $BODY$
 	LANGUAGE plpgsql VOLATILE
 	COST 100;
 
-DROP TRIGGER IF EXISTS save_contact ON public.contacts;
-CREATE TRIGGER save_contact AFTER INSERT OR UPDATE ON public.contacts FOR EACH ROW EXECUTE PROCEDURE log.save_contact_trigger();
+DROP TRIGGER IF EXISTS contact_update ON public.contacts;
+CREATE TRIGGER contact_update AFTER UPDATE ON public.contacts FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE log.save_contact_trigger();
+DROP TRIGGER IF EXISTS contact_insert ON public.contacts;
+CREATE TRIGGER contact_insert AFTER INSERT ON public.contacts FOR EACH ROW EXECUTE PROCEDURE log.save_contact_trigger();
 
 CREATE OR REPLACE FUNCTION log.save_product_trigger ()
 	RETURNS trigger AS 
@@ -120,7 +122,9 @@ $BODY$
 	LANGUAGE plpgsql VOLATILE
 	COST 100;
 
-DROP TRIGGER IF EXISTS save_product ON public.contacts;
-CREATE TRIGGER save_product AFTER INSERT OR UPDATE ON public.contacts FOR EACH ROW EXECUTE PROCEDURE log.save_product_trigger();
+DROP TRIGGER IF EXISTS product_update ON public.products;
+CREATE TRIGGER product_update AFTER UPDATE ON public.products FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE log.save_product_trigger();
+DROP TRIGGER IF EXISTS product_insert ON public.products;
+CREATE TRIGGER product_insert AFTER INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE log.save_product_trigger();
 
 
