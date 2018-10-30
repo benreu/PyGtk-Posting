@@ -90,5 +90,37 @@ ALTER TABLE public.shipping_info ADD UNIQUE (invoice_id);
 ALTER TABLE public.shipping_info ADD UNIQUE (tracking_number); 
 --version 0.5.3
 ALTER TABLE files ALTER COLUMN date_inserted SET DEFAULT CURRENT_DATE;
+--version 0.5.4
+CREATE SCHEMA IF NOT EXISTS log;
+CREATE TABLE IF NOT EXISTS log.products (LIKE public.products INCLUDING DEFAULTS, date_edited timestamp NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS log.contacts (LIKE public.contacts INCLUDING DEFAULTS, date_edited timestamp NOT NULL DEFAULT now());
+
+CREATE OR REPLACE FUNCTION log.save_contact_trigger ()
+	RETURNS trigger AS 
+$BODY$ 
+	BEGIN
+	INSERT INTO log.contacts SELECT NEW.*;
+	RETURN NEW;
+	END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE
+	COST 100;
+
+DROP TRIGGER IF EXISTS save_contact ON public.contacts;
+CREATE TRIGGER save_contact AFTER INSERT OR UPDATE ON public.contacts FOR EACH ROW EXECUTE PROCEDURE log.save_contact_trigger();
+
+CREATE OR REPLACE FUNCTION log.save_product_trigger ()
+	RETURNS trigger AS 
+$BODY$ 
+	BEGIN
+	INSERT INTO log.products SELECT NEW.*;
+	RETURN NEW;
+	END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE
+	COST 100;
+
+DROP TRIGGER IF EXISTS save_product ON public.contacts;
+CREATE TRIGGER save_product AFTER INSERT OR UPDATE ON public.contacts FOR EACH ROW EXECUTE PROCEDURE log.save_product_trigger();
 
 
