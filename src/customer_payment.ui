@@ -32,7 +32,7 @@
       <column type="gchararray"/>
       <!-- column-name customer_name -->
       <column type="gchararray"/>
-      <!-- column-name customer_co -->
+      <!-- column-name ext_name -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -44,6 +44,12 @@
       <object class="GtkCellRendererText" id="cellrenderertext2"/>
       <attributes>
         <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
       </attributes>
     </child>
   </object>
