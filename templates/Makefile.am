@@ -7,8 +7,6 @@ python_PYTHON = invoice_template.odt \
 	document_template.odt \
 	product_label_template.odt \
 	contact_label_template.odt \
-	courB08.pbm \
-	courB08.pil \
 	manufacturing_serial_template.odt \
 	time_card_template.odt \
 	template_readme.txt \
