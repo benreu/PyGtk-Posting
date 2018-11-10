@@ -50,9 +50,11 @@ class VendorHistoryGUI:
 		self.cursor = self.db.cursor()
 
 		self.vendor_store = self.builder.get_object('vendor_store')
-		self.cursor.execute("SELECT id, name FROM contacts "
-							"WHERE (vendor, deleted) = (True, False) "
-							"ORDER BY name")
+		self.cursor.execute("SELECT c.id, c.name "
+							"FROM purchase_orders AS p "
+							"JOIN contacts AS c ON c.id = p.vendor_id "
+							"GROUP BY c.id, c.name "
+							"ORDER BY c.name")
 		for vendor in self.cursor.fetchall():
 			id_ = vendor[0]
 			name = vendor[1]
