@@ -109,7 +109,9 @@ class GUI:
 		zip_code_store = self.builder.get_object("zip_code_store")
 		zip_code_store.clear()
 		self.cursor.execute("SELECT zip, city, state FROM contacts "
-							"WHERE deleted = False GROUP BY zip, city, state")
+							"WHERE deleted = False "
+							"GROUP BY zip, city, state "
+							"ORDER BY zip, city")
 		for row in self.cursor.fetchall():
 			zip_code = row[0]
 			city = row[1]
