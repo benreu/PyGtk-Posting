@@ -47,7 +47,9 @@ class JobSheetHistoryGUI:
 		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 
 		self.populate_job_sheet_treeview ()
-		
+		if main.is_admin == True:
+			self.builder.get_object ('treeview1').set_tooltip_column(0)
+			self.builder.get_object ('treeview2').set_tooltip_column(0)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
