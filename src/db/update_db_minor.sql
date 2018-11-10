@@ -126,5 +126,9 @@ DROP TRIGGER IF EXISTS product_update ON public.products;
 CREATE TRIGGER product_update AFTER UPDATE ON public.products FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE log.save_product_trigger();
 DROP TRIGGER IF EXISTS product_insert ON public.products;
 CREATE TRIGGER product_insert AFTER INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE log.save_product_trigger();
+--version 0.5.5
+ALTER TABLE log.contacts ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE log.products ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE log.products ALTER COLUMN barcode DROP DEFAULT;
 
 
