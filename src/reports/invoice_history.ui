@@ -40,6 +40,15 @@
         <signal name="activate" handler="product_hub_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">View invoice</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="view_invoice_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="invoice_items_store">
     <columns>

@@ -138,6 +138,24 @@ class InvoiceHistoryGUI:
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
+	def view_invoice_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_id = model[path][8]
+		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+							"WHERE id = %s", (invoice_id,))
+		for row in self.cursor.fetchall():
+			file_name = row[0]
+			if file_name == None:
+				return
+			file_data = row[1]
+			f = open("/tmp/" + file_name,'wb')
+			f.write(file_data)
+			subprocess.call(["xdg-open", "/tmp/%s" % file_name])
+			f.close()
+
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
