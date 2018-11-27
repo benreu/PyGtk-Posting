@@ -192,7 +192,7 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">4</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2"/>
                       <attributes>
