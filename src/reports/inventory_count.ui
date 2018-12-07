@@ -2,6 +2,12 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="lower">1</property>
+    <property name="upper">1000</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkListStore" id="inventory_store">
     <columns>
       <!-- column-name product_id -->
@@ -18,12 +24,32 @@
       <column type="gfloat"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="product_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gchararray"/>
+      <!-- column-name product_name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="product_completion">
+    <property name="model">product_store</property>
+    <property name="text_column">1</property>
+    <signal name="match-selected" handler="product_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Count inventory</property>
     <property name="window_position">center</property>
     <property name="default_width">500</property>
     <property name="default_height">700</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <placeholder/>
     </child>
@@ -33,6 +59,52 @@
         <property name="can_focus">False</property>
         <property name="border_width">10</property>
         <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes"> Product </property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="product_combo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="model">product_store</property>
+                <property name="has_entry">True</property>
+                <property name="entry_text_column">1</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="product_combo_changed" swapped="no"/>
+                <child internal-child="entry">
+                  <object class="GtkEntry">
+                    <property name="can_focus">True</property>
+                    <property name="placeholder_text" translatable="yes">Search product</property>
+                    <property name="completion">product_completion</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
         <child>
           <object class="GtkBox" id="box2">
             <property name="visible">True</property>
@@ -55,6 +127,7 @@
               <object class="GtkEntry" id="entry1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="placeholder_text" translatable="yes">Scan product barcodes here</property>
                 <signal name="activate" handler="barcode_entry_activated" swapped="no"/>
               </object>
               <packing>
@@ -67,7 +140,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">0</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -87,7 +160,11 @@
                   <object class="GtkTreeViewColumn" id="treeviewcolumn4">
                     <property name="title" translatable="yes">Qty</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext4"/>
+                      <object class="GtkCellRendererSpin" id="cellrenderertext4">
+                        <property name="editable">True</property>
+                        <property name="adjustment">adjustment1</property>
+                        <signal name="edited" handler="qty_edited" swapped="no"/>
+                      </object>
                       <attributes>
                         <attribute name="text">2</attribute>
                       </attributes>
@@ -134,7 +211,7 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -221,7 +298,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
