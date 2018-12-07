@@ -20,7 +20,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
-import os, sys, subprocess, psycopg2, re
+import os, sys, subprocess, psycopg2, re, logging, traceback
 import main
 from main import Accounts
 
@@ -91,6 +91,41 @@ class MainGUI (GObject.GObject, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
+		#logging and error capturing
+		self.logger = logging.getLogger("PyGtk Posting")
+		c_handler = logging.StreamHandler()
+		c_handler.setLevel(logging.WARNING)
+		c_format = logging.Formatter('%(message)s')
+		self.logger.addHandler(c_handler)
+		if self.log_file != None:
+			f_handler = logging.FileHandler(self.log_file)
+			f_handler.setLevel(logging.DEBUG)
+			f_format = logging.Formatter('%(message)s')
+			self.logger.addHandler(f_handler)
+		sys.excepthook = self.exception_handler
+
+	def exception_handler (self, type_, value, tb):
+		"Catch uncaught exceptions and show them with Glib's idle_add since"
+		"we cannot access widgets directly without Gtk knowing what is going on"
+		GLib.idle_add(self.show_traceback, type_, value, tb)
+	
+	def show_traceback (self, type_, value, tb):
+		buf = self.builder.get_object('traceback_buffer')
+		for text in traceback.format_exception(type_, value, tb):
+			buf.insert(buf.get_end_iter(), text)
+			self.logger.error(text.strip("\n"))
+		window = self.builder.get_object('traceback_window')
+		window.show_all()
+		window.present()
+
+	def clear_and_close_clicked (self, window):
+		"the window object is passed from the button clicked event"
+		self.builder.get_object('traceback_buffer').set_text('')
+		window.hide()
+
+	def close_clicked (self, window):
+		"the window object is passed from the button clicked event"
+		window.hide()
 
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
