@@ -45,7 +45,7 @@ class Accounts:
 		#################################################
 		Accounts.product_expense_acc.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
-							"AND parent_number IS NULL")
+							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
@@ -58,7 +58,7 @@ class Accounts:
 		##################################################
 		Accounts.product_revenue_acc.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
-							"AND parent_number IS NULL")
+							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
@@ -71,7 +71,7 @@ class Accounts:
 		##################################################
 		Accounts.revenue_acc.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
-							"AND parent_number IS NULL")
+							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
@@ -80,7 +80,7 @@ class Accounts:
 		##################################################
 		Accounts.product_inventory_acc.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 1 "
-							"AND parent_number IS NULL")
+							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
@@ -96,8 +96,8 @@ class Accounts:
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, inventory_account, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
+							"FROM gl_accounts WHERE parent_number = %s "
+							"ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
@@ -119,8 +119,8 @@ class Accounts:
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
+							"FROM gl_accounts WHERE parent_number = %s "
+							"ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
@@ -132,8 +132,8 @@ class Accounts:
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, revenue_account, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
+							"FROM gl_accounts WHERE parent_number = %s "
+							"ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
@@ -155,8 +155,8 @@ class Accounts:
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, expense_account, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s",
-							(number,))
+							"FROM gl_accounts WHERE parent_number = %s "
+							"ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
@@ -177,7 +177,7 @@ class Accounts:
 	def populate_child_expense (number, parent):
 		global cursor
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE "
-							"parent_number = %s", (number,))
+							"parent_number = %s ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
