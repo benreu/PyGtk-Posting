@@ -84,7 +84,7 @@ class GUI():
 		self.parent_account_store.clear ()
 		selection = self.builder.get_object ('treeview-selection')
 		model, path = selection.get_selected_rows ()
-		account_type = model[path][3]
+		account_type = model[path][2]
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 					"WHERE number NOT IN "
 					"(SELECT gl_accounts.number FROM public.gl_accounts, "
