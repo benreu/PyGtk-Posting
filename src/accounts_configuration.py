@@ -97,9 +97,9 @@ class GUI():
 					"OR gl_account_flow.account = gl_accounts.number "
 					"GROUP BY number) "
 				"AND (bank_account, credit_card_account, "
-				"expense_account, revenue_account, cash_account) = "
-				"(False, False, False, False, False) "
-				"ORDER BY number;", (account_type,))
+				"expense_account, revenue_account, cash_account, type) = "
+				"(False, False, False, False, False, %s) "
+				"ORDER BY name;", (account_type,))
 		for row in self.cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
@@ -120,11 +120,11 @@ class GUI():
 		result = dialog.run()
 		dialog.hide()
 		if result == Gtk.ResponseType.ACCEPT:
-			account_number = self.builder.get_object('spinbutton3').get_value()
+			new_number = self.builder.get_object('spinbutton3').get_value()
 			parent_number = self.builder.get_object('combobox1').get_active_id()
 			self.cursor.execute("UPDATE gl_accounts SET (number, parent_number) "
 								"= (%s, %s) WHERE number = %s", 
-								(account_number, parent_number, account_number))
+								(new_number, parent_number, account_number))
 			self.db.commit()
 			self.populate_account_treestore ()
 		
