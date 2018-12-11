@@ -18,8 +18,7 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-gi.require_version('Keybinder', '3.0')
-from gi.repository import Gtk, GLib, GObject, Gdk, Keybinder
+from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re, logging, traceback
 import main
@@ -93,7 +92,8 @@ class MainGUI (GObject.GObject, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
-		self.connect_keybindings()
+		if not main.dev_mode:
+			self.connect_keybindings()
 		#logging and error capturing
 		self.logger = logging.getLogger("PyGtk Posting")
 		c_handler = logging.StreamHandler()
@@ -130,15 +130,17 @@ class MainGUI (GObject.GObject, Accounts):
 		"the window object is passed from the button clicked event"
 		window.hide()
 
+	def present (self, keybinding):
+		self.window.present()
+
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
 		version.CheckVersion(self, posting_version)
 
 	def connect_keybindings (self):
-		k = Keybinder
-		k.init()
-		k.bind("F8", self.time_clock)
+		import keybindings
+		keybindings.KeybinderInit(self)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
