@@ -24,6 +24,7 @@ UI_FILE = main.ui_directory + "/time_clock.ui"
 
 class TimeClockGUI :
 	entry_id = 0
+	exists = True
 	def __init__(self, main, parent = None):
 		
 		self.builder = Gtk.Builder()
@@ -45,14 +46,10 @@ class TimeClockGUI :
 
 		self.parent = parent
 
-	def present (self):
-		self.window.present()
-
 	def destroy (self, window):
 		self.main.disconnect(self.handler)
 		self.cursor.close()
-		if self.parent:
-			self.parent.time_clock = None
+		self.main.time_clock_object = None
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()

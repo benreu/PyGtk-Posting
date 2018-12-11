@@ -18,7 +18,8 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib, GObject, Gdk
+gi.require_version('Keybinder', '3.0')
+from gi.repository import Gtk, GLib, GObject, Gdk, Keybinder
 from datetime import datetime, date
 import os, sys, subprocess, psycopg2, re, logging, traceback
 import main
@@ -29,7 +30,6 @@ UI_FILE = main.ui_directory + "/pygtk_posting.ui"
 invoice_window = None
 ccm = None
 
-
 class MainGUI (GObject.GObject, Accounts):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
@@ -39,6 +39,8 @@ class MainGUI (GObject.GObject, Accounts):
 	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	log_file = None
+	time_clock_object = None
+
 	def __init__(self):
 		GObject.GObject.__init__(self)
 		try:
@@ -91,6 +93,7 @@ class MainGUI (GObject.GObject, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
+		self.connect_keybindings()
 		#logging and error capturing
 		self.logger = logging.getLogger("PyGtk Posting")
 		c_handler = logging.StreamHandler()
@@ -131,6 +134,11 @@ class MainGUI (GObject.GObject, Accounts):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
 		version.CheckVersion(self, posting_version)
+
+	def connect_keybindings (self):
+		k = Keybinder
+		k.init()
+		k.bind("F8", self.time_clock)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -602,8 +610,11 @@ class MainGUI (GObject.GObject, Accounts):
 		inventory_history.InventoryHistoryGUI(self.db)
 
 	def time_clock(self, widget):
-		import time_clock
-		time_clock.TimeClockGUI(self)
+		if self.time_clock_object == None:
+			import time_clock
+			self.time_clock_object = time_clock.TimeClockGUI(self)
+		else:
+			self.time_clock_object.window.present()
 
 	def kit_products_activated (self, db):
 		import kit_products
