@@ -137,7 +137,9 @@ pygtk_posting_PYTHON = \
 	contact_product_view.py \
 	contact_hub.ui \
 	shipping_info.py \
-	shipping_info.ui
+	shipping_info.ui \
+	keybindings.py \
+	keybindings.ui
 
 
 EXTRA_DIST = $(ui_DATA)

@@ -29,7 +29,6 @@ UI_FILE = main.ui_directory + "/pygtk_posting.ui"
 invoice_window = None
 ccm = None
 
-
 class MainGUI (GObject.GObject, Accounts):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
@@ -39,6 +38,8 @@ class MainGUI (GObject.GObject, Accounts):
 	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	log_file = None
+	time_clock_object = None
+
 	def __init__(self):
 		GObject.GObject.__init__(self)
 		try:
@@ -91,6 +92,8 @@ class MainGUI (GObject.GObject, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
+		if not main.dev_mode:
+			self.connect_keybindings()
 		#logging and error capturing
 		self.logger = logging.getLogger("PyGtk Posting")
 		c_handler = logging.StreamHandler()
@@ -127,10 +130,17 @@ class MainGUI (GObject.GObject, Accounts):
 		"the window object is passed from the button clicked event"
 		window.hide()
 
+	def present (self, keybinding):
+		self.window.present()
+
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
 		version.CheckVersion(self, posting_version)
+
+	def connect_keybindings (self):
+		import keybindings
+		keybindings.KeybinderInit(self)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -607,8 +617,11 @@ class MainGUI (GObject.GObject, Accounts):
 		inventory_history.InventoryHistoryGUI(self.db)
 
 	def time_clock(self, widget):
-		import time_clock
-		time_clock.TimeClockGUI(self)
+		if self.time_clock_object == None:
+			import time_clock
+			self.time_clock_object = time_clock.TimeClockGUI(self)
+		else:
+			self.time_clock_object.window.present()
 
 	def kit_products_activated (self, db):
 		import kit_products

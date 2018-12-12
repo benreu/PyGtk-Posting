@@ -24,6 +24,7 @@ UI_FILE = main.ui_directory + "/time_clock.ui"
 
 class TimeClockGUI :
 	entry_id = 0
+	exists = True
 	def __init__(self, main, parent = None):
 		
 		self.builder = Gtk.Builder()
@@ -45,14 +46,10 @@ class TimeClockGUI :
 
 		self.parent = parent
 
-	def present (self):
-		self.window.present()
-
 	def destroy (self, window):
 		self.main.disconnect(self.handler)
 		self.cursor.close()
-		if self.parent:
-			self.parent.time_clock = None
+		self.main.time_clock_object = None
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
@@ -76,11 +73,22 @@ class TimeClockGUI :
 		selection = self.builder.get_object('employee_selection')
 		GLib.idle_add(selection.unselect_all)
 
+	def scan_employee_id_activated (self, entry):
+		entry.select_region(0, -1)
+		employee_id = int(entry.get_text())
+		for row in self.employee_store:
+			if row[0] == employee_id:
+				self.process_employee(row.path)
+				return
+
 	def employee_row_activated (self, treeview, path, treeviewcolumn):
 		if treeviewcolumn == self.builder.get_object('treeview_time_column'):
 			if self.employee_store[path][3] == True:
 				treeview.set_cursor(path, treeviewcolumn, True)
 				return
+		self.process_employee(path)
+
+	def process_employee (self, path):
 		self.employee_id = self.employee_store[path][0]
 		employee_name = self.employee_store[path][1]
 		if self.employee_store[path][3] == False:  # not punched in
@@ -128,7 +136,18 @@ class TimeClockGUI :
 		for row in self.cursor.fetchall():
 			self.project_store.append(row)
 
+	def scan_job_id_activated (self, entry):
+		entry.select_region(0, -1)
+		project_id = int(entry.get_text())
+		for row in self.project_store:
+			if row[0] == project_id:
+				self.process_job(row.path)
+				return
+
 	def job_row_activated (self, treeview, path, treeviewcolumn):
+		self.process_job(path)
+
+	def process_job(self, path):
 		project_id = self.project_store[path][0]
 		if project_id == 0: # cancel row clicked
 			self.stack.set_visible_child_name ('employee_page')

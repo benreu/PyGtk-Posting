@@ -117,71 +117,109 @@
             <property name="can_focus">False</property>
             <property name="transition_type">slide-left-right</property>
             <child>
-              <object class="GtkScrolledWindow">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkTreeView" id="employee_treeview">
+                  <object class="GtkEntry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="model">employee_store</property>
-                    <property name="activate_on_single_click">True</property>
-                    <signal name="row-activated" handler="employee_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="employee_selection"/>
-                    </child>
+                    <property name="placeholder_text" translatable="yes">Scan employee id</property>
+                    <signal name="activate" handler="scan_employee_id_activated" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
                     <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Employee</property>
-                        <property name="expand">True</property>
-                        <property name="reorderable">True</property>
-                        <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
+                      <object class="GtkTreeView" id="employee_treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">employee_store</property>
+                        <property name="activate_on_single_click">True</property>
+                        <signal name="row-activated" handler="employee_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="employee_selection"/>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeview_time_column">
-                        <property name="title" translatable="yes">Time</property>
                         <child>
-                          <object class="GtkCellRendererText">
-                            <signal name="editing-started" handler="time_renderer_editing_started" swapped="no"/>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Id</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="editable">3</attribute>
-                            <attribute name="text">2</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="title" translatable="yes">In</property>
                         <child>
-                          <object class="GtkCellRendererToggle"/>
-                          <attributes>
-                            <attribute name="active">3</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Employee</property>
+                            <property name="expand">True</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="title" translatable="yes">Project</property>
                         <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">5</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn" id="treeview_time_column">
+                            <property name="title" translatable="yes">Time</property>
+                            <child>
+                              <object class="GtkCellRendererText">
+                                <signal name="editing-started" handler="time_renderer_editing_started" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="editable">3</attribute>
+                                <attribute name="text">2</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="title" translatable="yes">In</property>
+                            <child>
+                              <object class="GtkCellRendererToggle"/>
+                              <attributes>
+                                <attribute name="active">3</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="title" translatable="yes">Project</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">5</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
               <packing>
@@ -190,38 +228,76 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkTreeView">
+                  <object class="GtkEntry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="model">project_store</property>
-                    <property name="search_column">1</property>
-                    <property name="activate_on_single_click">True</property>
-                    <signal name="row-activated" handler="job_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
-                    </child>
+                    <property name="placeholder_text" translatable="yes">Scan job id</property>
+                    <signal name="activate" handler="scan_job_id_activated" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
                     <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="title" translatable="yes">Job</property>
-                        <property name="expand">True</property>
-                        <property name="alignment">0.50999999046325684</property>
+                      <object class="GtkTreeView">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">project_store</property>
+                        <property name="search_column">1</property>
+                        <property name="activate_on_single_click">True</property>
+                        <signal name="row-activated" handler="job_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
                         <child>
-                          <object class="GtkCellRendererText">
-                            <property name="xalign">0.50999999046325684</property>
-                            <property name="alignment">center</property>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Id</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="title" translatable="yes">Job</property>
+                            <property name="expand">True</property>
+                            <property name="alignment">0.50999999046325684</property>
+                            <child>
+                              <object class="GtkCellRendererText">
+                                <property name="xalign">0.50999999046325684</property>
+                                <property name="alignment">center</property>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
               <packing>
@@ -303,6 +379,8 @@
                         <property name="label" translatable="yes">Punch in</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="can_default">True</property>
+                        <property name="has_default">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="punch_in_clicked" swapped="no"/>
                       </object>
@@ -596,6 +674,8 @@
                         <property name="label" translatable="yes">Punch out</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="can_default">True</property>
+                        <property name="has_default">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="punch_out_clicked" swapped="no"/>
                       </object>
