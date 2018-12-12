@@ -83,6 +83,7 @@ class PaymentsReceivedGUI:
 		customer_id = combo.get_active_id()
 		if customer_id == None:
 			return
+		self.builder.get_object('checkbutton2').set_active(False)
 		self.customer_id = customer_id
 		self.populate_payment_store ()
 
@@ -94,6 +95,46 @@ class PaymentsReceivedGUI:
 		self.populate_payment_store ()
 
 	def populate_payment_store (self):
+		if self.builder.get_object('checkbutton2').get_active() == True:
+			self.populate_payments_all_customers ()
+		else:
+			self.populate_payment_by_customer ()
+
+	def populate_payments_all_customers (self):
+		self.payment_store.clear()
+		total_amount = Decimal()
+		if self.builder.get_object('checkbutton1').get_active() == True:
+			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+								"format_date(pay.date_inserted), "
+								"contacts.name, pay.amount, payment_info(pay.id) "
+								"FROM payments_incoming AS pay "
+								"INNER JOIN contacts "
+								"ON pay.customer_id = contacts.id "
+								"ORDER BY date_inserted;")
+		else:
+			fiscal_id = self.builder.get_object('combobox2').get_active_id()
+			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+								"format_date(pay.date_inserted), "
+								"contacts.name, pay.amount, "
+								"payment_info(pay.id) "
+								"FROM payments_incoming AS pay "
+								"INNER JOIN contacts "
+								"ON pay.customer_id = contacts.id "
+								"WHERE (pay.date_inserted "
+								"BETWEEN (SELECT start_date "
+									"FROM fiscal_years WHERE id = %s) "
+									"AND "
+									"(SELECT end_date "
+									"FROM fiscal_years WHERE id = %s)) "
+								"ORDER BY date_inserted;", 
+								(fiscal_id, fiscal_id))
+		for row in self.cursor.fetchall():
+			total_amount += row[4]
+			self.payment_store.append(row)
+		amount_received = '${:,.2f}'.format(total_amount)
+		self.builder.get_object('label2').set_label(amount_received)
+
+	def populate_payment_by_customer (self):
 		if self.customer_id == None:
 			return
 		self.payment_store.clear()
