@@ -501,12 +501,17 @@ class MainGUI (GObject.GObject, Accounts):
 		red = Gdk.RGBA(1, 0, 0, 1)
 		orange = Gdk.RGBA(1, 0.5, 0, 1)
 		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
-		self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
+		try:
+			self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
 								"(SELECT statement_finish_date FROM settings) "
 								"+ INTERVAL'1 month') "
 								"+ ((SELECT statement_day_of_month FROM settings) "
 									"* INTERVAL '1 day') "
 								"- INTERVAL '1 day'")
+		except Exception as e:
+			self.db.rollback()
+			logging.error(str(e))
+			return
 		if self.cursor.fetchone()[0] == True:
 			store.append(["Print statements", 0, self.statement_window, orange])
 		self.cursor.execute("SELECT "
