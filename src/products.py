@@ -657,7 +657,7 @@ class ProductsGUI:
 			self.builder.get_object('entry13').set_text(row[18])
 			self.builder.get_object('checkbutton6').set_active(row[19])
 			self.builder.get_object('checkbutton7').set_active(row[20])
-		
+		self.clear_vendor_info ()
 		vendor_combo = self.builder.get_object('comboboxtext2')
 		if vendor_combo.get_active() == -1:
 			vendor_combo.set_active(0)
