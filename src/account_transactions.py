@@ -70,6 +70,23 @@ class GUI:
 		balance = '{:,.2f}'.format(model.get_value(iter1, 5))
 		cellrenderer.set_property("text" , balance)
 
+	def treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.builder.get_object('transaction_menu')
+			menu.popup(None, None, None, None, event.button, event.time)
+			menu.show_all()
+			
+	def gl_entry_lookup_activated (self, menuitem):
+		selection = self.builder.get_object('treeview1').get_selection()
+		model, paths = selection.get_selected_rows()
+		if paths == []:
+			return
+		path_list = list()
+		for path in paths:
+			path_list.append(model[path][9])
+		from reports import gl_entry_lookup
+		gl_entry_lookup.GlEntryLookupGUI(self.db, str(tuple(path_list)))
+
 	def treecolumn_clicked (self, column):
 		label = self.builder.get_object('label1')
 		#label.set_label("Balance calculations are no longer valid")
@@ -100,11 +117,14 @@ class GUI:
 			account_number = row[1]
 			account_name = row[2]
 			tree_parent = self.account_treestore.append(None, ['', 
-														'', account_number, 
+														'', 
+														account_number, 
 														account_name, 
-														0.00, 0.00, '',
+														0.00, 
+														0.00, '',
 														Gdk.RGBA(0,0,0,1), 
-														Gdk.RGBA(0,0,0,1)])
+														Gdk.RGBA(0,0,0,1),
+														0])
 			for i in self.get_child_accounts(True, account_number, tree_parent):
 				account_amount += i[1]
 			self.account_treestore.set_value(tree_parent, 4, account_amount)
@@ -174,10 +194,16 @@ class GUI:
 
 	def parent_child_account_treeview (self):
 		self.account_treestore.clear()
-		tree_parent = self.account_treestore.append(None, ['', '', 0, 
-													self.account_name, 0.00, 
-													0.00, '', Gdk.RGBA(0,0,0,1), 
-													Gdk.RGBA(0,0,0,1)])
+		tree_parent = self.account_treestore.append(None, ['', 
+													'', 
+													0, 
+													self.account_name, 
+													0.00, 
+													0.00, 
+													'', 
+													Gdk.RGBA(0,0,0,1), 
+													Gdk.RGBA(0,0,0,1),
+													0])
 		account_amount = 0.00
 		for i in self.get_child_accounts(True, self.account_number, tree_parent):
 			account_amount += i[1]
@@ -194,11 +220,15 @@ class GUI:
 				account_number = row[1]
 				account_name = row[2]
 				tree_parent = self.account_treestore.append(parent_tree, ['', 
-															'', account_number, 
+															'', 
+															account_number, 
 															str(account_number) + ' ' +account_name, 
-															0.00, 0.00, '',
+															0.00, 
+															0.00, 
+															'',
 															Gdk.RGBA(0,0,0,1), 
-															Gdk.RGBA(0,0,0,1)])
+															Gdk.RGBA(0,0,0,1),
+															0])
 				for i in self.get_child_accounts (is_parent, account_number, 
 															tree_parent):
 					account_amount += i[1]
@@ -268,6 +298,7 @@ class GUI:
 			debit_name = transaction[5]
 			credit_account = transaction[6]
 			credit_name = transaction[7]
+			gl_entry_id = transaction[8]
 			if transaction[self.n_col] == int(self.account_number): # this is a credit with the account id we are searching for
 				amount = float(transaction[3])
 				balance += float(transaction[3])
@@ -281,13 +312,20 @@ class GUI:
 				balance_color = Gdk.RGBA(0.8,0,0,1)
 			if balance < 0.00:
 				balance_color = Gdk.RGBA(0.7,0,0,1)
-			parent = self.account_treestore.append (None, [str(date), formatted_date, 0, 
-											debit_name, amount, balance, credit_name,
-											amount_color, balance_color])
+			parent = self.account_treestore.append (None, [str(date), 
+															formatted_date, 
+															0, 
+															debit_name, 
+															amount, 
+															balance, 
+															credit_name,
+															amount_color, 
+															balance_color,
+															gl_entry_id])
 			if debit_account == None:
 				amount_color = Gdk.RGBA(0,0,0,1)
 				balance_color = Gdk.RGBA(0,0,0,1)
-				self.cursor.execute("SELECT ge.amount, debits.name "
+				self.cursor.execute("SELECT ge.amount, debits.name, ge.id "
 								"FROM gl_entries AS ge "
 								"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
 								"JOIN gl_accounts AS debits ON ge.debit_account = debits.number "
@@ -301,13 +339,21 @@ class GUI:
 					for row in tuple_:
 						amount = row[0]
 						debit_name = row[1]
-						self.account_treestore.append (parent, ['', '', 0, 
-												debit_name, amount,  0.00, '',
-												amount_color, balance_color])
+						gl_entry_id = row[2]
+						self.account_treestore.append (parent, ['', 
+																'', 
+																0, 
+																debit_name, 
+																amount, 
+																0.00, 
+																'',
+																amount_color, 
+																balance_color,
+																gl_entry_id])
 			if credit_account == None:
 				amount_color = Gdk.RGBA(0,0,0,1)
 				balance_color = Gdk.RGBA(0,0,0,1)
-				self.cursor.execute("SELECT ge.amount, credits.name "
+				self.cursor.execute("SELECT ge.amount, credits.name, ge.id "
 								"FROM gl_entries AS ge "
 								"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
 								"JOIN gl_accounts AS credits ON ge.credit_account = credits.number "
@@ -321,9 +367,17 @@ class GUI:
 					for row in tuple_:
 						amount = row[0]
 						credit_name = row[1]
-						self.account_treestore.append (parent, ['', '', 0, 
-												'', amount,  0.00, credit_name,
-												amount_color, balance_color])
+						gl_entry_id = row[2]
+						self.account_treestore.append (parent, ['', 
+																'', 
+																0, 
+																'', 
+																amount, 
+																0.00, 
+																credit_name,
+																amount_color, 
+																balance_color,
+																gl_entry_id])
 			progressbar.set_fraction(progress)
 			while Gtk.events_pending():
 				Gtk.main_iteration()

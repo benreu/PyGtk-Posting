@@ -43,6 +43,8 @@
       <column type="GdkRGBA"/>
       <!-- column-name balance_color -->
       <column type="GdkRGBA"/>
+      <!-- column-name entry_id -->
+      <column type="glong"/>
     </columns>
   </object>
   <object class="GtkListStore" id="fiscal_store">
@@ -136,18 +138,6 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkSeparator" id="separator1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">5</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkBox" id="box3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -209,6 +199,18 @@
               </packing>
             </child>
             <child>
+              <object class="GtkSeparator" id="separator1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -262,11 +264,13 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">account_transaction_store</property>
+                    <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">vertical</property>
+                    <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="cursor_double_clicked" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection1">
-                        <property name="mode">none</property>
+                        <property name="mode">multiple</property>
                       </object>
                     </child>
                     <child>
@@ -377,6 +381,19 @@
             <property name="position">3</property>
           </packing>
         </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="transaction_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">GL entry lookup</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="gl_entry_lookup_activated" swapped="no"/>
       </object>
     </child>
   </object>
