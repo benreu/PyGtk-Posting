@@ -117,7 +117,7 @@ class MainGUI (GObject.GObject, Accounts):
 		if self.db.closed == 1:
 			return False
 		try:
-			self.cursor.execute ("Select 1")
+			self.db.commit()
 		except Exception as e:
 			print (e, "> pygtk_posting.py polling feature misfired")
 			return False
