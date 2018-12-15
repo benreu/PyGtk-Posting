@@ -21,12 +21,16 @@ import main
 UI_FILE = main.ui_directory + "/budget.ui"
 
 class BudgetGUI:
-	def __init__(self):
+	def __init__(self, db):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
+		self.db = db
+		self.cursor = db.cursor
+		
 		self.window = self.builder.get_object('budget_window')
+		self.window.show_all()
 
 
 
