@@ -695,6 +695,10 @@ class MainGUI (GObject.GObject, Accounts):
 		import bank_statement
 		bank_statement.GUI(self)
 
+	def budget_activated (self, widget):
+		import budget
+		budget.BudgetGUI(self.db)
+
 	def contacts_window(self, widget):
 		import contacts
 		contacts.GUI(self)

@@ -139,7 +139,9 @@ pygtk_posting_PYTHON = \
 	shipping_info.py \
 	shipping_info.ui \
 	keybindings.py \
-	keybindings.ui
+	keybindings.ui \
+	budget.py \
+	budget.ui
 
 
 EXTRA_DIST = $(ui_DATA)
