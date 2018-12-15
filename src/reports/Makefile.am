@@ -44,6 +44,8 @@ python_PYTHON = time_clock_project.ui \
 	invoice_to_payment_matching.py \
 	invoice_to_payment_matching.ui \
 	gl_entry_lookup.py \
-	gl_entry_lookup.ui
+	gl_entry_lookup.ui \
+	bank_statements.py \
+	bank_statements.ui
 
 uidir = $(pkgdatadir)/reports/ui
