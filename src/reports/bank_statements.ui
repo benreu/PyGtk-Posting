@@ -26,8 +26,12 @@
       <column type="gboolean"/>
       <!-- column-name debit -->
       <column type="gchararray"/>
+      <!-- column-name debit_float -->
+      <column type="gfloat"/>
       <!-- column-name credit -->
       <column type="gchararray"/>
+      <!-- column-name credit_float -->
+      <column type="gfloat"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -184,7 +188,7 @@
                     <property name="title" translatable="yes">Debit</property>
                     <property name="clickable">True</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">6</property>
+                    <property name="sort_column_id">7</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext4">
                         <property name="xalign">1</property>
@@ -201,13 +205,13 @@
                     <property name="title" translatable="yes">Credit</property>
                     <property name="clickable">True</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">7</property>
+                    <property name="sort_column_id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6">
                         <property name="xalign">1</property>
                       </object>
                       <attributes>
-                        <attribute name="text">7</attribute>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>

@@ -41,11 +41,7 @@ class BankStatementsGUI:
 
 		window = self.builder.get_object('window1')
 		window.show_all()
-
-		#price_column = self.builder.get_object ('treeviewcolumn2')
-		#price_renderer = self.builder.get_object ('cellrenderertext2')
-		#price_column.set_cell_data_func(price_renderer, self.amount_cell_func)
-
+		
 	def grouped_checkbutton_toggled (self, checkbutton):
 		if self.account_number != None:
 			self.populate_bank_statement_store ()
@@ -76,10 +72,6 @@ class BankStatementsGUI:
 			self.account_number = account_number
 			self.populate_bank_statement_store ()
 
-	def amount_cell_func(self, view_column, cellrenderer, model, iter1, column):
-		amount = '{:,.2f}'.format(model.get_value(iter1, 3))
-		cellrenderer.set_property("text" , amount)
-
 	def populate_bank_statement_store (self):
 		self.statement_store.clear()
 		if self.builder.get_object('checkbutton1').get_active() == True:
@@ -97,7 +89,9 @@ class BankStatementsGUI:
 								"ELSE transaction_description END, "
 							"reconciled, "
 							"CASE WHEN ge.credit THEN ge.amount::text ELSE '' END, "
-							"CASE WHEN ge.debit THEN ge.amount::text ELSE '' END "
+							"CASE WHEN ge.credit THEN ge.amount ELSE 0.00 END, "
+							"CASE WHEN ge.debit THEN ge.amount::text ELSE '' END, "
+							"CASE WHEN ge.debit THEN ge.amount ELSE 0.00 END "
 							"FROM bank_statement_view AS ge "
 							"LEFT JOIN payments_incoming AS pi "
 							"ON ge.id = pi.gl_entries_id "
@@ -120,7 +114,9 @@ class BankStatementsGUI:
 								"ELSE transaction_description END, "
 							"reconciled, "
 							"CASE WHEN ge.credit THEN ge.amount::text ELSE '' END, "
+							"CASE WHEN ge.credit THEN ge.amount ELSE 0.00 END, "
 							"CASE WHEN ge.debit THEN ge.amount::text ELSE '' END, "
+							"CASE WHEN ge.debit THEN ge.amount ELSE 0.00 END, "
 							"ge.date_reconciled "
 							"FROM bank_statement_view AS ge "
 							"LEFT JOIN payments_incoming AS pi "
@@ -132,9 +128,28 @@ class BankStatementsGUI:
 							(self.account_number, self.account_number))
 		for row in self.cursor.fetchall():
 			if row[8] != previous_date:
-				parent = self.statement_store.append(None, [0, '', row[2], row[3], '', False, '', ''])
+				parent = self.statement_store.append(None, [0, 
+															'', 
+															row[2], 
+															row[3], 
+															'', 
+															False, 
+															'', 
+															0.00, 
+															'', 
+															0.00])
 				previous_date = row[8]
-			self.statement_store.append(parent, [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]])
+			self.statement_store.append(parent, [	row[0], 
+													row[1], 
+													row[2], 
+													row[3], 
+													row[4], 
+													row[5], 
+													row[6], 
+													row[7],
+													row[8],
+													row[9]
+												])
 			
 
 
