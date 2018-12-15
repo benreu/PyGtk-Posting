@@ -132,15 +132,13 @@ class JobSheetGUI:
 		import products
 		products.ProductsGUI(self.main)
 
-	def populate_product_store (self):
+	def populate_product_store (self, m=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, stock, sellable) = "
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			name = row[1]
-			self.product_store.append([str(product_id), name])
+			self.product_store.append(row)
 
 	def focus(self, window, void):
 		if self.builder.get_object("entry1").get_text() == "":

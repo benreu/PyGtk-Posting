@@ -141,7 +141,9 @@ pygtk_posting_PYTHON = \
 	keybindings.py \
 	keybindings.ui \
 	budget.py \
-	budget.ui
+	budget.ui \
+	traceback_handler.py \
+	traceback_handler.ui
 
 
 EXTRA_DIST = $(ui_DATA)
