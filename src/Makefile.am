@@ -140,6 +140,8 @@ pygtk_posting_PYTHON = \
 	shipping_info.ui \
 	keybindings.py \
 	keybindings.ui \
+	budget.py \
+	budget.ui \
 	traceback_handler.py \
 	traceback_handler.ui
 
