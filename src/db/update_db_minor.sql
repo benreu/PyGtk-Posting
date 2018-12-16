@@ -130,5 +130,8 @@ CREATE TRIGGER product_insert AFTER INSERT ON public.products FOR EACH ROW EXECU
 ALTER TABLE log.contacts ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE log.products ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE log.products ALTER COLUMN barcode DROP DEFAULT;
+--version 0.5.6
+CREATE TABLE IF NOT EXISTS public.budgets (id serial primary key, name varchar NOT NULL, fiscal_id bigint NOT NULL REFERENCES fiscal_years ON DELETE RESTRICT, monthly_total numeric(12,2) NOT NULL, date_created date NOT NULL DEFAULT now(), active boolean NOT NULL DEFAULT TRUE);
+CREATE TABLE IF NOT EXISTS public.budget_amounts (id serial primary key, budget_id bigint NOT NULL REFERENCES budgets ON DELETE RESTRICT ON UPDATE RESTRICT, name varchar NOT NULL, amount numeric(12,2) NOT NULL, account bigint NOT NULL REFERENCES gl_accounts ON DELETE RESTRICT ON UPDATE CASCADE, percent numeric(12,2) NOT NULL, date_created date NOT NULL);
 
 
