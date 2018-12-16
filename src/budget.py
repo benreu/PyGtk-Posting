@@ -27,14 +27,45 @@ class BudgetGUI:
 		self.builder.connect_signals(self)
 
 		self.db = db
-		self.cursor = db.cursor
+		self.cursor = db.cursor()
+		self.populate_budgets()
 		
 		self.window = self.builder.get_object('budget_window')
 		self.window.show_all()
 
+	def populate_budgets (self):
+		budget_store = self.builder.get_object('budget_store')
+		budget_store.clear()
+		self.cursor.execute("SELECT id::text, name FROM budgets")
+		for row in self.cursor.fetchall():
+			budget_store.append(row)
+
+	def budget_combo_changed (self, combo):
+		budget_id = combo_get_active_id ()
+		if budget_id != None:
+			self.budget_id = budget_id
+		self.populate_budget_treeview()
+
+	def populate_budget_treeview (self):
+		store = Gtk.ListStore()
+		store_list = list()
+		treeview = self.builder.get_object('budget_treeview')
+		self.cursor.execute("SELECT name || ' (' || amount::text || ')' "
+							"FROM budget_amounts WHERE budget_id = %s", 
+							(self.budget_id,))
+		for index, row in self.cursor.fetchall():
+			store_list.append(int)
+			renderer = Gtk.CellRendererText()
+			column = Gtk.TreeViewColumn(row[0], renderer, text=index)
+			treeview.append_column(column)
+		store.set_column_types(store_list)
+		treeview_set_model(store)
+
+	def configure_budget_clicked (self, button):
+		import budget_configuration
+		budget_configuration.BudgetConfigurationGUI(self.db)
 
 
 
-		
 
-		
+

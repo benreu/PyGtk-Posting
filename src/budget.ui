@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkListStore" id="fiscal_store">
+  <object class="GtkListStore" id="budget_store">
     <columns>
       <!-- column-name id -->
       <column type="gchararray"/>
@@ -36,6 +36,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="configure_budget_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -47,7 +48,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Fiscal</property>
+                <property name="label" translatable="yes">Budget</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -59,9 +60,14 @@
               <object class="GtkComboBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="model">fiscal_store</property>
+                <property name="model">budget_store</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="budget_combo_changed" swapped="no"/>
                 <child>
                   <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
                 </child>
               </object>
               <packing>
@@ -100,5 +106,17 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="configuration_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="glong"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name amount -->
+      <column type="gchararray"/>
+      <!-- column-name percent -->
+      <column type="gchararray"/>
+    </columns>
   </object>
 </interface>
