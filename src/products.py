@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, Gio
 from datetime import datetime
 import subprocess
 import spell_check, main
@@ -110,6 +110,17 @@ class ProductsGUI:
 		self.window.show_all()
 		if product_id != None:
 			self.select_product(product_id)
+		self.set_window_layout_from_settings ()
+
+	def set_window_layout_from_settings (self):
+		settings = Gio.Settings.new("com.github.benreu.pygtk-posting")
+		width = settings.get_int("product-window-width")
+		height = settings.get_int("product-window-height")
+		self.window.resize(width, height)
+		pane = self.builder.get_object('paned1')
+		pane.set_position(settings.get_int("product-pane-width"))
+		column = self.builder.get_object('name_column')
+		column.set_fixed_width(settings.get_int("product-name-column-width"))
 
 	def destroy(self, window):
 		self.main.disconnect(self.handler_id)
@@ -118,6 +129,7 @@ class ProductsGUI:
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
+	
 		product_id = model[path][0]
 		string = '1 ' + str(product_id) 
 		data.set_text(string, -1)
