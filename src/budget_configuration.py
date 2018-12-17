@@ -97,8 +97,8 @@ class BudgetConfigurationGUI:
 		amount = self.builder.get_object('amount_spinbutton').get_value()
 		account = self.builder.get_object('amount_account_combo').get_active_id()
 		self.cursor.execute("INSERT INTO budget_amounts "
-							"(budget_id, name, amount, account, percent) "
-							"VALUES (%s, %s, %s, %s, 0) ",
+							"(budget_id, name, amount, account) "
+							"VALUES (%s, %s, %s, %s) ",
 							(self.budget_id, name, amount, account))
 		self.db.commit()
 		self.populate_budget_amounts()
