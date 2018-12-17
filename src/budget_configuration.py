@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 import main
 
 UI_FILE = main.ui_directory + "/budget_configuration.ui"
@@ -36,6 +36,9 @@ class BudgetConfigurationGUI:
 		
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
+
+	def spinbutton_focus_in_event (self, spinbutton, event):
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def populate_accounts(self):
 		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
@@ -144,8 +147,8 @@ class BudgetConfigurationGUI:
 					"WHERE budget_id = %s "
 					"GROUP BY ba.budget_id, b.total",
 					(self.budget_id,))
-		for row in c.fetchone():
-			self.builder.get_object('total_percent_label').set_label(row)
+		for row in c.fetchall():
+			self.builder.get_object('total_percent_label').set_label(row[-1])
 		c.close()
 
 

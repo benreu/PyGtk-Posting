@@ -217,6 +217,7 @@
                         <property name="xalign">1</property>
                         <property name="adjustment">adjustment1</property>
                         <property name="digits">2</property>
+                        <signal name="focus-in-event" handler="spinbutton_focus_in_event" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -523,6 +524,7 @@
                             <property name="xalign">1</property>
                             <property name="adjustment">amount_adjustment</property>
                             <property name="digits">2</property>
+                            <signal name="focus-in-event" handler="spinbutton_focus_in_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
