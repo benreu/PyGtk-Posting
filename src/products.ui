@@ -140,6 +140,9 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
   <object class="GtkTreeModelFilter" id="filtered_product_store">
     <property name="child_model">product_store</property>
   </object>
+  <object class="GtkTreeModelSort" id="sort_product_store">
+    <property name="model">filtered_product_store</property>
+  </object>
   <object class="GtkEntryCompletion" id="product_name_suggestion">
     <property name="model">product_store</property>
     <property name="text_column">1</property>
@@ -386,7 +389,7 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
                       <object class="GtkTreeView" id="treeview2">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="model">filtered_product_store</property>
+                        <property name="model">sort_product_store</property>
                         <property name="reorderable">True</property>
                         <property name="search_column">1</property>
                         <property name="activate_on_single_click">True</property>
@@ -399,10 +402,8 @@ Remember to press "Enter" on your keyboard to recalculate after changing a numbe
                           <object class="GtkTreeViewColumn" id="name_column">
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Name</property>
-                            <property name="clickable">True</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_indicator">True</property>
-                            <signal name="clicked" handler="product_column_sorted" swapped="no"/>
+                            <property name="sort_column_id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext2">
                                 <property name="ellipsize">middle</property>

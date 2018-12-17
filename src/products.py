@@ -58,7 +58,6 @@ class ProductsGUI:
 					manufactured = False):
 
 		self.previous_keyname = None
-		self.ascending = False
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -195,15 +194,6 @@ class ProductsGUI:
 		t = Template(main.template_dir+"/product_label_template.odt", label_file )
 		t.render(data) #the self.data holds all the info
 		subprocess.Popen(["soffice", label_file])
-
-	def product_column_sorted(self, treeview_column):
-		if self.ascending == True:
-			treeview_column.set_sort_order(Gtk.SortType.ASCENDING )
-			self.product_store.set_sort_column_id (1, Gtk.SortType.ASCENDING )
-		else:
-			treeview_column.set_sort_order(Gtk.SortType.DESCENDING )
-			self.product_store.set_sort_column_id (1, Gtk.SortType.DESCENDING )
-		self.ascending = not self.ascending
 
 	def buy_qty_edited (self, cellrenderertext, path, text):
 		store = self.builder.get_object('vendor_order_store')
