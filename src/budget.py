@@ -41,7 +41,7 @@ class BudgetGUI:
 			budget_store.append(row)
 
 	def budget_combo_changed (self, combo):
-		budget_id = combo_get_active_id ()
+		budget_id = combo.get_active_id ()
 		if budget_id != None:
 			self.budget_id = budget_id
 		self.populate_budget_treeview()
@@ -50,16 +50,16 @@ class BudgetGUI:
 		store = Gtk.ListStore()
 		store_list = list()
 		treeview = self.builder.get_object('budget_treeview')
-		self.cursor.execute("SELECT name || ' (' || amount::text || ')' "
+		self.cursor.execute("SELECT name || '\n' || amount::money "
 							"FROM budget_amounts WHERE budget_id = %s", 
 							(self.budget_id,))
-		for index, row in self.cursor.fetchall():
+		for index, row in enumerate(self.cursor.fetchall()):
 			store_list.append(int)
 			renderer = Gtk.CellRendererText()
 			column = Gtk.TreeViewColumn(row[0], renderer, text=index)
 			treeview.append_column(column)
 		store.set_column_types(store_list)
-		treeview_set_model(store)
+		treeview.set_model(store)
 
 	def configure_budget_clicked (self, button):
 		import budget_configuration
