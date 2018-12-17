@@ -14,3 +14,4 @@ if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-decon
 	fi
 fi
 # End automatically added section
+glib-compile-schemas /usr/share/glib-2.0/schemas/
