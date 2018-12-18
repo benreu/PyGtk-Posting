@@ -469,9 +469,13 @@ class GUI:
 						") "
 						"d ON date2 = date_group"
 					") "
-				"ORDER BY 1", 
+					"JOIN fiscal_years AS fy ON date_group "
+						"BETWEEN fy.start_date AND fy.end_date "
+						"AND fy.id IN (%s)"
+				"ORDER BY 1" % 
 							(self.account_number, self.account_number,
-							self.account_number, self.account_number))
+							self.account_number, self.account_number,
+							self.fiscal))
 		for row in c.fetchall():
 			date = row[0]
 			formatted_date = row[1]
@@ -535,9 +539,13 @@ class GUI:
 						") "
 						"c ON date3 = date_group "
 					") "
-				"ORDER BY 1", 
+					"JOIN fiscal_years AS fy ON date_group "
+						"BETWEEN fy.start_date AND fy.end_date "
+						"AND fy.id IN (%s) "
+				"ORDER BY 1" % 
 							(self.account_number, self.account_number,
-							self.account_number, self.account_number))
+							self.account_number, self.account_number,
+							self.fiscal))
 		for row in c.fetchall():
 			date = row[0]
 			formatted_date = row[1]
