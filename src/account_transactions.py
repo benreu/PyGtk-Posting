@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
+from decimal import Decimal
 import main
 
 UI_FILE = main.ui_directory + "/account_transactions.ui"
@@ -30,6 +31,7 @@ class GUI:
 
 		self.account_store = self.builder.get_object('account_store')
 		self.account_treestore = self.builder.get_object('account_transaction_store')
+		self.treeview = self.builder.get_object('treeview1')
 		self.is_parent_account = None
 		self.db = db
 		self.cursor = self.db.cursor()
@@ -291,6 +293,8 @@ class GUI:
 	def update_treeview_individually(self, widget = None):
 		if self.account_number == None:
 			return
+		if widget and widget.get_active() == False:
+			return #toggle changed but not active
 		treeview = self.builder.get_object("treeview1")
 		model = treeview.get_model()
 		treeview.set_model(None)
@@ -301,19 +305,25 @@ class GUI:
 		progressbar.show()
 		self.account_treestore.clear()
 		balance = 0.00
-		self.cursor.execute("SELECT gtl.id, gtl.date_inserted::text, "
-							"format_date(gtl.date_inserted), ge.amount, "
-							"debit_account, debits.name, credit_account, "
-							"credits.name, ge.id "
-							"FROM gl_entries AS ge "
-							"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
-							"JOIN fiscal_years AS fy ON gtl.date_inserted BETWEEN fy.start_date AND fy.end_date "
-							"LEFT JOIN gl_accounts AS debits ON ge.debit_account = debits.number "
-							"LEFT JOIN gl_accounts AS credits ON ge.credit_account = credits.number  "
-							"WHERE (credit_account = %s OR debit_account = %s) AND fy.id IN (%s) "
-							"ORDER BY gtl.date_inserted, ge.id" %
-							(self.account_number, self.account_number, self.fiscal))
-		tupl = self.cursor.fetchall()
+		c = self.db.cursor()
+		c.execute("SELECT gtl.id, gtl.date_inserted::text, "
+					"format_date(gtl.date_inserted), ge.amount, "
+					"debit_account, debits.name, credit_account, "
+					"credits.name, ge.id "
+					"FROM gl_entries AS ge "
+					"JOIN gl_transactions AS gtl "
+						"ON gtl.id = ge.gl_transaction_id "
+					"JOIN fiscal_years AS fy ON gtl.date_inserted "
+						"BETWEEN fy.start_date AND fy.end_date "
+					"LEFT JOIN gl_accounts AS debits "
+						"ON ge.debit_account = debits.number "
+					"LEFT JOIN gl_accounts AS credits "
+						"ON ge.credit_account = credits.number  "
+					"WHERE (credit_account = %s OR debit_account = %s) "
+						"AND fy.id IN (%s) "
+					"ORDER BY gtl.date_inserted, ge.id" %
+					(self.account_number, self.account_number, self.fiscal))
+		tupl = c.fetchall()
 		rows = len(tupl)
 		for index, transaction in enumerate(tupl):
 			if index == 0:
@@ -353,13 +363,15 @@ class GUI:
 			if debit_account == None:
 				amount_color = Gdk.RGBA(0,0,0,1)
 				balance_color = Gdk.RGBA(0,0,0,1)
-				self.cursor.execute("SELECT ge.amount, debits.name, ge.id "
-								"FROM gl_entries AS ge "
-								"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
-								"JOIN gl_accounts AS debits ON ge.debit_account = debits.number "
-								"WHERE gtl.id = %s "
-								"ORDER BY ge.id", (trans_id,))
-				tuple_ = self.cursor.fetchall()
+				c.execute("SELECT ge.amount, debits.name, ge.id "
+							"FROM gl_entries AS ge "
+							"JOIN gl_transactions AS gtl "
+								"ON gtl.id = ge.gl_transaction_id "
+							"JOIN gl_accounts AS debits "
+								"ON ge.debit_account = debits.number "
+							"WHERE gtl.id = %s "
+							"ORDER BY ge.id", (trans_id,))
+				tuple_ = c.fetchall()
 				if len(tuple_) == 1:
 					self.account_treestore[parent][3] = tuple_[0][1]
 				else:
@@ -381,13 +393,15 @@ class GUI:
 			if credit_account == None:
 				amount_color = Gdk.RGBA(0,0,0,1)
 				balance_color = Gdk.RGBA(0,0,0,1)
-				self.cursor.execute("SELECT ge.amount, credits.name, ge.id "
-								"FROM gl_entries AS ge "
-								"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
-								"JOIN gl_accounts AS credits ON ge.credit_account = credits.number "
-								"WHERE gtl.id = %s "
-								"ORDER BY ge.id", (trans_id,))
-				tuple_ = self.cursor.fetchall()
+				c.execute("SELECT ge.amount, credits.name, ge.id "
+							"FROM gl_entries AS ge "
+							"JOIN gl_transactions AS gtl "
+								"ON gtl.id = ge.gl_transaction_id "
+							"JOIN gl_accounts AS credits "
+								"ON ge.credit_account = credits.number "
+							"WHERE gtl.id = %s "
+							"ORDER BY ge.id", (trans_id,))
+				tuple_ = c.fetchall()
 				if len(tuple_) == 1:
 					self.account_treestore[parent][6] = tuple_[0][1]
 				else:
@@ -414,96 +428,138 @@ class GUI:
 		progressbar.hide()
 		treeview.set_model(model)
 		GLib.idle_add(self.scroll_window_to_bottom )
+		c.close()
 
 	def update_treeview_daily(self, widget = None):
 		if self.account_number == None:
 			return
-		self.account_treestore.clear()
-		amount = 0.00
-		self.cursor.execute("SELECT date_group, "
-								"formatted_date, "
-								"COALESCE(d.debits - c.credits, 0.00) "
-								"FROM "
-								"((SELECT date_trunc('day', date_inserted)::text "
-								"AS date_group, format_date(date_inserted) "
-								"AS formatted_date FROM gl_entries "
-								"WHERE credit_account = %s OR debit_account = %s "
-								"GROUP BY date_group, formatted_date) ge "
+		if widget and widget.get_active() == False:
+			return #toggle changed but not active
+		store = self.treeview.get_model()
+		self.treeview.set_model(None)
+		store.clear()
+		amount = Decimal()
+		c = self.db.cursor()
+		c.execute("SELECT date_group::text, "
+					"format_date(date_group), "
+					"COALESCE(d.debits,0.00) - COALESCE(c.credits,0.00) "
+					"FROM "
+					"("
+						"(SELECT date_trunc('day', date_inserted)::date "
+						"AS date_group FROM gl_entries "
+						"WHERE credit_account = %s OR debit_account = %s "
+						"GROUP BY date_group"
+						") ge "
 
-								"LEFT JOIN "
-								
-								"(SELECT  date_inserted::text AS date2, "
-								"COALESCE(SUM(amount),0.00) AS debits "
-								"FROM gl_entries "
-								"WHERE debit_account = %s GROUP BY date2) "
-								"d ON date2 = date_group "
+						"FULL OUTER JOIN "
+						
+						"(SELECT date_inserted AS date3, "
+						"SUM(amount) AS credits "
+						"FROM gl_entries "
+						"WHERE credit_account = %s GROUP BY date3"
+						") "
+						"c ON date3 = date_group "
 
-								"LEFT JOIN "
-								
-								"(SELECT date_inserted::text AS date3, "
-								"COALESCE(SUM(amount),0.00) AS credits "
-								"FROM gl_entries "
-								"WHERE credit_account = %s GROUP BY date3) "
-								"c ON date3 = date_group ) "
-							"ORDER BY 1", 
+						"FULL OUTER JOIN "
+						
+						"(SELECT date_inserted AS date2, "
+						"SUM(amount) AS debits "
+						"FROM gl_entries "
+						"WHERE debit_account = %s GROUP BY date2"
+						") "
+						"d ON date2 = date_group"
+					") "
+				"ORDER BY 1", 
 							(self.account_number, self.account_number,
 							self.account_number, self.account_number))
-		for row in self.cursor.fetchall():
-			date = row[0]
-			formatted_date = row[1]
-			balance = float(row[2])
-			amount += balance
-			amount_color = Gdk.RGBA(0,0,0,1)
-			balance_color = Gdk.RGBA(0,0,0,1)
-			self.account_treestore.append (None, [date, formatted_date,
-											0, '', balance, float(amount), '', 
-											amount_color, balance_color])
-			while Gtk.events_pending():
-				Gtk.main_iteration()
-				self.scroll_window_to_bottom ()
-		GLib.timeout_add(10, self.scroll_window_to_bottom )
-
-	def update_treeview_monthly(self, widget = None):
-		if self.account_number == None:
-			return
-		self.account_treestore.clear()
-		amount = 0.00
-		self.cursor.execute("SELECT date_group, "
-								"format_date(date_inserted), "
-								"COALESCE(d.debits - c.credits, 0.00)::float FROM "
-								"((SELECT date_trunc('month', date_inserted) "
-								"AS date_group, date_inserted FROM gl_entries GROUP BY date_group, date_inserted) ge "
-
-								"LEFT JOIN "
-								
-								"(SELECT date_trunc('month', date_inserted) "
-								"AS date_group2, COALESCE(SUM(amount),0.00) AS debits "
-								"FROM gl_entries "
-								"WHERE debit_account = %s GROUP BY date_group2) "
-								"d ON date_group2 = date_group "
-
-								"LEFT JOIN "
-								
-								"(SELECT date_trunc('month', date_inserted) "
-								"AS date_group3, COALESCE(SUM(amount),0.00) AS credits "
-								"FROM gl_entries "
-								"WHERE credit_account = %s GROUP BY date_group3) "
-								"c ON date_group3 = date_group ) "
-							"ORDER BY 1"
-							, (self.account_number, self.account_number))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			date = row[0]
 			formatted_date = row[1]
 			balance = row[2]
 			amount += balance
 			amount_color = Gdk.RGBA(0,0,0,1)
 			balance_color = Gdk.RGBA(0,0,0,1)
-			self.account_treestore.append (None, [str(date), formatted_date,
-											0, '', balance, float(amount), '', 
-											amount_color, balance_color])
+			self.account_treestore.append (None,[	date,
+													formatted_date,
+													0,
+													'', 
+													float(balance), 
+													float(amount), 
+													'', 
+													amount_color, 
+													balance_color,
+													0
+												])
 			while Gtk.events_pending():
 				Gtk.main_iteration()
-				self.scroll_window_to_bottom ()		
+		c.close()
+		self.treeview.set_model(store)
+		GLib.timeout_add(10, self.scroll_window_to_bottom )
+
+	def update_treeview_monthly(self, widget = None):
+		if self.account_number == None:
+			return
+		if widget and widget.get_active() == False:
+			return #toggle changed but not active
+		store = self.treeview.get_model()
+		self.treeview.set_model(None)
+		store.clear()
+		amount = Decimal()
+		c = self.db.cursor()
+		c.execute("SELECT date_group::text, "
+					"format_date(date_group), "
+					"COALESCE(d.debits,0.00) - COALESCE(c.credits,0.00) "
+					"FROM "
+					"("
+						"(SELECT date_trunc('month', date_inserted)::date "
+						"AS date_group FROM gl_entries "
+						"WHERE credit_account = %s OR debit_account = %s "
+						"GROUP BY date_group"
+						") ge "
+
+						"FULL OUTER JOIN "
+						
+						"(SELECT date_trunc('month',date_inserted) AS date2, "
+						"SUM(amount) AS debits "
+						"FROM gl_entries "
+						"WHERE debit_account = %s GROUP BY date2"
+						") "
+						"d ON date2 = date_group "
+
+						"FULL OUTER JOIN "
+						
+						"(SELECT date_trunc('month',date_inserted) AS date3, "
+						"SUM(amount) AS credits "
+						"FROM gl_entries "
+						"WHERE credit_account = %s GROUP BY date3"
+						") "
+						"c ON date3 = date_group "
+					") "
+				"ORDER BY 1", 
+							(self.account_number, self.account_number,
+							self.account_number, self.account_number))
+		for row in c.fetchall():
+			date = row[0]
+			formatted_date = row[1]
+			balance = row[2]
+			amount += balance
+			amount_color = Gdk.RGBA(0,0,0,1)
+			balance_color = Gdk.RGBA(0,0,0,1)
+			store.append (None,[	date, 
+													formatted_date,
+													0, 
+													'', 
+													float(balance), 
+													float(amount), 
+													'', 
+													amount_color, 
+													balance_color,
+													0
+												])
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+		c.close()
+		self.treeview.set_model(store)
 		GLib.timeout_add(10, self.scroll_window_to_bottom )
 
 
