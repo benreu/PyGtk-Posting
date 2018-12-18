@@ -62,6 +62,21 @@ class SQLWindowGUI :
 			command = row[0]
 			self.source_buffer.set_text(command)
 		cursor.close()
+		
+	def sourceview_populate_popup (self, textview, menu):
+		separator = Gtk.SeparatorMenuItem()
+		separator.show()
+		menu.prepend(separator)
+		remove = Gtk.MenuItem.new_with_mnemonic('''_Remove "''')
+		remove.show()
+		remove.connect("activate", self.remove_quote_activated)
+		menu.prepend(remove)
+
+	def remove_quote_activated (self, menuitem):
+		start_iter = self.source_buffer.get_start_iter ()
+		end_iter = self.source_buffer.get_end_iter ()
+		string = self.source_buffer.get_text(start_iter, end_iter, True)
+		self.source_buffer.set_text(string.replace('''"''', ''))
 
 	def sql_combo_populate_popup (self, combo, menu):
 		separator = Gtk.SeparatorMenuItem()
@@ -186,6 +201,6 @@ class SQLWindowGUI :
 		clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 		length = len(command)
 		clipboard.set_text(command, length)
-		
+
 
 	
