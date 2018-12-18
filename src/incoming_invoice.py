@@ -299,7 +299,7 @@ class IncomingInvoiceGUI:
 	def cash_payment_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
 		cash_account = self.builder.get_object('combobox3').get_active_id()
-		self.invoice.cash_payment (total, cash_account)
+		self.invoice.cash_payment (total, cash_account, invoice_id)
 		self.db.commit()
 		self.window.destroy()
 
@@ -310,7 +310,7 @@ class IncomingInvoiceGUI:
 		active = self.builder.get_object('combobox1').get_active()
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
-		self.invoice.credit_card_payment (total, description, credit_card)
+		self.invoice.credit_card_payment (total, description, credit_card, invoice_id)
 		self.db.commit()
 		self.window.destroy()
 
@@ -321,7 +321,7 @@ class IncomingInvoiceGUI:
 		active = self.builder.get_object('combobox1').get_active()
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
-		self.invoice.transfer (total, description, checking_account)
+		self.invoice.transfer (total, description, checking_account, invoice_id)
 		self.db.commit()
 		self.window.destroy()
 
@@ -331,7 +331,7 @@ class IncomingInvoiceGUI:
 		check_number = self.builder.get_object('entry7').get_text()
 		active = self.builder.get_object('combobox1').get_active()
 		description = self.service_provider_store[active][1]
-		self.invoice.check_payment(total, check_number, checking_account, description)
+		self.invoice.check_payment(total, check_number, checking_account, description, invoice_id)
 		self.db.commit()
 		self.window.destroy()
 
@@ -354,7 +354,7 @@ class IncomingInvoiceGUI:
 		for row in self.expense_percentage_store:
 			amount = row[1]
 			expense_account = row[2]
-			self.invoice.expense(amount, expense_account)
+			self.invoice.expense(amount, expense_account, invoice_id)
 		return invoice_id, total
 
 	def balance_this_row_activated (self, menuitem):

@@ -121,50 +121,77 @@ class ServiceProviderPayment :
 	def __init__ (self, db, date, total):
 
 		self.db = db
-		self.cursor = db.cursor()
+		self.c = db.cursor()
 		self.date = date
 		self.total = total
-		self.cursor.execute ("INSERT INTO gl_transactions (date_inserted) "
+		self.c.execute ("INSERT INTO gl_transactions (date_inserted) "
 							"VALUES (%s) RETURNING id", (date,))
-		self.transaction_id = self.cursor.fetchone()[0]
+		self.transaction_id = self.c.fetchone()[0]
 		
-	def check_payment(self, amount, check_number, checking_account, description):
-		self.cursor.execute("INSERT INTO gl_entries "
+	def check_payment(self, amount, check_number, checking_account, description, invoice_id):
+		self.c.execute("WITH cte AS "
+							"(INSERT INTO gl_entries "
 							"(credit_account, amount, check_number, "
 							"gl_transaction_id, date_inserted, "
 							"transaction_description) "
-							"VALUES (%s, %s, %s, %s, %s, %s)", 
-							(checking_account, amount, check_number, 
-							self.transaction_id, self.date, description))
+							"VALUES (%s, %s, %s, %s, %s, %s) "
+							"RETURNING id) "
+						"UPDATE incoming_invoices "
+						"SET gl_entry_id = (SELECT id FROM cte) "
+						"WHERE id = %s", 
+						(checking_account, amount, check_number, 
+						self.transaction_id, self.date, description, 
+						invoice_id))
 	
-	def transfer (self, amount, description, checking_account):
-		self.cursor.execute("INSERT INTO gl_entries "
+	def transfer (self, amount, description, checking_account, invoice_id):
+		self.c.execute("WITH cte AS "
+							"(INSERT INTO gl_entries "
 							"(credit_account, amount, date_inserted, "
 							"transaction_description, gl_transaction_id) "
-							"VALUES (%s, %s, %s, %s, %s)", 
-							(checking_account, amount, self.date, description, 
-							self.transaction_id))
+							"VALUES (%s, %s, %s, %s, %s) "
+							"RETURNING id) "
+						"UPDATE incoming_invoices "
+						"SET gl_entry_id = (SELECT id FROM cte) "
+						"WHERE id = %s", 
+						(checking_account, amount, self.date, description, 
+						self.transaction_id, invoice_id))
 
-	def credit_card_payment (self, amount, description, credit_card):
-		self.cursor.execute("INSERT INTO gl_entries "
+	def credit_card_payment (self, amount, description, credit_card, invoice_id):
+		self.c.execute("WITH cte AS "
+							"(INSERT INTO gl_entries "
 							"(credit_account, amount, date_inserted, "
 							"transaction_description, gl_transaction_id) "
-							"VALUES (%s, %s, %s, %s, %s)", 
-							(credit_card, amount, self.date, description, 
-							self.transaction_id))
+							"VALUES (%s, %s, %s, %s, %s) "
+							"RETURNING id) "
+						"UPDATE incoming_invoices "
+						"SET gl_entry_id = (SELECT id FROM cte) "
+						"WHERE id = %s", 
+						(credit_card, amount, self.date, description, 
+						self.transaction_id, invoice_id))
 
-	def cash_payment (self, amount, cash_account):
-		self.cursor.execute("INSERT INTO gl_entries "
+	def cash_payment (self, amount, cash_account, invoice_id):
+		self.c.execute("WITH cte AS "
+							"(INSERT INTO gl_entries "
 							"(credit_account, amount, "
-							"gl_transaction_id) VALUES (%s, %s, %s)", 
-							(cash_account, amount, self.transaction_id))
+							"gl_transaction_id) VALUES (%s, %s, %s) "
+							"RETURNING id) "
+						"UPDATE incoming_invoices "
+						"SET gl_entry_id = (SELECT id FROM cte) "
+						"WHERE id = %s", 
+						(cash_account, amount, 
+						self.transaction_id, invoice_id))
 
-	def expense (self, amount, expense_account_number):
-		self.cursor.execute("INSERT INTO gl_entries "
+	def expense (self, amount, expense_account_number, invoice_id):
+		self.c.execute("WITH cte AS "
+							"(INSERT INTO gl_entries "
 							"(debit_account, amount, "
-							"gl_transaction_id) VALUES (%s, %s, %s)", 
-							(expense_account_number, amount, 
-							self.transaction_id))
+							"gl_transaction_id) VALUES (%s, %s, %s) "
+							"RETURNING id) "
+						"INSERT INTO incoming_invoices_gl_entry_expenses_ids "
+						"(gl_entry_expense_id, incoming_invoices_id) "
+						"VALUES ((SELECT id FROM cte), %s) ", 
+						(expense_account_number, amount, 
+						self.transaction_id, invoice_id))
 
 class LoanPayment:
 	def __init__(self, db, date, total, contact_id):
