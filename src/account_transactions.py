@@ -30,6 +30,7 @@ class GUI:
 
 		self.account_store = self.builder.get_object('account_store')
 		self.account_treestore = self.builder.get_object('account_transaction_store')
+		self.is_parent_account = None
 		self.db = db
 		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT number, name, is_parent FROM gl_accounts "
@@ -41,10 +42,10 @@ class GUI:
 			self.account_store.append([number, number + " " + name, 
 										is_parent_account])
 		fiscal_store = self.builder.get_object('fiscal_store')
-		self.cursor.execute("SELECT id, name FROM fiscal_years "
-							"ORDER BY name")
+		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+							"WHERE active = True ORDER BY name ")
 		for account in self.cursor.fetchall():
-			number = str(account[0])
+			number = account[0]
 			name = account[1]
 			fiscal_store.append([number, name])
 		self.builder.get_object('combobox2').set_active(0)
@@ -75,17 +76,28 @@ class GUI:
 			menu = self.builder.get_object('transaction_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
-			
+		
+	def selection_changed (self, selection):
+		model, paths = selection.get_selected_rows()
+		if len(paths) > 1:
+			menu = self.builder.get_object('transaction_menu')
+			menu.popup(None, None, None, None, 0, Gtk.get_current_event_time())
+			menu.show_all()
+	
 	def gl_entry_lookup_activated (self, menuitem):
 		selection = self.builder.get_object('treeview1').get_selection()
 		model, paths = selection.get_selected_rows()
 		if paths == []:
 			return
-		path_list = list()
-		for path in paths:
-			path_list.append(model[path][9])
+		if len(paths) > 1:
+			path_list = list()
+			for path in paths:
+				path_list.append(model[path][9])
+			path_result = str(tuple(path_list))
+		else:
+			path_result = "(%s)" % paths[0] 
 		from reports import gl_entry_lookup
-		gl_entry_lookup.GlEntryLookupGUI(self.db, str(tuple(path_list)))
+		gl_entry_lookup.GlEntryLookupGUI(self.db, path_result)
 
 	def treecolumn_clicked (self, column):
 		label = self.builder.get_object('label1')
@@ -96,8 +108,21 @@ class GUI:
 		adj = treeview.get_vadjustment()
 		adj.set_value(adj.get_upper() - adj.get_page_size())
 
+	def all_fiscal_toggled (self, togglebutton):
+		if togglebutton.get_active() == True:
+			self.fiscal = "SELECT id FROM fiscal_years"
+		else:
+			self.fiscal = self.builder.get_object('combobox2').get_active_id()
+		self.load_account_store()
+
 	def fiscal_combo_changed (self, combo):
-		pass
+		fiscal_id = combo.get_active_id()
+		if self.builder.get_object('fiscal_checkbutton').get_active() == True:
+			self.fiscal = "SELECT id FROM fiscal_years"
+		if fiscal_id == None:
+			return
+		self.fiscal = fiscal_id
+		self.load_account_store ()
 
 	def account_summary_clicked (self, button):
 		self.account_number = None
@@ -153,6 +178,8 @@ class GUI:
 		self.load_account_store()
 
 	def load_account_store(self):
+		if self.is_parent_account == None:
+			return
 		if self.is_parent_account == True:
 			self.builder.get_object('box3').set_sensitive(False)
 			self.builder.get_object('cellrenderertext3').set_alignment(0.5, 0.5)
@@ -280,11 +307,12 @@ class GUI:
 							"credits.name, ge.id "
 							"FROM gl_entries AS ge "
 							"JOIN gl_transactions AS gtl ON gtl.id = ge.gl_transaction_id "
+							"JOIN fiscal_years AS fy ON gtl.date_inserted BETWEEN fy.start_date AND fy.end_date "
 							"LEFT JOIN gl_accounts AS debits ON ge.debit_account = debits.number "
 							"LEFT JOIN gl_accounts AS credits ON ge.credit_account = credits.number  "
-							"WHERE credit_account = %s OR debit_account = %s "
-							"ORDER BY gtl.date_inserted, ge.id",
-							(self.account_number, self.account_number))
+							"WHERE (credit_account = %s OR debit_account = %s) AND fy.id IN (%s) "
+							"ORDER BY gtl.date_inserted, ge.id" %
+							(self.account_number, self.account_number, self.fiscal))
 		tupl = self.cursor.fetchall()
 		rows = len(tupl)
 		for index, transaction in enumerate(tupl):
