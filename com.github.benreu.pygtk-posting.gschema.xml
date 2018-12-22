@@ -1,0 +1,27 @@
+<schemalist>
+    <schema id="com.github.benreu.pygtk-posting" path="/com/github/benreu/PyGtk-Posting/" gettext-domain="pygtk-posting">
+        <key name="product-window-width" type="i">
+            <default>900</default>
+            <summary>The saved width of the Products window.</summary>
+            <description>The saved width of the Products window. Must be greater than 600, or it will not take effect.</description>
+        </key>
+
+        <key name="product-window-height" type="i">
+            <default>600</default>
+            <summary>The saved height of the Products window.</summary>
+            <description>The saved height of the Products window. Must be greater than 300, or it will not take effect.</description>
+        </key>
+
+        <key name="product-pane-width" type="i">
+            <default>350</default>
+            <summary>The saved width of the Products pane.</summary>
+            <description>The saved width of the Products pane. This is the divider between the product list on the left and the edit view on the right.</description>
+        </key>
+
+        <key name="product-name-column-width" type="i">
+            <default>250</default>
+            <summary>The saved width of the Products name column.</summary>
+            <description>The saved width of the Products name column on the left side of the window.</description>
+        </key>
+    </schema>
+</schemalist>

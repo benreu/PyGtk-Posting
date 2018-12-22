@@ -19,7 +19,8 @@ dist_doc_DATA = \
 	create_deb.py \
 	control \
 	copyright \
-	pygtk-posting 
+	pygtk-posting \
+	com.github.benreu.pygtk-posting.gschema.xml 
 
 
 
