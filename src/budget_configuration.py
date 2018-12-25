@@ -111,6 +111,14 @@ class BudgetConfigurationGUI:
 		self.db.commit()
 		self.populate_budget_amounts()
 
+	def amount_name_edited (self, cellrenderertext, path, text):
+		store = self.builder.get_object('amount_store')
+		amount_id = store[path][0]
+		self.cursor.execute("UPDATE budget_amounts SET name = %s "
+							"WHERE id = %s", (text, amount_id))
+		self.db.commit()
+		self.populate_budget_amounts()
+
 	def budget_combo_changed (self, combo):
 		budget_id = combo.get_active_id ()
 		store = combo.get_model()
@@ -136,7 +144,8 @@ class BudgetConfigurationGUI:
 					"FROM budget_amounts AS ba "
 					"JOIN gl_accounts AS gl ON gl.number = ba.account "
 					"JOIN budgets AS b ON b.id = ba.budget_id "
-					"WHERE budget_id = %s",
+					"WHERE budget_id = %s "
+					"ORDER BY ba.id",
 					(self.budget_id,))
 		for row in c.fetchall():
 			store.append(row)

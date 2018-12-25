@@ -413,8 +413,12 @@
                             <property name="title" translatable="yes">Name</property>
                             <property name="expand">True</property>
                             <property name="reorderable">True</property>
+                            <property name="sort_column_id">1</property>
                             <child>
-                              <object class="GtkCellRendererText"/>
+                              <object class="GtkCellRendererText">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="amount_name_edited" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
                               </attributes>
@@ -426,6 +430,7 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Account</property>
                             <property name="reorderable">True</property>
+                            <property name="sort_column_id">2</property>
                             <child>
                               <object class="GtkCellRendererText"/>
                               <attributes>
@@ -439,6 +444,7 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Amount</property>
                             <property name="reorderable">True</property>
+                            <property name="sort_column_id">3</property>
                             <child>
                               <object class="GtkCellRendererSpin">
                                 <property name="editable">True</property>
@@ -457,6 +463,7 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Percent</property>
                             <property name="reorderable">True</property>
+                            <property name="sort_column_id">4</property>
                             <child>
                               <object class="GtkCellRendererText"/>
                               <attributes>
