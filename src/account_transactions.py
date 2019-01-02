@@ -239,11 +239,12 @@ class GUI:
 		self.account_treestore.set_value(tree_parent, 4, account_amount)
 
 	def get_child_accounts (self, is_parent, parent_account, parent_tree):
+		c = self.db.cursor()
 		if is_parent == True:
-			self.cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
-								"WHERE parent_number = %s ORDER BY number", 
-								(parent_account,))
-			for row in self.cursor.fetchall():
+			c.execute("SELECT is_parent, number, name FROM gl_accounts "
+						"WHERE parent_number = %s ORDER BY number", 
+						(parent_account,))
+			for row in c.fetchall():
 				account_amount = 0.00
 				is_parent = row[0]
 				account_number = row[1]
@@ -264,18 +265,26 @@ class GUI:
 				self.account_treestore.set_value(tree_parent, 4, account_amount)
 				yield account_number, account_amount
 		else:
-			self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
-									"(SELECT COALESCE(SUM(amount),0.00) AS debits "
-									"FROM gl_entries "
-									"WHERE debit_account = %s) d, "
-									"(SELECT COALESCE(SUM(amount),0.00) AS credits "
-									"FROM gl_entries "
-									"WHERE credit_account= %s) c", 
-								(parent_account, parent_account))
-			for row in self.cursor.fetchall():
+			c.execute("SELECT SUM(debits - credits) AS total FROM "
+						"(SELECT COALESCE(SUM(amount),0.00) AS debits "
+							"FROM gl_entries AS ge "
+							"JOIN gl_transactions AS gtl "
+								"ON gtl.id = ge.gl_transaction_id "
+							"JOIN fiscal_years AS fy ON gtl.date_inserted "
+								"BETWEEN fy.start_date AND fy.end_date "
+							"WHERE debit_account = %s AND fy.id IN (%s) ) d, "
+						"(SELECT COALESCE(SUM(amount),0.00) AS credits "
+							"FROM gl_entries AS ge "
+							"JOIN gl_transactions AS gtl "
+								"ON gtl.id = ge.gl_transaction_id "
+							"JOIN fiscal_years AS fy ON gtl.date_inserted "
+								"BETWEEN fy.start_date AND fy.end_date "
+							"WHERE credit_account = %s AND fy.id IN (%s) ) c", 
+					(parent_account, self.fiscal, parent_account, self.fiscal))
+			for row in c.fetchall():
 				account_amount = abs(row[0])
 				yield parent_account, float(account_amount)
-				
+		c.close()
 
 	#anything after this is the code to show the monthly, daily and individual transaction lines
 
