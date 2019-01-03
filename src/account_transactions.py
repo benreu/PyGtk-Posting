@@ -279,7 +279,7 @@ class GUI:
 								"ON gtl.id = ge.gl_transaction_id "
 							"JOIN fiscal_years AS fy ON gtl.date_inserted "
 								"BETWEEN fy.start_date AND fy.end_date "
-							"WHERE credit_account = %s AND fy.id IN (%s) ) c", 
+							"WHERE credit_account = %s AND fy.id IN (%s) ) c" % 
 					(parent_account, self.fiscal, parent_account, self.fiscal))
 			for row in c.fetchall():
 				account_amount = abs(row[0])
