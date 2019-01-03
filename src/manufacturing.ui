@@ -141,6 +141,7 @@
                     <property name="xalign">1</property>
                     <property name="adjustment">units_adjustment</property>
                     <property name="numeric">True</property>
+                    <property name="value">1</property>
                     <signal name="value-changed" handler="qty_spinbutton_changed" swapped="no"/>
                   </object>
                   <packing>

@@ -96,7 +96,7 @@ class ManufacturingGUI:
 
 	def print_serial_number (self, barcode, label_qty):
 		label = Item()
-		label.code128 = barcode_generator.makeCode128(barcode)
+		label.code128 = barcode_generator.makeCode128(str(barcode))
 		label.barcode = barcode
 		from py3o.template import Template
 		label_file = "/tmp/manufacturing_serial_label.odt"
