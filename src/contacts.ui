@@ -314,7 +314,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort_column_id">1</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext2"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext2">
+                                <property name="ellipsize">middle</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
                               </attributes>
