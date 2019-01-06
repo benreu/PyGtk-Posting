@@ -36,7 +36,8 @@ class ShippingInfoGUI:
 							"FROM invoices AS i "
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"WHERE i.canceled = False "
-							"GROUP BY c.id, c.name, c.ext_name")
+							"GROUP BY c.id, c.name, c.ext_name "
+							"ORDER BY c.name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
 		customer_completion = self.builder.get_object('customer_completion')
