@@ -72,7 +72,7 @@ class InventoryCountGUI:
 
 	def barcode_entry_activated (self, entry):
 		barcode = entry.get_text()
-		entry.set_text('')
+		entry.select_region(0, -1)
 		if barcode == "":
 			return
 		self.cursor.execute("SELECT id, name, cost FROM products "
