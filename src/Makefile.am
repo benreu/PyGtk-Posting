@@ -145,7 +145,9 @@ pygtk_posting_PYTHON = \
 	traceback_handler.py \
 	traceback_handler.ui \
 	budget_configuration.py \
-	budget_configuration.ui
+	budget_configuration.ui \
+	customer_finance_charge.py \
+	customer_finance_charge.ui
 
 
 EXTRA_DIST = $(ui_DATA)
