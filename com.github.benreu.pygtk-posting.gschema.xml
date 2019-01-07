@@ -18,6 +18,12 @@
             <description>The saved width of the Products pane. This is the divider between the product list on the left and the edit view on the right.</description>
         </key>
 
+        <key name="product-ordering-financial-pane-width" type="i">
+            <default>180</default>
+            <summary>The saved width of the pane on the Ordering/Financial tab.</summary>
+            <description>The saved width of the pane between the ordering widgets and financial widgets.</description>
+        </key>
+
         <key name="product-name-column-width" type="i">
             <default>250</default>
             <summary>The saved width of the Products name column.</summary>

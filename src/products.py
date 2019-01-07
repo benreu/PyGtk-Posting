@@ -118,8 +118,23 @@ class ProductsGUI:
 		self.window.resize(width, height)
 		pane = self.builder.get_object('paned1')
 		pane.set_position(settings.get_int("product-pane-width"))
+		pane = self.builder.get_object('paned2')
+		width = settings.get_int("product-ordering-financial-pane-width")
+		pane.set_position(width)
 		column = self.builder.get_object('name_column')
 		column.set_fixed_width(settings.get_int("product-name-column-width"))
+
+	def save_window_layout_clicked (self, button):
+		settings = Gio.Settings.new("com.github.benreu.pygtk-posting")
+		width, height = self.window.get_size()
+		settings.set_int("product-window-width", width)
+		settings.set_int("product-window-height", height)
+		width = self.builder.get_object('paned1').get_position()
+		settings.set_int("product-pane-width", width)
+		width = self.builder.get_object('paned2').get_position()
+		settings.set_int("product-ordering-financial-pane-width", width)
+		width = self.builder.get_object('name_column').get_fixed_width()
+		settings.set_int("product-name-column-width", width)
 
 	def destroy(self, window):
 		self.main.disconnect(self.handler_id)
