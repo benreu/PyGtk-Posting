@@ -216,9 +216,10 @@ help_dir = ''
 ui_directory = ''
 template_dir = ''
 modules_dir = ''
+sql_dir = ''
 cur_dir = os.getcwd()
 def set_directories ():
-	global help_dir, ui_directory, template_dir, modules_dir
+	global help_dir, ui_directory, template_dir, modules_dir, sql_dir
 	if cur_dir.split('/')[1] == "usr": #posting is launching from an installed .deb
 		help_dir = os.path.relpath("/usr/share/help/C/pygtk-posting")
 		ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
@@ -232,11 +233,13 @@ def set_directories ():
 		if not os.path.exists(modules_dir): #copy modules
 			shutil.copytree(modules_orig, modules_dir)
 			print ("copied *.py modules to %s" % modules_dir)
+		sql_dir = os.path.realpath("/usr/lib/python3/dist-packages/pygtk_posting/db/")
 	else:                              # use local files
 		help_dir = os.path.join(cur_dir, "help/C/pygtk-posting")
 		ui_directory = os.path.join(cur_dir, "src")
 		template_dir = os.path.join(cur_dir, "templates")
 		modules_dir = os.path.join(cur_dir, "src/modules/")
+		sql_dir = os.path.join(cur_dir, "src/db/")
 
 
 def get_apsw_cursor ():

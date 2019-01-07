@@ -16,7 +16,7 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import subprocess, psycopg2, re
+import subprocess, psycopg2, re, os
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from main import get_apsw_cursor
@@ -282,23 +282,27 @@ class GUI:
 		return True
 
 	def create_tables (self):
-		with open('./src/db/create_db.sql', 'r') as sql_file:
-			return self.execute_file(sql_file)
+		sql_file = os.path.join(main.sql_dir, 'create_db.sql')
+		with open(sql_file, 'r') as sql:
+			return self.execute_file(sql)
 
 	def update_tables_major (self):
 		self.status_update("Updating tables (major) ...")
-		with open('./src/db/update_db_major.sql', 'r') as sql_file:
-			return self.execute_file(sql_file)
+		sql_file = os.path.join(main.sql_dir, 'update_db_major.sql')
+		with open(sql_file, 'r') as sql:
+			return self.execute_file(sql)
 
 	def update_tables_minor (self):
 		self.status_update("Updating tables (minor) ...")
-		with open('./src/db/update_db_minor.sql', 'r') as sql_file:
-			return self.execute_file(sql_file)
+		sql_file = os.path.join(main.sql_dir, 'update_db_minor.sql')
+		with open(sql_file, 'r') as sql:
+			return self.execute_file(sql)
 
 	def add_primary_data (self):
 		self.status_update("Creating basic information...")
-		with open('./src/db/insert_basic.sql', 'r') as sql_file:
-			return self.execute_file(sql_file)
+		sql_file = os.path.join(main.sql_dir, 'insert_basic.sql')
+		with open(sql_file, 'r') as sql:
+			return self.execute_file(sql)
 
 	def delete_button(self,widget):
 		self.warning_dialog = self.builder.get_object('db_delete_dialog')
