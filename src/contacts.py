@@ -25,52 +25,51 @@ UI_FILE = main.ui_directory + "/contacts.ui"
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
-class GUI:
+class GUI(Gtk.Builder):
 	scanner = None
 	def __init__(self, main_class, contact_id = 0):
 		#Connection.__init__(self)
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.main = main_class
 		self.db = main_class.db
 		self.cursor = self.db.cursor()
 		self.contact_id = contact_id
 		
-		self.name_widget = self.builder.get_object('entry1')
-		self.ext_name_widget = self.builder.get_object('entry2')
-		self.address_widget = self.builder.get_object('entry3')
-		self.city_widget = self.builder.get_object('entry4')
-		self.state_widget = self.builder.get_object('entry5')
-		self.zip_code = self.builder.get_object('entry6')
-		self.phone_widget = self.builder.get_object('entry7')
-		self.fax_widget = self.builder.get_object('entry8')
-		self.email_widget = self.builder.get_object('entry9')
-		self.terms_store = self.builder.get_object('terms_store')
-		self.markup_percent_store = self.builder.get_object('markup_percent_store')
+		self.name_widget = self.get_object('entry1')
+		self.ext_name_widget = self.get_object('entry2')
+		self.address_widget = self.get_object('entry3')
+		self.city_widget = self.get_object('entry4')
+		self.state_widget = self.get_object('entry5')
+		self.zip_code = self.get_object('entry6')
+		self.phone_widget = self.get_object('entry7')
+		self.fax_widget = self.get_object('entry8')
+		self.email_widget = self.get_object('entry9')
+		self.terms_store = self.get_object('terms_store')
+		self.markup_percent_store = self.get_object('markup_percent_store')
 		
-		#self.tax_exempt_widget = self.builder.get_object('checkbutton1')
-		self.tax_exempt_number_widget = self.builder.get_object('entry10')
-		self.misc_widget = self.builder.get_object('entry11')
-		self.vendor_widget = self.builder.get_object('checkbutton2')
-		self.customer_widget = self.builder.get_object('checkbutton3')
-		self.employee_widget = self.builder.get_object('checkbutton4')
-		self.service_provider_widget = self.builder.get_object('checkbutton1')
-		self.custom1_widget = self.builder.get_object("entry16")
-		self.custom2_widget = self.builder.get_object("entry26")
-		self.custom3_widget = self.builder.get_object("entry27")
-		self.custom4_widget = self.builder.get_object("entry28")
-		self.note = self.builder.get_object("textbuffer1")
+		#self.tax_exempt_widget = self.get_object('checkbutton1')
+		self.tax_exempt_number_widget = self.get_object('entry10')
+		self.misc_widget = self.get_object('entry11')
+		self.vendor_widget = self.get_object('checkbutton2')
+		self.customer_widget = self.get_object('checkbutton3')
+		self.employee_widget = self.get_object('checkbutton4')
+		self.service_provider_widget = self.get_object('checkbutton1')
+		self.custom1_widget = self.get_object("entry16")
+		self.custom2_widget = self.get_object("entry26")
+		self.custom3_widget = self.get_object("entry27")
+		self.custom4_widget = self.get_object("entry28")
+		self.note = self.get_object("textbuffer1")
 		
-		self.contact_store = self.builder.get_object('contact_store')
-		self.individual_contact_store = self.builder.get_object('individual_contact_store')
-		self.filtered_contact_store = self.builder.get_object(
-													'filtered_contact_store')
+		self.contact_store = self.get_object('contact_store')
+		self.individual_contact_store = self.get_object('individual_contact_store')
+		self.filtered_contact_store = self.get_object('filtered_contact_store')
 		self.contact_filter_list = ""
 		self.filtered_contact_store.set_visible_func(self.contact_filter_func)
-		self.treeview = self.builder.get_object('treeview1')
+		self.treeview = self.get_object('treeview1')
 		self.populate_contacts ()
 		self.populate_terms_combo ()
 		self.populate_zip_codes ()
@@ -80,15 +79,15 @@ class GUI:
 			self.select_contact ()
 
 		if main.is_admin == True:
-			self.builder.get_object('treeview1').set_tooltip_column(0)
+			self.get_object('treeview1').set_tooltip_column(0)
 
 		self.initiate_mailing_info()
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 		self.data_queue = Queue()
-		self.scanner_store = self.builder.get_object("scanner_store")
+		self.scanner_store = self.get_object("scanner_store")
 		thread = Process(target=self.get_scanners)
 		thread.start()
 		
@@ -106,7 +105,7 @@ class GUI:
 		customer_markup_percent.CustomerMarkupPercentGUI(self.main)
 
 	def populate_zip_codes (self):
-		zip_code_store = self.builder.get_object("zip_code_store")
+		zip_code_store = self.get_object("zip_code_store")
 		zip_code_store.clear()
 		self.cursor.execute("SELECT zip, city, state FROM contacts "
 							"WHERE deleted = False "
@@ -121,8 +120,8 @@ class GUI:
 	def zip_code_match_selected (self, completion, store, _iter):
 		city = store[_iter][1]
 		state = store[_iter][2]
-		self.builder.get_object("entry4").set_text(city)
-		self.builder.get_object("entry5").set_text(state)
+		self.get_object("entry4").set_text(city)
+		self.get_object("entry5").set_text(state)
 
 	def zip_activated (self, entry):
 		zip_code = entry.get_text()
@@ -132,8 +131,8 @@ class GUI:
 		for row in self.cursor.fetchall():
 			city = row[0]
 			state = row[1]
-			self.builder.get_object("entry4").set_text(city)
-			self.builder.get_object("entry5").set_text(state)
+			self.get_object("entry4").set_text(city)
+			self.get_object("entry5").set_text(state)
 
 	def populate_scanners(self):
 		try:
@@ -158,17 +157,17 @@ class GUI:
 		scanner_manufacturer = self.scanner_store.get_value(tree_iter, 1)
 		scanner_name = self.scanner_store.get_value(tree_iter, 2)
 		scanner_string = "%s %s" % (scanner_manufacturer, scanner_name)
-		self.builder.get_object("label39").set_text(scanner_string)
+		self.get_object("label39").set_text(scanner_string)
 		self.check_scan_button_validity ()
 				
 	def scan_file_clicked (self, widget):
 		if self.scanner == None:
-			device_address = self.builder.get_object("combobox2").get_active_id()
+			device_address = self.get_object("combobox2").get_active_id()
 			self.scanner = sane.open(device_address)
 		document = self.scanner.scan()
-		misc_file_radiobutton = self.builder.get_object("radiobutton6")
+		misc_file_radiobutton = self.get_object("radiobutton6")
 		if misc_file_radiobutton.get_active() == True: #scan misc. file
-			file_name = self.builder.get_object("entry16").get_text()
+			file_name = self.get_object("entry16").get_text()
 			path = "/tmp/" + file_name + ".pdf"
 			document.save(path)
 			f = open(path,'rb')
@@ -181,7 +180,7 @@ class GUI:
 								"VALUES (%s, %s, %s)", 
 								(binary, self.contact_id, name))
 		else:					#scan tax exemption
-			exemption_selection = self.builder.get_object('treeview-selection2')
+			exemption_selection = self.get_object('treeview-selection2')
 			model, path = exemption_selection.get_selected_rows ()
 			customer_exemption_id = model[path][4]
 			exemption_id = model[path][0]
@@ -217,22 +216,22 @@ class GUI:
 		self.check_scan_button_validity ()
 
 	def check_scan_button_validity (self):
-		scan_button = self.builder.get_object("button2")
+		scan_button = self.get_object("button2")
 		scan_button.set_sensitive(False)
 		if self.contact_id == 0:
 			scan_button.set_label("No contact selected")
 			return
-		if self.builder.get_object("combobox2").get_active() == -1:
+		if self.get_object("combobox2").get_active() == -1:
 			scan_button.set_label("No scanner selected")
 			return
-		misc_file_radiobutton = self.builder.get_object("radiobutton6")
+		misc_file_radiobutton = self.get_object("radiobutton6")
 		if misc_file_radiobutton.get_active() == True: #misc. files
-			scan_filename_entry = self.builder.get_object("entry29")
+			scan_filename_entry = self.get_object("entry29")
 			if scan_filename_entry.get_text() == "" :
 				scan_button.set_label("No filename")
 				return
 		else:										#tax exemption files
-			exemption_selection = self.builder.get_object('treeview-selection2')
+			exemption_selection = self.get_object('treeview-selection2')
 			model, path = exemption_selection.get_selected_rows ()
 			if path == []:
 				scan_button.set_label("No exemption selected")
@@ -242,35 +241,35 @@ class GUI:
 
 	def misc_files_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.builder.get_object('box13').set_sensitive(active)
+		self.get_object('box13').set_sensitive(active)
 		self.check_scan_button_validity ()
 
 	def tax_exemptions_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.builder.get_object('scrolledwindow1').set_sensitive(active)
+		self.get_object('scrolledwindow1').set_sensitive(active)
 		self.check_scan_button_validity ()
 
 	def exemption_row_activated (self, treeview, path, treeviewcolumn):
 		self.check_scan_button_validity ()
 
 	def file_combobox_populate(self):
-		self.builder.get_object('comboboxtext3').remove_all()
+		self.get_object('comboboxtext3').remove_all()
 		self.cursor.execute("SELECT * FROM files WHERE contact_id = %s", 
 							[str(self.contact_id)])
 		for files in self.cursor.fetchall():
-			self.builder.get_object('comboboxtext3').append(str(files[0]), 
+			self.get_object('comboboxtext3').append(str(files[0]), 
 																files[3])
 
 	def delete_file_clicked (self, widget):
-		dialog = self.builder.get_object('dialog1')
-		combo = self.builder.get_object('comboboxtext3')
+		dialog = self.get_object('dialog1')
+		combo = self.get_object('comboboxtext3')
 		if main.is_admin == False:
-			self.builder.get_object('button17').set_sensitive(False)
-			self.builder.get_object('label17').set_label("You are not admin !")
+			self.get_object('button17').set_sensitive(False)
+			self.get_object('label17').set_label("You are not admin !")
 		else:
 			file_name = combo.get_active_text()
-			self.builder.get_object('button17').set_sensitive(True)
-			self.builder.get_object('label17').set_label("Are you sure you "
+			self.get_object('button17').set_sensitive(True)
+			self.get_object('label17').set_label("Are you sure you "
 														"want to delete '%s' ?"
 														%file_name)
 		result = dialog.run()
@@ -282,7 +281,7 @@ class GUI:
 		dialog.hide()
 
 	def select_file_clicked (self, widget):
-		dialog = self.builder.get_object('filechooserdialog1')
+		dialog = self.get_object('filechooserdialog1')
 		result = dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
 			self.add_file_to_contact (dialog)
@@ -294,7 +293,7 @@ class GUI:
 		dat = f.read()
 		f.close()
 		binary = psycopg2.Binary(dat)
-		misc_file_radiobutton = self.builder.get_object("radiobutton6")
+		misc_file_radiobutton = self.get_object("radiobutton6")
 		if misc_file_radiobutton.get_active() == True: #insert misc. file
 			split_filename = path.split("/")
 			name = split_filename[-1]
@@ -303,7 +302,7 @@ class GUI:
 								"VALUES (%s, %s, %s)", 
 								(binary, self.contact_id, name))
 		else:					# insert tax exemption
-			exemption_selection = self.builder.get_object('treeview-selection2')
+			exemption_selection = self.get_object('treeview-selection2')
 			model, path = exemption_selection.get_selected_rows ()
 			customer_exemption_id = model[path][4]
 			exemption_id = model[path][0]
@@ -430,7 +429,7 @@ class GUI:
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu2')
+			menu = self.get_object('menu2')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
@@ -443,7 +442,7 @@ class GUI:
 
 	def name_entry_focus_out_event (self, entry, event):
 		name = entry.get_text().lower()
-		store = self.builder.get_object('duplicate_contact_store')
+		store = self.get_object('duplicate_contact_store')
 		store.clear()
 		self.cursor.execute("SELECT id, name, ext_name, address, deleted "
 							"FROM contacts WHERE LOWER(name) = %s", (name,))
@@ -458,11 +457,11 @@ class GUI:
 			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
 		else:
 			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
-		self.builder.get_object('duplicate_popover').set_relative_to(entry)
+		self.get_object('duplicate_popover').set_relative_to(entry)
 
 	def name_entry_icon_release (self, entry, pos, event):
-		self.builder.get_object('duplicate_popover').show()
-		self.builder.get_object('treeview-selection3').unselect_all()
+		self.get_object('duplicate_popover').show()
+		self.get_object('treeview-selection3').unselect_all()
 
 	def contact_treeview_cursor_changed (self, treeview):
 		path = treeview.get_cursor().path
@@ -473,24 +472,24 @@ class GUI:
 
 	def customer_checkbutton_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.builder.get_object('button11').set_sensitive(active)
-		self.builder.get_object('button9').set_sensitive(active)
-		self.builder.get_object('combobox1').set_sensitive(active)
-		self.builder.get_object('frame5').set_sensitive(active)
+		self.get_object('button11').set_sensitive(active)
+		self.get_object('button9').set_sensitive(active)
+		self.get_object('combobox1').set_sensitive(active)
+		self.get_object('frame5').set_sensitive(active)
 		if active == False:
-			self.builder.get_object('radiobutton6').set_active(True)
+			self.get_object('radiobutton6').set_active(True)
 		
 	def focus_window(self, window, e):
 		# keep the active entry when we refocus the window (which usually happens when we add a file and come back) 
-		active = self.builder.get_object('comboboxtext3').get_active_id()
+		active = self.get_object('comboboxtext3').get_active_id()
 		self.populate_terms_combo ()
 		self.file_combobox_populate() # repopulate
-		self.builder.get_object('comboboxtext3').set_active_id(active)
+		self.get_object('comboboxtext3').set_active_id(active)
 
 	def view_file_clicked (self, button):
-		misc_file_radiobutton = self.builder.get_object("radiobutton6")
+		misc_file_radiobutton = self.get_object("radiobutton6")
 		if misc_file_radiobutton.get_active() == True: #view misc. file
-			file_id = self.builder.get_object('comboboxtext3').get_active_id()
+			file_id = self.get_object('comboboxtext3').get_active_id()
 			self.cursor.execute("SELECT * FROM files WHERE id = %s", (file_id,))
 			for row in self.cursor.fetchall():
 				file_name = row[3]
@@ -500,7 +499,7 @@ class GUI:
 				subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 				view_file.close()
 		else:											#view exemption file
-			exemption_selection = self.builder.get_object('treeview-selection2')
+			exemption_selection = self.get_object('treeview-selection2')
 			model, path = exemption_selection.get_selected_rows ()
 			if model[path][3] == False:
 				return # no exemption file available
@@ -527,7 +526,7 @@ class GUI:
 			widget.set_label("Inactive")
 
 	def populate_terms_combo (self):
-		active_term_id = self.builder.get_object('combobox1').get_active_id()
+		active_term_id = self.get_object('combobox1').get_active_id()
 		self.terms_store.clear()
 		self.cursor.execute("SELECT id, name FROM terms_and_discounts "
 							"WHERE deleted = False ORDER BY name")
@@ -535,8 +534,8 @@ class GUI:
 			term_id = row[0]
 			term_name = row[1]
 			self.terms_store.append([str(term_id), term_name])
-		self.builder.get_object('combobox1').set_active_id(active_term_id)
-		active_markup_id = self.builder.get_object('combobox4').get_active_id()
+		self.get_object('combobox1').set_active_id(active_term_id)
+		active_markup_id = self.get_object('combobox4').get_active_id()
 		self.markup_percent_store.clear()
 		self.cursor.execute("SELECT id, name FROM customer_markup_percent "
 									"WHERE deleted = False ORDER BY name")
@@ -544,7 +543,7 @@ class GUI:
 			markup_id = row[0]
 			markup_name = row[1]
 			self.markup_percent_store.append([str(markup_id), markup_name])
-		self.builder.get_object('combobox4').set_active_id(active_markup_id)
+		self.get_object('combobox4').set_active_id(active_markup_id)
 
 	def contact_filter_func(self, model, tree_iter, r):
 		for text in self.contact_filter_list:
@@ -563,15 +562,15 @@ class GUI:
 	def populate_contacts(self, m=None, i=None):
 		self.populating = True
 		self.contact_store.clear()
-		if self.builder.get_object('radiobutton1').get_active() == True:
+		if self.get_object('radiobutton1').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (customer, deleted) = (True, False) "
 							"ORDER BY name")
-		elif self.builder.get_object('radiobutton2').get_active() == True:
+		elif self.get_object('radiobutton2').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (vendor, deleted) = (True, False) "
 							"ORDER BY name")
-		elif self.builder.get_object('radiobutton3').get_active() == True:
+		elif self.get_object('radiobutton3').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE (employee, deleted) = (True, False) "
 							"ORDER BY name")
@@ -585,7 +584,7 @@ class GUI:
 			self.contact_store.append([serial_number, name, ext_name])
 		for row in self.contact_store:
 			if row[0] == self.contact_id: # select the contact we had selected before repopulating
-				treeview_selection = self.builder.get_object('treeview-selection')
+				treeview_selection = self.get_object('treeview-selection')
 				path = row.path
 				treeview_selection.select_path(path)
 				self.treeview.scroll_to_cell(path)
@@ -644,35 +643,35 @@ class GUI:
 			self.custom3_widget.set_text(row[16])
 			self.custom4_widget.set_text(row[17])
 			self.note.set_text(row[18])
-			self.builder.get_object('combobox1').set_active_id(row[19])
+			self.get_object('combobox1').set_active_id(row[19])
 			self.service_provider_widget.set_active(row[20])
-			self.builder.get_object('entry13').set_text(row[21])
-			self.builder.get_object('combobox4').set_active_id(row[22])
+			self.get_object('entry13').set_text(row[21])
+			self.get_object('combobox4').set_active_id(row[22])
 		
 		self.initiate_mailing_info()
 		# clear the individual contact entries
-		self.builder.get_object('combobox-entry').set_text("")
-		self.builder.get_object('entry18').set_text("")
-		self.builder.get_object('entry19').set_text("")
-		self.builder.get_object('entry20').set_text("")
-		self.builder.get_object('entry21').set_text("") 
-		self.builder.get_object('entry22').set_text("")
-		self.builder.get_object('entry23').set_text("") 
-		self.builder.get_object('entry24').set_text("")
-		self.builder.get_object('entry25').set_text("")
-		self.builder.get_object('entry12').set_text("")
+		self.get_object('combobox-entry').set_text("")
+		self.get_object('entry18').set_text("")
+		self.get_object('entry19').set_text("")
+		self.get_object('entry20').set_text("")
+		self.get_object('entry21').set_text("") 
+		self.get_object('entry22').set_text("")
+		self.get_object('entry23').set_text("") 
+		self.get_object('entry24').set_text("")
+		self.get_object('entry25').set_text("")
+		self.get_object('entry12').set_text("")
 			
-		self.builder.get_object('entry23').set_sensitive(True)
-		self.builder.get_object('entry29').set_sensitive(True)
-		self.builder.get_object('entry29').set_text("")
-		self.builder.get_object('button6').set_sensitive(True)
-		self.builder.get_object("button1").set_sensitive(True)
+		self.get_object('entry23').set_sensitive(True)
+		self.get_object('entry29').set_sensitive(True)
+		self.get_object('entry29').set_text("")
+		self.get_object('button6').set_sensitive(True)
+		self.get_object("button1").set_sensitive(True)
 		self.file_combobox_populate()
 		self.populate_tax_exemptions ()
 		self.populate_individual_store ()
 
 	def populate_tax_exemptions (self):
-		tax_exemption_store = self.builder.get_object("tax_exemption_store")
+		tax_exemption_store = self.get_object("tax_exemption_store")
 		tax_exemption_store.clear()
 		self.cursor.execute("SELECT tax_rates.id, tax_rates.name, cte.id, "
 							"cte.pdf_available "
@@ -698,11 +697,11 @@ class GUI:
 		self.check_scan_button_validity ()
 		
 	def new_contact (self, widget):
-		self.builder.get_object('entry29').set_sensitive(False)
-		self.builder.get_object('entry29').set_text("Select customer "
+		self.get_object('entry29').set_sensitive(False)
+		self.get_object('entry29').set_text("Select customer "
 													"before scanning")
-		self.builder.get_object('button2').set_sensitive(False)
-		self.builder.get_object('button1').set_sensitive(False)		
+		self.get_object('button2').set_sensitive(False)
+		self.get_object('button1').set_sensitive(False)		
 		self.contact_id = 0		#this tells the rest of the program we have a new contact
 		
 		self.name_widget.set_text("New Contact")
@@ -722,29 +721,29 @@ class GUI:
 		self.cursor.execute("SELECT id FROM terms_and_discounts "
 							"WHERE standard = True")
 		default_term = self.cursor.fetchone()[0]
-		self.builder.get_object('combobox1').set_active_id(str(default_term))
+		self.get_object('combobox1').set_active_id(str(default_term))
 		self.cursor.execute("SELECT id FROM customer_markup_percent "
 							"WHERE standard = True AND deleted = False")
 		default_markup = self.cursor.fetchone()[0]
-		self.builder.get_object('combobox4').set_active_id(str(default_markup))
+		self.get_object('combobox4').set_active_id(str(default_markup))
 		self.misc_widget.set_text("")
 		self.tax_exempt_number_widget.set_text("")
-		self.builder.get_object('entry13').set_text('')
+		self.get_object('entry13').set_text('')
 		self.custom1_widget.set_text("")
 		self.custom2_widget.set_text("")
 		self.custom3_widget.set_text("")
 		self.custom4_widget.set_text("")
 		self.note.set_text("")
-		self.builder.get_object('combobox-entry').set_text("")
-		self.builder.get_object('entry18').set_text("")
-		self.builder.get_object('entry19').set_text("")
-		self.builder.get_object('entry20').set_text("")
-		self.builder.get_object('entry21').set_text("") 
-		self.builder.get_object('entry22').set_text("")
-		self.builder.get_object('entry23').set_text("") 
-		self.builder.get_object('entry24').set_text("")
-		self.builder.get_object('entry25').set_text("")
-		self.builder.get_object('entry12').set_text("")
+		self.get_object('combobox-entry').set_text("")
+		self.get_object('entry18').set_text("")
+		self.get_object('entry19').set_text("")
+		self.get_object('entry20').set_text("")
+		self.get_object('entry21').set_text("") 
+		self.get_object('entry22').set_text("")
+		self.get_object('entry23').set_text("") 
+		self.get_object('entry24').set_text("")
+		self.get_object('entry25').set_text("")
+		self.get_object('entry12').set_text("")
 		self.initiate_mailing_info ()
 
 	def populate_individual_store (self):
@@ -759,22 +758,22 @@ class GUI:
 
 	def contact_individual_combo_button_release_event (self, combo, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
 	def delete_individual_activated (self, menuitem):
-		individual_id = self.builder.get_object('combobox3').get_active_id()
-		self.builder.get_object('combobox-entry').set_text('')
-		self.builder.get_object('entry18').set_text("")
-		self.builder.get_object('entry19').set_text("")
-		self.builder.get_object('entry20').set_text("")
-		self.builder.get_object('entry21').set_text("") 
-		self.builder.get_object('entry22').set_text("")
-		self.builder.get_object('entry23').set_text("") 
-		self.builder.get_object('entry24').set_text("")
-		self.builder.get_object('entry25').set_text("")
-		self.builder.get_object('entry12').set_text("")
+		individual_id = self.get_object('combobox3').get_active_id()
+		self.get_object('combobox-entry').set_text('')
+		self.get_object('entry18').set_text("")
+		self.get_object('entry19').set_text("")
+		self.get_object('entry20').set_text("")
+		self.get_object('entry21').set_text("") 
+		self.get_object('entry22').set_text("")
+		self.get_object('entry23').set_text("") 
+		self.get_object('entry24').set_text("")
+		self.get_object('entry25').set_text("")
+		self.get_object('entry12').set_text("")
 		self.cursor.execute("DELETE FROM contact_individuals WHERE id = %s", 
 							(individual_id,))
 		self.db.commit ()
@@ -787,16 +786,16 @@ class GUI:
 							"FROM contact_individuals WHERE id = (%s)", 
 							(individual_id,))
 		for row in self.cursor.fetchall():
-			self.builder.get_object('combobox-entry').set_text( row[0]) 
-			self.builder.get_object('entry18').set_text( row[1]) 
-			self.builder.get_object('entry19').set_text( row[2])
-			self.builder.get_object('entry20').set_text( row[3]) 
-			self.builder.get_object('entry21').set_text( row[4]) 
-			self.builder.get_object('entry22').set_text( row[5])
-			self.builder.get_object('entry23').set_text( row[6]) 
-			self.builder.get_object('entry24').set_text( row[7])
-			self.builder.get_object('entry25').set_text( row[8])
-			self.builder.get_object('entry12').set_text( row[9])
+			self.get_object('combobox-entry').set_text( row[0]) 
+			self.get_object('entry18').set_text( row[1]) 
+			self.get_object('entry19').set_text( row[2])
+			self.get_object('entry20').set_text( row[3]) 
+			self.get_object('entry21').set_text( row[4]) 
+			self.get_object('entry22').set_text( row[5])
+			self.get_object('entry23').set_text( row[6]) 
+			self.get_object('entry24').set_text( row[7])
+			self.get_object('entry25').set_text( row[8])
+			self.get_object('entry12').set_text( row[9])
 
 	def save_contact (self, widget):
 		name = self.name_widget.get_text()
@@ -810,10 +809,10 @@ class GUI:
 		phone = self.phone_widget.get_text()
 		fax = self.fax_widget.get_text()
 		email = self.email_widget.get_text()
-		term_id = self.builder.get_object('combobox1').get_active_id() 
+		term_id = self.get_object('combobox1').get_active_id() 
 		misc = self.misc_widget.get_text()
-		checks_payable_to = self.builder.get_object('entry13').get_text()
-		markup_id = self.builder.get_object('combobox4').get_active_id() 
+		checks_payable_to = self.get_object('entry13').get_text()
+		markup_id = self.get_object('combobox4').get_active_id() 
 		if checks_payable_to == '':
 			checks_payable_to = name
 		tax_number = self.tax_exempt_number_widget.get_text()
@@ -866,17 +865,17 @@ class GUI:
 								markup_id))
 			self.contact_id = self.cursor.fetchone()[0]
 		# all the individual contact info
-		individual_id = self.builder.get_object('combobox3').get_active_id()
-		name = self.builder.get_object('combobox-entry').get_text() 
-		address = self.builder.get_object('entry18').get_text()
-		city = self.builder.get_object('entry19').get_text()
-		state = self.builder.get_object('entry20').get_text()
-		zip_code = self.builder.get_object('entry21').get_text()
-		phone = self.builder.get_object('entry22').get_text()
-		fax = self.builder.get_object('entry23').get_text()
-		email = self.builder.get_object('entry24').get_text()
-		extension = self.builder.get_object('entry25').get_text()
-		role = self.builder.get_object('entry12').get_text()
+		individual_id = self.get_object('combobox3').get_active_id()
+		name = self.get_object('combobox-entry').get_text() 
+		address = self.get_object('entry18').get_text()
+		city = self.get_object('entry19').get_text()
+		state = self.get_object('entry20').get_text()
+		zip_code = self.get_object('entry21').get_text()
+		phone = self.get_object('entry22').get_text()
+		fax = self.get_object('entry23').get_text()
+		email = self.get_object('entry24').get_text()
+		extension = self.get_object('entry25').get_text()
+		role = self.get_object('entry12').get_text()
 		if individual_id == None and name != '' :
 			self.cursor.execute("INSERT INTO contact_individuals "
 								"(name, address, city, state, zip, phone, "
@@ -895,7 +894,7 @@ class GUI:
 								(name, address, city, state, zip_code, 
 								phone, fax, email, extension, role, individual_id))
 		self.populate_individual_store ()
-		self.builder.get_object('combobox3').set_active_id(str(individual_id))
+		self.get_object('combobox3').set_active_id(str(individual_id))
 		self.db.commit()
 		self.populate_contacts ()
 		self.populate_zip_codes ()
@@ -905,7 +904,7 @@ class GUI:
 	
 	def initiate_mailing_info(self):
 		if self.contact_id == 0:
-			self.builder.get_object("entry14").set_text("No Contact Selected")
+			self.get_object("entry14").set_text("No Contact Selected")
 			return
 		set_entry14__text = "Not on any list"
 		self.cursor.execute("SELECT ml.name FROM mailing_list_register AS mlr "
@@ -918,13 +917,13 @@ class GUI:
 		for i in self.cursor.fetchall():
 			t = t + ".." + str(i[0])
 			set_entry14__text = "On list: " + t
-		self.builder.get_object("entry14").set_text(set_entry14__text)
+		self.get_object("entry14").set_text(set_entry14__text)
 
 	def mailing_list_icon_release (self, widget, icon, event):
 		if self.contact_id == 0:
 			return
-		self.mailing_list_store = self.builder.get_object("mailing_list_store")
-		entry14 = self.builder.get_object('entry14')
+		self.mailing_list_store = self.get_object("mailing_list_store")
+		entry14 = self.get_object('entry14')
 		self.mailing_list_store.clear()
 		self.cursor.execute("SELECT ml.id, ml.name, COALESCE(mlr.active, False) "
 							"FROM mailing_lists AS ml "
@@ -937,8 +936,8 @@ class GUI:
 			list_name = item[1]
 			active = item[2]
 			self.mailing_list_store.append([list_id, list_name, active])
-		self.builder.get_object('mailing_popover').set_relative_to(entry14)
-		self.builder.get_object('mailing_popover').show_all ()
+		self.get_object('mailing_popover').set_relative_to(entry14)
+		self.get_object('mailing_popover').show_all ()
 
 	def active_toggled (self, cell_renderer, path):
 		row_id = self.mailing_list_store[path][0]

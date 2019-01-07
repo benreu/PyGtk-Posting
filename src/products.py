@@ -53,14 +53,14 @@ def add_non_stock_product (db, vendor_id, product_name, product_number,
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
-class ProductsGUI:
+class ProductsGUI (Gtk.Builder):
 	def __init__(self, main_class, product_id = None, product_location_tab = False, 
 					manufactured = False):
 
 		self.previous_keyname = None
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.main = main_class
 		self.db = main_class.db
@@ -68,20 +68,20 @@ class ProductsGUI:
 		self.repopulated = False
 		self.populating = True
 		self.handler_id = main_class.connect("products_changed", self.populate_product_store)
-		self.builder.get_object('combobox1').set_model(main_class.product_expense_acc)
-		self.builder.get_object('combobox2').set_model(main_class.product_revenue_acc)
-		self.builder.get_object('combobox3').set_model(main_class.product_inventory_acc)
+		self.get_object('combobox1').set_model(main_class.product_expense_acc)
+		self.get_object('combobox2').set_model(main_class.product_revenue_acc)
+		self.get_object('combobox3').set_model(main_class.product_inventory_acc)
 
-		textview = self.builder.get_object('textview1')
+		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 
 		self.exists = True
-		self.pane = self.builder.get_object('paned1')
+		self.pane = self.get_object('paned1')
 
 		self.filter_list = ""
-		self.treeview = self.builder.get_object('treeview2')
-		self.product_store = self.builder.get_object('product_store')
-		self.filtered_product_store = self.builder.get_object('filtered_product_store')
+		self.treeview = self.get_object('treeview2')
+		self.product_store = self.get_object('product_store')
+		self.filtered_product_store = self.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
 
 		self.product_id = 0 
@@ -99,13 +99,13 @@ class ProductsGUI:
 		self.treeview.drag_source_set_target_list([dnd])
 
 		if product_location_tab == True:
-			self.builder.get_object('notebook1').set_current_page(1)
+			self.get_object('notebook1').set_current_page(1)
 		if manufactured == True:
-			self.builder.get_object('radiobutton3').set_active(True)
+			self.get_object('radiobutton3').set_active(True)
 		if main.is_admin == True:
-			self.builder.get_object('treeview2').set_tooltip_column(0)
+			self.get_object('treeview2').set_tooltip_column(0)
 		
-		self.window = self.builder.get_object('window')
+		self.window = self.get_object('window')
 		self.window.show_all()
 		if product_id != None:
 			self.select_product(product_id)
@@ -116,12 +116,12 @@ class ProductsGUI:
 		width = settings.get_int("product-window-width")
 		height = settings.get_int("product-window-height")
 		self.window.resize(width, height)
-		pane = self.builder.get_object('paned1')
+		pane = self.get_object('paned1')
 		pane.set_position(settings.get_int("product-pane-width"))
-		pane = self.builder.get_object('paned2')
+		pane = self.get_object('paned2')
 		width = settings.get_int("product-ordering-financial-pane-width")
 		pane.set_position(width)
-		column = self.builder.get_object('name_column')
+		column = self.get_object('name_column')
 		column.set_fixed_width(settings.get_int("product-name-column-width"))
 
 	def save_window_layout_clicked (self, button):
@@ -129,11 +129,11 @@ class ProductsGUI:
 		width, height = self.window.get_size()
 		settings.set_int("product-window-width", width)
 		settings.set_int("product-window-height", height)
-		width = self.builder.get_object('paned1').get_position()
+		width = self.get_object('paned1').get_position()
 		settings.set_int("product-pane-width", width)
-		width = self.builder.get_object('paned2').get_position()
+		width = self.get_object('paned2').get_position()
 		settings.set_int("product-ordering-financial-pane-width", width)
-		width = self.builder.get_object('name_column').get_fixed_width()
+		width = self.get_object('name_column').get_fixed_width()
 		settings.set_int("product-name-column-width", width)
 
 	def destroy(self, window):
@@ -156,7 +156,7 @@ class ProductsGUI:
 		subprocess.Popen(["yelp", main.help_dir + "/products.page"])
 
 	def print_label(self, widget):
-		location_id = self.builder.get_object('comboboxtext6').get_active_id()
+		location_id = self.get_object('comboboxtext6').get_active_id()
 		label = Item()
 		self.cursor.execute("SELECT aisle, cart, rack, shelf, cabinet, drawer, "
 							"bin FROM product_location "
@@ -196,7 +196,7 @@ class ProductsGUI:
 			label.price = '${:,.2f}'.format(row[0])
 			break
 		else:
-			cost = self.builder.get_object('spinbutton1').get_value()
+			cost = self.get_object('spinbutton1').get_value()
 			self.cursor.execute("SELECT markup_percent "
 								"FROM customer_markup_percent WHERE id = %s", 
 								(markup_id,))
@@ -211,7 +211,7 @@ class ProductsGUI:
 		subprocess.Popen(["soffice", label_file])
 
 	def buy_qty_edited (self, cellrenderertext, path, text):
-		store = self.builder.get_object('vendor_order_store')
+		store = self.get_object('vendor_order_store')
 		row_id = store[path][0]
 		self.cursor.execute("UPDATE vendor_product_numbers "
 							"SET qty = %s WHERE id = %s", 
@@ -220,7 +220,7 @@ class ProductsGUI:
 		self.select_row (row_id)
 
 	def qty_price_edited (self, cellrenderertext, path, text):
-		store = self.builder.get_object('vendor_order_store')
+		store = self.get_object('vendor_order_store')
 		row_id = store[path][0]
 		self.cursor.execute("UPDATE vendor_product_numbers "
 							"SET price = %s WHERE id = %s", 
@@ -229,7 +229,7 @@ class ProductsGUI:
 		self.select_row (row_id)
 
 	def barcode_edited (self, cellrenderertext, path, text):
-		store = self.builder.get_object('vendor_order_store')
+		store = self.get_object('vendor_order_store')
 		row_id = store[path][0]
 		self.cursor.execute("UPDATE vendor_product_numbers "
 							"SET vendor_barcode = %s WHERE id = %s", 
@@ -238,7 +238,7 @@ class ProductsGUI:
 		self.select_row (row_id)
 
 	def order_number_edited (self, cellrenderertext, path, text):
-		store = self.builder.get_object('vendor_order_store')
+		store = self.get_object('vendor_order_store')
 		row_id = store[path][0]
 		self.cursor.execute("UPDATE vendor_product_numbers "
 							"SET vendor_sku = %s WHERE id = %s", 
@@ -248,9 +248,9 @@ class ProductsGUI:
 		self.select_row (row_id)
 
 	def vendor_combo_changed (self, combo, path, tree_iter):
-		vendor_store = self.builder.get_object('vendor_store')
+		vendor_store = self.get_object('vendor_store')
 		vendor_id = vendor_store[tree_iter][0]
-		store = self.builder.get_object('vendor_order_store')
+		store = self.get_object('vendor_order_store')
 		row_id = store[path][0]
 		try:
 			self.cursor.execute("UPDATE vendor_product_numbers "
@@ -266,7 +266,7 @@ class ProductsGUI:
 		self.select_row (row_id)
 
 	def populate_vendor_order_numbers (self):
-		store = self.builder.get_object('vendor_order_store')
+		store = self.get_object('vendor_order_store')
 		store.clear()
 		self.cursor.execute("SELECT vpn.id, c.id, c.name, vendor_sku, "
 							"vendor_barcode, qty::int, price::text "
@@ -298,15 +298,15 @@ class ProductsGUI:
 		c.close()
 
 	def select_row(self, row_id):
-		store = self.builder.get_object('vendor_order_store')
-		selection = self.builder.get_object('vendor_order_number_selection')
+		store = self.get_object('vendor_order_store')
+		selection = self.get_object('vendor_order_number_selection')
 		for row in store:
 			if row[0] == row_id:
 				selection.select_iter(row.iter)
 				break
 
 	def delete_vendor_row_clicked (self, button):
-		selection = self.builder.get_object('vendor_order_number_selection')
+		selection = self.get_object('vendor_order_number_selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -317,7 +317,7 @@ class ProductsGUI:
 		self.populate_vendor_order_numbers ()
 
 	def delete_order_number_menu_activated (self, menuitem):
-		selection = self.builder.get_object('vendor_order_number_selection')
+		selection = self.get_object('vendor_order_number_selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -329,29 +329,29 @@ class ProductsGUI:
 
 	def vendor_order_treeview_button_release (self, treeview, event): 
 		if event.button == 3:
-			menu = self.builder.get_object('vendor_order_number_menu')
+			menu = self.get_object('vendor_order_number_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
 	def calculate_piece_cost (self):
-		qty = self.builder.get_object('spinbutton2').get_value()
-		price = self.builder.get_object('spinbutton3').get_value()
-		ratio = self.builder.get_object('spinbutton4').get_value()
+		qty = self.get_object('spinbutton2').get_value()
+		price = self.get_object('spinbutton3').get_value()
+		ratio = self.get_object('spinbutton4').get_value()
 		if price == 0.00 or qty == 0 or ratio == 0.00:
 			piece_cost = 0.00
 		else:
 			piece_cost = round(price / qty, 6)
 			piece_cost = piece_cost / ratio
 		string = '${:,.6f}'.format(piece_cost)
-		self.builder.get_object('label16').set_label(string)
+		self.get_object('label16').set_label(string)
 
 	def apply_individual_cost_clicked (self, button):
-		qty = self.builder.get_object('spinbutton2').get_value()
-		price = self.builder.get_object('spinbutton3').get_value()
-		ratio = self.builder.get_object('spinbutton4').get_value()
+		qty = self.get_object('spinbutton2').get_value()
+		price = self.get_object('spinbutton3').get_value()
+		ratio = self.get_object('spinbutton4').get_value()
 		piece_cost = round(price / qty, 6)
 		piece_cost = piece_cost / ratio
-		self.builder.get_object('spinbutton1').set_value(piece_cost)
+		self.get_object('spinbutton1').set_value(piece_cost)
 
 	def focus_in_populate_comboboxes(self, widget, event):
 		#self.populate_product_store ()
@@ -359,7 +359,7 @@ class ProductsGUI:
 
 	def populate_account_combos(self):
 		self.populating = True
-		tax_combobox = self.builder.get_object('comboboxtext4')
+		tax_combobox = self.get_object('comboboxtext4')
 		current_tax = tax_combobox.get_active_id()
 		tax_combobox.remove_all()
 		self.cursor.execute("SELECT id, name FROM tax_rates "
@@ -368,14 +368,14 @@ class ProductsGUI:
 			tax_combobox.append(str(item[0]),item[1])
 		if current_tax != None:
 			tax_combobox.set_active_id(current_tax)
-		vendor_store = self.builder.get_object('vendor_store')
+		vendor_store = self.get_object('vendor_store')
 		vendor_store.clear()
 		self.cursor.execute("SELECT id::text, name FROM contacts "	
 							"WHERE (deleted, vendor) = (False, True) "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			vendor_store.append(row)
-		location_combo = self.builder.get_object('comboboxtext6')
+		location_combo = self.get_object('comboboxtext6')
 		active_location = location_combo.get_active()
 		location_combo.remove_all()
 		self.cursor.execute("SELECT id, name FROM locations ORDER BY name")
@@ -389,7 +389,7 @@ class ProductsGUI:
 		self.populating = False
 		
 	def unit_combobox_changed(self, widget):
-		self.builder.get_object('comboboxtext1').get_active_text()
+		self.get_object('comboboxtext1').get_active_text()
 
 	def contacts_window(self, widget):
 		import contacts
@@ -414,18 +414,18 @@ class ProductsGUI:
 
 	def purchasable_checkbutton_clicked(self, widget):
 		if widget.get_active() == True:
-			self.builder.get_object('checkbutton3').set_active(False)
+			self.get_object('checkbutton3').set_active(False)
 
 	def manufactured_checkbutton_clicked(self, widget):
 		if widget.get_active() == True:
-			self.builder.get_object('checkbutton5').set_active(False)
+			self.get_object('checkbutton5').set_active(False)
 
 	def sellable_checkbutton_clicked (self, checkbutton):
 		pass
 
 	def populate_terms_listbox (self):
-		listbox = self.builder.get_object('listbox2')
-		cost_spinbutton = self.builder.get_object('spinbutton1')
+		listbox = self.get_object('listbox2')
+		cost_spinbutton = self.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
 		self.cursor.execute("SELECT id, name, markup_percent "
 							"FROM customer_markup_percent ORDER BY name")
@@ -458,7 +458,7 @@ class ProductsGUI:
 			listbox.add(list_box_row)
 
 	def cost_changed (self, cost_spin, markup_spin, sell_spin, terms_id):
-		cost = self.builder.get_object('spinbutton1').get_value()
+		cost = self.get_object('spinbutton1').get_value()
 		markup_percent = markup_spin.get_value()
 		markup = cost * (markup_percent / 100)
 		selling_price = cost + markup
@@ -472,7 +472,7 @@ class ProductsGUI:
 		#self.db.commit()
 
 	def sell_changed (self, sell_spin, markup_spin, markup_id):
-		cost = self.builder.get_object('spinbutton1').get_value()
+		cost = self.get_object('spinbutton1').get_value()
 		sell_price = sell_spin.get_value ()
 		margin = sell_price - cost
 		if cost != 0.00:
@@ -494,15 +494,15 @@ class ProductsGUI:
 		self.db.commit()
 
 	def markup_changed(self, markup_spin, sell_spin, terms_id):
-		cost = self.builder.get_object('spinbutton1').get_value()
+		cost = self.get_object('spinbutton1').get_value()
 		markup = markup_spin.get_value()
 		margin = (markup / 100) * cost
 		sell_price = margin + cost
 		sell_spin.set_value(sell_price)
 
 	def set_price_listbox_to_default (self):
-		cost = self.builder.get_object('spinbutton1').get_value()
-		listbox = self.builder.get_object('listbox2')
+		cost = self.get_object('spinbutton1').get_value()
+		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
 			if list_box_row.get_index() == 0:
 				continue # skip the header
@@ -525,8 +525,8 @@ class ProductsGUI:
 			sell_spin.set_value(sell_price)
 
 	def load_product_terms_prices (self):
-		cost = self.builder.get_object('spinbutton1').get_value()
-		listbox = self.builder.get_object('listbox2')
+		cost = self.get_object('spinbutton1').get_value()
+		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
 			if list_box_row.get_index() == 0:
 				continue # skip the header
@@ -565,27 +565,27 @@ class ProductsGUI:
 			return
 		self.populating = True
 		self.product_store.clear()
-		if self.builder.get_object('radiobutton1').get_active() == True:
+		if self.get_object('radiobutton1').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
 								"WHERE (deleted, sellable) = (False, True) "
 								"OR id = %s ORDER BY name", (self.product_id,))
-		elif self.builder.get_object('radiobutton2').get_active() == True:
+		elif self.get_object('radiobutton2').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
 								"WHERE (deleted, purchasable) = (False, True) "
 								"OR id = %s ORDER BY name", (self.product_id,))
-		elif self.builder.get_object('radiobutton3').get_active() == True:
+		elif self.get_object('radiobutton3').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
 								"WHERE (deleted, manufactured) = (False, True) "
 								"OR id = %s ORDER BY name", (self.product_id,))
-		elif self.builder.get_object('radiobutton4').get_active() == True:
+		elif self.get_object('radiobutton4').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
 								"WHERE (deleted, job) = (False, True) "
 								"OR id = %s ORDER BY name", (self.product_id,))
-		elif self.builder.get_object('radiobutton5').get_active() == True:
+		elif self.get_object('radiobutton5').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
 								"WHERE (deleted, stock) = (False, False) "
 								"OR id = %s ORDER BY name", (self.product_id,))
-		elif self.builder.get_object('radiobutton7').get_active() == True:
+		elif self.get_object('radiobutton7').get_active() == True:
 			self.cursor.execute("SELECT id, name, ext_name FROM products "
 								"WHERE deleted = True "
 								"ORDER BY name")
@@ -602,7 +602,7 @@ class ProductsGUI:
 		self.populating = False
 		for row in self.filtered_product_store:
 			if row[0] == self.product_id: # select the product we had selected before repopulating
-				treeview_selection = self.builder.get_object('treeview-selection')
+				treeview_selection = self.get_object('treeview-selection')
 				treeview_selection.select_path(self.path)
 				self.treeview.scroll_to_cell(self.path)
 				return
@@ -610,7 +610,7 @@ class ProductsGUI:
 
 	def product_treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
@@ -620,7 +620,7 @@ class ProductsGUI:
 
 	def duplicate_product_activated (self, menuitem):
 		self.product_id = 0
-		self.builder.get_object('entry2').set_text('')
+		self.get_object('entry2').set_text('')
 		self.save ()
 
 	def adjust_inventory_clicked (self, button):
@@ -628,14 +628,14 @@ class ProductsGUI:
 		inventory_adjustment.InventoryAdjustmentGUI(self.db, self.product_id)
 
 	def location_entry_changed(self, widget):
-		self.builder.get_object('checkbutton1').set_active(True)
+		self.get_object('checkbutton1').set_active(True)
 
 	def window_key_press_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
 		if keyname == "F12":
-			self.builder.get_object('notebook1').next_page()
+			self.get_object('notebook1').next_page()
 		elif keyname == "F11":
-			self.builder.get_object('notebook1').prev_page()
+			self.get_object('notebook1').prev_page()
 		if self.previous_keyname == "Control_L":
 			if keyname == "q":
 				window.destroy()
@@ -662,24 +662,24 @@ class ProductsGUI:
 							"WHERE (product_id, location_id) = (%s, %s)", 
 							(self.product_id, self.location_id))
 		for row in self.cursor.fetchall():
-			self.builder.get_object('entry5').set_text(row[2])
-			self.builder.get_object('entry6').set_text(row[3])
-			self.builder.get_object('entry7').set_text(row[4])
-			self.builder.get_object('entry8').set_text(row[5])
-			self.builder.get_object('entry9').set_text(row[6])
-			self.builder.get_object('entry11').set_text(row[9])
-			self.builder.get_object('entry12').set_text(row[10])
-			self.builder.get_object('checkbutton1').set_active(row[7])
+			self.get_object('entry5').set_text(row[2])
+			self.get_object('entry6').set_text(row[3])
+			self.get_object('entry7').set_text(row[4])
+			self.get_object('entry8').set_text(row[5])
+			self.get_object('entry9').set_text(row[6])
+			self.get_object('entry11').set_text(row[9])
+			self.get_object('entry12').set_text(row[10])
+			self.get_object('checkbutton1').set_active(row[7])
 			break
 		else:
-			self.builder.get_object('entry5').set_text('')
-			self.builder.get_object('entry6').set_text('')
-			self.builder.get_object('entry7').set_text('')
-			self.builder.get_object('entry8').set_text('')
-			self.builder.get_object('entry9').set_text('')
-			self.builder.get_object('entry11').set_text('')
-			self.builder.get_object('entry12').set_text('')
-			self.builder.get_object('checkbutton1').set_active(False)
+			self.get_object('entry5').set_text('')
+			self.get_object('entry6').set_text('')
+			self.get_object('entry7').set_text('')
+			self.get_object('entry8').set_text('')
+			self.get_object('entry9').set_text('')
+			self.get_object('entry11').set_text('')
+			self.get_object('entry12').set_text('')
+			self.get_object('checkbutton1').set_active(False)
 		
 	def select_product (self, product_id):
 		self.product_id = product_id
@@ -696,69 +696,69 @@ class ProductsGUI:
 							"manufacturer_sku, job, invoice_serial_numbers "
 							"FROM products WHERE id = (%s)", (self.product_id,))
 		for row in self.cursor.fetchall():
-			self.builder.get_object('entry1').set_text(row[0])
-			self.builder.get_object("textbuffer1").set_text(row[1])
-			self.builder.get_object('entry2').set_text(row[2])
-			self.builder.get_object('comboboxtext1').set_active_id(str(row[3]))
+			self.get_object('entry1').set_text(row[0])
+			self.get_object("textbuffer1").set_text(row[1])
+			self.get_object('entry2').set_text(row[2])
+			self.get_object('comboboxtext1').set_active_id(str(row[3]))
 			self.product_cost = row[4]
-			self.builder.get_object('comboboxtext4').set_active_id(str(row[5]))
-			self.builder.get_object('checkbutton4').set_active(row[6])
-			self.builder.get_object('checkbutton5').set_active(row[7])
-			self.builder.get_object('spinbutton10').set_text(str(row[8]))
-			self.builder.get_object('spinbutton11').set_text(str(row[9]))
-			self.builder.get_object('checkbutton2').set_active(row[10])
-			self.builder.get_object('checkbutton3').set_active(row[11])
-			self.builder.get_object('spinbutton13').set_text(str(row[12]))
-			self.builder.get_object('spinbutton14').set_text(str(row[13]))
-			self.builder.get_object('entry10').set_text(row[14])
+			self.get_object('comboboxtext4').set_active_id(str(row[5]))
+			self.get_object('checkbutton4').set_active(row[6])
+			self.get_object('checkbutton5').set_active(row[7])
+			self.get_object('spinbutton10').set_text(str(row[8]))
+			self.get_object('spinbutton11').set_text(str(row[9]))
+			self.get_object('checkbutton2').set_active(row[10])
+			self.get_object('checkbutton3').set_active(row[11])
+			self.get_object('spinbutton13').set_text(str(row[12]))
+			self.get_object('spinbutton14').set_text(str(row[13]))
+			self.get_object('entry10').set_text(row[14])
 			expense_account_name = row[15] #set active id does not work with treestore
-			self.builder.get_object('expensebox-entry').set_text(expense_account_name)
+			self.get_object('expensebox-entry').set_text(expense_account_name)
 			revenue_account_name = row[16]
-			self.builder.get_object('revenuebox-entry').set_text(revenue_account_name)
+			self.get_object('revenuebox-entry').set_text(revenue_account_name)
 			inventory_account_name = row[17]
-			button = self.builder.get_object('button2')
+			button = self.get_object('button2')
 			if inventory_account_name == '':
 				button.set_label("No inventory account")
 				button.set_sensitive(False)
 			else:
 				button.set_label("Adjust inventory")
 				button.set_sensitive(True)
-			self.builder.get_object('inventorybox-entry').set_text(inventory_account_name)
-			self.builder.get_object('entry13').set_text(row[18])
-			self.builder.get_object('checkbutton6').set_active(row[19])
-			self.builder.get_object('checkbutton7').set_active(row[20])
+			self.get_object('inventorybox-entry').set_text(inventory_account_name)
+			self.get_object('entry13').set_text(row[18])
+			self.get_object('checkbutton6').set_active(row[19])
+			self.get_object('checkbutton7').set_active(row[20])
 
-		location_id = self.builder.get_object('comboboxtext6').get_active_id()
+		location_id = self.get_object('comboboxtext6').get_active_id()
 		self.cursor.execute("SELECT * FROM product_location "
 							"WHERE (product_id, location_id) = (%s, %s)", 
 							(self.product_id, location_id))
 		for row in self.cursor.fetchall():
-			self.builder.get_object('entry5').set_text(row[2])
-			self.builder.get_object('entry6').set_text(row[3])
-			self.builder.get_object('entry7').set_text(row[4])
-			self.builder.get_object('entry8').set_text(row[5])
-			self.builder.get_object('entry9').set_text(row[6])
-			self.builder.get_object('entry11').set_text(row[9])
-			self.builder.get_object('entry12').set_text(row[10])
-			self.builder.get_object('checkbutton1').set_active(row[7])
+			self.get_object('entry5').set_text(row[2])
+			self.get_object('entry6').set_text(row[3])
+			self.get_object('entry7').set_text(row[4])
+			self.get_object('entry8').set_text(row[5])
+			self.get_object('entry9').set_text(row[6])
+			self.get_object('entry11').set_text(row[9])
+			self.get_object('entry12').set_text(row[10])
+			self.get_object('checkbutton1').set_active(row[7])
 			break
 		else:
-			self.builder.get_object('entry5').set_text('')
-			self.builder.get_object('entry6').set_text('')
-			self.builder.get_object('entry7').set_text('')
-			self.builder.get_object('entry8').set_text('')
-			self.builder.get_object('entry9').set_text('')
-			self.builder.get_object('entry11').set_text('')
-			self.builder.get_object('entry12').set_text('')
-			self.builder.get_object('checkbutton1').set_active(False)
+			self.get_object('entry5').set_text('')
+			self.get_object('entry6').set_text('')
+			self.get_object('entry7').set_text('')
+			self.get_object('entry8').set_text('')
+			self.get_object('entry9').set_text('')
+			self.get_object('entry11').set_text('')
+			self.get_object('entry12').set_text('')
+			self.get_object('checkbutton1').set_active(False)
 		self.populating = True
 		#explicitly keep the prices from updating (which also saves invalid prices)
-		self.builder.get_object('spinbutton1').set_value(self.product_cost)
+		self.get_object('spinbutton1').set_value(self.product_cost)
 		self.populating = False
 		#now update the prices
 		self.load_product_terms_prices ()
 		self.populate_vendor_order_numbers ()
-		self.builder.get_object('vendor_button_box').set_sensitive(True)
+		self.get_object('vendor_button_box').set_sensitive(True)
 
 	def default_expense_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
@@ -782,49 +782,49 @@ class ProductsGUI:
 			return
 		self.cursor.execute("UPDATE products SET inventory_account = %s "
 							"WHERE id = %s", (account_number, self.product_id))
-		button = self.builder.get_object('button2')
+		button = self.get_object('button2')
 		button.set_label("Adjust inventory")
 		button.set_sensitive(True)
 		self.db.commit()
 
 	def save (self, button = None):
-		name = self.builder.get_object('entry1').get_text()
-		ext_name = self.builder.get_object('entry10').get_text()
-		barcode = self.builder.get_object('entry2').get_text()
-		unit = self.builder.get_object('comboboxtext1').get_active_id()
-		cost = self.builder.get_object('spinbutton1').get_text()
-		tax = self.builder.get_object('comboboxtext4').get_active_id()
-		tax_exemptible = self.builder.get_object('checkbutton2').get_active()
+		name = self.get_object('entry1').get_text()
+		ext_name = self.get_object('entry10').get_text()
+		barcode = self.get_object('entry2').get_text()
+		unit = self.get_object('comboboxtext1').get_active_id()
+		cost = self.get_object('spinbutton1').get_text()
+		tax = self.get_object('comboboxtext4').get_active_id()
+		tax_exemptible = self.get_object('checkbutton2').get_active()
 		
-		description_buffer = self.builder.get_object("textbuffer1")
+		description_buffer = self.get_object("textbuffer1")
 		start = description_buffer.get_start_iter()
 		end = description_buffer.get_end_iter()
 		description = description_buffer.get_text(start,end,True)
 		
-		sellable = self.builder.get_object('checkbutton4').get_active()
-		purchasable = self.builder.get_object('checkbutton5').get_active()
-		manufactured = self.builder.get_object('checkbutton3').get_active()
-		job = self.builder.get_object('checkbutton6').get_active()
-		invoice_serial = self.builder.get_object('checkbutton7').get_active()
+		sellable = self.get_object('checkbutton4').get_active()
+		purchasable = self.get_object('checkbutton5').get_active()
+		manufactured = self.get_object('checkbutton3').get_active()
+		job = self.get_object('checkbutton6').get_active()
+		invoice_serial = self.get_object('checkbutton7').get_active()
 
-		min_stock = self.builder.get_object('spinbutton10').get_text()
-		reorder_qty = self.builder.get_object('spinbutton11').get_text()
+		min_stock = self.get_object('spinbutton10').get_text()
+		reorder_qty = self.get_object('spinbutton11').get_text()
 
-		weight = self.builder.get_object('spinbutton13').get_text()
+		weight = self.get_object('spinbutton13').get_text()
 		weight = float(weight)
-		tare = self.builder.get_object('spinbutton14').get_text()
+		tare = self.get_object('spinbutton14').get_text()
 		tare = float(tare)
-		manufacturer_number = self.builder.get_object('entry13').get_text()
+		manufacturer_number = self.get_object('entry13').get_text()
 
-		rack = self.builder.get_object('entry5').get_text()
-		cart = self.builder.get_object('entry6').get_text()
-		shelf = self.builder.get_object('entry7').get_text()
-		cabinet = self.builder.get_object('entry8').get_text()
-		drawer = self.builder.get_object('entry9').get_text()
-		aisle = self.builder.get_object('entry11').get_text()
-		_bin_ = self.builder.get_object('entry12').get_text()
-		locator_visible = self.builder.get_object('checkbutton1').get_active()
-		location_id = self.builder.get_object('comboboxtext6').get_active_id()
+		rack = self.get_object('entry5').get_text()
+		cart = self.get_object('entry6').get_text()
+		shelf = self.get_object('entry7').get_text()
+		cabinet = self.get_object('entry8').get_text()
+		drawer = self.get_object('entry9').get_text()
+		aisle = self.get_object('entry11').get_text()
+		_bin_ = self.get_object('entry12').get_text()
+		locator_visible = self.get_object('checkbutton1').get_active()
+		location_id = self.get_object('comboboxtext6').get_active_id()
 		
 		if self.product_id == 0:  #new product
 			try:
@@ -857,7 +857,7 @@ class ProductsGUI:
 										(barcode, self.product_id))
 			else:
 				barcode = self.product_id 
-				self.builder.get_object('entry2').set_text(str(barcode))
+				self.get_object('entry2').set_text(str(barcode))
 		else:  # just save the existing product
 			try:
 				if barcode == '':
@@ -899,18 +899,18 @@ class ProductsGUI:
 					aisle, rack, cart, shelf, cabinet, drawer, _bin_, 
 					locator_visible, 
 					self.product_id, location_id,))
-		self.builder.get_object('spinbutton1').emit("value-changed")
+		self.get_object('spinbutton1').emit("value-changed")
 		self.db.commit()
 		self.populate_product_store ()
 		self.repopulated = True
-		button = self.builder.get_object('button2')
-		if self.builder.get_object('inventorybox-entry').get_text() == '':
+		button = self.get_object('button2')
+		if self.get_object('inventorybox-entry').get_text() == '':
 			button.set_sensitive(False)
 			button.set_label("No inventory account")
 		else:
 			button.set_sensitive(True)
 			button.set_label("Adjust inventory")
-		self.builder.get_object('vendor_button_box').set_sensitive(True)
+		self.get_object('vendor_button_box').set_sensitive(True)
 		self.db.commit()
 		self.populate_vendor_order_numbers ()
 
@@ -930,31 +930,31 @@ class ProductsGUI:
 		self.new_product()
 
 	def new_product (self):
-		product_name_entry = self.builder.get_object('entry1')
+		product_name_entry = self.get_object('entry1')
 		product_name_entry.set_text("New product")
 		product_name_entry.select_region(0,-1)
 		product_name_entry.grab_focus()
 		self.product_id = 0 # tell the rest of the program we are creating a new product
 		self.sku_id = 0 # new vendor sku
-		self.builder.get_object('entry10').set_text("")
-		self.builder.get_object('entry2').set_text("")
-		self.builder.get_object("textbuffer1").set_text("")
-		self.builder.get_object('comboboxtext1').set_active_id("1")
-		self.builder.get_object('spinbutton1').set_value(1.00)
-		self.builder.get_object('checkbutton4').set_active(True)
-		self.builder.get_object('checkbutton5').set_active(True)
-		self.builder.get_object('checkbutton3').set_active(False)
-		self.builder.get_object('spinbutton10').set_value(0)
-		self.builder.get_object('spinbutton11').set_value(0)
-		self.builder.get_object('entry5').set_text("")
-		self.builder.get_object('entry6').set_text("")
-		self.builder.get_object('entry7').set_text("")
-		self.builder.get_object('entry8').set_text("")
-		self.builder.get_object('entry9').set_text("")
-		self.builder.get_object('entry13').set_text("")
-		self.builder.get_object('checkbutton1').set_active(False)
-		self.builder.get_object('checkbutton2').set_active(True)
-		button = self.builder.get_object('button2')
+		self.get_object('entry10').set_text("")
+		self.get_object('entry2').set_text("")
+		self.get_object("textbuffer1").set_text("")
+		self.get_object('comboboxtext1').set_active_id("1")
+		self.get_object('spinbutton1').set_value(1.00)
+		self.get_object('checkbutton4').set_active(True)
+		self.get_object('checkbutton5').set_active(True)
+		self.get_object('checkbutton3').set_active(False)
+		self.get_object('spinbutton10').set_value(0)
+		self.get_object('spinbutton11').set_value(0)
+		self.get_object('entry5').set_text("")
+		self.get_object('entry6').set_text("")
+		self.get_object('entry7').set_text("")
+		self.get_object('entry8').set_text("")
+		self.get_object('entry9').set_text("")
+		self.get_object('entry13').set_text("")
+		self.get_object('checkbutton1').set_active(False)
+		self.get_object('checkbutton2').set_active(True)
+		button = self.get_object('button2')
 		button.set_sensitive(False)
 		button.set_label("Product not saved")
 		
@@ -963,7 +963,7 @@ class ProductsGUI:
 							"ORDER BY number LIMIT 1")
 		for row in self.cursor.fetchall():
 			self.new_revenue_account = row[0]
-			self.builder.get_object('revenuebox-entry').set_text(row[1])
+			self.get_object('revenuebox-entry').set_text(row[1])
 			break
 		else:
 			raise Exception("No revenue accounts available")
@@ -973,17 +973,17 @@ class ProductsGUI:
 							"ORDER BY number LIMIT 1")
 		for row in self.cursor.fetchall():
 			self.new_expense_account = row[0]
-			self.builder.get_object('expensebox-entry').set_text(row[1])
+			self.get_object('expensebox-entry').set_text(row[1])
 			break
 		else:
 			raise Exception("No expense accounts available")
 			self.show_message ("No expense accounts available")
 		self.cursor.execute("SELECT id FROM tax_rates WHERE standard = True ")
 		default_id = self.cursor.fetchone()[0]
-		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
+		self.get_object('comboboxtext4').set_active_id(str(default_id))
 		self.set_price_listbox_to_default ()
-		self.builder.get_object('vendor_button_box').set_sensitive(False)
-		self.builder.get_object('vendor_order_store').clear()
+		self.get_object('vendor_button_box').set_sensitive(False)
+		self.get_object('vendor_order_store').clear()
 		
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog( self.window,
