@@ -202,6 +202,7 @@ class ProductsGUI:
 							"SET qty = %s WHERE id = %s", 
 							(text, row_id))
 		self.populate_vendor_order_numbers ()
+		self.select_row (row_id)
 
 	def qty_price_edited (self, cellrenderertext, path, text):
 		store = self.builder.get_object('vendor_order_store')
@@ -210,6 +211,7 @@ class ProductsGUI:
 							"SET price = %s WHERE id = %s", 
 							(text, row_id))
 		self.populate_vendor_order_numbers ()
+		self.select_row (row_id)
 
 	def barcode_edited (self, cellrenderertext, path, text):
 		store = self.builder.get_object('vendor_order_store')
@@ -218,6 +220,7 @@ class ProductsGUI:
 							"SET vendor_barcode = %s WHERE id = %s", 
 							(text, row_id))
 		self.populate_vendor_order_numbers ()
+		self.select_row (row_id)
 
 	def order_number_edited (self, cellrenderertext, path, text):
 		store = self.builder.get_object('vendor_order_store')
@@ -227,11 +230,30 @@ class ProductsGUI:
 							(text, row_id))
 		self.db.commit()
 		self.populate_vendor_order_numbers ()
+		self.select_row (row_id)
+
+	def vendor_combo_changed (self, combo, path, tree_iter):
+		vendor_store = self.builder.get_object('vendor_store')
+		vendor_id = vendor_store[tree_iter][0]
+		store = self.builder.get_object('vendor_order_store')
+		row_id = store[path][0]
+		try:
+			self.cursor.execute("UPDATE vendor_product_numbers "
+								"SET vendor_id = %s WHERE id = %s", 
+								(vendor_id, row_id))
+			self.db.commit()
+		except Exception as e:
+			self.db.rollback()
+			self.show_message(str(e) + 
+								"\nprobably you have this vendor already")
+			return
+		self.populate_vendor_order_numbers ()
+		self.select_row (row_id)
 
 	def populate_vendor_order_numbers (self):
 		store = self.builder.get_object('vendor_order_store')
 		store.clear()
-		self.cursor.execute("SELECT vpn.id, c.name, vendor_sku, "
+		self.cursor.execute("SELECT vpn.id, c.id, c.name, vendor_sku, "
 							"vendor_barcode, qty::int, price::text "
 							"FROM vendor_product_numbers AS vpn "
 							"JOIN contacts AS c ON c.id = vpn.vendor_id "
@@ -241,9 +263,43 @@ class ProductsGUI:
 		for row in self.cursor.fetchall():
 			store.append(row)
 
-	def vendor_combo_changed(self, combo):
-		if self.populating == False:
-			self.clear_vendor_info ()
+	def new_vendor_row_clicked (self, button):
+		c = self.db.cursor()
+		c.execute("WITH vendor AS "
+					"(SELECT id FROM contacts WHERE vendor = True "
+						"AND id NOT IN "
+						"(SELECT vendor_id FROM vendor_product_numbers "
+							"WHERE product_id = %s GROUP BY vendor_id)"
+						"ORDER BY id LIMIT 1)"
+					"INSERT INTO vendor_product_numbers "
+					"(product_id, vendor_id, vendor_sku, vendor_barcode) "
+					"VALUES "
+					"(%s, (SELECT id FROM vendor), '', '') RETURNING id",
+					(self.product_id, self.product_id))
+		row_id = c.fetchone()[0]
+		self.populate_vendor_order_numbers ()
+		self.select_row (row_id)
+		self.db.commit()
+		c.close()
+
+	def select_row(self, row_id):
+		store = self.builder.get_object('vendor_order_store')
+		selection = self.builder.get_object('vendor_order_number_selection')
+		for row in store:
+			if row[0] == row_id:
+				selection.select_iter(row.iter)
+				break
+
+	def delete_vendor_row_clicked (self, button):
+		selection = self.builder.get_object('vendor_order_number_selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		self.cursor.execute("DELETE FROM vendor_product_numbers "
+							"WHERE id = %s", (row_id,))
+		self.db.commit()
+		self.populate_vendor_order_numbers ()
 
 	def delete_order_number_menu_activated (self, menuitem):
 		selection = self.builder.get_object('vendor_order_number_selection')
@@ -297,16 +353,13 @@ class ProductsGUI:
 			tax_combobox.append(str(item[0]),item[1])
 		if current_tax != None:
 			tax_combobox.set_active_id(current_tax)
-		vendor_combobox = self.builder.get_object('comboboxtext2')
-		current_vendor = vendor_combobox.get_active_id()
-		vendor_combobox.remove_all()
-		vendor_combobox.append('', '')
-		self.cursor.execute("SELECT id, name FROM contacts "	
+		vendor_store = self.builder.get_object('vendor_store')
+		vendor_store.clear()
+		self.cursor.execute("SELECT id::text, name FROM contacts "	
 							"WHERE (deleted, vendor) = (False, True) "
 							"ORDER BY name")
-		for item in self.cursor.fetchall():
-			vendor_combobox.append(str(item[0]),item[1])
-		vendor_combobox.set_active_id (current_vendor)
+		for row in self.cursor.fetchall():
+			vendor_store.append(row)
 		location_combo = self.builder.get_object('comboboxtext6')
 		active_location = location_combo.get_active()
 		location_combo.remove_all()
@@ -659,10 +712,6 @@ class ProductsGUI:
 			self.builder.get_object('entry13').set_text(row[18])
 			self.builder.get_object('checkbutton6').set_active(row[19])
 			self.builder.get_object('checkbutton7').set_active(row[20])
-		self.clear_vendor_info ()
-		vendor_combo = self.builder.get_object('comboboxtext2')
-		if vendor_combo.get_active() == -1:
-			vendor_combo.set_active(0)
 
 		location_id = self.builder.get_object('comboboxtext6').get_active_id()
 		self.cursor.execute("SELECT * FROM product_location "
@@ -694,6 +743,7 @@ class ProductsGUI:
 		#now update the prices
 		self.load_product_terms_prices ()
 		self.populate_vendor_order_numbers ()
+		self.builder.get_object('vendor_button_box').set_sensitive(True)
 
 	def default_expense_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
@@ -845,34 +895,9 @@ class ProductsGUI:
 		else:
 			button.set_sensitive(True)
 			button.set_label("Adjust inventory")
-		self.save_vendor_info ()
+		self.builder.get_object('vendor_button_box').set_sensitive(True)
 		self.db.commit()
 		self.populate_vendor_order_numbers ()
-
-	def save_vendor_info (self):
-		vendor_id = self.builder.get_object('comboboxtext2').get_active_id()
-		if vendor_id == None or vendor_id == '':
-			return
-		order_number = self.builder.get_object('order_number_entry').get_text()
-		barcode = self.builder.get_object('order_barcode_entry').get_text()
-		if order_number == '' and barcode == '':
-			return
-		self.cursor.execute("INSERT INTO vendor_product_numbers AS vpn "
-					"(product_id, vendor_id, vendor_sku, vendor_barcode) "
-					"VALUES (%s, %s, %s, %s) "
-					"ON CONFLICT (product_id, vendor_id) "
-					"DO UPDATE SET "
-					"(product_id, vendor_id, vendor_sku, vendor_barcode) "
-					"= (%s, %s, %s, %s) "
-					"WHERE (vpn.product_id, vpn.vendor_id) = "
-					"(%s, %s)",
-					(self.product_id, vendor_id, order_number, barcode,
-					self.product_id, vendor_id, order_number, barcode,
-					self.product_id, vendor_id))
-
-	def clear_vendor_info (self):
-		self.builder.get_object('order_number_entry').set_text('')
-		self.builder.get_object('order_barcode_entry').set_text('')
 
 	def delete_product_activated (self, widget):
 		try:
@@ -942,8 +967,8 @@ class ProductsGUI:
 		default_id = self.cursor.fetchone()[0]
 		self.builder.get_object('comboboxtext4').set_active_id(str(default_id))
 		self.set_price_listbox_to_default ()
+		self.builder.get_object('vendor_button_box').set_sensitive(False)
 		self.builder.get_object('vendor_order_store').clear()
-		self.clear_vendor_info ()
 		
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog( self.window,
