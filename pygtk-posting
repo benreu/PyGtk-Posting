@@ -11,5 +11,5 @@ fi
 LOG_FILE=$log_dir`echo $0|date +%Y-%m-%d:%H:%M:%S`
 echo "log file is" $LOG_FILE
 cd /usr/lib/python3/dist-packages/pygtk_posting/
-python3 -u ./pygtk_posting.py "$LOG_FILE" &> "$LOG_FILE"
+python3 -u ./pygtk_posting.py $LOG_FILE |& tee $LOG_FILE
 
