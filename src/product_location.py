@@ -159,7 +159,7 @@ class ProductLocationGUI:
 		self.builder.get_object('treeview1').scroll_to_cell(path)
 		tree_selection.select_path(path)
 
-	def populate_product_location_treeview(self):
+	def populate_product_location_treeview (self, i = None):
 		location_id = self.builder.get_object('combobox1').get_active_id()
 		self.product_location_store.clear()
 		self.cursor.execute ("SELECT "
