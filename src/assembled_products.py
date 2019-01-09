@@ -97,7 +97,44 @@ class AssembledProductsGUI:
 			menu = self.builder.get_object('assembled_popup_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
-			
+		
+	def export_csv_activated (self, menuitem):
+		self.populate_vendor_store () 
+		import csv 
+		dialog = self.builder.get_object ('csv_file_dialog')
+		uri = os.path.expanduser('~')
+		dialog.set_current_folder_uri("file://" + uri)
+		dialog.set_current_name("assembly_list.csv")
+		response = dialog.run()
+		dialog.hide()
+		if response != Gtk.ResponseType.ACCEPT:
+			return
+		selected_file = dialog.get_filename()
+		vendor_id = self.builder.get_object('vendor_combo').get_active_id()
+		c = self.db.cursor()
+		with open(selected_file, 'w') as csvfile:
+			exportfile = csv.writer(	csvfile, 
+										delimiter=',',
+										quotechar='|', 
+										quoting=csv.QUOTE_MINIMAL)
+			c.execute(	"SELECT "
+							"pai.qty, "
+							"products.name, "
+							"COALESCE(vpn.vendor_sku, 'No order number'), "
+							"products.manufacturer_sku, "
+							"products.cost "
+						"FROM product_assembly_items AS pai "
+						"JOIN products ON pai.assembly_product_id = products.id "
+						"LEFT JOIN vendor_product_numbers AS vpn "
+							"ON vpn.product_id = pai.assembly_product_id "
+							"AND vendor_id = %s "
+						"WHERE (manufactured_product_id) = (%s) "
+						"ORDER BY pai.id", 
+						(vendor_id, self.manufactured_product_id))
+			for row in c.fetchall():
+				exportfile.writerow(row)
+		c.close()
+	
 	def product_hub_activated (self, menuitem):
 		import product_hub
 		product_hub.ProductHubGUI(self.main, self.product_hub_id)
@@ -125,6 +162,19 @@ class AssembledProductsGUI:
 				return False
 		return True
 
+	def populate_vendor_store (self):
+		active = self.builder.get_object('vendor_combo').get_active()
+		store = self.builder.get_object('vendor_store')
+		store.clear()
+		store.append(['0', 'No vendor'])
+		self.cursor.execute("SELECT id::text, name FROM contacts "
+							"WHERE vendor = True "
+							"ORDER BY name")
+		for row in self.cursor.fetchall():
+			store.append(row)
+		if active < 0:
+			self.builder.get_object('vendor_combo').set_active(0)
+
 	def destroy(self, window):
 		self.cursor.close()
 		return True
@@ -146,7 +196,7 @@ class AssembledProductsGUI:
 		for row in self.cursor.fetchall():
 			self.assembled_product_store.append(row)
 
-	def products_clicked (self, button):
+	def products_activated (self, button):
 		import products
 		products.ProductsGUI(self.main)
 
