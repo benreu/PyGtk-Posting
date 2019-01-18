@@ -14,6 +14,8 @@
       <column type="gint"/>
       <!-- column-name time -->
       <column type="gchararray"/>
+      <!-- column-name time per piece -->
+      <column type="gchararray"/>
       <!-- column-name employees -->
       <column type="gint"/>
       <!-- column-name active -->
@@ -41,8 +43,9 @@
     <property name="border_width">10</property>
     <property name="title" translatable="yes">Manufacturing history</property>
     <property name="window_position">center</property>
-    <property name="default_width">800</property>
+    <property name="default_width">900</property>
     <property name="default_height">500</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <placeholder/>
     </child>
@@ -198,15 +201,29 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Time/piece</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">6</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">5</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn4">
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Employees</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">5</property>
+                        <property name="sort_column_id">6</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext4"/>
                           <attributes>
-                            <attribute name="text">5</attribute>
+                            <attribute name="text">6</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -216,11 +233,11 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Active</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">6</property>
+                        <property name="sort_column_id">7</property>
                         <child>
                           <object class="GtkCellRendererToggle"/>
                           <attributes>
-                            <attribute name="active">6</attribute>
+                            <attribute name="active">7</attribute>
                           </attributes>
                         </child>
                       </object>

@@ -57,27 +57,25 @@ class ManufacturingHistoryGUI:
 			serial_number_store.append(row)
 
 	def populate_manufacturing_store (self):
-		self.cursor.execute("SELECT "
-								"m.id, m.name, "
-								"p.name, "
-								"qty, "
-								"SUM(stop_time - start_time)::text, "
-								"COUNT(DISTINCT(employee_id)), "
-								"active "
-							"FROM manufacturing_projects AS m "
-							"JOIN products AS p ON p.id = m.product_id "
-							"JOIN time_clock_entries AS tce "
-							"ON tce.project_id = m.time_clock_projects_id "
-							"GROUP BY m.id, m.name, p.name, qty "
-							"ORDER BY m.id")
-		for row in self.cursor.fetchall():
-			manufacturing_id = row[0]
-			manufacturing_name = row[1]
-			product_name = row[2]
-			qty = row[3]
-			time = row[4]
-			employee_count = row[5]
+		c = self.db.cursor()
+		c.execute("SELECT "
+					"m.id, "
+					"m.name, "
+					"p.name, "
+					"qty, "
+					"date_trunc('second', SUM(stop_time-start_time))::text, "
+					"date_trunc('second', SUM(stop_time-start_time)/qty)::text, "
+					"COUNT(DISTINCT(employee_id)), "
+					"active "
+				"FROM manufacturing_projects AS m "
+				"JOIN products AS p ON p.id = m.product_id "
+				"JOIN time_clock_entries AS tce "
+				"ON tce.project_id = m.time_clock_projects_id "
+				"GROUP BY m.id, m.name, p.name, qty "
+				"ORDER BY m.id")
+		for row in c.fetchall():
 			self.manufacturing_store.append(row)
+		c.close()
 
 	def filter_changed (self, entry):
 		entry = self.builder.get_object('searchentry1')
