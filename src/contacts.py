@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gio
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
@@ -92,6 +92,27 @@ class GUI(Gtk.Builder):
 		thread.start()
 		
 		GLib.timeout_add(100, self.populate_scanners)
+		self.set_window_layout_from_settings ()
+
+	def set_window_layout_from_settings (self):
+		settings = Gio.Settings.new("com.github.benreu.pygtk-posting")
+		width = settings.get_int("contact-window-width")
+		height = settings.get_int("contact-window-height")
+		self.window.resize(width, height)
+		pane = self.get_object('paned1')
+		pane.set_position(settings.get_int("contact-pane-width"))
+		column = self.get_object('name_column')
+		column.set_fixed_width(settings.get_int("contact-name-column-width"))
+
+	def save_window_layout_clicked (self, button):
+		settings = Gio.Settings.new("com.github.benreu.pygtk-posting")
+		width, height = self.window.get_size()
+		settings.set_int("contact-window-width", width)
+		settings.set_int("contact-window-height", height)
+		width = self.get_object('paned1').get_position()
+		settings.set_int("contact-pane-width", width)
+		width = self.get_object('name_column').get_fixed_width()
+		settings.set_int("contact-name-column-width", width)
 
 	def mailing_list_clicked (self, button):
 		import mailing_lists
