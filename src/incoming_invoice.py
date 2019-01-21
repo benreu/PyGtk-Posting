@@ -336,25 +336,29 @@ class IncomingInvoiceGUI:
 		self.window.destroy()
 
 	def save_incoming_invoice (self):
+		c = self.db.cursor()
 		contact_id = self.builder.get_object('combobox1').get_active_id()
 		description = self.builder.get_object('entry1').get_text()
 		total = Decimal(self.builder.get_object('spinbutton1').get_text())
 		self.invoice = transactor.ServiceProviderPayment (self.db, 
 															self.date, 
 															total)
-		self.cursor.execute("INSERT INTO incoming_invoices "
-							"(contact_id, date_created, amount, description) "
-							"VALUES (%s, %s, %s, %s) RETURNING id", 
-							(contact_id, self.date, total, description))
-		invoice_id = self.cursor.fetchone()[0]
-		if self.file_data != None:
-			self.cursor.execute("UPDATE incoming_invoices "
-								"SET attached_pdf = %s "
-								"WHERE id = %s", (self.file_data, invoice_id))
+		c.execute(	"INSERT INTO incoming_invoices "
+						"(contact_id, "
+						"date_created, "
+						"amount, "
+						"description, "
+						"gl_transaction_id, "
+						"attached_pdf) "
+					"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", 
+					(contact_id, self.date, total, description, 
+					self.invoice.transaction_id, self.file_data))
+		invoice_id = c.fetchone()[0]
 		for row in self.expense_percentage_store:
 			amount = row[1]
 			expense_account = row[2]
 			self.invoice.expense(amount, expense_account, invoice_id)
+		c.close()
 		return invoice_id, total
 
 	def balance_this_row_activated (self, menuitem):
