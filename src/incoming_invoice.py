@@ -301,7 +301,7 @@ class IncomingInvoiceGUI:
 		cash_account = self.builder.get_object('combobox3').get_active_id()
 		self.invoice.cash_payment (total, cash_account, invoice_id)
 		self.db.commit()
-		self.window.destroy()
+		button.set_sensitive(False)
 
 	def credit_card_payment_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
@@ -312,7 +312,7 @@ class IncomingInvoiceGUI:
 		description = "%s : %s" % (service_provider, transfer_number)
 		self.invoice.credit_card_payment (total, description, credit_card, invoice_id)
 		self.db.commit()
-		self.window.destroy()
+		button.set_sensitive(False)
 
 	def transfer_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
@@ -323,7 +323,7 @@ class IncomingInvoiceGUI:
 		description = "%s : %s" % (service_provider, transfer_number)
 		self.invoice.transfer (total, description, checking_account, invoice_id)
 		self.db.commit()
-		self.window.destroy()
+		button.set_sensitive(False)
 
 	def print_check_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
@@ -333,7 +333,7 @@ class IncomingInvoiceGUI:
 		description = self.service_provider_store[active][1]
 		self.invoice.check_payment(total, check_number, checking_account, description, invoice_id)
 		self.db.commit()
-		self.window.destroy()
+		button.set_sensitive(False)
 
 	def save_incoming_invoice (self):
 		c = self.db.cursor()
