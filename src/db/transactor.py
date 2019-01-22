@@ -172,25 +172,25 @@ class ServiceProviderPayment :
 	def cash_payment (self, amount, cash_account, invoice_id):
 		self.c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
-							"(credit_account, amount, "
-							"gl_transaction_id) VALUES (%s, %s, %s) "
+							"(credit_account, amount, date_inserted, "
+							"gl_transaction_id) VALUES (%s, %s, %s, %s) "
 							"RETURNING id) "
 						"UPDATE incoming_invoices "
 						"SET gl_entry_id = (SELECT id FROM cte) "
 						"WHERE id = %s", 
-						(cash_account, amount, 
+						(cash_account, amount, self.date, 
 						self.transaction_id, invoice_id))
 
 	def expense (self, amount, expense_account_number, invoice_id):
 		self.c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
-							"(debit_account, amount, "
-							"gl_transaction_id) VALUES (%s, %s, %s) "
+							"(debit_account, amount, date_inserted, "
+							"gl_transaction_id) VALUES (%s, %s, %s, %s) "
 							"RETURNING id) "
 						"INSERT INTO incoming_invoices_gl_entry_expenses_ids "
 						"(gl_entry_expense_id, incoming_invoices_id) "
 						"VALUES ((SELECT id FROM cte), %s) ", 
-						(expense_account_number, amount, 
+						(expense_account_number, amount, self.date, 
 						self.transaction_id, invoice_id))
 
 class LoanPayment:
