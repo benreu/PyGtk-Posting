@@ -308,6 +308,7 @@
                         <child internal-child="entry">
                           <object class="GtkEntry" id="combobox-entry">
                             <property name="can_focus">True</property>
+                            <property name="has_focus">True</property>
                             <property name="completion">vendor_completion</property>
                           </object>
                         </child>
@@ -1174,7 +1175,7 @@ Do you want to update the quantity to </property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
+                    <property name="top_attach">2</property>
                   </packing>
                 </child>
                 <child>
@@ -1193,7 +1194,7 @@ Do you want to update the quantity to </property>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
+                    <property name="top_attach">2</property>
                   </packing>
                 </child>
                 <child>
@@ -1204,7 +1205,7 @@ Do you want to update the quantity to </property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
-                    <property name="top_attach">2</property>
+                    <property name="top_attach">3</property>
                   </packing>
                 </child>
                 <child>
@@ -1223,7 +1224,7 @@ Do you want to update the quantity to </property>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
-                    <property name="top_attach">2</property>
+                    <property name="top_attach">3</property>
                   </packing>
                 </child>
                 <child>
@@ -1234,7 +1235,7 @@ Do you want to update the quantity to </property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
-                    <property name="top_attach">3</property>
+                    <property name="top_attach">4</property>
                   </packing>
                 </child>
                 <child>
@@ -1245,7 +1246,7 @@ Do you want to update the quantity to </property>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
-                    <property name="top_attach">3</property>
+                    <property name="top_attach">4</property>
                   </packing>
                 </child>
                 <child>
@@ -1268,6 +1269,20 @@ Do you want to update the quantity to </property>
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label15">
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">That product name is already in use !</property>
+                    <attributes>
+                      <attribute name="foreground" value="#efef29292929"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">1</property>
+                    <property name="width">2</property>
                   </packing>
                 </child>
               </object>
@@ -1316,20 +1331,6 @@ Do you want to update the quantity to </property>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label15">
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">That product name is already in use !</property>
-                <attributes>
-                  <attribute name="foreground" value="#efef29292929"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
               </packing>
             </child>
           </object>
