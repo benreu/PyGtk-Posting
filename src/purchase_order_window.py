@@ -620,7 +620,7 @@ class PurchaseOrderGUI:
 				product_name = row[0]
 				self.builder.get_object('label13').set_text(product_name)
 				self.builder.get_object('box8').set_visible(True)
-				return
+				break
 			else:
 				self.builder.get_object('box8').set_visible(False)
 		if self.builder.get_object ('combobox2').get_active_id() == None:

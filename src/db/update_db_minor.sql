@@ -137,7 +137,11 @@ CREATE TABLE IF NOT EXISTS public.budget_amounts (id serial primary key, budget_
 ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERENCES gl_entries ON DELETE RESTRICT ON UPDATE RESTRICT;
 CREATE TABLE IF NOT EXISTS incoming_invoices_gl_entry_expenses_ids (id bigserial PRIMARY KEY, gl_entry_expense_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT ON UPDATE RESTRICT, incoming_invoices_id bigint NOT NULL REFERENCES incoming_invoices ON DELETE RESTRICT ON UPDATE RESTRICT);
 --version 0.5.8
-ALTER TABLE public.purchase_order_line_items DROP CONSTRAINT purchase_order_line_items_expense_account_fkey;
+ALTER TABLE public.purchase_order_line_items DROP CONSTRAINT IF EXISTS purchase_order_line_items_expense_account_fkey;
 ALTER TABLE public.purchase_order_line_items ADD CONSTRAINT purchase_order_line_items_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES public.gl_accounts ("number") MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT;
+--version 0.5.9
+ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_transaction_id bigint REFERENCES gl_transactions ON DELETE RESTRICT;
+UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELECT id, gl_transaction_id FROM gl_entries) AS ge WHERE incoming_invoices.gl_entry_id = ge.id AND incoming_invoices.gl_transaction_id IS NULL;
+UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELECT date_inserted, amount, gl_transaction_id FROM gl_entries) AS ge WHERE incoming_invoices.amount = ge.amount AND incoming_invoices.gl_transaction_id IS NULL AND incoming_invoices.date_created = ge.date_inserted ;
 
 

@@ -119,8 +119,11 @@ class GUI:
 
 	def fiscal_combo_changed (self, combo):
 		fiscal_id = combo.get_active_id()
-		if self.builder.get_object('fiscal_checkbutton').get_active() == True:
-			self.fiscal = "SELECT id FROM fiscal_years"
+		fiscal_checkbutton = self.builder.get_object('fiscal_checkbutton')
+		if fiscal_checkbutton.get_active() == True:
+			fiscal_checkbutton.set_active(False)
+			# setting the checkbutton false will trigger all_fiscal_toggled
+			return 
 		if fiscal_id == None:
 			return
 		self.fiscal = fiscal_id

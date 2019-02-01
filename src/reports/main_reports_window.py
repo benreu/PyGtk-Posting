@@ -112,6 +112,13 @@ class MainReportsGUI:
 		from reports import product_history
 		product_history.ProductHistoryGUI(self.main)
 
+	def profit_loss_clicked (self, button):
+		from reports import profit_loss_report
+		profit_loss_report.ProfitLossReportGUI(self.db)
+
+	def net_worth_clicked (self, button):
+		pass
+
 
 
 		

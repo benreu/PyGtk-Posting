@@ -188,27 +188,43 @@ class VendorHistoryGUI:
 		self.load_vendor_purchase_orders ()
 
 	def load_vendor_purchase_orders (self):
+		c = self.db.cursor()
 		self.po_store.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
-			self.cursor.execute("SELECT id, date_created::text, "
-								"format_date(date_created), name, '', "
-								"COALESCE(total, 0.00) "
-								"FROM purchase_orders "
-								"WHERE canceled =  false "
-								"ORDER BY date_created")
+			c.execute("SELECT "
+						"id, "
+						"date_created::text, "
+						"format_date(date_created), "
+						"name, "
+						"comments, "
+						"COALESCE(total, 0.00), "
+						"COALESCE(total, 0.00)::text, "
+						"paid, "
+						"closed "
+						"FROM purchase_orders "
+						"WHERE canceled =  false "
+						"ORDER BY date_created")
 		else:
-			self.cursor.execute("SELECT id, date_created::text, "
-								"format_date(date_created), name, '', "
-								"COALESCE(total, 0.00) "
-								"FROM purchase_orders "
-								"WHERE (vendor_id, canceled) = "
-								"(%s, False) ORDER BY date_created", 
-								(self.vendor_id,))
-		for row in self.cursor.fetchall():
+			c.execute("SELECT "
+						"id, "
+						"date_created::text, "
+						"format_date(date_created), "
+						"name, "
+						"comments, "
+						"COALESCE(total, 0.00), "
+						"COALESCE(total, 0.00)::text, "
+						"paid, "
+						"closed "
+						"FROM purchase_orders "
+						"WHERE (vendor_id, canceled) = "
+						"(%s, False) ORDER BY date_created", 
+						(self.vendor_id,))
+		for row in c.fetchall():
 			total += row[5]
 			self.po_store.append(row)
 		self.builder.get_object('label3').set_label(str(total))
+		c.close()
 
 	def invoice_row_changed (self, selection):
 		self.builder.get_object('checkbutton1').set_active(False)

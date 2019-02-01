@@ -20,7 +20,7 @@ from gi.repository import Gtk
 import subprocess
 import main
 
-UI_FILE = main.ui_directory + "//reports/incoming_invoices.ui"
+UI_FILE = main.ui_directory + "/reports/incoming_invoices.ui"
 
 class IncomingInvoiceGUI:
 	def __init__(self, db):
@@ -103,9 +103,11 @@ class IncomingInvoiceGUI:
 									"date_created::text, "
 									"format_date(date_created), "
 									"description, "
-									"amount "
+									"amount, "
+									"amount::text "
 								"FROM incoming_invoices AS i "
-								"JOIN contacts AS c ON c.id = i.contact_id")
+								"JOIN contacts AS c ON c.id = i.contact_id "
+								"ORDER BY date_created, i.id")
 		else:
 			self.cursor.execute("SELECT "
 									"i.id, "
@@ -113,10 +115,12 @@ class IncomingInvoiceGUI:
 									"date_created::text, "
 									"format_date(date_created), "
 									"description, "
-									"amount "
+									"amount, "
+									"amount::text "
 								"FROM incoming_invoices AS i "
 								"JOIN contacts AS c ON c.id = i.contact_id "
-								"WHERE contact_id = %s", 
+								"WHERE contact_id = %s "
+								"ORDER BY date_created, i.id", 
 								(self.service_provider_id,))
 		for row in self.cursor.fetchall():
 			self.incoming_invoice_store.append(row)

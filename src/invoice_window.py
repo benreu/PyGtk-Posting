@@ -591,11 +591,14 @@ class InvoiceGUI:
 		self.populating = False
 
 	def customer_selected(self, name_id):
-		self.cursor.execute("SELECT address, phone FROM contacts "
+		self.cursor.execute("SELECT address, phone, city, state, zip FROM contacts "
 							"WHERE id = (%s)",(name_id,))
 		for row in self.cursor.fetchall() :
 			self.builder.get_object('entry6').set_text(row[0])
 			self.builder.get_object('entry8').set_text(row[1])
+			self.builder.get_object('entry15').set_text(row[2])
+			self.builder.get_object('entry16').set_text(row[3])
+			self.builder.get_object('entry17').set_text(row[4])
 		self.populate_tax_exemption_combo ()
 		self.set_widgets_sensitive ()
 		self.cursor.execute("SELECT id, comments FROM invoices "
