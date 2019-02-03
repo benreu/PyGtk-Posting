@@ -143,5 +143,13 @@ ALTER TABLE public.purchase_order_line_items ADD CONSTRAINT purchase_order_line_
 ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_transaction_id bigint REFERENCES gl_transactions ON DELETE RESTRICT;
 UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELECT id, gl_transaction_id FROM gl_entries) AS ge WHERE incoming_invoices.gl_entry_id = ge.id AND incoming_invoices.gl_transaction_id IS NULL;
 UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELECT date_inserted, amount, gl_transaction_id FROM gl_entries) AS ge WHERE incoming_invoices.amount = ge.amount AND incoming_invoices.gl_transaction_id IS NULL AND incoming_invoices.date_created = ge.date_inserted ;
+--version 0.5.10
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS finance_rate decimal(12, 2) DEFAULT 0.00;
+UPDATE settings SET finance_rate = 0.00 WHERE finance_rate IS NULL;
+ALTER TABLE settings SET COLUMN finance_rate NOT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS finance_charge boolean DEFAULT FALSE;
+UPDATE invoices SET finance_charge = False WHERE finance_charge IS NULL;
+ALTER TABLE invoices SET finance_charge NOT NULL;
+
 
 
