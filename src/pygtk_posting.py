@@ -39,6 +39,7 @@ class MainGUI (GObject.GObject, Accounts):
 	}
 	log_file = None
 	time_clock_object = None
+	keybinding = None
 
 	def __init__(self):
 		GObject.GObject.__init__(self)
@@ -107,7 +108,11 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def connect_keybindings (self):
 		import keybindings
-		keybindings.KeybinderInit(self)
+		self.keybinding = keybindings.KeybinderInit(self)
+	
+	def keyboard_shortcuts_activated (self, menuitem):
+		if self.keybinding:
+			self.keybinding.show_window()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window

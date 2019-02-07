@@ -17,37 +17,53 @@
 
 import gi
 gi.require_version('Keybinder', '3.0')
-from gi.repository import Gtk, Gdk, Keybinder
+from gi.repository import Gtk, Gdk, Keybinder, Gio
 import main
 
 UI_FILE = main.ui_directory + "/keybindings.ui"
 
-class KeybinderInit:
+shortcuts = (
+	["Product location", Gdk.ModifierType(0), 65475, 'product-location'],
+	["New invoice", Gdk.ModifierType(0), 65476, 'new-invoice'],
+	["Time clock", Gdk.ModifierType(0), 65477, 'time-clock'],
+	["Main window", Gdk.ModifierType(0), 65478, 'present'])
+
+class KeybinderInit (Gtk.Builder):
 	def __init__ (self, main):
-		#print (main, k)
 		k = Keybinder
 		k.init()
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
-		self.store = self.builder.get_object('keybindings_store')
-		self.store.append([Gdk.ModifierType.SHIFT_MASK, 85, "New Invoice"])
-		self.store.append([Gdk.ModifierType.CONTROL_MASK, 76, "Time Clock"])
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
+		self.settings = Gio.Settings.new("pygtk-posting.keybinding.global")
+		self.store = self.get_object('keybindings_store')
+		for row in shortcuts:
+			self.store.append(row)
+		shortcut = self.settings.get_string('present')
+		key, mod = Gtk.accelerator_parse(shortcut)
+		self.store[3][1] = mod
+		self.store[3][2] = key
 		for row in [	
 						("F7", main.new_invoice), 
 						("F8", main.time_clock),
-						("F9", main.present)     ]:
+						("F6", main.product_location_window)    ]:
 			k.bind(row[0], row[1])
-		#self.builder.get_object('keybinding_dialog').show_all()
+
+	def show_window (self):
+		window = self.get_object('window')
+		window.show_all()
+		window.present()
+
+	def window_delete_event (self, window, event):
+		window.hide()
+		return True
 	
 	def accel_edited(self, cellrendereraccel, path, key, mods, hwcode):
+		self.store[path][1] = mods
+		self.store[path][2] = key
+		setting_name = self.store[path][3]
 		accelerator = Gtk.accelerator_name(key, mods)
-		self.store[path][0] = mods
-		self.store[path][1] = key
-		print (mods)
-		#for i in dir(mods):
-		#	print (i)
-		#print (mods, key)
+		self.settings.set_string(setting_name, accelerator)
 
 
 		

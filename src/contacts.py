@@ -95,7 +95,7 @@ class GUI(Gtk.Builder):
 		self.set_window_layout_from_settings ()
 
 	def set_window_layout_from_settings (self):
-		settings = Gio.Settings.new("com.github.benreu.pygtk-posting")
+		settings = Gio.Settings.new("pygtk-posting.window.layout.size")
 		width = settings.get_int("contact-window-width")
 		height = settings.get_int("contact-window-height")
 		self.window.resize(width, height)
@@ -105,7 +105,7 @@ class GUI(Gtk.Builder):
 		column.set_fixed_width(settings.get_int("contact-name-column-width"))
 
 	def save_window_layout_clicked (self, button):
-		settings = Gio.Settings.new("com.github.benreu.pygtk-posting")
+		settings = Gio.Settings.new("pygtk-posting.window.layout.size")
 		width, height = self.window.get_size()
 		settings.set_int("contact-window-width", width)
 		settings.set_int("contact-window-height", height)
