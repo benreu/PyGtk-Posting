@@ -48,24 +48,36 @@ class Setup(XCloseListener, unohelper.Base):
 		self.create_odt ()
 
 	def create_odt (self):
-		self.cursor.execute("SELECT * FROM contacts "
-							"WHERE id = (%s)",[self.contact_id])
+		self.cursor.execute("SELECT "
+								"c.name, "
+								"c.ext_name, "
+								"c.address, "
+								"c.city, "
+								"c.state, "
+								"c.zip, "
+								"c.fax, "
+								"c.phone, "
+								"c.email, "
+								"c.label, "
+								"c.tax_number, "
+								"i.name "
+								"FROM contacts AS c "
+								"JOIN invoices AS i ON i.customer_id = c.id "
+							"WHERE i.id = (%s)",[self.invoice_id])
 		customer = Item()
 		for row in self.cursor.fetchall():
-			self.customer_id = row[0]
-			customer.name = row[1]
-			name = row[1]
-			customer.ext_name = row[2]
-			customer.street = row[3]
-			customer.city = row[4]
-			customer.state = row[5]
-			customer.zip = row[6]
-			customer.fax = row[7]
-			customer.phone = row[8]
-			customer.email = row[9]
-			customer.label = row[10]
-			customer.tax_exempt = row[11]
-			customer.tax_exempt_number = row[12]
+			customer.name = row[0]
+			customer.ext_name = row[1]
+			customer.street = row[2]
+			customer.city = row[3]
+			customer.state = row[4]
+			customer.zip = row[5]
+			customer.fax = row[6]
+			customer.phone = row[7]
+			customer.email = row[8]
+			customer.label = row[9]
+			customer.tax_exempt_number = row[10]
+			invoice_name = row[11]
 		company = Item()
 		self.cursor.execute("SELECT * FROM company_info")
 		for row in self.cursor.fetchall():
@@ -157,17 +169,7 @@ class Setup(XCloseListener, unohelper.Base):
 			terms.text4 = ''
 			
 		document.date = date_text
-		
-		split_name = name.split(' ')
-		name_str = ""
-		for i in split_name:
-			name_str += i[0:3]
-		name = name_str.lower()
-
-		invoice_date = re.sub(" ", "_", date_text)
-		prefix = self.doc_type[0:3]
-		document.name = prefix + "_" + str(self.invoice_id) + "_"\
-												+ name + "_" + invoice_date
+		document.name = invoice_name
 		document.number = str(self.invoice_id)
 		document.type = self.doc_type
 
