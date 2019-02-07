@@ -22,7 +22,7 @@ import main
 
 UI_FILE = main.ui_directory + "/customer_finance_charge.ui"
 
-class GUI:
+class CustomerFinanceChargeGUI:
 	def __init__(self, db):
 
 		self.builder = Gtk.Builder()
@@ -39,7 +39,6 @@ class GUI:
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 		self.customer_combobox_populate ()
-		self.name_store = Gtk.ListStore(int, str )
 				
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -69,7 +68,7 @@ class GUI:
 	def customer_combobox_populate(self):
 		self.customer_store.clear()
 		c = self.db.cursor()
-		c.execute("with table2 AS "
+		c.execute("WITH table2 AS "
 					"( "
 					"SELECT id, "
 						"(SELECT COALESCE(SUM(amount_due), 0.0) " 

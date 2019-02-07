@@ -41,7 +41,7 @@
       </attributes>
     </child>
   </object>
-  <object class="GtkListStore" id="statement_store">
+  <object class="GtkListStore" id="finance_charge_store">
     <columns>
       <!-- column-name id -->
       <column type="gchararray"/>
@@ -59,7 +59,7 @@
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Statements</property>
+    <property name="title" translatable="yes">Finance charges</property>
     <property name="window_position">center</property>
     <property name="default_width">600</property>
     <property name="default_height">400</property>
@@ -185,7 +185,7 @@
               <object class="GtkTreeView" id="treeview1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">statement_store</property>
+                <property name="model">finance_charge_store</property>
                 <property name="enable_grid_lines">horizontal</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection"/>

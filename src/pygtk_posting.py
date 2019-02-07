@@ -154,6 +154,10 @@ class MainGUI (GObject.GObject, Accounts):
 				menuitem.show()
 				menu.append(menuitem)
 
+	def finance_charge_activated (self, menuitem):
+		import customer_finance_charge
+		customer_finance_charge.CustomerFinanceChargeGUI(self.db)
+
 	def password_entry_activated (self, dialog):
 		dialog.response(-3)
 
