@@ -55,12 +55,15 @@ class ProductLocationGUI:
 		self.populate_location_combo()
 		self.handler_id = main.connect("products_changed", self.populate_product_location_treeview)
 		
-		window = self.builder.get_object('window1')
-		window.show_all()
-		
-	def destroy (self, window):	
-		self.main.disconnect(self.handler_id)
-		self.cursor.close()
+		self.window = self.builder.get_object('window1')
+		self.window.show_all()
+
+	def delete_event (self, window, event):
+		window.hide()
+		return True
+
+	def present (self):
+		self.window.present()
 
 	def clear_all_search_clicked(self, widget):
 		self.builder.get_object('searchentry1').set_text("")

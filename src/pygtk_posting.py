@@ -40,6 +40,7 @@ class MainGUI (GObject.GObject, Accounts):
 	log_file = None
 	time_clock_object = None
 	keybinding = None
+	prod_loc_class = None
 
 	def __init__(self):
 		GObject.GObject.__init__(self)
@@ -108,6 +109,8 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def connect_keybindings (self):
 		import keybindings
+		keybindings.parent = self
+		keybindings.populate_shortcuts(self)
 		self.keybinding = keybindings.KeybinderInit(self)
 	
 	def keyboard_shortcuts_activated (self, menuitem):
@@ -354,9 +357,12 @@ class MainGUI (GObject.GObject, Accounts):
 		import accounts_overview
 		accounts_overview.AccountsOverviewGUI(self)
 
-	def product_location_window(self, widget):
-		import product_location
-		product_location.ProductLocationGUI(self)
+	def product_location (self, widget = None):
+		if not self.prod_loc_class:
+			import product_location
+			self.prod_loc_class = product_location.ProductLocationGUI(self)
+		else:
+			self.prod_loc_class.present()
 
 	def sales_tax_report(self, widget):
 		from reports import sales_tax_report
@@ -592,7 +598,7 @@ class MainGUI (GObject.GObject, Accounts):
 		from inventory import inventory_history
 		inventory_history.InventoryHistoryGUI(self.db)
 
-	def time_clock(self, widget):
+	def time_clock(self, widget = None):
 		if self.time_clock_object == None:
 			import time_clock
 			self.time_clock_object = time_clock.TimeClockGUI(self)
@@ -683,11 +689,11 @@ class MainGUI (GObject.GObject, Accounts):
 		from db import database_tools
 		database_tools.GUI(self.db, False)
 
-	def new_purchase_order(self, widget):
+	def new_purchase_order(self, widget = None):
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI(self)
 
-	def new_invoice(self, widget):
+	def new_invoice(self, widget = None):
 		global invoice_window
 		if invoice_window == None:
 			import invoice_window

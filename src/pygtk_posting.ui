@@ -342,7 +342,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Product location</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="product_location_window" swapped="no"/>
+                        <signal name="activate" handler="product_location" swapped="no"/>
                       </object>
                     </child>
                     <child>

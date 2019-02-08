@@ -54,11 +54,31 @@
             <description>The width of the Contacts name column on the left side of the window.</description>
         </key>
     </schema>
-    <schema id="pygtk-posting.keybinding.global" path="/com/github/benreu/PyGtk-Posting/">
-        <key name="present" type="s">
+    <schema id="pygtk-posting.keybinding" path="/com/github/benreu/PyGtk-Posting/">
+        <key name="present-main-window" type="s">
             <default>'F9'</default>
             <summary>Keybinding to present PyGtk-Posting.</summary>
-            <description>Global keybinding to allow user to call Posting from any place after Posting is opened.</description>
+            <description>Global keybinding to allow user to call Posting from anywhere after Posting is opened.</description>
+        </key>
+        <key name="product-location" type="s">
+            <default>''</default>
+            <summary>Keybinding to open/present Product location.</summary>
+            <description>Local keybinding to allow user to open or present a Product location window.</description>
+        </key>
+        <key name="invoice-window" type="s">
+            <default>''</default>
+            <summary>Keybinding to open an New Invoice window.</summary>
+            <description>Local keybinding to allow user to open a Invoice window.</description>
+        </key>
+        <key name="purchase-order-window" type="s">
+            <default>''</default>
+            <summary>Keybinding to open an New Purchase Order window.</summary>
+            <description>Local keybinding to allow user to open a Purchase Order window.</description>
+        </key>
+        <key name="time-clock" type="s">
+            <default>''</default>
+            <summary>Keybinding to open an Time Clock window.</summary>
+            <description>Local keybinding to allow user to open a Time Clock window.</description>
         </key>
     </schema>
 </schemalist>

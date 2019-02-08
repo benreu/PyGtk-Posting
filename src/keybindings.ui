@@ -6,12 +6,14 @@
     <columns>
       <!-- column-name action -->
       <column type="gchararray"/>
-      <!-- column-name gdk -->
-      <column type="GdkModifierType"/>
       <!-- column-name accel -->
       <column type="gint"/>
+      <!-- column-name gdk -->
+      <column type="GdkModifierType"/>
       <!-- column-name schema-name -->
       <column type="gchararray"/>
+      <!-- column-name closure -->
+      <column type="PyObject"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
@@ -23,52 +25,74 @@
     <property name="icon_name">pygtk-posting</property>
     <signal name="delete-event" handler="window_delete_event" swapped="no"/>
     <child>
-      <placeholder/>
-    </child>
-    <child>
-      <object class="GtkScrolledWindow">
+      <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="shadow_type">in</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
         <child>
-          <object class="GtkTreeView">
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="label" translatable="yes">Restart required to load new keybindings !</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">5</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="model">keybindings_store</property>
-            <child internal-child="selection">
-              <object class="GtkTreeSelection"/>
-            </child>
+            <property name="shadow_type">in</property>
             <child>
-              <object class="GtkTreeViewColumn">
-                <property name="resizable">True</property>
-                <property name="title" translatable="yes">Action</property>
-                <property name="reorderable">True</property>
-                <child>
-                  <object class="GtkCellRendererText"/>
-                  <attributes>
-                    <attribute name="text">0</attribute>
-                  </attributes>
+              <object class="GtkTreeView">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="model">keybindings_store</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection"/>
                 </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkTreeViewColumn">
-                <property name="resizable">True</property>
-                <property name="title" translatable="yes">Accel</property>
-                <property name="reorderable">True</property>
                 <child>
-                  <object class="GtkCellRendererAccel">
-                    <property name="editable">True</property>
-                    <signal name="accel-edited" handler="accel_edited" swapped="no"/>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Action</property>
+                    <property name="reorderable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
                   </object>
-                  <attributes>
-                    <attribute name="accel-key">2</attribute>
-                    <attribute name="accel-mods">1</attribute>
-                  </attributes>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Accel</property>
+                    <property name="reorderable">True</property>
+                    <child>
+                      <object class="GtkCellRendererAccel">
+                        <property name="editable">True</property>
+                        <signal name="accel-edited" handler="accel_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="accel-key">1</attribute>
+                        <attribute name="accel-mods">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
                 </child>
               </object>
             </child>
           </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
         </child>
       </object>
     </child>
