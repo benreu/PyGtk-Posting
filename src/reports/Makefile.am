@@ -27,8 +27,6 @@ python_PYTHON = time_clock_project.ui \
 	deposits.ui \
 	sales_tax_report.py \
 	sales_tax_report.ui \
-	contact_transactions.py \
-	contact_transactions.ui \
 	vendor_history.py \
 	vendor_history.ui \
 	product_account_relationship.py \

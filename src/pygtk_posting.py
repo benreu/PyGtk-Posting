@@ -94,7 +94,7 @@ class MainGUI (GObject.GObject, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
-		if not main.dev_mode:
+		if not main.dev_mode or True:
 			self.connect_keybindings()
 		import traceback_handler
 		traceback_handler.Log(self.log_file)
@@ -418,10 +418,6 @@ class MainGUI (GObject.GObject, Accounts):
 	def account_transaction_window(self, widget):
 		import account_transactions
 		account_transactions.GUI(self.db)
-
-	def contact_transactions(self, widget):
-		from reports import contact_transactions
-		contact_transactions.GUI(self)
 
 	def settings_window(self, widget):
 		import settings

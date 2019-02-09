@@ -44,9 +44,9 @@ class MainReportsGUI:
 		from reports import product_account_relationship
 		product_account_relationship.ProductAccountRelationshipGUI(self.main)
 
-	def contact_transactions_clicked (self, button):
-		from reports import contact_transactions
-		contact_transactions.GUI(self)
+	def contact_history_clicked (self, button):
+		from reports import contact_history
+		contact_history.ContactHistoryGUI(self)
 
 	def vendor_history_clicked (self, menuitem):
 		from reports import vendor_history

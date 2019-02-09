@@ -175,12 +175,12 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem37">
+                      <object class="GtkMenuItem" id="menuitem32">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Job sheet</property>
+                        <property name="label" translatable="yes">History overview</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="job_sheet" swapped="no"/>
+                        <signal name="activate" handler="contact_history" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -190,6 +190,15 @@
                         <property name="label" translatable="yes">Invoice history</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="invoice_history" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem37">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Job sheet</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="job_sheet" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -217,15 +226,6 @@
                         <property name="label" translatable="yes">Statements</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="statement_window" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem32">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Transactions</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="contact_transactions" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -267,15 +267,6 @@
                         <property name="label" translatable="yes">New purchase order</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="new_purchase_order" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem33">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Transactions</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="contact_transactions" swapped="no"/>
                       </object>
                     </child>
                     <child>

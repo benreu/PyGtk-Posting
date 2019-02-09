@@ -38,11 +38,11 @@
                     <property name="spacing">10</property>
                     <child>
                       <object class="GtkButton" id="button1">
-                        <property name="label" translatable="yes">Contact transactions</property>
+                        <property name="label" translatable="yes">Contact history</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <signal name="clicked" handler="contact_transactions_clicked" swapped="no"/>
+                        <signal name="clicked" handler="contact_history_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
