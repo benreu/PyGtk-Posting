@@ -117,7 +117,8 @@ class MainReportsGUI:
 		profit_loss_report.ProfitLossReportGUI(self.db)
 
 	def net_worth_clicked (self, button):
-		pass
+		from reports import net_worth
+		net_worth.NetWorthGUI(self.db)
 
 
 

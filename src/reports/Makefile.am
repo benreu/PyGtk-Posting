@@ -46,6 +46,8 @@ python_PYTHON = time_clock_project.ui \
 	bank_statements.py \
 	bank_statements.ui \
 	profit_loss_report.py \
-	profit_loss_report.ui
+	profit_loss_report.ui \
+	net_worth.py \
+	net_worth.ui
 
 uidir = $(pkgdatadir)/reports/ui
