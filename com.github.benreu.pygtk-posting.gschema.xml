@@ -56,7 +56,7 @@
     </schema>
     <schema id="pygtk-posting.keybinding" path="/com/github/benreu/PyGtk-Posting/">
         <key name="present-main-window" type="s">
-            <default>'F9'</default>
+            <default>'F9 True'</default>
             <summary>Keybinding to present PyGtk-Posting.</summary>
             <description>Global keybinding to allow user to call Posting from anywhere after Posting is opened.</description>
         </key>

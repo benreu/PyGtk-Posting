@@ -8,22 +8,28 @@
       <column type="gchararray"/>
       <!-- column-name accel -->
       <column type="gint"/>
-      <!-- column-name gdk -->
+      <!-- column-name modifier -->
       <column type="GdkModifierType"/>
       <!-- column-name schema-name -->
       <column type="gchararray"/>
       <!-- column-name closure -->
       <column type="PyObject"/>
+      <!-- column-name global -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
     <property name="can_focus">False</property>
+    <property name="border_width">10</property>
     <property name="title" translatable="yes">Keyboard shortcuts</property>
     <property name="window_position">center</property>
     <property name="default_width">250</property>
     <property name="default_height">400</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="delete-event" handler="window_delete_event" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -33,7 +39,8 @@
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Restart required to load new keybindings !</property>
+            <property name="label" translatable="yes">Restart required to load new keybindings.
+Posting cannot detect global keybinding conflicts.</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -81,6 +88,21 @@
                       <attributes>
                         <attribute name="accel-key">1</attribute>
                         <attribute name="accel-mods">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Global</property>
+                    <property name="reorderable">True</property>
+                    <child>
+                      <object class="GtkCellRendererToggle">
+                        <signal name="toggled" handler="global_toggled" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="active">5</attribute>
                       </attributes>
                     </child>
                   </object>

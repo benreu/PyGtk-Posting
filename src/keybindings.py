@@ -28,11 +28,11 @@ no_mod = Gdk.ModifierType(0)
 def populate_shortcuts (main):
 	global shortcuts
 	shortcuts = (
-	["Main window (global)", 0, no_mod, 'present-main-window', main],
-	["Product location", 0, no_mod, 'product-location', main.product_location],
-	["Invoice window", 0, no_mod, 'invoice-window', main.new_invoice],
-	["Purchase order window", 0, no_mod, 'purchase-order-window', main.new_purchase_order],
-	["Time clock", 0, no_mod, 'time-clock', main.time_clock])
+	["Main window (global)", 0, no_mod, 'present-main-window', main.present, True],
+	["Product location", 0, no_mod, 'product-location', main.product_location, False],
+	["Invoice window", 0, no_mod, 'invoice-window', main.new_invoice, False],
+	["Purchase order window", 0, no_mod, 'purchase-order-window', main.new_purchase_order, False],
+	["Time clock", 0, no_mod, 'time-clock', main.time_clock, False])
 
 class KeybinderInit (Gtk.Builder):
 	def __init__ (self, main):
@@ -45,21 +45,32 @@ class KeybinderInit (Gtk.Builder):
 		self.store = self.get_object('keybindings_store')
 		for row in shortcuts:
 			self.store.append(row)
-		shortcut = self.settings.get_string('present-main-window')
-		key, mod = Gtk.accelerator_parse(shortcut)
-		self.store[0][1] = key
-		self.store[0][2] = mod
-		k.bind(shortcut, main.present)
 		self.accel_group = Gtk.AccelGroup()
 		for index, row in enumerate(self.store):
-			if index == 0:
-				continue
-			shortcut = self.settings.get_string(row[3])
-			key, mod = Gtk.accelerator_parse(shortcut)
+			string = self.settings.get_string(row[3]).split()
+			if len(string) == 2:
+				hotkey, global_hotkey = string
+			else : # not a valid hotkey, just default to nothing
+				hotkey, global_hotkey = ('', False)
+			key, mod = Gtk.accelerator_parse(hotkey)
 			row[1] = key
 			row[2] = mod
-			self.accel_group.connect(key, mod, 0, self.accel_callback)
+			closure = row[4]
+			if hotkey == '':
+				continue # don't bind disabled hotkeys
+			if global_hotkey == 'True':
+				k.bind(hotkey, closure)
+				row[5] = True
+			else:
+				self.accel_group.connect(key, mod, 0, self.accel_callback)
 		parent.window.add_accel_group(self.accel_group)
+
+	def global_toggled (self, cellrenderertoggle, path):
+		if path == '0' and self.store[path][5] == True :
+			return # main window is always global, or set to global if it isn't
+		global_hotkey = not self.store[path][5]
+		self.store[path][5] = global_hotkey
+		self.save_hotkey_preference (path)
 
 	def accel_callback(self, accel_group, window, key, mod):
 		for row in self.store:
@@ -77,13 +88,31 @@ class KeybinderInit (Gtk.Builder):
 		return True
 	
 	def accel_edited(self, cellrendereraccel, path, key, mods, hwcode):
+		if key == 32:
+			self.show_message ('Space is not allowed for a keybinding!')
+			return
 		self.store[path][1] = key
 		self.store[path][2] = mods
-		print (key)
-		#return
+		self.save_hotkey_preference (path)
+
+	def save_hotkey_preference (self, path):
+		key = self.store[path][1]
+		mods = self.store[path][2] 
 		setting_name = self.store[path][3]
+		global_hotkey = self.store[path][5]
 		accelerator = Gtk.accelerator_name(key, mods)
-		self.settings.set_string(setting_name, accelerator)
+		setting = accelerator + ' ' + str(global_hotkey)
+		self.settings.set_string(setting_name, setting)
+
+	def show_message (self, message):
+		window = self.get_object('window')
+		dialog = Gtk.MessageDialog( window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									str(message))
+		dialog.run()
+		dialog.destroy()
 
 
 		
