@@ -23,6 +23,7 @@ import main
 UI_FILE = main.ui_directory + "/reports/incoming_invoices.ui"
 
 class IncomingInvoiceGUI:
+	service_provider_id = None
 	def __init__(self, db):
 
 		self.builder = Gtk.Builder()
@@ -108,6 +109,8 @@ class IncomingInvoiceGUI:
 								"FROM incoming_invoices AS i "
 								"JOIN contacts AS c ON c.id = i.contact_id "
 								"ORDER BY date_created, i.id")
+		elif self.service_provider_id == None:
+			return
 		else:
 			self.cursor.execute("SELECT "
 									"i.id, "
