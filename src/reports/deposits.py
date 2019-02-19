@@ -21,36 +21,30 @@ import main
 
 UI_FILE = main.ui_directory + "/reports/deposits.ui"
 
-class DepositsGUI:
+class DepositsGUI(Gtk.Builder):
 	def __init__(self, db):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.db = db
 		self.cursor = db.cursor()
 
-		self.deposit_store = self.builder.get_object('deposit_store')
+		self.deposit_store = self.get_object('deposit_store')
+		self.treeview = self.get_object('treeview1')
 		self.populate_deposits_store ()
 
-		window = self.builder.get_object('window1')
+		window = self.get_object('window1')
 		window.show_all()
-
-		price_column = self.builder.get_object ('treeviewcolumn2')
-		price_renderer = self.builder.get_object ('cellrenderertext2')
-		price_column.set_cell_data_func(price_renderer, self.amount_cell_func)
-
-	def amount_cell_func(self, view_column, cellrenderer, model, iter1, column):
-		amount = '{:,.2f}'.format(model.get_value(iter1, 3))
-		cellrenderer.set_property("text" , amount)
 
 	def populate_deposits_store (self):
 		self.cursor.execute ("SELECT "
 								"gl_entries.id, "
 								"date_inserted::text, "
 								"format_date(date_inserted), "
-								"gl_entries.amount, "
+								"gl_entries.amount::float, "
+								"gl_entries.amount::text, "
 								"'', "
 								"gl_accounts.name "
 							"FROM gl_entries "
@@ -66,7 +60,8 @@ class DepositsGUI:
 									"p.id, "
 									"date_inserted::text, "
 									"format_date(date_inserted), "
-									"amount, "
+									"amount::float, "
+									"amount::text, "
 									"payment_text, "
 									"c.name "
 								"FROM payments_incoming AS p "
@@ -75,11 +70,17 @@ class DepositsGUI:
 			for row in self.cursor.fetchall():
 				self.deposit_store.append(parent, row)
 
-
-
-
+	def export_to_pdf_activated (self, menuitem):
+		from reports import export_to_pdf
+		export_to_pdf.ExportToPdfGUI(self.treeview)
 		
+	def collapse_all_activated (self, menuitem):
+		self.treeview.collapse_all()
+
+	def expand_all_activated (self, menuitem):
+		self.treeview.expand_all()
 
 
 
-		
+
+
