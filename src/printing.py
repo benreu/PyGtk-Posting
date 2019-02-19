@@ -20,73 +20,80 @@ gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
 import main, os
 
-class Setup:
-	def __init__(self, file_to_print, settings_file):
-		file_uri = GLib.filename_to_uri(file_to_print)
-		
-		self.settings_file = (os.path.join
-								(main.preferences_path,
-								'%s_print_settings' % settings_file))
-		try:
-			settings = Gtk.PrintSettings.new_from_file(self.settings_file)
-		except Exception as e:
-			print ("Error when loading print settings file: ", str(e))
-			settings = Gtk.PrintSettings()
-			
-		self.operation = Gtk.PrintOperation()
-		self.operation.set_print_settings(settings)
-		self.operation.set_embed_page_setup(True)
-		self.operation.connect('begin-print', self.begin_print, None)
-		self.operation.connect('draw-page', self.draw_page, None)
-		self.operation.connect('create-custom-widget', self.create_custom_widget, None)
+class Setup (Gtk.PrintOperation):
+	settings_file = None
+	def __init__(self, file_to_print = None, settings_file = None):
 
-		self.doc = Poppler.Document.new_from_file(file_uri)
+		Gtk.PrintOperation.__init__(self)
+		self.set_embed_page_setup(True)
+		self.connect('create-custom-widget', self.create_custom_widget, None)
+		
+		if settings_file:
+			self.settings_file = (os.path.join
+									(main.preferences_path,
+									'%s_print_settings' % settings_file))
+			try:
+				settings = Gtk.PrintSettings.new_from_file(self.settings_file)
+			except Exception as e:
+				print ("Error when loading print settings file: ", str(e))
+				settings = Gtk.PrintSettings()
+			self.set_print_settings(settings)
+
+		if file_to_print:
+			file_uri = GLib.filename_to_uri(file_to_print)
+			self.doc = Poppler.Document.new_from_file(file_uri)
+		for i in dir(self):
+			print (i)
 
 	def create_custom_widget (self, operation, args):
-		operation.set_custom_tab_label('PyGtk Posting')
+		self.set_custom_tab_label('PyGtk Posting')
 		box = Gtk.Box (orientation = Gtk.Orientation.VERTICAL)
 		box.set_halign (Gtk.Align.CENTER)
 		button = Gtk.Button(label = "Cancel printing")
 		button.set_tooltip_text("This button really doesn't do anything, it is here for reference")
-		button.connect('clicked', self.cancel, operation)
+		button.connect('clicked', self.button_cancel)
 		box.pack_start(button, False, False, 50)
 		box.show_all()
 		return box
 
-	def cancel (self, button, operation):
-		operation.cancel()
+	def button_cancel (self, button = None):
+		self.cancel()
 
-	def begin_print(self, operation, print_ctx, print_data):
-		operation.set_n_pages(self.doc.get_n_pages())
+	def set_print_bytes (self, bytes):
+		self.doc = Poppler.Document.new_from_stream(bytes, -1, None, None)
 
-	def draw_page(self, operation, print_ctx, page_num, print_data):
+	def do_begin_print(self, operation):
+		self.set_n_pages(self.doc.get_n_pages())
+
+	def do_draw_page(self, print_ctx, page_num):
 		cr = print_ctx.get_cairo_context()
 		page = self.doc.get_page(page_num)
 		page.render(cr)
 
 	def print_dialog (self, parent):
 		"parent dialog to attach the dialog to"
-		result = self.operation.run(Gtk.PrintOperationAction.PRINT_DIALOG,
+		#print (self.get_orientation())
+		result = self.run(Gtk.PrintOperationAction.PRINT_DIALOG,
 									parent)
 		if result == Gtk.PrintOperationResult.ERROR:
-			message = self.operation.get_error()
+			message = self.get_error()
 			self.show_error_message(message, parent)
 		elif result == Gtk.PrintOperationResult.APPLY:
-			settings = self.operation.get_print_settings()
+			settings = self.get_print_settings()
 			try:
-				settings.to_file(self.settings_file)
+				if self.settings_file:
+					settings.to_file(self.settings_file)
 			except Exception as e:
 				message = str(e)
 				self.show_error_message(message, parent)
 		return result
-		
 
 	def print_directly (self, parent):
 		"parent dialog to attach the dialog to"
-		result = self.operation.run(Gtk.PrintOperationAction.PRINT,
+		result = self.run(Gtk.PrintOperationAction.PRINT,
 									parent)
 		if result == Gtk.PrintOperationResult.ERROR:
-			message = self.operation.get_error()
+			message = self.get_error()
 			self.show_error_message(message, parent)
 		return result
 
