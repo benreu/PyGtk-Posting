@@ -18,13 +18,15 @@
 import gi
 gi.require_version('EvinceView', '3.0')
 gi.require_version('PangoCairo', '1.0')
-from gi.repository import Gtk, GLib, EvinceView, EvinceDocument, PangoCairo, Pango
+from gi.repository import Gtk, GLib, Gio
+from gi.repository import EvinceView, EvinceDocument, PangoCairo, Pango
 import cairo
 import main
 
 UI_FILE = main.ui_directory + "/reports/export_to_pdf.ui"
 
 class ExportToPdfGUI(Gtk.Builder):
+	landscape = False
 	def __init__ (self, treeview):
 
 		Gtk.Builder.__init__(self)
@@ -79,9 +81,11 @@ class ExportToPdfGUI(Gtk.Builder):
 		if pdf_width > 792: # greater than 11 inches
 			pdf_height = 612 * (float(pdf_width) / 792) 
 			# scale pdf height according to width oversize
+			self.landscape = True
 		elif pdf_width > 612: # greater than 8.5 inches
 			pdf_width = 792
 			pdf_height = 612
+			self.landscape = True
 		else: # less than 8.5 inches
 			pdf_width = 612
 			pdf_height = 792
@@ -113,11 +117,36 @@ class ExportToPdfGUI(Gtk.Builder):
 			if (y + border) > pdf_height:
 				cr.show_page()
 				y = border
-		#GLib.idle_add(self.load_pdf)
+		surface.finish()
+		with open("/tmp/pdf_export.pdf",'rb') as f:
+			self.bytes = f.read()
+		GLib.idle_add(self.load_pdf)
 
-	def load_pdf(self):
+	def print_pdf_clicked (self, button):
+		import printing
+		print_op = printing.Setup()
+		pdf_data = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes(self.bytes))
+		print_op.set_print_bytes(pdf_data)
+		if self.landscape:
+			setup = Gtk.PageSetup()
+			setup.set_orientation(Gtk.PageOrientation.LANDSCAPE)
+			print_op.set_default_page_setup(setup)
+		print_op.print_dialog(self.window)
+
+	def save_pdf_clicked (self, button):
+		file_dialog = self.get_object("file_dialog")
+		response = file_dialog.run()
+		file_dialog.hide()
+		if response == Gtk.ResponseType.ACCEPT:
+			filename = file_dialog.get_filename()
+			if not filename.endswith('.pdf'):
+				filename = filename + ".pdf"
+			with open(filename,'wb') as f:
+				f.write (self.bytes)
+
+	def load_pdf (self):
 		self.model = EvinceView.DocumentModel()
-		doc = EvinceDocument.Document.factory_get_document("/tmp/pdf_export.pdf")
+		doc = EvinceDocument.Document.factory_get_document("file:///tmp/pdf_export.pdf")
 		self.model.set_document(doc)
 		self.view.set_model(self.model)
 
