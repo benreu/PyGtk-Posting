@@ -34,6 +34,7 @@ class PaymentsReceivedGUI:
 		self.db = db
 		self.cursor = db.cursor()
 
+		self.treeview = self.builder.get_object('treeview1')
 		self.payment_store = self.builder.get_object('payments_received_store')
 		self.contact_store = self.builder.get_object('contact_store')
 		customer_completion = self.builder.get_object('customer_completion')
@@ -104,18 +105,27 @@ class PaymentsReceivedGUI:
 		self.payment_store.clear()
 		total_amount = Decimal()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+			self.cursor.execute("SELECT "
+								"pay.id, "
+								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
-								"contacts.name, pay.amount, payment_info(pay.id) "
+								"contacts.name, "
+								"pay.amount, "
+								"pay.amount::text, "
+								"payment_info(pay.id) "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
 								"ORDER BY date_inserted;")
 		else:
 			fiscal_id = self.builder.get_object('combobox2').get_active_id()
-			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+			self.cursor.execute("SELECT "
+								"pay.id, "
+								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
-								"contacts.name, pay.amount, "
+								"contacts.name, "
+								"pay.amount, "
+								"pay.amount::text, "
 								"payment_info(pay.id) "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
@@ -140,9 +150,14 @@ class PaymentsReceivedGUI:
 		self.payment_store.clear()
 		total_amount = Decimal()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+			self.cursor.execute("SELECT "
+								"pay.id, "
+								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
-								"contacts.name, pay.amount, payment_info(pay.id) "
+								"contacts.name, "
+								"pay.amount, "
+								"pay.amount::text, "
+								"payment_info(pay.id) "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
@@ -150,9 +165,13 @@ class PaymentsReceivedGUI:
 								"ORDER BY date_inserted;", (self.customer_id,))
 		else:
 			fiscal_id = self.builder.get_object('combobox2').get_active_id()
-			self.cursor.execute("SELECT pay.id, pay.date_inserted::text, "
+			self.cursor.execute("SELECT "
+								"pay.id, "
+								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
-								"contacts.name, pay.amount, "
+								"contacts.name, "
+								"pay.amount, "
+								"pay.amount::text, "
 								"payment_info(pay.id) "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
@@ -172,6 +191,9 @@ class PaymentsReceivedGUI:
 		amount_received = '${:,.2f}'.format(total_amount)
 		self.builder.get_object('label2').set_label(amount_received)
 
+	def report_hub_activated (self, menuitem):
+		from reports import report_hub
+		report_hub.ReportHubGUI(self.treeview)
 
-		
-		
+
+
