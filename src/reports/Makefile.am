@@ -48,6 +48,10 @@ python_PYTHON = time_clock_project.ui \
 	profit_loss_report.py \
 	profit_loss_report.ui \
 	net_worth.py \
-	net_worth.ui
+	net_worth.ui \
+	export_to_pdf.py \
+	export_to_pdf.ui \
+	report_hub.py \
+	report_hub.ui
 
 uidir = $(pkgdatadir)/reports/ui
