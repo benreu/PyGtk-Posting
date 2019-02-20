@@ -39,7 +39,7 @@ class ReportHubGUI (Gtk.Builder):
 
 	def xls_export_clicked (self, button):
 		from reports import export_to_xls
-		export_to_xls.ExportToXlsGUI(self.treeview)
+		export_to_xls.ExportToXlsGUI(self.window, self.treeview)
 		self.window.destroy()
 
 	def cancel_clicked (self, button):
