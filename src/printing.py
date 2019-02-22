@@ -22,7 +22,7 @@ import main, os
 
 class Setup (Gtk.PrintOperation):
 	settings_file = None
-	def __init__(self, file_to_print = None, settings_file = None):
+	def __init__(self, parent = None, file_to_print = None, settings_file = None):
 
 		Gtk.PrintOperation.__init__(self)
 		self.set_embed_page_setup(True)
@@ -38,12 +38,20 @@ class Setup (Gtk.PrintOperation):
 				print ("Error when loading print settings file: ", str(e))
 				settings = Gtk.PrintSettings()
 			self.set_print_settings(settings)
-
 		if file_to_print:
-			file_uri = GLib.filename_to_uri(file_to_print)
+			self.set_file_to_print (file_to_print)
+		if parent:
+			self.parent = parent
+
+	def set_parent (self, parent):
+		self.parent = parent
+
+	def set_file_to_print (self, file_to_print):
+		file_uri = GLib.filename_to_uri(file_to_print)
+		try:
 			self.doc = Poppler.Document.new_from_file(file_uri)
-		for i in dir(self):
-			print (i)
+		except Exception as e:
+			self.show_error_message ('no file found at %s'% file_uri)
 
 	def create_custom_widget (self, operation, args):
 		self.set_custom_tab_label('PyGtk Posting')
@@ -59,7 +67,7 @@ class Setup (Gtk.PrintOperation):
 	def button_cancel (self, button = None):
 		self.cancel()
 
-	def set_print_bytes (self, bytes):
+	def set_bytes_to_print (self, bytes):
 		self.doc = Poppler.Document.new_from_stream(bytes, -1, None, None)
 
 	def do_begin_print(self, operation):
@@ -70,11 +78,12 @@ class Setup (Gtk.PrintOperation):
 		page = self.doc.get_page(page_num)
 		page.render(cr)
 
-	def print_dialog (self, parent):
+	def print_dialog (self, parent = None):
 		"parent dialog to attach the dialog to"
-		#print (self.get_orientation())
+		if parent:
+			self.parent = parent
 		result = self.run(Gtk.PrintOperationAction.PRINT_DIALOG,
-									parent)
+									self.parent)
 		if result == Gtk.PrintOperationResult.ERROR:
 			message = self.get_error()
 			self.show_error_message(message, parent)
@@ -90,15 +99,17 @@ class Setup (Gtk.PrintOperation):
 
 	def print_directly (self, parent):
 		"parent dialog to attach the dialog to"
+		if parent:
+			self.parent = parent
 		result = self.run(Gtk.PrintOperationAction.PRINT,
-									parent)
+									self.parent)
 		if result == Gtk.PrintOperationResult.ERROR:
 			message = self.get_error()
-			self.show_error_message(message, parent)
+			self.show_error_message(message)
 		return result
 
-	def show_error_message (self, message, parent):
-		dialog = Gtk.MessageDialog(parent,
+	def show_error_message (self, message):
+		dialog = Gtk.MessageDialog(self.parent,
 									0,
 									Gtk.MessageType.ERROR,
 									Gtk.ButtonsType.CLOSE,
