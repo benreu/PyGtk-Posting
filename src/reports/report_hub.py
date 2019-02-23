@@ -33,9 +33,16 @@ class ReportHubGUI (Gtk.Builder):
 		self.treeview = treeview
 
 	def pdf_export_clicked (self, button):
+		border_width = self.get_object('border_spinbutton').get_value_as_int()
 		from reports import export_to_pdf
 		export_to_pdf.ExportToPdfGUI(self.treeview)
+		export_to_pdf.border_width = border_width
 		self.window.destroy()
+
+	def border_spinbutton_changed (self, spinbutton):
+		border_width = spinbutton.get_value_as_int()
+		if self.treeview.get_allocated_width() + border_width > 792:
+			self.get_object("error_label").set_visible(True)
 
 	def xls_export_clicked (self, button):
 		from reports import export_to_xls
