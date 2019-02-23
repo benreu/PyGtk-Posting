@@ -49,6 +49,19 @@ class GUI():
 	def highlight (self, spinbutton):
 		spinbutton.select_region(0, -1)
 
+	def report_hub_activated (self, menuitem):
+		treeview = self.builder.get_object('treeview1')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
+
+	def expand_all_clicked (self, button):
+		treeview = self.builder.get_object('treeview1')
+		treeview.expand_all()
+
+	def collapse_all_clicked (self, button):
+		treeview = self.builder.get_object('treeview1')
+		treeview.collapse_all()
+
 	def account_match_func(self, completion, key, iter):
 		split_search_text = key.split()
 		for text in split_search_text:
