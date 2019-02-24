@@ -20,7 +20,7 @@ gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
 import main, os
 
-class Setup (Gtk.PrintOperation):
+class Operation (Gtk.PrintOperation):
 	settings_file = None
 	def __init__(self, parent = None, file_to_print = None, settings_file = None):
 
@@ -78,10 +78,8 @@ class Setup (Gtk.PrintOperation):
 		page = self.doc.get_page(page_num)
 		page.render(cr)
 
-	def print_dialog (self, parent = None):
+	def print_dialog (self):
 		"parent dialog to attach the dialog to"
-		if parent:
-			self.parent = parent
 		result = self.run(Gtk.PrintOperationAction.PRINT_DIALOG,
 									self.parent)
 		if result == Gtk.PrintOperationResult.ERROR:
@@ -97,10 +95,8 @@ class Setup (Gtk.PrintOperation):
 				self.show_error_message(message, parent)
 		return result
 
-	def print_directly (self, parent):
+	def print_directly (self):
 		"parent dialog to attach the dialog to"
-		if parent:
-			self.parent = parent
 		result = self.run(Gtk.PrintOperationAction.PRINT,
 									self.parent)
 		if result == Gtk.PrintOperationResult.ERROR:

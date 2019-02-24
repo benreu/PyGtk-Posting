@@ -197,14 +197,15 @@ class ExportToPdfGUI(Gtk.Builder):
 
 	def print_pdf_clicked (self, button):
 		import printing
-		print_op = printing.Setup()
+		print_op = printing.Operation()
+		print_op.set_parent(self.window)
 		pdf_data = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes(self.bytes))
 		print_op.set_bytes_to_print(pdf_data)
 		if self.landscape:
 			setup = Gtk.PageSetup()
 			setup.set_orientation(Gtk.PageOrientation.LANDSCAPE)
 			print_op.set_default_page_setup(setup)
-		print_op.print_dialog(self.window)
+		print_op.print_dialog()
 
 	def save_pdf_clicked (self, button):
 		file_dialog = self.get_object("file_dialog")

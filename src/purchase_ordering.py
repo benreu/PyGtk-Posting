@@ -125,8 +125,10 @@ class Setup():
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
 		#subprocess.call("libreoffice --nologo -p " + purchase_order_file, shell = True)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
-		p = printing.Setup("/tmp/" + self.document_pdf,'purchase_order')
-		result = p.print_dialog(window)
+		p = printing.Operation(settings_file = 'purchase_order')
+		p.set_parent(window)
+		p.set_file_to_print("/tmp/" + self.document_pdf)
+		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE purchase_orders SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
@@ -138,8 +140,10 @@ class Setup():
 		t = Template(main.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
-		p = printing.Setup("/tmp/" + self.document_pdf,'purchase_order')
-		p.print_direct(window)
+		p = printing.Operation(settings_file = 'purchase_order')
+		p.set_parent(window)
+		p.set_file_to_print("/tmp/" + self.document_pdf)
+		p.print_direct()
 		self.store = []
 
 	def post(self, purchase_order_id, vendor_id, datetime):

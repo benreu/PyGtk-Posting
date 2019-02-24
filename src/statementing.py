@@ -110,8 +110,10 @@ class Setup():
 		self.db.rollback ()  # we are only viewing the statement, so remove the id again
 		
 	def print_dialog (self, window):
-		p = printing.Setup("/tmp/" + self.document_pdf, 'statement')
-		result = p.print_dialog(window)
+		p = printing.Operation(settings_file = 'statement')
+		p.set_parent(window)
+		p.set_file_to_print("/tmp/" + self.document_pdf)
+		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE statements SET (print_date, printed) = "
 								"(CURRENT_DATE, True) WHERE id = %s", 

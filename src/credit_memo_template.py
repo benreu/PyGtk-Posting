@@ -124,7 +124,9 @@ class Setup :
 
 	def print_pdf (self, window):
 		subprocess.call(["odt2pdf", self.credit_memo_file])
-		p = printing.Setup("/tmp/" + self.document_pdf, "credit_memo")
+		p = printing.Operation(settings_file = "credit_memo")
+		p.set_parent(window)
+		p.set_file_to_print ("/tmp/" + self.document_pdf)
 		result = p.print_dialog(window)
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE credit_memos SET date_printed = "
