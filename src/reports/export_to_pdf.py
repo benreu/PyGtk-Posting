@@ -177,7 +177,7 @@ class ExportToPdfGUI(Gtk.Builder):
 		for index, row in enumerate(self.store):
 			x = self.border_width
 			for specs in self.columns:
-				layout = PangoCairo.create_layout(cr)
+				layout = PangoCairo.create_layout(self.cr)
 				desc = Pango.font_description_from_string("Sans 9")
 				layout.set_font_description(desc)
 				text = str(row[specs[0]])
@@ -187,12 +187,12 @@ class ExportToPdfGUI(Gtk.Builder):
 				layout.set_alignment(specs[2])
 				layout.set_width(specs[3] * Pango.SCALE)
 				layout.set_height(-1)
-				cr.move_to(x, y)
-				PangoCairo.show_layout(cr, layout)
+				self.cr.move_to(x, y)
+				PangoCairo.show_layout(self.cr, layout)
 				x += specs[3] + 10
-			y += rectangle.height 
-			if (y + self.border_width) > pdf_height:
-				cr.show_page()
+			y += self.row_height
+			if (y + self.border_width) > self.pdf_height:
+				self.cr.show_page()
 				y = self.border_width
 
 	def print_pdf_clicked (self, button):
