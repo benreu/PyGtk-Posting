@@ -50,6 +50,7 @@ class ReceiveOrdersGUI:
 
 		
 	def populate_purchase_order_combo(self):
+		self.builder.get_object('button3').set_sensitive(False)
 		self.purchase_order_store.clear()
 		self.cursor.execute("SELECT id::text, name FROM purchase_orders "
 							"WHERE (canceled, invoiced, closed, received) = "
@@ -80,7 +81,10 @@ class ReceiveOrdersGUI:
 											product_name, product_ext_name, 
 											remark, received, cost, sell_price])
 		self.check_if_all_products_received()
-		
+	
+	def reload_clicked (self, button):
+		self.populate_purchase_order_combo()
+	
 	def focus_in (self, window, event):
 		self.populate_location_combo()
 
