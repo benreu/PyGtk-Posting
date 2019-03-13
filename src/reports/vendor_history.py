@@ -312,7 +312,7 @@ class VendorHistoryGUI:
 		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
 							"WHERE id = %s", (po_id,))
 		for row in self.cursor.fetchall():
-			file_name = "/tmp/Attachment.pdf"
+			file_name = model[path][3]
 			file_data = row[0]
 			if file_data == None:
 				self.run_attach_dialog (po_id)
