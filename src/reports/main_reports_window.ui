@@ -346,7 +346,7 @@
                     <property name="spacing">10</property>
                     <child>
                       <object class="GtkButton" id="button11">
-                        <property name="label" translatable="yes">Time clock hisory</property>
+                        <property name="label" translatable="yes">Time clock history</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>

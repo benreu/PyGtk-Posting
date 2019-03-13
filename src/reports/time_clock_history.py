@@ -130,7 +130,7 @@ class TimeClockHistoryGUI:
 		if view_all_employee == True and view_all_project == True:
 			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
-								"WHERE (state) = ('complete') "
+								"WHERE (running) = (False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
 								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time",
 								(self.last_second_of_target_week, 
@@ -138,7 +138,7 @@ class TimeClockHistoryGUI:
 		elif view_all_employee == True:
 			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
-								"WHERE (project_id, state) = (%s, 'complete') "
+								"WHERE (project_id, running) = (%s, False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
 								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
 								(project_id, self.last_second_of_target_week, 
@@ -146,7 +146,7 @@ class TimeClockHistoryGUI:
 		elif view_all_project == True:
 			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
-								"WHERE (employee_id, state) = (%s, 'complete') "
+								"WHERE (employee_id, running) = (%s, False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
 								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
 								(employee_id, self.last_second_of_target_week, 
@@ -154,8 +154,8 @@ class TimeClockHistoryGUI:
 		elif project_id != None and employee_id != None:			
 			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
-								"WHERE (employee_id, project_id, state) = "
-								"(%s, %s, 'complete') "
+								"WHERE (employee_id, project_id, running) = "
+								"(%s, %s, False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
 								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
 								(employee_id, project_id,
