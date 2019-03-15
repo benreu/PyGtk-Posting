@@ -14,19 +14,16 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from datetime import datetime
-from decimal import Decimal
 from db import transactor
 from dateutils import DateTimeCalendar
 import subprocess
 import main
 
 UI_FILE = main.ui_directory + "/unpaid_invoices.ui"
-Figure = None
 
 class GUI:
+	figure = None
 	def __init__(self, main):
-		Figure = None
 
 		self.main = main
 		self.builder = Gtk.Builder()
@@ -60,17 +57,16 @@ class GUI:
 		self.cursor.close()
 
 	def invoice_chart_clicked (self, button):
-		global Figure
-		if Figure == None:
+		if self.figure == None:
 			from matplotlib.figure import Figure
 			from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
-			from matplotlib.pyplot import pie
 			self.figure = Figure(figsize=(4, 4), dpi=100)
 			canvas = FigureCanvas(self.figure)  # a Gtk.DrawingArea
-			canvas.set_size_request(800, 500)
+			canvas.set_size_request(900, 600)
 			overlay = self.builder.get_object('overlay1')
 			overlay.add (canvas)
-		a = self.figure.add_subplot(111)
+			overlay.add_overlay (self.builder.get_object('print_button'))
+			self.plot = self.figure.add_subplot(111)
 		labels = list()
 		fractions = list()
 		unpaid = 0
@@ -78,7 +74,7 @@ class GUI:
 							"JOIN contacts AS c ON c.id = invoices.customer_id "
 							"WHERE (canceled, paid, posted) = "
 							"(False, False, True) GROUP BY customer_id, c.name "
-							"ORDER BY SUM(amount_due)")
+							"ORDER BY c.name")
 		for row in self.cursor.fetchall():
 			customer_total = row[0]
 			customer_name = row[1]
@@ -88,9 +84,19 @@ class GUI:
 		if unpaid == 0:
 			labels.append("None")
 			fractions.append(1.00)
-		a.pie(fractions, labels=labels, autopct='%1.f%%', radius=0.7)
-		window = self.builder.get_object('window1')
+		self.plot.pie(fractions, labels=labels, autopct='%1.f%%', radius=0.9)
+		window = self.builder.get_object('matplot_window')
 		window.show_all()
+		window.present()
+
+	def save_to_file_clicked (self, button):
+		file_chooser = self.builder.get_object('plot_file_chooser')
+		file_chooser.set_current_name('matplot.pdf')
+		response = file_chooser.run()
+		file_chooser.hide()
+		if response == Gtk.ResponseType.ACCEPT:
+			file_name = file_chooser.get_filename()
+			self.figure.savefig(file_name)
 
 	def unpaid_chart_window_delete_event (self, window, event):
 		window.hide()
