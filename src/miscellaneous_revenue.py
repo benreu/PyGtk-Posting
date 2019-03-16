@@ -32,7 +32,7 @@ class MiscellaneousRevenueGUI:
 		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
-		main.connect("contacts_changed", self.populate_contacts )
+		self.handler_id = main.connect("contacts_changed", self.populate_contacts )
 		self.builder.get_object('treeview1').set_model(main.revenue_acc)
 		self.contact_store = self.builder.get_object('contact_store')
 		contact_completion = self.builder.get_object('contact_completion')
@@ -172,6 +172,7 @@ class MiscellaneousRevenueGUI:
 			transactor.post_misc_cash_payment(self.db, self.date, amount, payment_id, revenue_account)
 		self.db.commit()
 		self.cursor.close()
+		self.main.disconnect(self.handler_id)
 		self.window.destroy()
 
 	def date_entry_icon_release (self, entry, icon, event):
