@@ -94,6 +94,7 @@ class MainGUI (GObject.GObject, Accounts):
 			database_tools.GUI("", True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
+		self.populate_quick_commands()
 		if not main.dev_mode or True:
 			self.connect_keybindings()
 		import traceback_handler
@@ -101,6 +102,11 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def present (self, keybinding):
 		self.window.present()
+
+	def populate_quick_commands(self):
+		menu = self.builder.get_object('menubar1')
+		import quick_command
+		quick_command.QuickCommandGUI(menu)
 
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()

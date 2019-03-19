@@ -386,6 +386,37 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Contacts</property>
+                        <property name="use_underline">True</property>
+                        <child type="submenu">
+                          <object class="GtkMenu">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem81">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Contact history</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="contact_history" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem6">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Payments received</property>
+                                <signal name="activate" handler="payments_received_activated" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem24">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -395,18 +426,17 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
+                      <object class="GtkMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Products</property>
+                        <property name="use_underline">True</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem81">
+                      <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Contact history</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="contact_history" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -469,14 +499,6 @@
                         <property name="label" translatable="yes">Pay stub history</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="pay_stub_history" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem6">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Payments received</property>
-                        <signal name="activate" handler="payments_received_activated" swapped="no"/>
                       </object>
                     </child>
                     <child>

@@ -147,7 +147,9 @@ pygtk_posting_PYTHON = \
 	budget_configuration.py \
 	budget_configuration.ui \
 	customer_finance_charge.py \
-	customer_finance_charge.ui
+	customer_finance_charge.ui \
+	quick_command.py \
+	quick_command.ui
 
 
 EXTRA_DIST = $(ui_DATA)
