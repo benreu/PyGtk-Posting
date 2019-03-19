@@ -24,38 +24,38 @@ UI_FILE = main.ui_directory + "/catalog_creator.ui"
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
-class CatalogCreatorGUI:
+class CatalogCreatorGUI(Gtk.Builder):
 	preview_image = None
 	preview_size = 0
 	def __init__ (self, main):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.handler_id = main.connect("products_changed", self.populate_products)
-		self.product_store = self.builder.get_object('product_store')
+		self.product_store = self.get_object('product_store')
 		self.populate_products ()
 		self.populate_price_levels ()
-		product_completion = self.builder.get_object('product_completion')
+		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
-		self.catalog_store = self.builder.get_object('catalog_store')
+		self.catalog_store = self.get_object('catalog_store')
 		
 		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)	
-		treeview = self.builder.get_object('treeview1')
+		treeview = self.get_object('treeview1')
 		treeview.drag_source_set( Gdk.ModifierType.BUTTON1_MASK ,[dnd], Gdk.DragAction.MOVE)
 		
 		enforce_target = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
 		treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.MOVE)
 		treeview.drag_dest_set_target_list([enforce_target])
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 		
-		scale = self.builder.get_object('scale1')
+		scale = self.get_object('scale1')
 		for i in [16, 32, 64, 128, 256]:
 			scale.add_mark(i, Gtk.PositionType.BOTTOM, str(i))
 
@@ -72,16 +72,16 @@ class CatalogCreatorGUI:
 
 	def populate_price_levels (self):
 		default = None
-		price_level_store = self.builder.get_object('price_level_store')
+		price_level_store = self.get_object('price_level_store')
 		self.cursor.execute("SELECT id::text, name, standard "
 							"FROM customer_markup_percent "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			price_level_store.append([row[0], row[1]])
+			price_level_store.append(row)
 			if row[2] == True:
 				default = row[0]
 		if default:
-			self.builder.get_object('price_level_combo').set_active_id(default)
+			self.get_object('price_level_combo').set_active_id(default)
 
 	def product_combobox_changed (self, combo):
 		product_id = combo.get_active_id()
@@ -100,7 +100,7 @@ class CatalogCreatorGUI:
 		GLib.idle_add ( self.load_catalog_clicked )
 
 	def show_product_preview_activated (self, menuitem):
-		selection = self.builder.get_object("treeview-selection1")
+		selection = self.get_object("treeview-selection1")
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -109,41 +109,56 @@ class CatalogCreatorGUI:
 		for row in self.cursor.fetchall():
 			image_bytes = row[0]
 			if image_bytes == None:
-				self.preview_image == None
+				self.image == None
 			else:
-				self.preview_image = image_bytes
-				self.show_preview ()
+				self.image = image_bytes
+				self.show_image ()
+			window = self.get_object('image_window')
+			window.show_all()
+			window.present()
 
-	def pane_size_allocate (self, pane, rectangle):
-		'runs at window.show_all(), initializing self.preview_size'
-		size = rectangle.width - pane.get_position() - 7
-		if size != self.preview_size:
-			self.preview_size = size
-			self.show_preview ()
-
-	def show_preview (self):
-		if self.preview_image != None:
-			byte_in = GLib.Bytes(self.preview_image.tobytes())
+	def show_image (self):
+		if self.image != None:
+			byte_in = GLib.Bytes(self.image.tobytes())
 			input_in = Gio.MemoryInputStream.new_from_bytes(byte_in)
 			pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(input_in, 
 															self.preview_size, 
 															self.preview_size, 
 															True)
-			self.builder.get_object('image2').set_from_pixbuf(pixbuf)
+			self.get_object('image2').set_from_pixbuf(pixbuf)
+
+	def image_window_size_allocate (self, widget, rectangle):
+		width = rectangle.width - 5
+		if width != self.preview_size:
+			self.preview_size = width
+			self.show_image ()
+
+	def image_window_delete_event (self, window, event):
+		window.hide()
+		return True
 
 	def load_catalog_clicked (self, button = None):
-		markup_id = self.builder.get_object('price_level_combo').get_active_id()
-		scale = self.builder.get_object('scale1')
+		markup_id = self.get_object('price_level_combo').get_active_id()
+		scale = self.get_object('scale1')
 		size = scale.get_value()
 		self.catalog_store.clear()
-		self.cursor.execute("SELECT p.id, barcode, p.name, ext_name, description, "
-							"COALESCE(price, 0.00), image FROM products AS p "
+		description = self.get_object('description_checkbutton').get_active()
+		self.cursor.execute("SELECT "
+								"p.id, "
+								"barcode, "
+								"p.name, e"
+								"xt_name, "
+								"CASE WHEN %s THEN description ELSE '' END, "
+								"COALESCE(price, 0.00), "
+								"image "
+							"FROM products AS p "
 							"LEFT JOIN products_markup_prices AS pmp "
 							"ON pmp.product_id = p.id "
 							"LEFT JOIN customer_markup_percent AS cmp "
 							"ON cmp.id = pmp.markup_id "
 							"WHERE (catalog, cmp.id) = (True, %s) "
-							"ORDER BY catalog_order", (markup_id,))
+							"ORDER BY catalog_order", 
+							(description, markup_id))
 		for row in self.cursor.fetchall():
 			p_id = row[0]
 			barcode = row[1]
@@ -170,12 +185,12 @@ class CatalogCreatorGUI:
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
 	def product_hub_activated (self, menuitem):
-		selection = self.builder.get_object("treeview-selection1")
+		selection = self.get_object("treeview-selection1")
 		model, path = selection.get_selected_rows ()
 		if path == []:
 			return
@@ -187,7 +202,7 @@ class CatalogCreatorGUI:
 		store = treeview.get_model()
 		source_path = data.get_text()
 		source_iter = store.get_iter(source_path)
-		treeview = self.builder.get_object('treeview1')
+		treeview = self.get_object('treeview1')
 		dest_path = treeview.get_dest_row_at_pos(x, y)
 		if dest_path != None:
 			dest_iter = store.get_iter(dest_path[0])
@@ -210,12 +225,12 @@ class CatalogCreatorGUI:
 		self.db.commit()
 
 	def update_image_clicked (self, button):
-		selection = self.builder.get_object("treeview-selection1")
+		selection = self.get_object("treeview-selection1")
 		model, path = selection.get_selected_rows ()
 		if path == []:
 			return
 		product_id = model[path][0]
-		dialog = self.builder.get_object('filechooserdialog1')
+		dialog = self.get_object('filechooserdialog1')
 		response = dialog.run()
 		if response == Gtk.ResponseType.ACCEPT:
 			filename = dialog.get_filename()
@@ -226,9 +241,20 @@ class CatalogCreatorGUI:
 								"WHERE id = %s", (file_data, product_id))
 		self.db.commit()
 		dialog.hide()
-		
+	
+	def remove_product_clicked (self, button):
+		selection = self.get_object("treeview-selection1")
+		model, path = selection.get_selected_rows ()
+		if path == []:
+			return
+		product_id = model[path][0]
+		self.cursor.execute("UPDATE products SET catalog = False"
+								" WHERE id = %s", (product_id,))
+		self.db.commit()
+		GLib.idle_add ( self.load_catalog_clicked )
+	
 	def populate_template_clicked (self, button):
-		markup_id = self.builder.get_object('price_level_combo').get_active_id()
+		markup_id = self.get_object('price_level_combo').get_active_id()
 		from py3o.template import Template 
 		product_list = dict()
 		self.cursor.execute("SELECT "

@@ -28,6 +28,39 @@
     </columns>
     <signal name="rows-reordered" handler="catalog_rows_reordered" swapped="no"/>
   </object>
+  <object class="GtkWindow" id="image_window">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Image view</property>
+    <property name="window_position">center</property>
+    <property name="default_width">400</property>
+    <property name="default_height">400</property>
+    <property name="icon_name">pygtk-posting</property>
+    <signal name="delete-event" handler="image_window_delete_event" swapped="no"/>
+    <signal name="size-allocate" handler="image_window_size_allocate" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="shadow_type">in</property>
+        <child>
+          <object class="GtkViewport" id="viewport1">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkImage" id="image2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="stock">gtk-missing-image</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkMenu" id="menu1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -56,6 +89,8 @@
       <column type="gchararray"/>
       <!-- column-name price_level_name -->
       <column type="gchararray"/>
+      <!-- column-name standard -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkListStore" id="product_store">
@@ -103,124 +138,226 @@
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
-          <object class="GtkGrid">
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkLabel" id="label1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Add product to catalog </property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBox" id="combobox1">
+              <object class="GtkFrame">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
-                <property name="model">product_store</property>
-                <property name="has_entry">True</property>
-                <property name="entry_text_column">1</property>
-                <property name="id_column">0</property>
-                <signal name="changed" handler="product_combobox_changed" swapped="no"/>
+                <property name="label_xalign">0</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext3"/>
-                  <attributes>
-                    <attribute name="text">2</attribute>
-                  </attributes>
-                </child>
-                <child internal-child="entry">
-                  <object class="GtkEntry">
+                  <object class="GtkGrid">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="completion">product_completion</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">10</property>
+                    <property name="margin_right">10</property>
+                    <property name="margin_bottom">10</property>
+                    <child>
+                      <object class="GtkButton" id="button5">
+                        <property name="label" translatable="yes">Load catalog</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Load all the products that go into the catalog</property>
+                        <property name="valign">center</property>
+                        <signal name="clicked" handler="load_catalog_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale" id="scale1">
+                        <property name="width_request">100</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">The size of the image in the view below</property>
+                        <property name="margin_top">10</property>
+                        <property name="adjustment">adjustment1</property>
+                        <property name="show_fill_level">True</property>
+                        <property name="fill_level">256</property>
+                        <property name="draw_value">False</property>
+                        <property name="value_pos">left</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Image size for view</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBox" id="price_level_combo">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="model">price_level_store</property>
+                        <property name="id_column">0</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
+                        <child>
+                          <object class="GtkCellRendererToggle"/>
+                          <attributes>
+                            <attribute name="active">2</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="label" translatable="yes">Customer markup percent </property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="description_checkbutton">
+                        <property name="label" translatable="yes">Load description</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="tooltip_text" translatable="yes">Whether the view should load the description or not
+The description can create a tall row</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">2</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Catalog products view</property>
                   </object>
                 </child>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">0</property>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Customer markup percent </property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button5">
-                <property name="label" translatable="yes">Load catalog</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Load all the products that go into the catalog</property>
-                <property name="valign">center</property>
-                <signal name="clicked" handler="load_catalog_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Image size for view</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScale" id="scale1">
-                <property name="width_request">100</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="tooltip_text" translatable="yes">The size of the image in the view above</property>
-                <property name="margin_top">10</property>
-                <property name="adjustment">adjustment1</property>
-                <property name="show_fill_level">True</property>
-                <property name="fill_level">256</property>
-                <property name="draw_value">False</property>
-                <property name="value_pos">left</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBox" id="price_level_combo">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="model">price_level_store</property>
-                <property name="id_column">0</property>
+                <property name="margin_left">10</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkCellRendererText"/>
-                  <attributes>
-                    <attribute name="text">1</attribute>
-                  </attributes>
+                  <object class="GtkComboBox" id="combobox1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">Select a product to add it to the catalog</property>
+                    <property name="hexpand">True</property>
+                    <property name="model">product_store</property>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">1</property>
+                    <property name="id_column">0</property>
+                    <signal name="changed" handler="product_combobox_changed" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext3"/>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                    <child internal-child="entry">
+                      <object class="GtkEntry">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">Select a product to add it to the catalog</property>
+                        <property name="placeholder_text" translatable="yes">Add product to catalog</property>
+                        <property name="completion">product_completion</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">Remove product</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Remove the product selected in the view</property>
+                    <signal name="clicked" handler="remove_product_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button2">
+                    <property name="label" translatable="yes">Update image</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Update the image of the product selected in the view</property>
+                    <property name="valign">center</property>
+                    <signal name="clicked" handler="update_image_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="button6">
+                    <property name="label" translatable="yes">Populate template</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Populate the catalog_template.odt file with the current markup percent</property>
+                    <signal name="clicked" handler="populate_template_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
                 </child>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">1</property>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
@@ -246,7 +383,7 @@
                 <signal name="drag-data-get" handler="drag_data_get" swapped="no"/>
                 <signal name="drag-data-received" handler="drag_data_received" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
+                  <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
@@ -297,6 +434,7 @@
                   <object class="GtkTreeViewColumn" id="treeviewcolumn4">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Description</property>
+                    <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">4</property>
@@ -344,49 +482,7 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="box6">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="homogeneous">True</property>
-            <child>
-              <object class="GtkButton" id="button2">
-                <property name="label" translatable="yes">Update image</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Update the image of the selected product</property>
-                <property name="valign">center</property>
-                <signal name="clicked" handler="update_image_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button6">
-                <property name="label" translatable="yes">Populate template</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="populate_template_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>
@@ -459,23 +555,5 @@
       <action-widget response="-6">button4</action-widget>
       <action-widget response="-3">button3</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkScrolledWindow" id="scrolledwindow2">
-    <property name="visible">True</property>
-    <property name="can_focus">True</property>
-    <property name="shadow_type">in</property>
-    <child>
-      <object class="GtkViewport" id="viewport1">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <child>
-          <object class="GtkImage" id="image2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="stock">gtk-missing-image</property>
-          </object>
-        </child>
-      </object>
-    </child>
   </object>
 </interface>
