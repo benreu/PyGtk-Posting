@@ -16,13 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
-import psycopg2, time, subprocess
-import uno, unohelper
-from com.sun.star.connection import NoConnectException
-from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
-from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
-from com.sun.star.awt.FontWeight import BOLD, NORMAL
-from com.sun.star.awt import Size
+import subprocess
 import main
 
 UI_FILE = main.ui_directory + "/catalog_creator.ui"
@@ -42,9 +36,10 @@ class CatalogCreatorGUI:
 		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
-		main.connect("products_changed", self.populate_products)
+		self.handler_id = main.connect("products_changed", self.populate_products)
 		self.product_store = self.builder.get_object('product_store')
 		self.populate_products ()
+		self.populate_price_levels ()
 		product_completion = self.builder.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 		self.catalog_store = self.builder.get_object('catalog_store')
@@ -64,15 +59,29 @@ class CatalogCreatorGUI:
 		for i in [16, 32, 64, 128, 256]:
 			scale.add_mark(i, Gtk.PositionType.BOTTOM, str(i))
 
+	def window_destroy (self, window):
+		self.main.disconnect(self.handler_id)
+
 	def populate_products (self, m=None, d=None):
 		self.product_store.clear()
-		self.cursor.execute ("SELECT id, name, ext_name FROM products "
-							"WHERE (sellable, deleted) = (True, False) ORDER BY name")
+		self.cursor.execute ("SELECT id::text, name, ext_name FROM products "
+							"WHERE (sellable, deleted) = (True, False) "
+							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			p_id = str(row[0])
-			name = row[1]
-			ext_name = row[2]
-			self.product_store.append([p_id, name, ext_name])
+			self.product_store.append(row)
+
+	def populate_price_levels (self):
+		default = None
+		price_level_store = self.builder.get_object('price_level_store')
+		self.cursor.execute("SELECT id::text, name, standard "
+							"FROM customer_markup_percent "
+							"ORDER BY name")
+		for row in self.cursor.fetchall():
+			price_level_store.append([row[0], row[1]])
+			if row[2] == True:
+				default = row[0]
+		if default:
+			self.builder.get_object('price_level_combo').set_active_id(default)
 
 	def product_combobox_changed (self, combo):
 		product_id = combo.get_active_id()
@@ -123,6 +132,7 @@ class CatalogCreatorGUI:
 			self.builder.get_object('image2').set_from_pixbuf(pixbuf)
 
 	def load_catalog_clicked (self, button = None):
+		markup_id = self.builder.get_object('price_level_combo').get_active_id()
 		scale = self.builder.get_object('scale1')
 		size = scale.get_value()
 		self.catalog_store.clear()
@@ -132,8 +142,8 @@ class CatalogCreatorGUI:
 							"ON pmp.product_id = p.id "
 							"LEFT JOIN customer_markup_percent AS cmp "
 							"ON cmp.id = pmp.markup_id "
-							"WHERE (catalog, standard) = (True, True) "
-							"ORDER BY catalog_order")
+							"WHERE (catalog, cmp.id) = (True, %s) "
+							"ORDER BY catalog_order", (markup_id,))
 		for row in self.cursor.fetchall():
 			p_id = row[0]
 			barcode = row[1]
@@ -218,6 +228,7 @@ class CatalogCreatorGUI:
 		dialog.hide()
 		
 	def populate_template_clicked (self, button):
+		markup_id = self.builder.get_object('price_level_combo').get_active_id()
 		from py3o.template import Template 
 		product_list = dict()
 		self.cursor.execute("SELECT "
@@ -228,7 +239,8 @@ class CatalogCreatorGUI:
 							"ON pmp.product_id = p.id "
 							"JOIN customer_markup_percent AS cmp "
 							"ON cmp.id = pmp.markup_id "
-							"WHERE (p.catalog, cmp.standard) = (True, True)")
+							"WHERE (p.catalog, cmp.id) = (True, %s)",
+							(markup_id,))
 		for row in self.cursor.fetchall():
 			name_id = row[0]
 			name = row[1]
@@ -257,146 +269,4 @@ class CatalogCreatorGUI:
 		Gdk.cairo_set_source_pixbuf(cr, image, 1, 1)
 		cr.paint()
 
-	def generate_catalog_clicked (self, button):
-		self.get_office_socket_connection ()
-		start_time = time.time ()
-		self.cursor.execute("SELECT name, phone, street, "
-							"city||' '||state||' '||zip FROM company_info")
-		for row in self.cursor.fetchall():
-			company_name = row[0]
-			company_phone = row[1]
-			company_street = row[2]
-			company_city_zip = row[3]
-		doc = self.desktop.loadComponentFromURL( "private:factory/swriter","_blank", 0, () )
-		currentStyle = doc.CurrentController.getViewCursor().PageStyleName
-		styleName = doc.getStyleFamilies().getByName("PageStyles").getByName(currentStyle)
-		styleName.TopMargin = 1000
-		styleName.BottomMargin = 1000
-		styleName.FooterIsOn = True
-		styleName.FooterHeight  = 900
-		#styleName.FooterMargin = 1000
-		FooterText = styleName.FooterText
-		cursor = FooterText.createTextCursor()
-		table = doc.createInstance("com.sun.star.text.TextTable")
-		table.initialize(2, 2)
-		FooterText.insertTextContent(cursor, table, 0)
-		table.TopMargin = 2500
-		oBorder = table.TableBorder
-		line = oBorder.TopLine
-		line.OuterLineWidth = 0
-		line.InnerLineWidth = 0
-		line.LineDistance = 0
-		oBorder.RightLine = line
-		oBorder.TopLine = line
-		oBorder.LeftLine = line
-		oBorder.BottomLine = line
-		oBorder.HorizontalLine = line
-		oBorder.VerticalLine = line
-		table.TableBorder = oBorder
-		table.getCellByName("A1").setString(company_name)
-		cursor = table.getCellByName("A2").createTextCursor()
-		cursor.CharWeight = BOLD
-		cursor.ParaAdjust = 3
-		cursor.setString(company_phone)
-		cursor = table.getCellByName("B1").createTextCursor()
-		cursor.CharWeight = NORMAL
-		cursor.setString(company_street)
-		cursor = table.getCellByName("B2").createTextCursor()
-		cursor.ParaAdjust = 3
-		cursor.setString(company_city_zip)
-		text = doc.Text
-		cursor = text.createTextCursor()
-		self.builder.get_object("window1").present()
-		self.cursor.execute("SELECT p.id, barcode, p.name, ext_name, description, "
-							"price, image FROM products AS p "
-							"JOIN products_markup_prices AS pmp "
-							"ON pmp.product_id = p.id "
-							"JOIN customer_markup_percent AS cmp "
-							"ON cmp.id = pmp.markup_id "
-							"WHERE (catalog, standard) = (True, True) "
-							"ORDER BY catalog_order")
-		tupl = self.cursor.fetchall()
-		rows = float(len(tupl))
-		for index, row in enumerate(tupl):
-			p_id = row[0]
-			barcode = row[1]
-			name = row[2]
-			ext_name = row[3]
-			description = row[4]
-			price = row[5]
-			image_string = row[6]
-			table = doc.createInstance( "com.sun.star.text.TextTable" )
-			table.initialize( 2,3)
-			text.insertTextContent( cursor, table, 0 )
-			columns = table.TableColumnSeparators
-			columns[0].Position = 2400
-			columns[1].Position = 8500
-			table.TableColumnSeparators = columns
-
-			mergeCursor = table.createCursorByCellName("A1")
-			mergeCursor.goDown(1,True)
-			mergeCursor.mergeRange ()
-
-			mergeCursor = table.createCursorByCellName("B2")
-			#mergeCursor.goDown(1,True)
-			mergeCursor.goRight(1,True)
-			mergeCursor.mergeRange ()
-
-			table.getCellByName("B1").setString(name)
-			table.getCellByName("C1").setString('${:,.2f}'.format(price))
-			table.getCellByName("B2").setString(description)
-
-			if image_string != None:
-				imageURL = '/tmp/%s.jpg' % p_id
-				with open(imageURL, 'wb') as f:
-					f.write(image_string)
-				img = doc.createInstance('com.sun.star.text.TextGraphicObject') 
-				img.GraphicURL = "file://%s"%imageURL 
-				img.AnchorType = AS_CHARACTER
-				img.Width = 2000 # hackery to get original size to work ???
-				img.Height = 2000
-				imageCell = table.getCellByName("A1")
-				cellCursor = imageCell.createTextCursor()
-				imageCell.insertTextContent(cellCursor, img, False)
-				w = img.ActualSize.Width
-				h = img.ActualSize.Height
-				v = max(w, h, 4000)
-				division = v / 4000
-				width = int(w / division)
-				height = int(h / division)
-				imageSize = Size(width, height)
-				img.setSize(imageSize)
-
-			progress = float(index+1) / rows
-			self.builder.get_object("progressbar1").set_fraction(progress)
-			while Gtk.events_pending():
-				Gtk.main_iteration()
-		progress = "100 %% - %s seconds" % round(time.time() - start_time, 1)
-		self.builder.get_object("progressbar1").set_text(progress)
-
-	def get_office_socket_connection (self):
-		subprocess.Popen("soffice "
-						"'--accept=socket,host=localhost,port=2002;urp;' "
-						"--nologo --nodefault", shell=True)		
-		localContext = uno.getComponentContext()
-		resolver = localContext.ServiceManager.createInstanceWithContext(
-						'com.sun.star.bridge.UnoUrlResolver', localContext )
-		connection_url = 'uno:socket,host=localhost,port=2002;urp;StarOffice.ServiceManager'
-		result = False
-		while result == False:
-			try:
-				smgr = resolver.resolve( connection_url )
-				result = True
-			except NoConnectException:
-				subprocess.Popen("soffice "
-								"'--accept=socket,host=localhost,port=2002;urp;' "
-								"--nologo --nodefault", shell=True)
-				time.sleep(.25)
-		remoteContext = smgr.getPropertyValue( 'DefaultContext' )
-		self.desktop = smgr.createInstanceWithContext( 'com.sun.star.frame.Desktop', 
-																remoteContext)
-
-
-
-			
-			
+		
