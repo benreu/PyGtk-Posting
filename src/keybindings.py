@@ -30,6 +30,7 @@ def populate_shortcuts (main):
 	shortcuts = (
 	["Main window (global)", 0, no_mod, 'present-main-window', main.present, True],
 	["Product location", 0, no_mod, 'product-location', main.product_location, False],
+	["Quick command", 0, no_mod, 'quick-command', main.quick_command_activate, False],
 	["Invoice window", 0, no_mod, 'invoice-window', main.new_invoice, False],
 	["Purchase order window", 0, no_mod, 'purchase-order-window', main.new_purchase_order, False],
 	["Time clock", 0, no_mod, 'time-clock', main.time_clock, False])

@@ -63,22 +63,27 @@
         <key name="product-location" type="s">
             <default>''</default>
             <summary>Keybinding to open/present Product location.</summary>
-            <description>Local keybinding to allow user to open or present a Product location window.</description>
+            <description>Local or global keybinding to allow user to open or present a Product location window.</description>
         </key>
         <key name="invoice-window" type="s">
             <default>''</default>
             <summary>Keybinding to open an New Invoice window.</summary>
-            <description>Local keybinding to allow user to open a Invoice window.</description>
+            <description>Local or global keybinding to allow user to open a Invoice window.</description>
         </key>
         <key name="purchase-order-window" type="s">
             <default>''</default>
             <summary>Keybinding to open an New Purchase Order window.</summary>
-            <description>Local keybinding to allow user to open a Purchase Order window.</description>
+            <description>Local or global keybinding to allow user to open a Purchase Order window.</description>
+        </key>
+        <key name="quick-command" type="s">
+            <default>''</default>
+            <summary>Keybinding to open the Quick Command window.</summary>
+            <description>Local or global keybinding to allow user to open the Quick Command window.</description>
         </key>
         <key name="time-clock" type="s">
             <default>''</default>
             <summary>Keybinding to open an Time Clock window.</summary>
-            <description>Local keybinding to allow user to open a Time Clock window.</description>
+            <description>Local or global keybinding to allow user to open a Time Clock window.</description>
         </key>
     </schema>
 </schemalist>
