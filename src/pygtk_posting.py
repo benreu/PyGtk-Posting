@@ -106,7 +106,10 @@ class MainGUI (GObject.GObject, Accounts):
 	def populate_quick_commands(self):
 		menu = self.builder.get_object('menubar1')
 		import quick_command
-		quick_command.QuickCommandGUI(menu)
+		self.quick_command = quick_command.QuickCommandGUI(menu)
+	
+	def quick_command_activate (self, menuitem):
+		self.quick_command.show_all()
 
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()

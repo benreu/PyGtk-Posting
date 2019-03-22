@@ -10,6 +10,12 @@
       <column type="PyObject"/>
     </columns>
   </object>
+  <object class="GtkTreeModelFilter" id="quick_command_filter">
+    <property name="child_model">quick_command_store</property>
+  </object>
+  <object class="GtkTreeModelSort" id="quick_command_sort">
+    <property name="model">quick_command_filter</property>
+  </object>
   <object class="GtkWindow" id="quick_command_window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Quick commands</property>
@@ -17,18 +23,24 @@
     <property name="default_width">300</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="key-press-event" handler="window_keypress_event" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkSearchEntry">
+          <object class="GtkSearchEntry" id="search_entry">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="can_default">True</property>
             <property name="primary_icon_name">edit-find-symbolic</property>
             <property name="primary_icon_activatable">False</property>
             <property name="primary_icon_sensitive">False</property>
+            <signal name="search-changed" handler="filter_text_changed" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -42,18 +54,25 @@
             <property name="can_focus">True</property>
             <property name="shadow_type">in</property>
             <child>
-              <object class="GtkTreeView">
+              <object class="GtkTreeView" id="command_treeview">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">quick_command_store</property>
+                <property name="can_default">True</property>
+                <property name="has_default">True</property>
+                <property name="receives_default">True</property>
+                <property name="model">quick_command_sort</property>
+                <property name="activate_on_single_click">True</property>
+                <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
+                  <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn">
+                  <object class="GtkTreeViewColumn" id="command_tree_column">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Description</property>
                     <property name="reorderable">True</property>
+                    <property name="sort_indicator">True</property>
+                    <property name="sort_column_id">0</property>
                     <child>
                       <object class="GtkCellRendererText"/>
                       <attributes>

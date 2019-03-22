@@ -346,6 +346,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Quick command</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="quick_command_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem75">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
