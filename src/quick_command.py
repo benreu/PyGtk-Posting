@@ -38,6 +38,7 @@ class QuickCommandGUI(Gtk.Builder):
 	def show_all (self):
 		window = self.get_object('quick_command_window')
 		window.show_all()
+		window.present()
 		self.get_object('search_entry').grab_focus()
 
 	def populate_menu_shortcuts (self, menu):
