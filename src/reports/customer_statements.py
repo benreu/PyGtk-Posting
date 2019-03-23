@@ -20,7 +20,7 @@ from gi.repository import Gtk, GdkPixbuf, Gdk
 import subprocess
 import main
 
-UI_FILE = main.ui_directory + "/reports/statements.ui"
+UI_FILE = main.ui_directory + "/reports/customer_statements.ui"
 
 class StatementsGUI:
 	def __init__(self, db):
