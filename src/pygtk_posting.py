@@ -178,10 +178,6 @@ class MainGUI (GObject.GObject, Accounts):
 	def password_entry_activated (self, dialog):
 		dialog.response(-3)
 
-	def time_clock_projects (self, menuitem):
-		from reports import time_clock_project
-		time_clock_project.GUI(self.db)
-
 	def credit_card_merchant_activated (self, menuitem):
 		global ccm
 		if ccm == None or ccm.exists == False:
@@ -214,7 +210,7 @@ class MainGUI (GObject.GObject, Accounts):
 	def blank_clicked (self, button):
 		pass
 
-	def deposits_activated (self, menuitem):
+	def deposits_report (self, menuitem):
 		from reports import deposits
 		deposits.DepositsGUI(self.db)
 
@@ -276,17 +272,9 @@ class MainGUI (GObject.GObject, Accounts):
 		import resource_management_tags
 		resource_management_tags.ResourceManagementTagsGUI (self.db)
 
-	def payments_received_activated (self, menuitem):
-		from reports import payments_received
-		payments_received.PaymentsReceivedGUI(self.db)
-
 	def customer_terms_clicked (self, menuitem):
 		import customer_terms
 		customer_terms.CustomerTermsGUI(self.db)
-				
-	def time_clock_history (self, widget):
-		from reports import time_clock_history
-		time_clock_history.TimeClockHistoryGUI (self.db)
 
 	def document_reports_window (self, widget):
 		print ("not done yet")
@@ -409,10 +397,6 @@ class MainGUI (GObject.GObject, Accounts):
 		import vendor_payment
 		vendor_payment.GUI(self.db)
 
-	def product_transactions_clicked (self, widget):
-		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self)
-
 	def resource_calendar (self, button):
 		import resource_calendar
 		resource_calendar.ResourceCalendarGUI (self.db)
@@ -471,10 +455,6 @@ class MainGUI (GObject.GObject, Accounts):
 	def pay_stub_history (self, widget):
 		from reports import pay_stub_history
 		pay_stub_history.PayStubHistoryGUI(self.db)
-
-	def job_sheet_history (self, widget):
-		from reports import job_sheet_history
-		job_sheet_history.JobSheetHistoryGUI(self.db)
 
 	def backup_window (self, n):
 		from db import backup_restore
@@ -703,6 +683,81 @@ class MainGUI (GObject.GObject, Accounts):
 		if invoice_window == None:
 			import invoice_window
 		invoice_window.InvoiceGUI (self)
+
+	##################   reports
+
+	def customer_statements (self, menuitem):
+		from reports import customer_statements
+		customer_statements.StatementsGUI (self.db)
+
+	def bank_statements (self, button):
+		from reports import bank_statements
+		bank_statements.BankStatementsGUI(self.db)
+
+	def manufacturing_history (self, button):
+		from reports import manufacturing_history
+		manufacturing_history.ManufacturingHistoryGUI(self)
+
+	def product_account_relationship (self, button):
+		from reports import product_account_relationship
+		product_account_relationship.ProductAccountRelationshipGUI(self)
+
+	def contact_history (self, button):
+		from reports import contact_history
+		contact_history.ContactHistoryGUI(self)
+
+	def loan_payments_clicked (self, button):
+		from reports import loan_payments
+		loan_payments.LoanPaymentsGUI(self.db)
+
+	def product_transactions (self, button):
+		from reports import product_transactions
+		product_transactions.ProductTransactionsGUI(self)
+
+	def invoice_to_payment_matching (self, button):
+		from reports import invoice_to_payment_matching
+		invoice_to_payment_matching.GUI(self.db)
+
+	def pay_stub_history (self, button):
+		from reports import pay_stub_history
+		pay_stub_history.PayStubHistoryGUI(self.db)
+
+	def time_clock_projects (self, button):
+		from reports import time_clock_project
+		time_clock_project.GUI(self.db)
+
+	def payments_received (self, button):
+		from reports import payments_received
+		payments_received.PaymentsReceivedGUI(self.db)
+	
+	def time_clock_history (self, button):
+		from reports import time_clock_history
+		time_clock_history.TimeClockHistoryGUI (self.db)
+
+	def count_inventory_clicked (self, button):
+		from reports import inventory_count
+		inventory_count.InventoryCountGUI(self.db)
+
+	def pay_stub_history (self, button):
+		from reports import pay_stub_history
+		pay_stub_history.PayStubHistoryGUI(self.db)
+
+	def job_sheet_history (self, button):
+		from reports import job_sheet_history
+		job_sheet_history.JobSheetHistoryGUI(self.db)
+
+	def product_history (self, button):
+		from reports import product_history
+		product_history.ProductHistoryGUI(self)
+
+	def profit_loss (self, button):
+		from reports import profit_loss_report
+		profit_loss_report.ProfitLossReportGUI(self.db)
+
+	def net_worth (self, button):
+		from reports import net_worth
+		net_worth.NetWorthGUI(self.db)
+
 
 GObject.type_register(MainGUI)
 

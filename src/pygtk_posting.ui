@@ -151,7 +151,7 @@
                       <object class="GtkMenuItem" id="menuitem14">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Add payment</property>
+                        <property name="label" translatable="yes">Customer payment</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="payment_window" swapped="no"/>
                       </object>
@@ -255,7 +255,7 @@
                       <object class="GtkMenuItem" id="menuitem28">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Add payment</property>
+                        <property name="label" translatable="yes">Vendor payment</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="vendor_payment" swapped="no"/>
                       </object>
@@ -395,6 +395,21 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem24">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_Main report window</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="main_reports_window" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -414,11 +429,20 @@
                               </object>
                             </child>
                             <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Customer statements</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="customer_statements" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
                               <object class="GtkMenuItem" id="menuitem6">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Payments received</property>
-                                <signal name="activate" handler="payments_received_activated" swapped="no"/>
+                                <signal name="activate" handler="payments_received" swapped="no"/>
                               </object>
                             </child>
                           </object>
@@ -426,12 +450,35 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem24">
+                      <object class="GtkMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">_Main report window</property>
+                        <property name="label" translatable="yes">Financial</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="main_reports_window" swapped="no"/>
+                        <child type="submenu">
+                          <object class="GtkMenu">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Net worth</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="net_worth" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Profit / loss</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="profit_loss" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
@@ -440,6 +487,98 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Products</property>
                         <property name="use_underline">True</property>
+                        <child type="submenu">
+                          <object class="GtkMenu">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem51">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Count inventory</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="count_inventory_activated" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem8">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Inventory history</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="inventory_history_report" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Product transactions</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="product_transactions" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Product history</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="product_history" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Product / Account relationship</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="product_account_relationship" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Manufacturing history</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="manufacturing_history" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Time clock</property>
+                        <property name="use_underline">True</property>
+                        <child type="submenu">
+                          <object class="GtkMenu">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem25">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Time clock projects</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="time_clock_projects" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem" id="menuitem9">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Time clock history</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="time_clock_history" swapped="no"/>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
@@ -449,12 +588,12 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem51">
+                      <object class="GtkMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Count inventory</property>
+                        <property name="label" translatable="yes">Bank statements</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="count_inventory_activated" swapped="no"/>
+                        <signal name="activate" handler="bank_statements" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -463,7 +602,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Deposits</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="deposits_activated" swapped="no"/>
+                        <signal name="activate" handler="deposits_report" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -493,15 +632,6 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem8">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Inventory history</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="inventory_history_report" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkMenuItem" id="menuitem56">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -526,24 +656,6 @@
                         <property name="label" translatable="yes">Statements</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="statements_clicked" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem9">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Time clock history</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="time_clock_history" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem25">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Time clock projects</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="time_clock_projects" swapped="no"/>
                       </object>
                     </child>
                   </object>
