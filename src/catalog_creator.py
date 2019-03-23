@@ -258,8 +258,9 @@ class CatalogCreatorGUI(Gtk.Builder):
 		from py3o.template import Template 
 		product_list = dict()
 		self.cursor.execute("SELECT "
-							"'name'||p.barcode, p.name, "
-							"'price'||p.barcode, price::money "
+								"'name'||p.id, p.name, "
+								"'price'||p.id, price::money, "
+								"'barcode'||p.id, p.barcode "
 							"FROM products AS p "
 							"JOIN products_markup_prices AS pmp "
 							"ON pmp.product_id = p.id "
@@ -272,8 +273,11 @@ class CatalogCreatorGUI(Gtk.Builder):
 			name = row[1]
 			price_id = row[2]
 			price = row[3]
+			barcode_id = row[4]
+			barcode = row[5]
 			product_list[name_id] = name
 			product_list[price_id] = price
+			product_list[barcode_id] = barcode
 		catalog_file = "/tmp/catalog.odt"
 		t = Template(main.template_dir+"/catalog_template.odt", catalog_file , False)
 		try:
