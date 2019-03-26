@@ -38,11 +38,12 @@ class GUI():
 								"email_when_possible, "
 								"enforce_exact_payment, "
 								"accrual_based, "
-								"cost_decrease_alert, "
+								"cost_decrease_alert * 100, "
 								"backup_frequency_days, "
 								"date_format, "
 								"timestamp_format, "
-								"request_po_attachment "
+								"request_po_attachment, "
+								"finance_rate * 100 "
 							"FROM public.settings")
 		for row in self.cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
@@ -53,11 +54,12 @@ class GUI():
 				self.builder.get_object('radiobutton1').set_active(True)
 			else:
 				self.builder.get_object('radiobutton2').set_active(True)
-			self.builder.get_object('spinbutton4').set_value(row[5] * 100)
+			self.builder.get_object('spinbutton4').set_value(row[5])
 			self.builder.get_object('spinbutton5').set_value(row[6])
 			self.builder.get_object('entry7').set_text(row[7])
 			self.builder.get_object('entry8').set_text(row[8])
 			self.builder.get_object('checkbutton2').set_active(row[9])
+			self.builder.get_object('spinbutton6').set_value(row[10])
 		self.load_precision()
 
 		self.time_clock_store = self.builder.get_object('time_clock_projects_store')
@@ -135,10 +137,17 @@ class GUI():
 		self.builder.get_object('label51').set_text(formatted_date)
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
-		GLib.idle_add(self.select_spinbutton_value, spinbutton)
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def select_spinbutton_value (self, spinbutton):
 		spinbutton.select_region(0, -1)
+
+	def finance_fee_value_changed (self, spinbutton):
+		finance_rate = spinbutton.get_value()
+		self.cursor.execute("UPDATE settings "
+							"SET finance_rate = (%s/100)", (finance_rate,))
+		self.db.commit()
+
 
 	def cost_decrease_alert_spinbutton_changed (self, spinbutton):
 		percent = spinbutton.get_value()
