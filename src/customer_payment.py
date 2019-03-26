@@ -384,9 +384,9 @@ class GUI:
 				transactor.post_invoice_accounts (self.db, self.date, invoice_id)
 			c.execute("UPDATE invoices "
 						"SET (paid, payments_incoming_id, date_paid) "
-						"= (True, %s, CURRENT_TIMESTAMP) "
+						"= (True, %s, %s) "
 						"WHERE id = %s", 
-						(self.payment_id, invoice_id))
+						(self.payment_id, self.date, invoice_id))
 		c.close()
 
 	def calendar_day_selected (self, calendar):
