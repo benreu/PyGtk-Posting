@@ -146,10 +146,10 @@ UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELE
 --version 0.5.10
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS finance_rate decimal(12, 2) DEFAULT 0.00;
 UPDATE settings SET finance_rate = 0.00 WHERE finance_rate IS NULL;
-ALTER TABLE settings SET COLUMN finance_rate NOT NULL;
+ALTER TABLE settings ALTER COLUMN finance_rate SET NOT NULL;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS finance_charge boolean DEFAULT FALSE;
 UPDATE invoices SET finance_charge = False WHERE finance_charge IS NULL;
-ALTER TABLE invoices SET finance_charge NOT NULL;
+ALTER TABLE invoices ALTER COLUMN finance_charge SET NOT NULL;
 
 
 

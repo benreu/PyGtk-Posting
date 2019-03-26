@@ -101,9 +101,9 @@ class CheckVersion :
 
 	def run_updates (self, d, version, major_db_version, minor_db_version):
 		c = self.db.cursor()
-		major_posting_version = version[2:3]
-		minor_posting_version = version[4:5]
-		if major_db_version < major_posting_version:  # major version upgrade 
+		major_posting_version = int(version[2:3])
+		minor_posting_version = int(version[4:6])
+		if int(major_db_version) < major_posting_version:  # major version upgrade 
 			dialog = self.builder.get_object('db_major_upgrade')
 			result = dialog.run()
 			dialog.hide()
@@ -116,13 +116,13 @@ class CheckVersion :
 			else:
 				self.db.rollback()
 				GLib.idle_add(Gtk.main_quit)
-		elif major_db_version > major_posting_version:  # major version behind
+		elif int(major_db_version) > major_posting_version:  # major version behind
 			dialog = self.builder.get_object('db_newer_dialog')
 			result = dialog.run()
 			dialog.hide()
 			if result == Gtk.ResponseType.DELETE_EVENT:
 				GLib.idle_add(Gtk.main_quit)
-		elif minor_db_version < minor_posting_version:   # minor version upgrade
+		elif int(minor_db_version) < minor_posting_version:   # minor version upgrade
 			dialog = self.builder.get_object('db_minor_upgrade')
 			result = dialog.run()
 			dialog.hide()
@@ -133,7 +133,7 @@ class CheckVersion :
 			else:
 				self.db.rollback()
 				GLib.idle_add(Gtk.main_quit)
-		elif minor_db_version > minor_posting_version:  # minor version behind
+		elif int(minor_db_version) > minor_posting_version:  # minor version behind
 			dialog = self.builder.get_object('db_newer_dialog')
 			result = dialog.run()
 			dialog.hide()
