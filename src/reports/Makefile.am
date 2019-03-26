@@ -5,8 +5,6 @@ python_PYTHON = time_clock_project.ui \
 	inventory_count.py \
 	inventory_count.ui \
 	product_transactions.py \
-	statements.py \
-	statements.ui \
 	job_sheet_history.ui \
 	job_sheet_history.py \
 	time_clock_history.ui \
@@ -54,6 +52,8 @@ python_PYTHON = time_clock_project.ui \
 	report_hub.py \
 	report_hub.ui \
 	export_to_xls.py \
-	export_to_xls.ui
+	export_to_xls.ui \
+	customer_statements.py \
+	customer_statements.ui
 
 uidir = $(pkgdatadir)/reports/ui
