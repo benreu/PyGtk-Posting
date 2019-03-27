@@ -121,6 +121,17 @@ class NetWorthGUI(Gtk.Builder):
 				yield parent_account, account_amount
 		c.close()
 
+	def report_hub_clicked (self, button):
+		treeview = self.get_object('net_worth_treeview')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
+
+	def expand_all_clicked (self, button):
+		self.get_object('net_worth_treeview').expand_all()
+
+	def collapse_all_clicked (self, button):
+		self.get_object('net_worth_treeview').collapse_all()
+
 
 
 		
