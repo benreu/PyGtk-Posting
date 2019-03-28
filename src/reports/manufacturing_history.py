@@ -93,9 +93,8 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 
 	def report_hub_clicked (self, button):
 		treeview = self.get_object('manufacturing_treeview')
-		model = self.get_object('manufacturing_history_store')
 		from reports import report_hub
-		report_hub.ReportHubGUI(treeview, model)
+		report_hub.ReportHubGUI(treeview)
 
 
 
