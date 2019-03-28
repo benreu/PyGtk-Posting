@@ -14,7 +14,7 @@
       <column type="gint"/>
       <!-- column-name time -->
       <column type="gchararray"/>
-      <!-- column-name time per piece -->
+      <!-- column-name time1 -->
       <column type="gchararray"/>
       <!-- column-name employees -->
       <column type="gint"/>
@@ -118,6 +118,20 @@
                     <property name="position">3</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">Report hub</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="report_hub_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">4</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -131,7 +145,7 @@
                 <property name="can_focus">True</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTreeView" id="treeview1">
+                  <object class="GtkTreeView" id="manufacturing_treeview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">manufacturing_history_sort</property>

@@ -21,7 +21,7 @@ import main
 
 UI_FILE = main.ui_directory + "/reports/manufacturing_history.ui"
 
-class ManufacturingHistoryGUI:
+class ManufacturingHistoryGUI(Gtk.Builder):
 	def __init__(self, main):
 
 		self.main = main
@@ -31,20 +31,20 @@ class ManufacturingHistoryGUI:
 		self.product_text = ''
 		self.name_text = ''
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
-		self.manufacturing_store = self.builder.get_object('manufacturing_history_store')
-		self.filtered_store = self.builder.get_object('manufacturing_history_filter')
+		Gtk.Builder.__init__ (self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
+		self.manufacturing_store = self.get_object('manufacturing_history_store')
+		self.filtered_store = self.get_object('manufacturing_history_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_manufacturing_store()
 
 	def manufacturing_history_row_activated (self, treeview, path, column):
 		store = treeview.get_model()
 		manufacturing_id = store[path][0]
-		serial_number_store = self.builder.get_object('serial_number_store')
+		serial_number_store = self.get_object('serial_number_store')
 		serial_number_store.clear()
 		self.cursor.execute("SELECT sn.id, serial_number, COALESCE(c.name, '') "
 							"FROM serial_numbers AS sn "
@@ -78,9 +78,9 @@ class ManufacturingHistoryGUI:
 		c.close()
 
 	def filter_changed (self, entry):
-		entry = self.builder.get_object('searchentry1')
+		entry = self.get_object('searchentry1')
 		self.product_text = entry.get_text().lower()
-		entry = self.builder.get_object('searchentry2')
+		entry = self.get_object('searchentry2')
 		self.name_text = entry.get_text().lower()
 		self.filtered_store.refilter()
 
@@ -91,6 +91,12 @@ class ManufacturingHistoryGUI:
 			return False
 		return True
 
+	def report_hub_clicked (self, button):
+		treeview = self.get_object('manufacturing_treeview')
+		model = self.get_object('manufacturing_history_store')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview, model)
 
 
-		
+
+
