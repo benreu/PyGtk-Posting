@@ -49,11 +49,16 @@ class ExportToPdfGUI(Gtk.Builder):
 
 	def generate_pdf(self):
 		self.columns = list() # a list that contains a list of column attributes
+		self.column_titles = list()
 		for column in self.treeview.get_columns():
-			if column.get_visible():
+			if column.get_visible() and column.get_width() > 0:
+				#print (column.get_title())
 				specs = list() # the list that holds the column attributes
 				cell_area = column.get_area()
 				renderer = cell_area.get_cells()[0]
+				if type(renderer) != gi.repository.Gtk.CellRendererText:
+					print (type(renderer), 'is not supported yet for pdf export')
+					continue
 				specs.append(cell_area.attribute_get_column(renderer, "text"))
 				specs.append(renderer.get_property("ellipsize"))
 				xalign = renderer.get_property("xalign")
@@ -66,6 +71,10 @@ class ExportToPdfGUI(Gtk.Builder):
 				is_expander = self.treeview.get_expander_column() == column
 				specs.append(is_expander)
 				self.columns.append(specs)
+				column_specs = list()
+				column_specs.append(column.get_title())
+				column_specs.append(column.get_width())
+				self.column_titles.append(column_specs)
 		pdf_width = self.treeview.get_allocated_width() 
 		pdf_width += self.border_width * 2
 		if pdf_width > 792: # greater than 11 inches
@@ -87,17 +96,21 @@ class ExportToPdfGUI(Gtk.Builder):
 		self.cr.set_line_width(1)
 		rectangle = self.treeview.get_cell_area(0, None)
 		self.row_height = rectangle.height
+		# self.y is the current position of the cursor in the document
+		self.y = self.border_width 
+		self.show_titles ()
 		if type(self.store) is type(Gtk.TreeStore()):
 			treeiter = self.store.get_iter_first()
 			indent = 0
-			# self.y is the current position of the cursor in the document
-			self.y = self.border_width 
 			self.line_axis = list() # a list that contains a list of axises
 			self.create_from_treerow(treeiter, indent)
 		elif type(self.store) is type(Gtk.ListStore()):
 			self.create_from_liststore()
 		else: # should not be reached
-			raise Exception("Invalid treestore model!")
+			print (type(self.store), "is still in testing for pdf export")
+			self.create_from_liststore()
+			#error = "%s is an invalid treestore model!" % type(self.store)
+			#raise Exception(error)
 		surface.finish()
 		self.window.present()
 		with open("/tmp/pdf_export.pdf",'rb') as f:
@@ -129,6 +142,21 @@ class ExportToPdfGUI(Gtk.Builder):
 			self.cr.move_to(x, start_y - (self.row_height / 2))
 			self.cr.line_to(x, end_y - (self.row_height / 1.5))
 			self.cr.stroke()
+			
+	def show_titles (self):
+		x = self.border_width
+		for specs in self.column_titles:
+			layout = PangoCairo.create_layout(self.cr)
+			desc = Pango.font_description_from_string("Sans 1 Bold")
+			layout.set_font_description(desc)
+			text = str(specs[0])
+			layout.set_text(text, len(text))
+			layout.set_width(specs[1] * Pango.SCALE) # column_width
+			layout.set_height(-1)
+			self.cr.move_to(x, self.y)
+			PangoCairo.show_layout(self.cr, layout)
+			x += specs[1] + 10 # move right by the column width; plus 10 extra?
+		self.y += self.row_height
 			
 	def show_row (self, treeiter, indent):
 		row = self.store[treeiter] # the row we are displaying
@@ -173,7 +201,6 @@ class ExportToPdfGUI(Gtk.Builder):
 		self.y = self.border_width # set the cursor y position to the start
 		
 	def create_from_liststore (self):
-		y = self.border_width
 		for index, row in enumerate(self.store):
 			x = self.border_width
 			for specs in self.columns:
@@ -187,13 +214,13 @@ class ExportToPdfGUI(Gtk.Builder):
 				layout.set_alignment(specs[2])
 				layout.set_width(specs[3] * Pango.SCALE)
 				layout.set_height(-1)
-				self.cr.move_to(x, y)
+				self.cr.move_to(x, self.y)
 				PangoCairo.show_layout(self.cr, layout)
 				x += specs[3] + 10
-			y += self.row_height
-			if (y + self.border_width) > self.pdf_height:
+			self.y += self.row_height
+			if (self.y + self.border_width) > self.pdf_height:
 				self.cr.show_page()
-				y = self.border_width
+				self.y = self.border_width
 
 	def print_pdf_clicked (self, button):
 		import printing
