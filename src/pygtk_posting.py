@@ -20,6 +20,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, GObject, Gdk
 from datetime import datetime, date
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os, sys, subprocess, psycopg2, re
 import main
 from main import Accounts
@@ -78,6 +79,7 @@ class MainGUI (GObject.GObject, Accounts):
 		result, db_connection, self.db_name = main.connect_to_db(database_to_connect)
 		if result == True:
 			self.db = db_connection
+			#self.db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 			self.window.set_title('%s - PyGtk Posting' % self.db_name)
 			self.check_db_version()
 			self.cursor = self.db.cursor()
@@ -132,11 +134,6 @@ class MainGUI (GObject.GObject, Accounts):
 		
 	def listen_postgres (self):
 		if self.db.closed == 1:
-			return False
-		try:
-			self.db.commit()
-		except Exception as e:
-			print (e, "> pygtk_posting.py polling feature misfired")
 			return False
 		self.db.poll()
 		while self.db.notifies:
@@ -487,7 +484,6 @@ class MainGUI (GObject.GObject, Accounts):
 								"- INTERVAL '1 day'")
 		except Exception as e:
 			self.db.rollback()
-			logging.error(str(e))
 			return
 		if self.cursor.fetchone()[0] == True:
 			store.append(["Print statements", 0, self.statement_window, orange])
