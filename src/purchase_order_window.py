@@ -18,7 +18,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
-import subprocess, re, os
+import subprocess, re, os, psycopg2
 from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 import purchase_ordering
@@ -141,6 +141,7 @@ class PurchaseOrderGUI:
 	def destroy(self, window):
 		self.main.disconnect(self.handler_c_id)
 		self.main.disconnect(self.handler_p_id)
+		self.unlock_po()
 		self.cursor.close()
 
 	def on_drag_data_received(self,widget,drag_context,x,y,data,info,time):
@@ -156,7 +157,7 @@ class PurchaseOrderGUI:
 										Decimal(0.0), True, 
 										int(self.vendor_id), '', 
 										self.purchase_order_id, False])
-		self.product_edited(_iter, product_id)
+		self.save_product(_iter, product_id)
 
 	def export_to_csv_activated (self, menuitem):
 		import csv 
@@ -191,13 +192,26 @@ class PurchaseOrderGUI:
 		self.products_from_existing_po ()
 
 	def hold_togglebutton_toggled (self, togglebutton, path):
-		active = not togglebutton.get_active ()
+		cursor = self.db.cursor()
 		row_id = self.p_o_store[path][0]
-		self.p_o_store[path][14] = active
-		self.cursor.execute("UPDATE purchase_order_line_items "
-							"SET hold = %s WHERE id = %s", (active, row_id))
+		try:
+			cursor.execute("UPDATE purchase_order_line_items "
+							"SET hold = NOT "
+								"(SELECT hold FROM purchase_order_line_items "
+								"WHERE id = %s FOR UPDATE NOWAIT) "
+							"WHERE id = %s RETURNING hold", (row_id, row_id))
+		except psycopg2.OperationalError as e:
+			self.db.rollback()
+			cursor.close()
+			error = str(e) + "Somebody else is editing this row"
+			self.show_message (error)
+			return False
+		for row in cursor.fetchall():
+			active = row[0]
+			self.p_o_store[path][14] = active
 		self.db.commit()
 		self.calculate_totals ()
+		cursor.close()
 
 	def products_from_existing_po (self):
 		self.p_o_store.clear()
@@ -387,10 +401,10 @@ class PurchaseOrderGUI:
 	def view_purchase_order(self, widget):
 		comment = self.builder.get_object('entry2').get_text()
 		purchase_order = purchase_ordering.Setup(self.db, 
-												self.p_o_store, 
-												self.vendor_id, comment, 
-												self.datetime, 
-												self.purchase_order_id)
+													self.vendor_id, 
+													comment, 
+													self.datetime, 
+													self.purchase_order_id)
 		purchase_order.view()
 
 	def post_and_process(self, widget):
@@ -399,32 +413,42 @@ class PurchaseOrderGUI:
 		unprocessed_po.GUI (self.main)
 
 	def post_purchase_order(self, widget = None):
+		cursor = self.db.cursor()
+		cursor.execute("SELECT "
+							"pg_try_advisory_lock(id) "
+						"FROM purchase_orders "
+						"WHERE id = %s ", (self.purchase_order_id, ))
+		for row in cursor.fetchall():
+			if row[0] == False:
+				self.show_message("Somebody else is still accessing this PO")
+				return
 		comment = self.builder.get_object('entry2').get_text()
-		purchase_order = purchase_ordering.Setup(self.db, 
-												self.p_o_store, 
-												self.vendor_id, comment, 
-												self.datetime, 
-												self.purchase_order_id)
+		purchase_order = purchase_ordering.Setup(self.db,  
+													self.vendor_id, 
+													comment, 
+													self.datetime, 
+													self.purchase_order_id)
 		if self.builder.get_object('menuitem1').get_active() == True:
-			purchase_order.print_directly()
+			result = purchase_order.print_directly()
 		else:
-			purchase_order.print_dialog(self.window)
+			result = purchase_order.print_dialog(self.window)
 		purchase_order.post(self.purchase_order_id, self.vendor_id,
 												self.datetime)
 		old_purchase_id = self.purchase_order_id
 		self.purchase_order_id = 0
 		self.check_po_id ()
-		self.cursor.execute ("UPDATE purchase_order_line_items "
+		cursor.execute ("UPDATE purchase_order_line_items "
 							"SET (purchase_order_id, hold) = (%s, False) "
 							"WHERE (purchase_order_id, hold) = "
 							"(%s, True) RETURNING id", 
 							(self.purchase_order_id, old_purchase_id))
-		if self.cursor.fetchone() == None: #no products held
+		if cursor.fetchone() == None: #no products held
 			self.db.rollback()
 			self.window.destroy ()
 		else:								#new po created; show it
 			self.db.commit()
 			self.products_from_existing_po ()
+		cursor.close()
 
 	def vendor_match_selected(self, completion, model, iter):
 		vendor_id = model[iter][0]
@@ -436,28 +460,36 @@ class PurchaseOrderGUI:
 		vendor_id = widget.get_active_id()
 		if vendor_id != None:
 			self.vendor_selected(vendor_id)
+
+	def unlock_po (self):
+		if self.purchase_order_id:
+			self.cursor.execute("SELECT "
+									"pg_advisory_unlock_shared(id) "
+								"FROM purchase_orders "
+								"WHERE id = %s ", 
+								(self.purchase_order_id, ))
 		
 	def vendor_selected(self, vendor_id):
 		self.p_o_store.clear()
 		self.builder.get_object ('checkbutton1').set_active(False)
 		if vendor_id != None and self.populating == False:
+			self.unlock_po()
 			self.vendor_id = vendor_id
-			self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)", 
-								(vendor_id, ))
-			for cell in self.cursor.fetchall() :	
-				self.builder.get_object('entry8').set_text(cell[8])
 			self.builder.get_object('button2').set_sensitive(True)
 			self.builder.get_object('button3').set_sensitive(True)
 			self.builder.get_object('menuitem5').set_sensitive(True)
 			self.builder.get_object('menuitem2').set_sensitive(True)
-			self.cursor.execute("SELECT "
+			self.cursor.execute("SELECT * FROM "
+								"(SELECT "
 									"id, "
 									"date_created, "
-									"format_date(date_created) "
+									"format_date(date_created), "
+									"pg_try_advisory_lock_shared(id) AS lock "
 								"FROM purchase_orders "
-								"WHERE vendor_id = (%s) "
+								"WHERE vendor_id = %s "
 								"AND (paid, closed, canceled) = "
-								"(False, False, False)", (vendor_id, ))
+								"(False, False, False)) s "
+								"WHERE lock = True", (vendor_id, ))
 			for row in self.cursor.fetchall() : # check for active PO
 				self.purchase_order_id = row[0]
 				self.datetime = row[1]
@@ -475,7 +507,31 @@ class PurchaseOrderGUI:
 					self.builder.get_object('entry1').set_text(row[2])
 			self.calculate_totals ()
 
+	def editing_canceled (self, cellrenderer):
+		"all widgets need to connect to this function to release row locks"
+		"removing row locks is as simple as doing a rollback or commit"
+		"all rows need to be locked whenever a widget is opened to "
+		"edit an invoice row"
+		self.db.rollback() #remove row lock by rolling back
+
 	################## start qty
+
+	def qty_editing_started (self, cellrenderer, celleditable, path):
+		row_id = self.p_o_store[path][0]
+		cursor = self.db.cursor()
+		try:
+			cursor.execute("SELECT qty::text FROM purchase_order_line_items "
+							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
+		except psycopg2.OperationalError as e:
+			self.db.rollback()
+			cursor.close()
+			error = str(e) + "Somebody else is editing this row"
+			self.show_message (error)
+			celleditable.destroy()
+			return False
+		for row in cursor.fetchall():
+			celleditable.set_text(row[0])
+		cursor.close()
 
 	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
 		qty = model.get_value(iter1, 1)
@@ -492,6 +548,21 @@ class PurchaseOrderGUI:
 	################## start order number
 
 	def order_number_editing_started (self, renderer, entry, path):
+		row_id = self.p_o_store[path][0]
+		cursor = self.db.cursor()
+		try:
+			cursor.execute("SELECT order_number FROM purchase_order_line_items "
+							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
+		except psycopg2.OperationalError as e:
+			self.db.rollback()
+			cursor.close()
+			error = str(e) + "Somebody else is editing this row"
+			self.show_message (error)
+			entry.destroy()
+			return False
+		for row in cursor.fetchall():
+			entry.set_text(row[0])
+		cursor.close()
 		entry.set_completion(self.order_number_completion)
 		self.path = path
 
@@ -512,7 +583,7 @@ class PurchaseOrderGUI:
 	def order_number_match_selected (self, completion, store, _iter):
 		product_id = store[_iter][0]
 		_iter = self.p_o_store.get_iter(self.path)
-		self.product_edited (_iter, product_id)
+		self.save_product (_iter, product_id)
 
 	def show_temporary_permanent_dialog (self, order_number, product_id):
 		if self.builder.get_object('checkbutton2').get_active() == True:
@@ -545,20 +616,29 @@ class PurchaseOrderGUI:
 		price = model.get_value(iter1, 8)
 		cellrenderer.set_property("text" , str(price))
 		
-	def price_edited(self, widget, path, text):
-		t = Decimal(text).quantize(self.price_places, rounding = ROUND_HALF_UP)
-		_iter = self.p_o_store.get_iter(path)
-		self.p_o_store[_iter][8] = t
-		self.calculate_row_total(_iter)
-		self.calculate_totals()
-		self.save_purchase_order_line (_iter)
-		
 	################## start remark
 
 	def remark_edited(self, widget, path, text):
 		_iter = self.p_o_store.get_iter(path)
 		self.p_o_store[_iter][7] = text
 		self.save_purchase_order_line (_iter)
+		
+	def remark_editing_started (self, cellrenderer, entry, path):
+		row_id = self.p_o_store[path][0]
+		cursor = self.db.cursor()
+		try:
+			cursor.execute("SELECT remark FROM purchase_order_line_items "
+							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
+		except psycopg2.OperationalError as e:
+			self.db.rollback()
+			cursor.close()
+			error = str(e) + "Somebody else is editing this row"
+			self.show_message (error)
+			entry.destroy()
+			return False
+		for row in cursor.fetchall():
+			entry.set_text(row[0])
+		cursor.close()
 
 	################## end remark
 
@@ -569,12 +649,29 @@ class PurchaseOrderGUI:
 	def product_renderer_changed (self, widget, path, iter_):
 		product_id = self.product_store[iter_][0]
 		_iter = self.p_o_store.get_iter(path)
-		self.product_edited (_iter, product_id)
+		self.save_product (_iter, product_id)
 
 	def product_renderer_editing_started (self, renderer, combo, path):
-		completion = self.builder.get_object("product_completion")
 		combo.connect('remove-widget', self.product_widget_removed, path)
 		entry = combo.get_child()
+		row_id = self.p_o_store[path][0]
+		cursor = self.db.cursor()
+		try:
+			cursor.execute("SELECT p.name "
+							"FROM purchase_order_line_items AS poi "
+							"JOIN products AS p ON p.id = poi.product_id "
+							"WHERE poi.id = %s "
+							"FOR UPDATE OF poi NOWAIT", (row_id,))
+		except psycopg2.OperationalError as e:
+			self.db.rollback()
+			cursor.close()
+			error = str(e) + "Somebody else is editing this row"
+			self.show_message (error)
+			combo.destroy()
+			return False
+		for row in cursor.fetchall():
+			entry.set_text(row[0])
+		completion = self.builder.get_object("product_completion")
 		entry.set_completion(completion)
 
 	def populate_account_store (self):
@@ -660,14 +757,15 @@ class PurchaseOrderGUI:
 		self.calculate_row_total (_iter)
 		self.calculate_totals ()
 		self.save_purchase_order_line (_iter)
-		
-	def product_edited(self, _iter, product_id):
-		product_id = int(product_id)
-		if self.check_for_duplicate_products (product_id, _iter) == True:
-			return	# skip the rest of the code
-		self.save_product (_iter, product_id)
+	
+	def product_edited (self, cellrenderertext, text, path):
+		"Posting does not allow product names to be edited directly"
+		self.db.rollback () # remove row lock, see editing_canceled
 
 	def save_product (self, _iter, product_id):
+		if self.check_for_duplicate_products (product_id, _iter) == True:
+			self.db.rollback() # remove row lock, see editing_canceled
+			return # duplicate product, skip the rest of the code
 		vendor_id = self.p_o_store[_iter][11]
 		self.p_o_store[_iter][2] = product_id
 		self.cursor.execute("SELECT "
@@ -708,7 +806,7 @@ class PurchaseOrderGUI:
 		model, path_list = self.builder.get_object('treeview-selection').get_selected_rows()
 		path = path_list[0].to_string()
 		_iter = self.p_o_store.get_iter(path)
-		self.product_edited (_iter, product_id)
+		self.save_product (_iter, product_id)
 
 	def check_for_duplicate_products(self, product_id, _iter ):
 		path = self.p_o_store.get_path (_iter)
@@ -736,6 +834,7 @@ class PurchaseOrderGUI:
 					self.save_product (_iter, product_id)
 				dialog.hide()
 				return True
+		return False
 
 	def calculate_row_total(self, _iter):
 		line = self.p_o_store[_iter]
@@ -747,6 +846,7 @@ class PurchaseOrderGUI:
 	def save_purchase_order_line (self, _iter):
 		line = self.p_o_store[_iter]
 		if line[2] == 0:
+			self.db.rollback()
 			return # no valid product yet
 		row_id = line[0]
 		qty = line[1]
@@ -926,7 +1026,7 @@ class PurchaseOrderGUI:
 			path = self.p_o_store.iter_n_children ()
 			path -= 1 #iter_n_children starts at 1 ; path starts at 0
 			_iter = self.p_o_store.get_iter(path)
-			self.product_edited (_iter, product_id)
+			self.save_product (_iter, product_id)
 
 	def calendar_day_selected (self, calendar):
 		self.datetime = calendar.get_date()

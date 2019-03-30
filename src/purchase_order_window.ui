@@ -425,6 +425,8 @@
                         <property name="xalign">1</property>
                         <property name="editable">True</property>
                         <signal name="edited" handler="qty_edited" swapped="no"/>
+                        <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
+                        <signal name="editing-started" handler="qty_editing_started" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -442,6 +444,8 @@
                         <property name="model">product_store</property>
                         <property name="text_column">1</property>
                         <signal name="changed" handler="product_renderer_changed" swapped="no"/>
+                        <signal name="edited" handler="product_edited" swapped="no"/>
+                        <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
                         <signal name="editing-started" handler="product_renderer_editing_started" swapped="no"/>
                       </object>
                       <attributes>
@@ -461,6 +465,7 @@
                       <object class="GtkCellRendererText" id="cellrenderertext3">
                         <property name="editable">True</property>
                         <signal name="edited" handler="order_number_edited" swapped="no"/>
+                        <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
                         <signal name="editing-started" handler="order_number_editing_started" swapped="no"/>
                       </object>
                       <attributes>
@@ -509,6 +514,8 @@
                       <object class="GtkCellRendererText" id="cellrenderertext5">
                         <property name="editable">True</property>
                         <signal name="edited" handler="remark_edited" swapped="no"/>
+                        <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
+                        <signal name="editing-started" handler="remark_editing_started" swapped="no"/>
                       </object>
                       <attributes>
                         <attribute name="text">7</attribute>
@@ -525,7 +532,6 @@
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6">
                         <property name="xalign">1</property>
-                        <signal name="edited" handler="price_edited" swapped="no"/>
                       </object>
                     </child>
                   </object>

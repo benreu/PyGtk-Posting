@@ -28,10 +28,9 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, db, store, contact, comment, datetime, purchase_order_id):	
+	def __init__(self, db, contact, comment, datetime, purchase_order_id):	
 		'''store is the liststore used by the treeview, contact id, comment, datetime'''
 		self.contact = contact
-		self.store = store
 		self.comment = comment
 		self.datetime = datetime
 		self.total = Decimal()
@@ -70,19 +69,37 @@ class Setup():
 			company.email = row[9]
 			company.website = row[10]
 			company.tax_number = row[11]
-		for row in self.store:
-			if row[14] == False:
-				self.total += row[9]
-				item = Item()
-				item.qty = row[1]
-				item.order_number = row[3]
-				item.product_name = row[5]
-				item.product_ext_name = row[6]
-				if row[7] != '':
-					item.remark = " : " + row[7]
-				item.price = '${:,.2f}'.format(row[8])
-				item.ext_price = '${:,.2f}'.format(row[9])
-				items.append(item)
+		self.cursor.execute("SELECT "
+								"poi.qty, "
+								"poi.remark, "
+								"poi.price::money, "
+								"poi.qty*poi.price::money, "
+								"COALESCE(order_number, vendor_sku, 'No sku'), "
+								"products.name, "
+								"products.ext_name, "
+								"poi.qty*poi.price "
+							"FROM purchase_order_line_items AS poi "
+							"JOIN products ON products.id = poi.product_id "
+							"JOIN purchase_orders AS po "
+							"ON po.id = poi.purchase_order_id "
+							"LEFT JOIN vendor_product_numbers AS vpn "
+							"ON (vpn.vendor_id, vpn.product_id) "
+							"= (poi.product_id, po.vendor_id) "
+							"WHERE (purchase_order_id, hold) = (%s, False) "
+							"ORDER BY poi.id", 
+							(self.purchase_order_id, ) )
+		for row in self.cursor.fetchall():
+			item = Item()
+			item.qty = row[0]
+			if row[1] != '':
+				item.remark = " : " + row[1]
+			item.price = row[2]
+			item.ext_price = row[3]
+			item.order_number = row[4]
+			item.product_name = row[5]
+			item.product_ext_name = row[6]
+			items.append(item)
+			self.total += row[7]
 		
 		document = Item()
 		document.total = '${:,.2f}'.format(self.total)
