@@ -150,6 +150,7 @@ class Setup():
 			self.cursor.execute("UPDATE purchase_orders SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.purchase_order_id,))
+		return result
 		
 	def print_directly(self):
 		from py3o.template import Template
@@ -160,23 +161,36 @@ class Setup():
 		p = printing.Operation(settings_file = 'purchase_order')
 		p.set_parent(window)
 		p.set_file_to_print("/tmp/" + self.document_pdf)
-		p.print_direct()
-		self.store = []
+		result = p.print_direct()
+		if result == Gtk.PrintOperationResult.APPLY:
+			self.cursor.execute("UPDATE purchase_orders SET date_printed = "
+								"CURRENT_DATE WHERE id = %s", 
+								(self.purchase_order_id,))
+		return result
 
 	def post(self, purchase_order_id, vendor_id, datetime):
 		document = "/tmp/" + self.document_pdf
 		f = open(document,'rb')
 		dat = f.read()
 		f.close()
-		self.cursor.execute("UPDATE purchase_orders SET (pdf_data, closed, "
-							"invoiced, name, date_created) "
-							"= (%s, True, False, %s, %s) WHERE id = %s", 
+		self.cursor.execute("UPDATE purchase_orders "
+								"SET (pdf_data, "
+									"closed, "
+									"invoiced, "
+									"name, "
+									"date_created) "
+								"= (%s, "
+									"True, "
+									"False, "
+									"%s, "
+									"%s) "
+								"WHERE id = %s", 
 							(dat, self.document_name, datetime, 
 							purchase_order_id))
 		self.db.commit()
 
 
-		
-		
 
-		
+
+
+

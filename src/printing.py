@@ -22,6 +22,7 @@ import main, os
 
 class Operation (Gtk.PrintOperation):
 	settings_file = None
+	user_canceled = False
 	def __init__(self, parent = None, file_to_print = None, settings_file = None):
 
 		Gtk.PrintOperation.__init__(self)
@@ -57,34 +58,47 @@ class Operation (Gtk.PrintOperation):
 		self.set_custom_tab_label('PyGtk Posting')
 		box = Gtk.Box (orientation = Gtk.Orientation.VERTICAL)
 		box.set_halign (Gtk.Align.CENTER)
-		button = Gtk.Button(label = "Cancel printing")
-		button.set_tooltip_text("This button really doesn't do anything, it is here for reference")
-		button.connect('clicked', self.button_cancel)
-		box.pack_start(button, False, False, 50)
+		button = Gtk.CheckButton(label = "Cancel printing and posting")
+		label = Gtk.Label(label = "The document will be posted, and printing \n"
+									"will be according to the button selected")
+		button.connect('toggled', self.cancel_button_toggled, label)
+		box.pack_start(button, False, False, 10)
+		box.pack_start(label, False, False, 0)
 		box.show_all()
 		return box
 
-	def button_cancel (self, button = None):
-		self.cancel()
+	def cancel_button_toggled (self, button, label):
+		self.user_canceled = button.get_active()
+		if self.user_canceled:
+			text = "The document will not be posted or printed, \n" \
+					"irregardless of the action you select"
+		else:
+			text = "The document will be posted, and printing \n" \
+					"will be according to the button you select"
+		label.set_label(text)
 
 	def set_bytes_to_print (self, bytes):
 		self.doc = Poppler.Document.new_from_stream(bytes, -1, None, None)
 
 	def do_begin_print(self, operation):
+		if self.user_canceled:
+			return False
 		self.set_n_pages(self.doc.get_n_pages())
 
 	def do_draw_page(self, print_ctx, page_num):
+		if self.user_canceled:
+			return False
 		cr = print_ctx.get_cairo_context()
 		page = self.doc.get_page(page_num)
 		page.render(cr)
 
 	def print_dialog (self):
-		"parent dialog to attach the dialog to"
-		result = self.run(Gtk.PrintOperationAction.PRINT_DIALOG,
-									self.parent)
+		result = self.run(Gtk.PrintOperationAction.PRINT_DIALOG, self.parent)
+		if self.user_canceled:
+			return "user canceled"
 		if result == Gtk.PrintOperationResult.ERROR:
 			message = self.get_error()
-			self.show_error_message(message, parent)
+			self.show_error_message(message)
 		elif result == Gtk.PrintOperationResult.APPLY:
 			settings = self.get_print_settings()
 			try:
@@ -92,13 +106,13 @@ class Operation (Gtk.PrintOperation):
 					settings.to_file(self.settings_file)
 			except Exception as e:
 				message = str(e)
-				self.show_error_message(message, parent)
+				self.show_error_message(message)
 		return result
 
 	def print_directly (self):
-		"parent dialog to attach the dialog to"
-		result = self.run(Gtk.PrintOperationAction.PRINT,
-									self.parent)
+		result = self.run(Gtk.PrintOperationAction.PRINT, self.parent)
+		if self.user_canceled:
+			return "user canceled"
 		if result == Gtk.PrintOperationResult.ERROR:
 			message = self.get_error()
 			self.show_error_message(message)
