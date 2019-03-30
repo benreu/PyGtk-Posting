@@ -81,13 +81,24 @@ class GUI:
 		c = self.db.cursor()
 		root = self.canvas.get_root_item()
 		previous_position = 25.0
-		c.execute("SELECT "
-				"'Payment '||payment_info(id)||' '||format_date(date_inserted)||' '||amount::money, "
-				"amount::float, "
-				"id "
-				"FROM payments_incoming "
-				"WHERE customer_id = %s "
-				"ORDER BY date_inserted", (self.customer_id,))
+		c.execute("SELECT * FROM "
+					"(SELECT "
+					"'Payment '||payment_info(id)||' '||format_date(date_inserted)||' '||amount::money, "
+					"amount::float, "
+					"id, "
+					"date_inserted AS dated "
+					"FROM payments_incoming "
+					"WHERE customer_id = %s "
+					") s "
+				"UNION "
+					"(SELECT "
+					"'Credit Memo '||id::text||' '||format_date(dated_for)||' '||amount_owed::money, "
+					"amount_owed::float, "
+					"id, "
+					"dated_for AS dated "
+					"FROM credit_memos WHERE customer_id = %s "
+					") "
+				"ORDER BY dated", (self.customer_id, self.customer_id))
 		for row in c.fetchall():
 			amount = row[1]
 			parent1 = GooCanvas.CanvasGroup(parent = root)
