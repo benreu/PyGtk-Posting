@@ -1,10 +1,10 @@
-# invoice_utility.py
+# purchase_ordering.py
 #
 # Copyright (C) 2016 - reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -28,47 +28,69 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, db, contact, comment, datetime, purchase_order_id):	
-		'''store is the liststore used by the treeview, contact id, comment, datetime'''
-		self.contact = contact
+	def __init__(self, db, contact, comment, datetime, purchase_order_id):
+		self.vendor_id = contact
 		self.comment = comment
 		self.datetime = datetime
 		self.total = Decimal()
 		self.purchase_order_id = purchase_order_id
 		self.db = db
 		self.cursor = db.cursor()
-		self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)",(self.contact, ))
+		self.cursor.execute("SELECT "
+								"name, "
+								"ext_name, "
+								"address, "
+								"city, "
+								"state, "
+								"zip, "
+								"fax, "
+								"phone, "
+								"email, "
+								"label, "
+								"tax_number "
+							"FROM contacts WHERE id = %s",
+							(contact, ))
 		vendor = Item()
 		items = list()
-		for string in self.cursor.fetchall():
-			vendor.name = (string[1])
-			self.vendor_id = (string[0])
-			name = (string[1])
-			vendor.ext_name = (string[2])
-			vendor.address = (string[3])
-			vendor.city = (string[4])
-			vendor.state = (string[5])
-			vendor.zip = (string[6])
-			vendor.fax = (string[7])
-			vendor.phone = (string[8])
-			vendor.email = (string[9])
-			vendor.label = (string[10])
-			vendor.tax_exempt = (string[11])
-			vendor.tax_exempt_number = (string[12])
-		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
 		for row in self.cursor.fetchall():
-			company.name = row[1]
-			company.street = row[2]
-			company.city = row[3]
-			company.state = row[4]
-			company.zip = row[5]
-			company.country = row[6]
-			company.phone = row[7]
-			company.fax = row[8]
-			company.email = row[9]
-			company.website = row[10]
-			company.tax_number = row[11]
+			vendor.name = (row[0])
+			name = (row[0])
+			vendor.ext_name = (row[1])
+			vendor.address = (row[2])
+			vendor.city = (row[3])
+			vendor.state = (row[4])
+			vendor.zip = (row[5])
+			vendor.fax = (row[6])
+			vendor.phone = (row[7])
+			vendor.email = (row[8])
+			vendor.label = (row[9])
+			vendor.tax_exempt_number = (row[10])
+		company = Item()
+		self.cursor.execute("SELECT "
+							"name, "
+							"street, "
+							"city, "
+							"state, "
+							"zip, "
+							"country, "
+							"phone, "
+							"fax, "
+							"email, "
+							"website, "
+							"tax_number "
+							"FROM company_info")
+		for row in self.cursor.fetchall():
+			company.name = row[0]
+			company.street = row[1]
+			company.city = row[2]
+			company.state = row[3]
+			company.zip = row[4]
+			company.country = row[5]
+			company.phone = row[6]
+			company.fax = row[7]
+			company.email = row[8]
+			company.website = row[9]
+			company.tax_number = row[10]
 		self.cursor.execute("SELECT "
 								"poi.qty, "
 								"poi.remark, "
@@ -126,7 +148,8 @@ class Setup():
 		self.document_name = document.number
 		self.document_odt = document.number + ".odt"
 		self.document_pdf = document.number + ".pdf"
-		self.data = dict(items=items, document=document, contact = vendor, company = company)
+		self.data = dict(items=items, document=document,
+							contact=vendor, company=company)
 
 	def view(self):
 		from py3o.template import Template 
@@ -140,7 +163,6 @@ class Setup():
 		purchase_order_file = "/tmp/" + self.document_odt
 		t = Template(main.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
-		#subprocess.call("libreoffice --nologo -p " + purchase_order_file, shell = True)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = 'purchase_order')
 		p.set_parent(window)
@@ -185,7 +207,9 @@ class Setup():
 									"%s, "
 									"%s) "
 								"WHERE id = %s", 
-							(dat, self.document_name, datetime, 
+							(dat, 
+							self.document_name, 
+							datetime, 
 							purchase_order_id))
 		self.db.commit()
 
