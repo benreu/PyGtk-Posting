@@ -18,11 +18,7 @@
 import gi
 gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
-import os, sys, time, subprocess
-from subprocess import Popen, PIPE
-from multiprocessing import Queue, Process
-from queue import Empty
-from datetime import datetime, date
+import time
 from db.database_tools import get_apsw_cursor
 import main
 
@@ -39,11 +35,11 @@ class Utilities:
 		self.db = parent.db
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
-		self.builder.get_object('scrolled_window').add(self.terminal)
 
 	def backup_gui (self, database):
 		self.database = database
 		self.result = False
+		self.builder.get_object('backup_scrolled_window').add(self.terminal)
 		backup_window = self.builder.get_object('backupdialog')
 		backup_window.set_transient_for(self.parent_window)
 		day = time.strftime("%Y-%m-%d-%H:%M")
@@ -108,80 +104,88 @@ class Utilities:
 		dialog.destroy()
 
 	def restore_gui(self, db_name, parent):
+		self.parent = parent
+		self.error = False
+		self.builder.get_object('restore_scrolled_window').add(self.terminal)
 		restore_window = self.builder.get_object('restoredialog')
 		restore_window.set_transient_for(self.parent_window)
+		restore_window.show_all()
 		response = restore_window.run()
 		db_file = restore_window.get_filename()
-		restore_window.destroy()
-		if response == Gtk.ResponseType.ACCEPT:
-			cursor_sqlite = get_apsw_cursor ()
-			for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-				sql_user = row[0]
-				sql_password = row[1]
-				sql_host = row[2]
-				sql_port = row[3]
-			sql_password = sql_password.encode(encoding = "utf-8")
-			self.data_queue = Queue()
-			command = ("createdb -U%s -h%s -p%s -Ttemplate0 %s" 
-							% (sql_user, sql_host, sql_port, db_name))
-			create_db = Popen(command ,shell = True,
-								stdin = PIPE, stdout = PIPE, stderr = PIPE)
-			def create ():
-				stderr, stdout = create_db.communicate(sql_password)
-				stdout = stdout.decode(encoding="utf-8", errors="strict")
-				self.data_queue.put(stdout)
-			thread = Process(target=create)
-			thread.start()
-			GLib.timeout_add(10, self.check_stdout )
-			while create_db.poll() == None:
-				while Gtk.events_pending():
-					Gtk.main_iteration()
-				self.parent.progressbar.pulse()
-				time.sleep(.05)
-			if create_db.poll() != 0 :
-				self.parent.progressbar.set_fraction(0.0)
-				self.parent.status_update("Could not create %s" % db_name)
-				return
-			self.parent.status_update("Created database %s" % db_name)
-			command = ("pg_restore -U%s -h%s -p%s -d %s '%s'" 
-						% (sql_user, sql_host, sql_port, db_name, db_file))
-			restore_db = Popen(command , shell = True,
-							stdin = PIPE, stdout = PIPE, stderr = PIPE)
-			def create ():				
-				stderr, stdout = restore_db.communicate(sql_password)
-				stdout = stdout.decode(encoding="utf-8", errors="strict")
-				self.data_queue.put(stdout)
-			thread = Process(target=create)
-			thread.start()
-			GLib.timeout_add(10, self.check_stdout )
-			while restore_db.poll() == None:
-				while Gtk.events_pending():
-					Gtk.main_iteration()
-				self.parent.progressbar.pulse()
-				time.sleep(.05)
-			if restore_db.poll() != 0 :
-				self.parent.progressbar.set_fraction(0.0)
-				self.parent.status_update("Could not restore %s" % db_name)
-				return
-			parent.builder.get_object('entry6').set_text("")
-			parent.retrieve_dbs ()
-			self.parent.progressbar.set_fraction(1.0)
-			self.parent.status_update("Successfully restored %s" % db_name)
+		if response != Gtk.ResponseType.ACCEPT:
+			return
+		cursor_sqlite = get_apsw_cursor ()
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+			sql_user = row[0]
+			self.sql_password = row[1]
+			sql_host = row[2]
+			sql_port = row[3]
+		create_command = ["/usr/lib/postgresql/10/bin/createdb", 
+							"-e",
+							"-U", sql_user, 
+							"-h", sql_host, 
+							"-p", sql_port, 
+							"-Ttemplate0", db_name]
+		self.terminal.spawn_sync(   Vte.PtyFlags.DEFAULT,
+									"/",
+									create_command,
+									[],
+									GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+									None,
+									None,
+									)
+		self.handler_id = self.terminal.connect("child-exited", 
+													self.create_callback,
+													db_name,
+													db_file)
+		GLib.timeout_add_seconds(1, self.feed_password, self.sql_password)
 
-	def check_stdout (self):
-		try:
-			stdout = self.data_queue.get_nowait()
-			if stdout != "":
-				self.show_error_message(stdout)
-		except Empty:
-			return True
+	def create_callback (self, terminal, error, db_name, db_file):
+		terminal.disconnect(self.handler_id)
+		if error != 0:
+			self.parent.status_update("Could not create %s" % db_name)
+			self.error = True
+			self.builder.get_object('button7').set_label('Create failed!')
+			return
+		self.parent.status_update("Created database %s" % db_name)
+		cursor_sqlite = get_apsw_cursor ()
+		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+			sql_user = row[0]
+			self.sql_password = row[1]
+			sql_host = row[2]
+			sql_port = row[3]
+		restore_command = ["/usr/lib/postgresql/10/bin/pg_restore", 
+							"-v",
+							"-U", sql_user, 
+							"-h", sql_host, 
+							"-p", sql_port, 
+							"-d", db_name,
+							db_file]
+		self.terminal.spawn_sync(   Vte.PtyFlags.DEFAULT,
+									'/',
+									restore_command,
+									[],
+									GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+									None,
+									None,
+									)
+		self.handler_id = self.terminal.connect("child-exited", 
+													self.restore_callback,
+													db_name)
+		GLib.timeout_add_seconds(1, self.feed_password, self.sql_password)
 
-	def show_error_message (self, message):
-		print (str(message))
-		self.builder.get_object('textbuffer1').set_text(message)
-		error_dialog = self.builder.get_object('dialog1')
-		error_dialog.set_transient_for(self.parent_window)
-		error_dialog.run()
-		error_dialog.destroy()
+	def restore_callback (self, terminal, error, db_name):
+		terminal.disconnect(self.handler_id)
+		if error != 0:
+			self.parent.status_update("Could not restore %s" % db_name)
+			self.error = True
+			self.builder.get_object('button6').set_label('Restore failed!')
+		self.builder.get_object('button7').set_visible(True)
+		self.builder.get_object('button4').set_visible(False)
+		self.builder.get_object('button3').set_visible(False)
+		self.parent.builder.get_object('entry6').set_text("")
+		self.parent.retrieve_dbs ()
+		self.parent.progressbar.set_fraction(1.0)
+		self.parent.status_update("Successfully restored %s" % db_name)
 
 		

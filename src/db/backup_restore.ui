@@ -2,73 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkFileFilter" id="filefilter1">
-    <patterns>
-      <pattern>*.pbk</pattern>
-    </patterns>
-  </object>
-  <object class="GtkFileChooserDialog" id="restoredialog">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Choose a backup file</property>
-    <property name="window_position">center</property>
-    <property name="type_hint">normal</property>
-    <property name="filter">filefilter1</property>
-    <child>
-      <placeholder/>
-    </child>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="filechooserdialog-vbox1">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="filechooserdialog-action_area1">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button4">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button3">
-                <property name="label" translatable="yes">Restore database</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="can_default">True</property>
-                <property name="has_default">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-6">button4</action-widget>
-      <action-widget response="-3">button3</action-widget>
-    </action-widgets>
-  </object>
-  <object class="GtkScrolledWindow" id="scrolled_window">
+  <object class="GtkScrolledWindow" id="backup_scrolled_window">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
     <property name="hexpand">True</property>
@@ -78,16 +12,21 @@
       <placeholder/>
     </child>
   </object>
+  <object class="GtkFileFilter" id="filefilter1">
+    <patterns>
+      <pattern>*.pbk</pattern>
+    </patterns>
+  </object>
   <object class="GtkFileChooserDialog" id="backupdialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Create a backup file</property>
     <property name="window_position">center</property>
     <property name="default_width">500</property>
     <property name="default_height">600</property>
-    <property name="type_hint">menu</property>
+    <property name="type_hint">normal</property>
     <property name="action">save</property>
     <property name="do_overwrite_confirmation">True</property>
-    <property name="extra_widget">scrolled_window</property>
+    <property name="extra_widget">backup_scrolled_window</property>
     <property name="filter">filefilter1</property>
     <child>
       <placeholder/>
@@ -157,29 +96,38 @@
       <action-widget response="-3">button2</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkTextBuffer" id="textbuffer1"/>
-  <object class="GtkDialog" id="dialog1">
+  <object class="GtkScrolledWindow" id="restore_scrolled_window">
+    <property name="visible">True</property>
+    <property name="can_focus">True</property>
+    <property name="hexpand">True</property>
+    <property name="vexpand">True</property>
+    <property name="shadow_type">in</property>
+    <child>
+      <placeholder/>
+    </child>
+  </object>
+  <object class="GtkFileChooserDialog" id="restoredialog">
     <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Choose a backup file</property>
     <property name="window_position">center</property>
-    <property name="type_hint">dialog</property>
+    <property name="type_hint">normal</property>
+    <property name="extra_widget">restore_scrolled_window</property>
+    <property name="filter">filefilter1</property>
     <child>
       <placeholder/>
     </child>
     <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+      <object class="GtkBox" id="filechooserdialog-vbox1">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area1">
+          <object class="GtkButtonBox" id="filechooserdialog-action_area1">
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <object class="GtkButton" id="button5">
-                <property name="label" translatable="yes">OK</property>
+              <object class="GtkButton" id="button4">
+                <property name="label" translatable="yes">Cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -187,41 +135,16 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="box1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkLabel" id="label2">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Oops! Something went wrong! Here is the message Posting found:</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkTextView" id="textview1">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="editable">False</property>
-                <property name="cursor_visible">False</property>
-                <property name="buffer">textbuffer1</property>
-                <property name="accepts_tab">False</property>
+              <object class="GtkButton" id="button7">
+                <property name="label" translatable="yes">Done</property>
+                <property name="can_focus">False</property>
+                <property name="receives_default">False</property>
+                <property name="no_show_all">True</property>
+                <signal name="clicked" handler="done_clicked" object="restoredialog" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -229,17 +152,35 @@
                 <property name="position">1</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkButton" id="button3">
+                <property name="label" translatable="yes">Restore database</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="can_default">True</property>
+                <property name="has_default">True</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">button5</action-widget>
+      <action-widget response="-6">button4</action-widget>
+      <action-widget response="-3">button3</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkTextBuffer" id="textbuffer1"/>
 </interface>
