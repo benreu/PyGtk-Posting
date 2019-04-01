@@ -68,7 +68,7 @@
       <!-- column-name row_id -->
       <column type="gint"/>
       <!-- column-name qty -->
-      <column type="PyObject"/>
+      <column type="gchararray"/>
       <!-- column-name product_id -->
       <column type="gint"/>
       <!-- column-name order_number -->
@@ -82,9 +82,9 @@
       <!-- column-name remarks -->
       <column type="gchararray"/>
       <!-- column-name price -->
-      <column type="PyObject"/>
+      <column type="gchararray"/>
       <!-- column-name ext_price -->
-      <column type="PyObject"/>
+      <column type="gchararray"/>
       <!-- column-name new_line -->
       <column type="gboolean"/>
       <!-- column-name vendor_id -->
@@ -428,6 +428,9 @@
                         <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
                         <signal name="editing-started" handler="qty_editing_started" swapped="no"/>
                       </object>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -533,6 +536,9 @@
                       <object class="GtkCellRendererText" id="cellrenderertext6">
                         <property name="xalign">1</property>
                       </object>
+                      <attributes>
+                        <attribute name="text">8</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -545,6 +551,9 @@
                       <object class="GtkCellRendererText" id="cellrenderertext7">
                         <property name="xalign">1</property>
                       </object>
+                      <attributes>
+                        <attribute name="text">9</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -1033,7 +1042,7 @@ Do you want to update the quantity to </property>
     </child>
     <action-widgets>
       <action-widget response="-6">button6</action-widget>
-      <action-widget response="-4">button9</action-widget>
+      <action-widget response="-2">button9</action-widget>
       <action-widget response="-3">button7</action-widget>
     </action-widgets>
   </object>
