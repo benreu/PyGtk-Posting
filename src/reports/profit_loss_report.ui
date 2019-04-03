@@ -205,7 +205,9 @@
                     <property name="title" translatable="yes">Amount</property>
                     <property name="reorderable">True</property>
                     <child>
-                      <object class="GtkCellRendererText"/>
+                      <object class="GtkCellRendererText">
+                        <property name="editable">True</property>
+                      </object>
                       <attributes>
                         <attribute name="text">2</attribute>
                       </attributes>
