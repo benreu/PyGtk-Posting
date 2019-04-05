@@ -500,9 +500,6 @@ class GUI:
 		label = self.builder.get_object('label20')
 		label.set_visible (True)
 		payment = self.builder.get_object('spinbutton1').get_value()
-		if payment == 0.00:
-			button.set_label ("Amount is 0.00")
-			return
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		invoice_amount_due_totals = Decimal()
