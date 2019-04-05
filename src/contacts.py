@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gio
+from gi.repository import Gtk, Gdk,GLib, Gio
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
@@ -615,6 +615,12 @@ class GUI(Gtk.Builder):
 		if self.scanner != None:
 			self.scanner.close()
 		self.cursor.close()
+
+	def window_key_release_event (self, window, event):
+		if event.get_state() & Gdk.ModifierType.CONTROL_MASK: #control held down
+			keyname = Gdk.keyval_name(event.keyval)
+			if keyname == 'f' or keyname == 'F':
+				self.get_object('searchentry1').grab_focus()
 
 	def tax_exempt_clicked(self, widget):
 		sense = widget.get_active() 

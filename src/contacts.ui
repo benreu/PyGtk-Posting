@@ -191,6 +191,7 @@
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus_window" swapped="no"/>
+    <signal name="key-release-event" handler="window_key_release_event" swapped="no"/>
     <child>
       <placeholder/>
     </child>
