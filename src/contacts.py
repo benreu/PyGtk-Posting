@@ -410,7 +410,7 @@ class GUI(Gtk.Builder):
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		label_file = "/tmp/letter_template.odt"
-		t = Template(main.template_dir+"letter_template.odt", label_file , True)
+		t = Template(main.template_dir+"/letter_template.odt", label_file , True)
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.call("libreoffice " + label_file, shell = True)
 
