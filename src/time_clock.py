@@ -32,13 +32,7 @@ class TimeClockGUI :
 		self.builder.connect_signals(self)
 
 		self.timeout_id = None
-<<<<<<< HEAD
 		self.db = db
-=======
-		self.main = main
-		self.handler = main.connect('clock_entries_changed', self.populate_employees)
-		self.db = main.db
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (('clock_entries_changed', self.populate_employees),):

@@ -44,13 +44,8 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 	
 class PurchaseOrderGUI(Gtk.Builder):
-<<<<<<< HEAD
 	def __init__(self, edit_po_id = None ):
 		
-=======
-	def __init__(self, main, edit_po_id = None ):
-
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 		self.purchase_order_id = None
 		self.vendor_id = 0
 		Gtk.Builder.__init__(self)
@@ -392,11 +387,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def view_purchase_order(self, widget):
 		comment = self.get_object('entry2').get_text()
-<<<<<<< HEAD
 		purchase_order = purchase_ordering.Setup(db, 
-=======
-		purchase_order = purchase_ordering.Setup(self.db, 
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 													self.vendor_id, 
 													comment, 
 													self.datetime, 
@@ -419,11 +410,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.show_message("Somebody else is still accessing this PO")
 				return
 		comment = self.get_object('entry2').get_text()
-<<<<<<< HEAD
 		purchase_order = purchase_ordering.Setup(db,  
-=======
-		purchase_order = purchase_ordering.Setup(self.db,  
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 													self.vendor_id, 
 													comment, 
 													self.datetime, 
@@ -507,19 +494,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.calculate_totals ()
 
 	def editing_canceled (self, cellrenderer):
-<<<<<<< HEAD
 		"all widgets need to connect to this function to release row locks"
 		"removing row locks is as simple as doing a rollback or commit"
 		"all rows need to be locked whenever a widget is opened to "
 		"edit an invoice row"
 		db.rollback() #remove row lock by rolling back
-=======
-		"all item widgets need to connect to this function to release row locks"
-		"removing row locks is as simple as doing a rollback or commit;"
-		"every time a widget is opened to edit an invoice row,"
-		"a lock needs to be acquired to block other concurrent users"
-		self.db.rollback() #remove row lock by rolling back
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 
 	################## start qty
 
@@ -891,12 +870,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def check_po_item_id (self, _iter):
 		line = self.p_o_store[_iter]
-<<<<<<< HEAD
 		if line[2] == 0:
 			db.rollback()
 			return # no valid product yet
-=======
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 		row_id = line[0]
 		if row_id != 0:
 			return # we have a valid id
@@ -943,7 +919,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = cursor.fetchone()[0]
 		line[0] = row_id
 		cursor.close()
-<<<<<<< HEAD
 		db.commit()
 		#if a default expense account is available, use it
 		self.cursor.execute("SELECT default_expense_account FROM products WHERE id = %s", (product_id,))
@@ -973,9 +948,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 								product_id, remark, price, ext_price, 
 								expense_account, order_number,  row_id))
 		db.commit()
-=======
-		self.db.commit()
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 		self.calculate_totals ()
 
 	def calculate_totals(self):
@@ -1031,7 +1003,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 			c = treeview.get_column(0)
 			path = self.p_o_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
-<<<<<<< HEAD
 		db.commit()
 		self.p_o_store.append([0, Decimal(1.0), 0, "Select order number", 
 								False, "Select a stock item" , "", "", 
@@ -1045,9 +1016,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 				c = treeview.get_column(0)
 				treeview.set_cursor(index , c, True)
 				break
-=======
-		self.db.commit()
->>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 
 	def delete_entry_activated (self, menuitem = None):
 		selection = self.get_object("treeview-selection")
