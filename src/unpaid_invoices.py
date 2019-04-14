@@ -21,27 +21,28 @@ import main
 
 UI_FILE = main.ui_directory + "/unpaid_invoices.ui"
 
-class GUI:
+class GUI (Gtk.Builder):
 	figure = None
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.main = main
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		
 		self.db = main.db
 		self.cursor = self.db.cursor()
 
-		self.store = self.builder.get_object('unpaid_invoice_store')
-		self.window = self.builder.get_object('window')
+		self.store = self.get_object('unpaid_invoice_store')
+		self.window = self.get_object('window')
 		self.window.show_all()
 		main.unpaid_invoices_window = self.window
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect("day-selected", self.date_selected)
 		
-		amount_column = self.builder.get_object ('treeviewcolumn3')
-		amount_renderer = self.builder.get_object ('cellrenderertext3')
+		amount_column = self.get_object ('treeviewcolumn3')
+		amount_renderer = self.get_object ('cellrenderertext3')
 		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
 
 	def present (self):
@@ -54,6 +55,20 @@ class GUI:
 	def destroy(self, window):
 		self.exists = False
 		self.cursor.close()
+	
+	def treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('right_click_menu')
+			menu.popup_at_pointer()
+
+	def contact_hub_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		customer_id = model[path][2]
+		import contact_hub
+		contact_hub.ContactHubGUI(self.main, customer_id)
 
 	def invoice_chart_clicked (self, button):
 		if self.figure == None:
@@ -62,9 +77,9 @@ class GUI:
 			self.figure = Figure(figsize=(4, 4), dpi=100)
 			canvas = FigureCanvas(self.figure)  # a Gtk.DrawingArea
 			canvas.set_size_request(900, 600)
-			overlay = self.builder.get_object('overlay1')
+			overlay = self.get_object('overlay1')
 			overlay.add (canvas)
-			overlay.add_overlay (self.builder.get_object('print_button'))
+			overlay.add_overlay (self.get_object('print_button'))
 			self.plot = self.figure.add_subplot(111)
 		labels = list()
 		fractions = list()
@@ -84,12 +99,12 @@ class GUI:
 			labels.append("None")
 			fractions.append(1.00)
 		self.plot.pie(fractions, labels=labels, autopct='%1.f%%', radius=0.9)
-		window = self.builder.get_object('matplot_window')
+		window = self.get_object('matplot_window')
 		window.show_all()
 		window.present()
 
 	def save_to_file_clicked (self, button):
-		file_chooser = self.builder.get_object('plot_file_chooser')
+		file_chooser = self.get_object('plot_file_chooser')
 		file_chooser.set_current_name('matplot.pdf')
 		response = file_chooser.run()
 		file_chooser.hide()
@@ -107,19 +122,19 @@ class GUI:
 
 	def date_selected (self, calendar):
 		self.date = calendar.get_date()
-		button = self.builder.get_object('button6')
+		button = self.get_object('button6')
 		button.set_sensitive(True)
 		button.set_label("Yes, cancel invoice")
-		entry = self.builder.get_object('entry1')
+		entry = self.get_object('entry1')
 		entry.set_text(calendar.get_text())
 		
 	def cancel_dialog (self, widget):		
-		button = self.builder.get_object('button6')
+		button = self.get_object('button6')
 		button.set_sensitive(False)
 		button.set_label("No date selected")
-		cancel_dialog = self.builder.get_object('dialog1')
+		cancel_dialog = self.get_object('dialog1')
 		message = "Do you want to cancel %s ?\nThis is not reversible!" % self.invoice_name
-		self.builder.get_object('label1').set_label(message)
+		self.get_object('label1').set_label(message)
 		response = cancel_dialog.run()
 		cancel_dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
@@ -138,7 +153,7 @@ class GUI:
 		
 		
 	def view_invoice(self, widget):
-		treeselection = self.builder.get_object('treeview-selection')
+		treeselection = self.get_object('treeview-selection')
 		model, path = treeselection.get_selected_rows ()
 		if path != []:
 			tree_iter = model.get_iter(path)
@@ -157,7 +172,7 @@ class GUI:
 		self.treeview_populate()
 
 	def treeview_populate(self):
-		treeview_selection = self.builder.get_object('treeview-selection')
+		treeview_selection = self.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
 		model.clear()
 		c = self.db.cursor()
@@ -179,14 +194,14 @@ class GUI:
 			model.append(row)
 		if path != [] and tupl != []:
 			treeview_selection.select_path(path)
-			self.builder.get_object('treeview1').scroll_to_cell(path)
+			self.get_object('treeview1').scroll_to_cell(path)
 		c.execute("SELECT COALESCE(i.amount_due - pi.amount, 0.00)::money "
 					"FROM (SELECT SUM(amount_due) AS amount_due FROM invoices "
 					"WHERE (posted, canceled, active) = (True, False, True)) i, "
 					"(SELECT SUM(amount) AS amount FROM payments_incoming "
 					"WHERE (misc_income) = (False)) pi ")
 		unpaid = c.fetchone()[0]
-		self.builder.get_object('label3').set_label(unpaid)
+		self.get_object('label3').set_label(unpaid)
 		c.close()
 
 	def row_activated(self, treeview, path, treeviewcolumn):
@@ -194,12 +209,12 @@ class GUI:
 		self.invoice_id = self.store.get_value(treeiter, 0)
 		self.invoice_name = self.store.get_value(treeiter, 1)
 		self.contact_id = self.store.get_value(treeiter, 2)
-		self.builder.get_object('button1').set_sensitive(True)
-		self.builder.get_object('button2').set_sensitive(True)
-		self.builder.get_object('button4').set_sensitive(True)
+		self.get_object('button1').set_sensitive(True)
+		self.get_object('button2').set_sensitive(True)
+		self.get_object('button4').set_sensitive(True)
 
 	def payment_window (self, widget):
-		selection = self.builder.get_object('treeview-selection')
+		selection = self.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
