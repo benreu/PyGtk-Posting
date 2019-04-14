@@ -32,7 +32,13 @@ class TimeClockGUI :
 		self.builder.connect_signals(self)
 
 		self.timeout_id = None
+<<<<<<< HEAD
 		self.db = db
+=======
+		self.main = main
+		self.handler = main.connect('clock_entries_changed', self.populate_employees)
+		self.db = main.db
+>>>>>>> 4d5dc48fbda038090742b7a0a8a70063f684b473
 		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (('clock_entries_changed', self.populate_employees),):
@@ -54,6 +60,23 @@ class TimeClockGUI :
 			broadcaster.disconnect(handler)
 		self.cursor.close()
 		self.exists = False
+
+	def focus_in (self, widget, event):
+		self.stack.set_visible_child_name('employee_page')
+		self.populate_employees ()
+		self.timeout_id = GLib.timeout_add_seconds(1, self.commit_routine)
+
+	def focus_out (self, widget, event):
+		"we need to disable db polling when not on "
+		"a time clock window for row locking to work "
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
+
+	def commit_routine (self):
+		"we need to commit on a regular basis so that db polling works; "
+		"the db polling feature will then broadcast all revelant changes "
+		self.db.commit()
+		return True
 
 	def focus_in (self, widget, event):
 		self.stack.set_visible_child_name('employee_page')
