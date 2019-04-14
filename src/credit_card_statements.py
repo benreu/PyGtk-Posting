@@ -24,7 +24,7 @@ import main
 UI_FILE = main.ui_directory + "/credit_card_statements.ui"
 
 class CreditCardStatementGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -35,10 +35,10 @@ class CreditCardStatementGUI:
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
 									'fees_rewards_description_store')
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
 

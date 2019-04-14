@@ -17,19 +17,19 @@
 
 
 from gi.repository import Gtk
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/reports/bank_statements.ui"
+UI_FILE = ui_directory + "/reports/bank_statements.ui"
 
 class BankStatementsGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
 		self.db = db
-		self.cursor = db.cursor()
+		self.cursor = self.db.cursor()
 
 		self.bank_account_store = self.builder.get_object('bank_account_store')
 		self.cursor.execute("SELECT number::text, name FROM gl_accounts "

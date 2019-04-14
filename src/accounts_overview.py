@@ -22,7 +22,7 @@ import main
 UI_FILE = main.ui_directory + "/accounts_overview.ui"
 
 class AccountsOverviewGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

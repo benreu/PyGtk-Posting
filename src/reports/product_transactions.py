@@ -23,13 +23,12 @@ UI_FILE = main.ui_directory + "/reports/product_transactions.ui"
 
 
 class ProductTransactionsGUI:
-	def __init__(self, main_class, product_id = None):
+	def __init__(self, product_id = None):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main_class = main_class
-		self.db = main_class.db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
 		self.product_store = self.builder.get_object('product_store')
@@ -51,7 +50,7 @@ class ProductTransactionsGUI:
 		self.exists = False
 
 	def product_hub_clicked (self, button):
-		product_hub.ProductHubGUI(self.main_class, self.product_id)
+		product_hub.ProductHubGUI(self.product_id)
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()

@@ -18,13 +18,13 @@
 from gi.repository import Gtk, Gdk, GLib
 import psycopg2
 from dateutils import DateTimeCalendar
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/credit_memo.ui"
+UI_FILE = ui_directory + "/credit_memo.ui"
 
 class CreditMemoGUI:
 	credit_memo_template = None
-	def __init__(self, main):
+	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -32,9 +32,12 @@ class CreditMemoGUI:
 		self.customer_store = self.builder.get_object('customer_store')
 		self.product_store = self.builder.get_object('credit_products_store')
 		self.credit_items_store = self.builder.get_object('credit_items_store')
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
-		self.handler_c_id = main.connect ("contacts_changed", self.populate_customer_store )
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.populate_customer_store),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		self.populate_customer_store ()
 		
 		self.date_returned_calendar = DateTimeCalendar()
@@ -54,6 +57,8 @@ class CreditMemoGUI:
 		self.window.show_all()
 
 	def window_destroy (self, window):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 		
 	def customer_match_func(self, completion, key, iter):

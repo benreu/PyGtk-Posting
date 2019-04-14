@@ -31,9 +31,8 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 	
 class GUI:
-	def __init__(self, main, po_id = None):
+	def __init__(self, po_id = None):
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.purchase_order_id = None
@@ -166,7 +165,7 @@ class GUI:
 		product_id = self.builder.get_object(
 										'comboboxtext1').get_active_id()
 		amount = self.builder.get_object('spinbutton2').get_value()
-		add_expense_to_po (self.db, self.purchase_order_id, product_id, amount)
+		add_expense_to_po (self.purchase_order_id, product_id, amount)
 		self.populate_purchase_order_items_store ()
 		self.builder.get_object('comboboxtext1').set_active(-1)
 		self.builder.get_object('spinbutton2').set_value(0.00)

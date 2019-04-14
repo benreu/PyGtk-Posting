@@ -22,13 +22,13 @@ from decimal import Decimal
 UI_FILE = main.ui_directory + "/reports/profit_loss_report.ui"
 
 class ProfitLossReportGUI(Gtk.Builder):
-	def __init__(self, db):
+	def __init__(self):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.populate_fiscals ()
 

@@ -21,13 +21,13 @@ import main
 UI_FILE = main.ui_directory + "/budget.ui"
 
 class BudgetGUI:
-	def __init__(self, db):
+	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 		self.populate_budgets()
 		
 		self.window = self.builder.get_object('budget_window')
@@ -127,7 +127,7 @@ class BudgetGUI:
 
 	def configure_budget_clicked (self, button):
 		import budget_configuration
-		budget_configuration.BudgetConfigurationGUI(self.db)
+		budget_configuration.BudgetConfigurationGUI()
 
 	def refresh_clicked (self, button):
 		self.populate_budget_treeview()

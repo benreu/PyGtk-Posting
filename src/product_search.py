@@ -19,20 +19,19 @@
 
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/product_search.ui"
+UI_FILE = ui_directory + "/product_search.ui"
 
 
 class ProductSearchGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.db  = main.db
+		self.db  = db
 		self.cursor = self.db.cursor()
 
 		self.product_name = ''
@@ -53,13 +52,17 @@ class ProductSearchGUI:
 		self.filtered_product_store = self.builder.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
 		self.populate_product_treeview_store()
-		self.handler_id = main.connect("products_changed", self.populate_product_treeview_store )
+		self.handler_ids = list()
+		for connection in (("products_changed", self.populate_product_treeview_store),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, window):
-		self.main.disconnect(self.handler_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 		
 	def on_drag_data_get (self, widget, drag_context, data, info, time):
@@ -81,7 +84,7 @@ class ProductSearchGUI:
 			return
 		id_ = model[path][0]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, id_)
+		product_hub.ProductHubGUI(id_)
 
 	def treeview_row_activated (self, treeview, path, column):
 		if self.builder.get_object('checkbutton1').get_active() == False:

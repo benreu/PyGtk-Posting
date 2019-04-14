@@ -28,7 +28,7 @@ UI_FILE = main.ui_directory + "/vendor_payment.ui"
 
 
 class GUI:
-	def __init__(self, db, po_id = None):
+	def __init__(self, po_id = None):
 		'''Id of purchase order to pay (optional)'''
 		self.po_id = po_id
 		self.payment_type_id = 0
@@ -36,7 +36,7 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		
 		self.calendar = DateTimeCalendar (self.db)

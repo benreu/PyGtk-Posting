@@ -21,12 +21,13 @@ from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/invoice_window.ui"
+UI_FILE = ui_directory + "/invoice_window.ui"
 
-def create_new_invoice (cursor, date, customer_id):
+def create_new_invoice (date, customer_id):
 	from datetime import datetime
+	cursor = db.cursor()
 	cursor.execute ("INSERT INTO invoices "
 					"(customer_id, date_created, paid, canceled, "
 					"posted, doc_type, comments) "
@@ -43,6 +44,7 @@ def create_new_invoice (cursor, date, customer_id):
 	invoice_date = str(datetime.today())[0:10]
 	doc_name = "Inv_" + str(invoice_id) + "_"  + name + "_" + invoice_date
 	cursor.execute("UPDATE invoices SET name = %s WHERE id = %s", (doc_name, invoice_id))
+	cursor.close()
 	return invoice_id
 
 class Item(object):#this is used by py3o library see their example for more info
@@ -50,7 +52,7 @@ class Item(object):#this is used by py3o library see their example for more info
 
 class InvoiceGUI:
 	
-	def __init__(self, main, invoice_id = None):
+	def __init__(self, invoice_id = None):
 		
 		self.invoice_id = invoice_id
 		self.builder = Gtk.Builder()
@@ -60,9 +62,6 @@ class InvoiceGUI:
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
 		self.invoice = None
-
-		self.main = main
-		self.db = main.db
 		
 		self.populating = False
 		self.invoice_store = self.builder.get_object('invoice_store')
@@ -74,9 +73,13 @@ class InvoiceGUI:
 		self.treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.COPY)
 		self.treeview.connect("drag-data-received", self.on_drag_data_received)
 		self.treeview.drag_dest_set_target_list([enforce_target])
-		self.cursor = self.db.cursor()
-		self.handler_c_id = main.connect ("contacts_changed", self.populate_customer_store )
-		self.handler_p_id = main.connect ("products_changed", self.populate_product_store )
+		self.db = db
+		self.cursor = db.cursor()
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.populate_customer_store ), 
+						   ("products_changed", self.populate_product_store )):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		self.customer_id = 0
 		self.menu_visible = False
 		
@@ -113,7 +116,7 @@ class InvoiceGUI:
 		self.populate_product_store ()
 		self.builder.get_object('combobox2').set_active(0)
 		
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_relative_to(self.builder.get_object('entry1'))
 		self.calendar.set_today()
@@ -256,8 +259,8 @@ class InvoiceGUI:
 		self.product_selected (product_id, path)
 
 	def destroy(self, window):
-		self.main.disconnect(self.handler_c_id)
-		self.main.disconnect(self.handler_p_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 
 	def focus (self, window, event):
@@ -312,7 +315,7 @@ class InvoiceGUI:
 	def edit_customer_clicked (self, menuitem):
 		if self.customer_id != None:
 			import contacts
-			contacts.GUI(self.main, self.customer_id)
+			contacts.GUI(self.customer_id)
 
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object("treeview-selection")
@@ -321,16 +324,16 @@ class InvoiceGUI:
 			return
 		product_id = model[path][2]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def tax_exemption_window (self, widget):
 		import customer_tax_exemptions as cte
-		cte.CustomerTaxExemptionsGUI(self.window, self.db, self.customer_id)
+		cte.CustomerTaxExemptionsGUI(self.window, self.customer_id)
 		self.populate_tax_exemption_combo ()
 
 	def product_clicked (self, menuitem):
 		import products
-		products.ProductsGUI(self.main)
+		products.ProductsGUI()
 
 	def document_list_clicked (self, menuitem):
 		self.show_document_list_window ()
@@ -408,7 +411,7 @@ class InvoiceGUI:
 		
 	def contacts_window(self, widget):
 		import contacts
-		contacts.GUI(self.main)
+		contacts.GUI()
 
 	def delete_invoice_clicked (self, button):
 		self.cursor.execute("UPDATE invoices SET canceled = True "
@@ -1009,7 +1012,7 @@ class InvoiceGUI:
 
 	def check_invoice_id (self):
 		if self.invoice_id == 0:
-			self.invoice_id = create_new_invoice(self.cursor, self.datetime, self.customer_id)
+			self.invoice_id = create_new_invoice(self.datetime, self.customer_id)
 			self.db.commit()
 			self.populate_document_list()
 

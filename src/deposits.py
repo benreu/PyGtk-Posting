@@ -24,16 +24,16 @@ UI_FILE = main.ui_directory + "/deposits.ui"
 
 
 class GUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
-		self.date_calendar = DateTimeCalendar(self.db)
+		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect('day-selected', self.day_selected)
 		self.date = None
 		

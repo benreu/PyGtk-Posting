@@ -22,13 +22,12 @@ import main
 UI_FILE = main.ui_directory + "/contact_product_view.ui"
 
 class ContactProductViewGUI :
-	def __init__ (self, main):
+	def __init__ (self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 

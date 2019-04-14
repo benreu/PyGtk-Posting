@@ -23,13 +23,13 @@ import main
 UI_FILE = main.ui_directory + "/reports/sales_tax_report.ui"
 
 class SalesTaxReportGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.tax_store = self.builder.get_object('tax_store')
 

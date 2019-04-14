@@ -44,7 +44,6 @@
     <property name="default_width">800</property>
     <property name="default_height">400</property>
     <property name="icon">PyGtk_Posting.svg</property>
-    <signal name="destroy" handler="on_window_destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

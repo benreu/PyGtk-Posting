@@ -28,13 +28,13 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class GUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.time_store = self.builder.get_object('time_store')
 		self.employee_time_store = self.builder.get_object('employee_time_store')

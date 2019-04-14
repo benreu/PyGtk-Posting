@@ -17,24 +17,26 @@
 
 from gi.repository import Gtk, GLib
 from datetime import datetime
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/time_clock.ui"
+UI_FILE = ui_directory + "/time_clock.ui"
 
 
 class TimeClockGUI :
 	entry_id = 0
 	exists = True
-	def __init__(self, main, parent = None):
+	def __init__(self, parent = None):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.handler = main.connect('clock_entries_changed', self.populate_employees)
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
+		self.handler_ids = list()
+		for connection in (('clock_entries_changed', self.populate_employees),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		self.stack = self.builder.get_object('time_clock_stack')
 		self.employee_store = self.builder.get_object('employee_store')
 		self.project_store = self.builder.get_object('project_store')
@@ -47,9 +49,10 @@ class TimeClockGUI :
 		self.parent = parent
 
 	def destroy (self, window):
-		self.main.disconnect(self.handler)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
-		self.main.time_clock_object = None
+		self.exists = False
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()

@@ -17,20 +17,23 @@
 
 from gi.repository import Gtk, Gdk, GLib
 import os, sys
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/assembled_products.ui"
+UI_FILE = ui_directory + "/assembled_products.ui"
 
 
 class AssembledProductsGUI:
 	timeout_id = None
-	def __init__(self, main):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		main.connect("shutdown", self.main_shutdown)
+		self.handler_ids = list()
+		for connection in (("shutdown", self.main_shutdown),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		enforce_target = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
 		self.assembly_treeview = self.builder.get_object('treeview2')
 		self.assembly_treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.COPY)
@@ -42,8 +45,7 @@ class AssembledProductsGUI:
 		self.assembly_treeview.connect('drag_data_get', self.on_drag_data_get)
 		self.assembly_treeview.drag_source_set_target_list([dnd])
 
-		self.main = main
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
 		
 		self.product_store = self.builder.get_object('product_store')
@@ -137,7 +139,7 @@ class AssembledProductsGUI:
 	
 	def product_hub_activated (self, menuitem):
 		import product_hub
-		product_hub.ProductHubGUI(self.main, self.product_hub_id)
+		product_hub.ProductHubGUI(self.product_hub_id)
 
 	def product_match_selected(self, completion, model, combo_iter):
 		product_id = self.product_store[combo_iter][0]
@@ -176,6 +178,8 @@ class AssembledProductsGUI:
 			self.builder.get_object('vendor_combo').set_active(0)
 
 	def destroy(self, window):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 		return True
 
@@ -198,7 +202,7 @@ class AssembledProductsGUI:
 
 	def products_activated (self, button):
 		import products
-		products.ProductsGUI(self.main)
+		products.ProductsGUI()
 
 	def qty_edited(self, widget, path, text):
 		self.assembly_store[path][1] = int(text) # update all values related to the price and quantity

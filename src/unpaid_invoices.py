@@ -23,9 +23,8 @@ UI_FILE = main.ui_directory + "/unpaid_invoices.ui"
 
 class GUI:
 	figure = None
-	def __init__(self, main):
+	def __init__(self):
 
-		self.main = main
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -53,7 +52,7 @@ class GUI:
 		cellrenderer.set_property("text" , str(amount))
 
 	def destroy(self, window):
-		self.main.unpaid_invoices_window = None
+		self.exists = False
 		self.cursor.close()
 
 	def invoice_chart_clicked (self, button):
@@ -206,8 +205,8 @@ class GUI:
 			return
 		customer_id = model[path][2]
 		import customer_payment
-		customer_payment.GUI(self.main, customer_id)
+		customer_payment.GUI(customer_id)
 
 	def new_statement (self, widget):
-		new_statement.GUI(self.db)
+		new_statement.GUI()
 

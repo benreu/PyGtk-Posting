@@ -25,7 +25,7 @@ class CheckVersion :
 	def __init__ (self, main, version):
 
 		from db import database_tools
-		d = database_tools.GUI(main.db)
+		d = database_tools.GUI()
 		d.window.hide()
 		while Gtk.events_pending():
 			Gtk.main_iteration()

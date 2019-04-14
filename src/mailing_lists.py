@@ -25,7 +25,7 @@ UI_FILE = main.ui_directory + "/mailing_lists.ui"
 
 class MailingListsGUI:
 	
-	def __init__(self, main):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

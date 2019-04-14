@@ -22,14 +22,14 @@ import main
 UI_FILE = main.ui_directory + "/reports/deposits.ui"
 
 class DepositsGUI(Gtk.Builder):
-	def __init__(self, db):
+	def __init__(self):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.deposit_store = self.get_object('deposit_store')
 		self.treeview = self.get_object('treeview1')

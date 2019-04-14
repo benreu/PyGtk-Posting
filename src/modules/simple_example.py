@@ -16,19 +16,20 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+import main
 
 UI_FILE = "src/modules/simple_example.ui"
 
 class GUI:
-	def __init__(self, menuitem, db):
+	def __init__(self, menuitem):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
 		
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 		self.populate_combo ()
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()

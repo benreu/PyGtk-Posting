@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
 import subprocess
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/catalog_creator.ui"
+UI_FILE = ui_directory + "/catalog_creator.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -27,16 +27,18 @@ class Item(object):#this is used by py3o library see their example for more info
 class CatalogCreatorGUI(Gtk.Builder):
 	preview_image = None
 	preview_size = 0
-	def __init__ (self, main):
+	def __init__ (self):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.main = main
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
-		self.handler_id = main.connect("products_changed", self.populate_products)
+		self.handler_ids = list()
+		for connection in (("products_changed", self.populate_products ),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		self.product_store = self.get_object('product_store')
 		self.populate_products ()
 		self.populate_price_levels ()
@@ -60,7 +62,9 @@ class CatalogCreatorGUI(Gtk.Builder):
 			scale.add_mark(i, Gtk.PositionType.BOTTOM, str(i))
 
 	def window_destroy (self, window):
-		self.main.disconnect(self.handler_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+		self.cursor.close()
 
 	def populate_products (self, m=None, d=None):
 		self.product_store.clear()
@@ -196,7 +200,7 @@ class CatalogCreatorGUI(Gtk.Builder):
 			return
 		product_id = model[path][0]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def drag_data_received (self, treeview, drag_context, x,y, data,info, time):
 		store = treeview.get_model()

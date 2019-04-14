@@ -23,14 +23,13 @@ from datetime import datetime, date
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os, sys, subprocess, psycopg2, re
 import main
-from main import Accounts
 
 UI_FILE = main.ui_directory + "/pygtk_posting.ui"
 
 invoice_window = None
 ccm = None
 
-class MainGUI (GObject.GObject, Accounts):
+class MainGUI (GObject.GObject):
 	"The main class that does all the heavy lifting"
 	__gsignals__ = { 
 	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
@@ -84,16 +83,10 @@ class MainGUI (GObject.GObject, Accounts):
 			self.check_db_version()
 			self.cursor = self.db.cursor()
 			self.window.connect("focus-in-event", self.focus) #connect the focus signal only if we successfully connect
-			self.cursor.execute("LISTEN products")
-			self.cursor.execute("LISTEN contacts")
-			self.cursor.execute("LISTEN accounts")
-			self.cursor.execute("LISTEN time_clock_entries")
-			GLib.timeout_add_seconds(1, self.listen_postgres)
-			self.populate_accounts()
 			self.populate_modules ()
 		else:
 			from db import database_tools
-			database_tools.GUI("", True)
+			database_tools.GUI(True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
 		self.populate_quick_commands()
@@ -130,23 +123,7 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
-		sql_window.SQLWindowGUI(self.db)
-		
-	def listen_postgres (self):
-		if self.db.closed == 1:
-			return False
-		self.db.poll()
-		while self.db.notifies:
-			notify = self.db.notifies.pop(0)
-			if "product" in notify.payload:
-				self.emit('products_changed')
-			elif "contact" in notify.payload:
-				self.emit('contacts_changed')
-			elif "account" in notify.payload:
-				self.populate_accounts()
-			elif "clock_entry" in notify.payload:
-				self.emit('clock_entries_changed')
-		return True
+		sql_window.SQLWindowGUI()
 
 	def populate_modules (self):
 		import importlib.util as i_utils
@@ -164,13 +141,13 @@ class MainGUI (GObject.GObject, Accounts):
 				file_label = file_name.capitalize()
 				file_label = file_label.replace("_", " ") 
 				menuitem = Gtk.MenuItem.new_with_label(file_label)
-				menuitem.connect("activate", module.GUI, self.db )
+				menuitem.connect("activate", module.GUI)
 				menuitem.show()
 				menu.append(menuitem)
 
 	def finance_charge_activated (self, menuitem):
 		import customer_finance_charge
-		customer_finance_charge.CustomerFinanceChargeGUI(self.db)
+		customer_finance_charge.CustomerFinanceChargeGUI()
 
 	def password_entry_activated (self, dialog):
 		dialog.response(-3)
@@ -179,7 +156,7 @@ class MainGUI (GObject.GObject, Accounts):
 		global ccm
 		if ccm == None or ccm.exists == False:
 			import credit_card_merchant
-			ccm = credit_card_merchant.CreditCardMerchantGUI(self.db)
+			ccm = credit_card_merchant.CreditCardMerchantGUI()
 		else:
 			ccm.window.present()
 
@@ -209,39 +186,39 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def deposits_report (self, menuitem):
 		from reports import deposits
-		deposits.DepositsGUI(self.db)
+		deposits.DepositsGUI()
 
 	def contact_product_view_clicked (self, button):
 		import contact_product_view
-		contact_product_view.ContactProductViewGUI(self)
+		contact_product_view.ContactProductViewGUI()
 
 	def fiscal_year_activated (self, menuitem):
 		import fiscal_years
-		fiscal_years.FiscalYearGUI(self.db)
+		fiscal_years.FiscalYearGUI()
 
 	def resource_search_activated (self, menuitem):
 		import resource_search
-		resource_search.ResourceSearchGUI(self.db)
+		resource_search.ResourceSearchGUI()
 
 	def incoming_invoice_report_activated(self, menuitem):
 		from reports import incoming_invoices
-		incoming_invoices.IncomingInvoiceGUI(self.db)
+		incoming_invoices.IncomingInvoiceGUI()
 
 	def duplicate_contact_finder_activated (self, menuitem):
 		from admin import duplicate_contact
-		duplicate_contact.DuplicateContactGUI(self.db)
+		duplicate_contact.DuplicateContactGUI()
 
 	def resource_diary_activated (self, menuitem):
 		import resource_diary
-		resource_diary.ResourceDiaryGUI (self.db)
+		resource_diary.ResourceDiaryGUI ()
 
 	def miscellaneous_revenue_activated (self, button):
 		import miscellaneous_revenue
-		miscellaneous_revenue.MiscellaneousRevenueGUI (self)
+		miscellaneous_revenue.MiscellaneousRevenueGUI ()
 
 	def shipping_info_activated (self, menuitem):
 		import shipping_info 
-		shipping_info.ShippingInfoGUI(self)
+		shipping_info.ShippingInfoGUI()
 
 	def module_help_activated (self, menuitem):
 		module_help_dialog = self.builder.get_object('module_help_dialog')
@@ -251,179 +228,179 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def contact_history (self, menuitem):
 		from reports import contact_history
-		contact_history.ContactHistoryGUI(self)
+		contact_history.ContactHistoryGUI()
 
 	def serial_numbers_activated (self, menuitem):
 		import product_serial_numbers
-		product_serial_numbers.ProductSerialNumbersGUI(self)
+		product_serial_numbers.ProductSerialNumbersGUI()
 
 	def catalog_creator_activated (self, menuitem):
 		import catalog_creator
-		catalog_creator.CatalogCreatorGUI(self)
+		catalog_creator.CatalogCreatorGUI()
 
 	def employee_info_activated (self, menuitem):
 		from payroll import employee_info
-		employee_info.EmployeeInfoGUI(self.db)
+		employee_info.EmployeeInfoGUI()
 
 	def resource_tags (self, widget):
 		import resource_management_tags
-		resource_management_tags.ResourceManagementTagsGUI (self.db)
+		resource_management_tags.ResourceManagementTagsGUI ()
 
 	def customer_terms_clicked (self, menuitem):
 		import customer_terms
-		customer_terms.CustomerTermsGUI(self.db)
+		customer_terms.CustomerTermsGUI()
 
 	def document_reports_window (self, widget):
 		print ("not done yet")
 
 	def mailing_list_activated (self, widget):
 		import mailing_lists
-		mailing_lists.MailingListsGUI(self)
+		mailing_lists.MailingListsGUI()
 
 	def credit_memo_activated (self, menutiem):
 		import credit_memo
-		credit_memo.CreditMemoGUI(self)
+		credit_memo.CreditMemoGUI()
 
 	def resource_management (self, widget):
 		import resource_management
-		resource_management.ResourceManagementGUI(self)
+		resource_management.ResourceManagementGUI()
 
 	def invoice_history (self, widget):
 		from reports import invoice_history
-		invoice_history.InvoiceHistoryGUI(self)
+		invoice_history.InvoiceHistoryGUI()
 
 	def statements_clicked (self, widget):
-		from reports import statements
-		statements.StatementsGUI (self.db)
+		from reports import customer_statements
+		customer_statements.StatementsGUI ()
 
 	def documents_to_invoice_clicked (self, button):
 		import documents_to_invoice
-		documents_to_invoice.DocumentsToInvoiceGUI(self.db)
+		documents_to_invoice.DocumentsToInvoiceGUI()
 
 	def incoming_invoices_activated (self, menuitem):
 		import incoming_invoice
-		incoming_invoice.IncomingInvoiceGUI(self)
+		incoming_invoice.IncomingInvoiceGUI()
 
 	def loan_payment_clicked (self, widget):
 		import loan_payment
-		loan_payment.LoanPaymentGUI(self.db)
+		loan_payment.LoanPaymentGUI()
 
 	def loans_activated (self, widget):
 		import loans
-		loans.LoanGUI(self)
+		loans.LoanGUI()
 
 	def view_log_clicked (self, menuitem):
 		import view_log
-		view_log.ViewLogGUI(self.db, self)
+		view_log.ViewLogGUI()
 
 	def payment_receipt_activated (self, menuitem):
 		import payment_receipt
-		payment_receipt.PaymentReceiptGUI(self.db)
+		payment_receipt.PaymentReceiptGUI()
 
 	def count_inventory_activated (self, menuitem):
 		from reports import inventory_count
-		inventory_count.InventoryCountGUI(self.db)
+		inventory_count.InventoryCountGUI()
 
 	def user_manual_help (self, widget):
 		subprocess.Popen(["yelp", main.help_dir + "/index.page"])
 
 	def create_document_clicked (self, widget):
 		import documents_window
-		documents_window.DocumentGUI(self)
+		documents_window.DocumentGUI()
 
 	def assembled_products_clicked (self, button):
 		import assembled_products
-		assembled_products.AssembledProductsGUI(self)
+		assembled_products.AssembledProductsGUI()
 
 	def invoice_amounts_activated (self, menuitem):
 		from reports import invoice_amounts
-		invoice_amounts.InvoiceAmountsGUI(self.db)
+		invoice_amounts.InvoiceAmountsGUI()
 
 	def vendor_history_activated (self, menuitem):
 		from reports import vendor_history
-		vendor_history.VendorHistoryGUI(self)
+		vendor_history.VendorHistoryGUI()
 
 	def manufacturing_window (self, widget):
 		import manufacturing
-		manufacturing.ManufacturingGUI(self)
+		manufacturing.ManufacturingGUI()
 
 	def accounts_overview_activated (self, menuitem):
 		import accounts_overview
-		accounts_overview.AccountsOverviewGUI(self)
+		accounts_overview.AccountsOverviewGUI()
 
 	def product_location (self, widget = None):
 		if not self.prod_loc_class:
 			import product_location
-			self.prod_loc_class = product_location.ProductLocationGUI(self)
+			self.prod_loc_class = product_location.ProductLocationGUI()
 		else:
 			self.prod_loc_class.present()
 
 	def sales_tax_report(self, widget):
 		from reports import sales_tax_report
-		sales_tax_report.SalesTaxReportGUI(self.db)
+		sales_tax_report.SalesTaxReportGUI()
 				
 	def statements_to_print_window(self, widget):
 		import statements_to_print
-		statements_to_print.GUI(self.db)
+		statements_to_print.GUI()
 				
 	def jobs_to_invoice_window(self, widget):
 		import jobs_to_invoice
-		jobs_to_invoice.GUI(self.db)
+		jobs_to_invoice.GUI()
 
 	def double_entry_transaction_clicked (self, menuitem):
 		import double_entry_transaction
-		double_entry_transaction.DoubleEntryTransactionGUI(self.db)
+		double_entry_transaction.DoubleEntryTransactionGUI()
 
 	def time_clock_tool (self, widget):
 		from admin import time_clock_tool
-		time_clock_tool.TimeClockToolGUI(self.db)
+		time_clock_tool.TimeClockToolGUI()
 
 	def credit_card_statement(self, widget):
 		import credit_card_statements
-		credit_card_statements.CreditCardStatementGUI(self.db)
+		credit_card_statements.CreditCardStatementGUI()
 
 	def product_search (self, widget):
 		import product_search
-		product_search.ProductSearchGUI(self)
+		product_search.ProductSearchGUI()
 		
 	def job_sheet (self, widget):
 		import job_sheet
-		job_sheet.JobSheetGUI(self)
+		job_sheet.JobSheetGUI()
 
 	def vendor_payment(self, widget):
 		import vendor_payment
-		vendor_payment.GUI(self.db)
+		vendor_payment.GUI()
 
 	def resource_calendar (self, button):
 		import resource_calendar
-		resource_calendar.ResourceCalendarGUI (self.db)
+		resource_calendar.ResourceCalendarGUI ()
 
 	def open_invoices (self, widget):
 		if self.open_invoices_window == None:
 			import open_invoices
-			open_invoices.OpenInvoicesGUI(self)
+			open_invoices.OpenInvoicesGUI()
 		else:
 			self.open_invoices_window.present()
 
 	def account_transaction_window(self, widget):
 		import account_transactions
-		account_transactions.GUI(self.db)
+		account_transactions.GUI()
 
 	def settings_window(self, widget):
 		import settings
-		settings.GUI(self.db)
+		settings.GUI()
 
 	def customer_markup_percent_activated (self, menuitem):
 		import customer_markup_percent
-		customer_markup_percent.CustomerMarkupPercentGUI(self)
+		customer_markup_percent.CustomerMarkupPercentGUI()
 
 	def process_po(self, widget):
 		import unprocessed_po
-		unprocessed_po.GUI(self)
+		unprocessed_po.GUI()
 
 	def receive_orders_clicked (self, button):
 		import receive_orders
-		receive_orders.ReceiveOrdersGUI(self.db)
+		receive_orders.ReceiveOrdersGUI()
 
 	def check_admin (self, external = True):
 		"check for admin, external option to show extra alert for not being admin"
@@ -443,15 +420,15 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def employee_time (self, widget):
 		import employee_payment
-		employee_payment.EmployeePaymentGUI (self.db)
+		employee_payment.EmployeePaymentGUI ()
 
 	def pay_stub_clicked (self, button):
 		from payroll import pay_stub
-		pay_stub.PayStubGUI(self.db)
+		pay_stub.PayStubGUI()
 
 	def pay_stub_history (self, widget):
 		from reports import pay_stub_history
-		pay_stub_history.PayStubHistoryGUI(self.db)
+		pay_stub_history.PayStubHistoryGUI()
 
 	def backup_window (self, n):
 		from db import backup_restore
@@ -467,7 +444,7 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def loan_payment (self, id_):
 		import loan_payment
-		loan_payment.LoanPaymentGUI (self.db, id_)
+		loan_payment.LoanPaymentGUI (id_)
 
 	def populate_to_do_treeview (self):
 		store = self.builder.get_object('to_do_store')
@@ -528,7 +505,7 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def resource_window (self, id_):
 		import resource_management
-		resource_management.ResourceManagementGUI(self, id_)
+		resource_management.ResourceManagementGUI(id_)
 		
 	def focus (self, widget = None, d = None):
 		self.populate_to_do_treeview()
@@ -577,34 +554,34 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def inventory_history_report (self, widget):
 		from inventory import inventory_history
-		inventory_history.InventoryHistoryGUI(self.db)
+		inventory_history.InventoryHistoryGUI()
 
 	def time_clock(self, widget = None):
 		if self.time_clock_object == None:
 			import time_clock
-			self.time_clock_object = time_clock.TimeClockGUI(self)
+			self.time_clock_object = time_clock.TimeClockGUI()
 		else:
 			self.time_clock_object.window.present()
 
 	def kit_products_activated (self, db):
 		import kit_products
-		kit_products.KitProductsGUI(self)
+		kit_products.KitProductsGUI()
 
 	def data_import_activated (self, widget):
 		from admin import data_import
-		data_import.DataImportUI(self.db)
+		data_import.DataImportUI()
 
 	def data_export_activated (self, widget):
 		from admin import data_export
-		data_export.DataExportUI(self.db)
+		data_export.DataExportUI()
 		
 	def write_check(self, widget):
 		import write_check
-		write_check.GUI(self.db)
+		write_check.GUI()
 
 	def open_pos_clicked (self, button):
 		import open_purchase_orders
-		open_purchase_orders.OpenPurchaseOrderGUI(self)
+		open_purchase_orders.OpenPurchaseOrderGUI()
 
 	def about_window(self, widget):
 		about_window = self.builder.get_object('aboutdialog1')
@@ -614,145 +591,145 @@ class MainGUI (GObject.GObject, Accounts):
 
 	def main_reports_window (self, menuitem):
 		from reports import main_reports_window
-		main_reports_window.MainReportsGUI(self)
+		main_reports_window.MainReportsGUI()
 
 	def unpaid_invoices(self, widget):
 		if self.unpaid_invoices_window == None:
 			import unpaid_invoices
-			unpaid_invoices.GUI(self)
+			unpaid_invoices.GUI()
 		else:
 			self.unpaid_invoices_window.present()
 
 	def destroy(self, widget):
-		self.emit("shutdown")
-		Gtk.main_quit()
+		main.broadcaster.emit("shutdown")
 		self.cursor.execute("UNLISTEN products")
 		self.cursor.execute("UNLISTEN contacts")
 		self.db.close ()
+		Gtk.main_quit()
 
 	def statement_window(self, widget = None):
 		import customer_statement
-		customer_statement.GUI(self.db)
+		customer_statement.GUI()
 
 	def accounts_configuration(self, widget):
 		import accounts_configuration
-		accounts_configuration.GUI(self.db)
+		accounts_configuration.GUI()
 
 	def edit_tax_rate(self, widget):
 		import tax_rates
-		tax_rates.TaxRateGUI(self.db)
+		tax_rates.TaxRateGUI()
 
 	def payment_window(self, widget):
 		import customer_payment
-		customer_payment.GUI(self)
+		customer_payment.GUI()
 
 	def products_window(self, widget):
 		import products
-		products.ProductsGUI(self)
+		products.ProductsGUI()
 
 	def deposit_window(self, widget):
 		import deposits
-		deposits.GUI(self.db)
+		deposits.GUI()
 
 	def bank_statement(self, widget):
 		import bank_statement
-		bank_statement.GUI(self)
+		bank_statement.GUI()
 
 	def budget_activated (self, widget):
 		import budget
-		budget.BudgetGUI(self.db)
+		budget.BudgetGUI()
 
 	def contacts_window(self, widget):
 		import contacts
-		contacts.GUI(self)
+		contacts.GUI()
 
 	def database_tools_activated(self, widget):
 		from db import database_tools
-		database_tools.GUI(self.db, False)
+		database_tools.GUI(False)
 
 	def new_purchase_order(self, widget = None):
 		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(self)
+		purchase_order_window.PurchaseOrderGUI()
 
 	def new_invoice(self, widget = None):
 		global invoice_window
 		if invoice_window == None:
 			import invoice_window
-		invoice_window.InvoiceGUI (self)
+		invoice_window.InvoiceGUI ()
 
 	##################   reports
 
 	def customer_statements (self, menuitem):
 		from reports import customer_statements
-		customer_statements.StatementsGUI (self.db)
+		customer_statements.StatementsGUI ()
 
 	def bank_statements (self, button):
 		from reports import bank_statements
-		bank_statements.BankStatementsGUI(self.db)
+		bank_statements.BankStatementsGUI()
 
 	def manufacturing_history (self, button):
 		from reports import manufacturing_history
-		manufacturing_history.ManufacturingHistoryGUI(self)
+		manufacturing_history.ManufacturingHistoryGUI()
 
 	def product_account_relationship (self, button):
 		from reports import product_account_relationship
-		product_account_relationship.ProductAccountRelationshipGUI(self)
+		product_account_relationship.ProductAccountRelationshipGUI()
 
 	def contact_history (self, button):
 		from reports import contact_history
-		contact_history.ContactHistoryGUI(self)
+		contact_history.ContactHistoryGUI()
 
 	def loan_payments_clicked (self, button):
 		from reports import loan_payments
-		loan_payments.LoanPaymentsGUI(self.db)
+		loan_payments.LoanPaymentsGUI()
 
 	def product_transactions (self, button):
 		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self)
+		product_transactions.ProductTransactionsGUI()
 
 	def invoice_to_payment_matching (self, button):
 		from reports import invoice_to_payment_matching
-		invoice_to_payment_matching.GUI(self.db)
+		invoice_to_payment_matching.GUI()
 
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history
-		pay_stub_history.PayStubHistoryGUI(self.db)
+		pay_stub_history.PayStubHistoryGUI()
 
 	def time_clock_projects (self, button):
 		from reports import time_clock_project
-		time_clock_project.GUI(self.db)
+		time_clock_project.GUI()
 
 	def payments_received (self, button):
 		from reports import payments_received
-		payments_received.PaymentsReceivedGUI(self.db)
+		payments_received.PaymentsReceivedGUI()
 	
 	def time_clock_history (self, button):
 		from reports import time_clock_history
-		time_clock_history.TimeClockHistoryGUI (self.db)
+		time_clock_history.TimeClockHistoryGUI ()
 
 	def count_inventory_clicked (self, button):
 		from reports import inventory_count
-		inventory_count.InventoryCountGUI(self.db)
+		inventory_count.InventoryCountGUI()
 
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history
-		pay_stub_history.PayStubHistoryGUI(self.db)
+		pay_stub_history.PayStubHistoryGUI()
 
 	def job_sheet_history (self, button):
 		from reports import job_sheet_history
-		job_sheet_history.JobSheetHistoryGUI(self.db)
+		job_sheet_history.JobSheetHistoryGUI()
 
 	def product_history (self, button):
 		from reports import product_history
-		product_history.ProductHistoryGUI(self)
+		product_history.ProductHistoryGUI()
 
 	def profit_loss (self, button):
 		from reports import profit_loss_report
-		profit_loss_report.ProfitLossReportGUI(self.db)
+		profit_loss_report.ProfitLossReportGUI()
 
 	def net_worth (self, button):
 		from reports import net_worth
-		net_worth.NetWorthGUI(self.db)
+		net_worth.NetWorthGUI()
 
 
 GObject.type_register(MainGUI)

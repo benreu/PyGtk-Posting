@@ -21,13 +21,13 @@ import main
 UI_FILE = main.ui_directory + "/inventory/inventory_adjustment.ui"
 
 class InventoryAdjustmentGUI:
-	def __init__(self, db, product_id):
+	def __init__(self, product_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.product_store = self.builder.get_object('product_store')
 		self.location_store = self.builder.get_object('location_store')
@@ -99,7 +99,7 @@ class InventoryAdjustmentGUI:
 
 	def inventory_history_clicked (self, widget):
 		from inventory import inventory_history
-		inventory_history.InventoryHistoryGUI(self.db, self.product_id)
+		inventory_history.InventoryHistoryGUI(self.product_id)
 
 	def inventory_adjustment_spinbutton_changed(self, spinbutton):
 		adjustment_amount = spinbutton.get_value()

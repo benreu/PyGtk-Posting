@@ -20,14 +20,13 @@ import main
 UI_FILE = main.ui_directory + "/open_invoices.ui"
 
 class OpenInvoicesGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.parent = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.open_invoice_store = self.builder.get_object('open_invoice_store')
@@ -38,7 +37,7 @@ class OpenInvoicesGUI:
 		main.open_invoices_window = self.window
 
 	def delete_event (self, window, event):
-		self.parent.open_invoices_window = None
+		self.exists = False
 
 	def focus_in_event (self, window, event):
 		self.populate_store()
@@ -50,7 +49,7 @@ class OpenInvoicesGUI:
 			return
 		customer_id = model[path][6]
 		import contact_hub
-		contact_hub.ContactHubGUI(self.parent, customer_id)
+		contact_hub.ContactHubGUI(customer_id)
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -60,12 +59,12 @@ class OpenInvoicesGUI:
 
 	def new_invoice_clicked (self, button):
 		import invoice_window
-		invoice_window.InvoiceGUI(self.parent)
+		invoice_window.InvoiceGUI()
 
 	def open_invoice_row_activated (self, treeview, path, treeview_column):
 		invoice_id = self.open_invoice_store[path][0]
 		import invoice_window
-		invoice_window.InvoiceGUI(self.parent, invoice_id)
+		invoice_window.InvoiceGUI(invoice_id)
 
 	def populate_store (self):
 		selection = self.builder.get_object('treeview-selection1')
@@ -99,7 +98,7 @@ class OpenInvoicesGUI:
 			return
 		invoice_id = model[path][0]
 		import invoice_window
-		invoice_window.InvoiceGUI(self.parent, invoice_id)
+		invoice_window.InvoiceGUI(invoice_id)
 
 
 

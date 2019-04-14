@@ -22,13 +22,13 @@ import main
 UI_FILE = main.ui_directory + "/reports/invoice_to_payment_matching.ui"
 
 class GUI:
-	def __init__(self, db):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = db
-		c = db.cursor()
+		self.db = main.db
+		c = self.db.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.customer_store.clear()
@@ -150,13 +150,5 @@ class GUI:
 	def slider_value_changed (self, slider, scrolltype, arg):
 		self.canvas.set_scale(slider.get_value())
 
-	def on_window_destroy(self, window):
-		Gtk.main_quit()
 
-def main():
-	app = GUI()
-	Gtk.main()
-		
-if __name__ == "__main__":
-	sys.exit(main())
 

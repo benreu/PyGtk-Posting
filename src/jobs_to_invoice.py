@@ -26,13 +26,13 @@ UI_FILE = main.ui_directory + "/jobs_to_invoice.ui"
 
 
 class GUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
 		self.jobs_store = self.builder.get_object('jobs_to_invoice_store')
@@ -64,7 +64,7 @@ Do you want to append the Job Sheet items?" % customer_name)
 			invoice_exists_dialog.hide()
 			break
 		else:
-			invoice_id = invoice_window.create_new_invoice(self.cursor, datetime.today(), customer_id)
+			invoice_id = invoice_window.create_new_invoice(datetime.today(), customer_id)
 			self.import_job_sheet_items_to_invoice(job_sheet_id, invoice_id, 
 													customer_id)
 

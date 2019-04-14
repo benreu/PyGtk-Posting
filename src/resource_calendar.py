@@ -23,14 +23,14 @@ UI_FILE = main.ui_directory + "/resource_calendar.ui"
 
 
 class ResourceCalendarGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.date_time = datetime.today ()
 		
@@ -234,7 +234,7 @@ class ResourceCalendarGUI:
 
 	def tags_clicked (self, button):
 		import resource_management_tags
-		resource_management_tags.ResourceManagementTagsGUI (self.db)
+		resource_management_tags.ResourceManagementTagsGUI ()
 
 	def textview_focus_out_event (self, textview, event):
 		selection = self.builder.get_object('treeview-selection1')
@@ -383,7 +383,7 @@ class ResourceCalendarGUI:
 
 	def resource_management_clicked (self,button):
 		import resource_management
-		resource_management.ResourceManagementGUI(self.db)
+		resource_management.ResourceManagementGUI()
 
 	def window_key_press_event (self, window, event):
 		treeview = self.builder.get_object('treeview2')

@@ -28,10 +28,10 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class ReceiveOrdersGUI:
-	def __init__(self, db):
+	def __init__(self):
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 		self.previous_keyname = None
 		self.ascending = False
 		self.builder = Gtk.Builder()
@@ -108,7 +108,7 @@ class ReceiveOrdersGUI:
 		receive_spinbutton.set_range(0, ordered)
 
 	def location_clicked (self, widget):
-		locations.LocationsGUI(self.db)
+		locations.LocationsGUI()
 
 	def close_purchase_order_clicked (self, button):
 		po_combo = self.builder.get_object('combobox1')

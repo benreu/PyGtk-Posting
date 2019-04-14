@@ -27,25 +27,24 @@ import main
 UI_FILE = main.ui_directory + "/bank_statement.ui"
 
 class GUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
-		self.builder.get_object('treeview2').set_model(main.expense_acc)
+		self.builder.get_object('treeview2').set_model(main.expense_account)
 
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
-		self.reconcile_calendar = DateTimeCalendar(self.db)
+		self.reconcile_calendar = DateTimeCalendar()
 		self.reconcile_calendar.connect('day-selected', self.reconcile_calendar_day_selected)
 		self.reconcile_calendar.set_relative_to(self.builder.get_object('entry6'))
 		self.reconcile_date = None
-		self.voided_cheque_calendar = DateTimeCalendar(self.db)
+		self.voided_cheque_calendar = DateTimeCalendar()
 		self.voided_cheque_calendar.connect('day-selected', self.voided_cheque_day_selected)
 		self.voided_cheque_calendar.set_relative_to(self.builder.get_object('entry5'))
 		self.voided_cheque_date = None
@@ -326,9 +325,8 @@ class GUI:
 									self.date, self.amount, 
 									self.description, expense_account_number)
 			self.populate_treeview()
-			bank_total = self.get_bank_account_total (self.account_number)		
+			bank_total = self.get_bank_account_total (self.account_number)
 			path = self.builder.get_object("combobox1").get_active()
-			self.bank_account_store[path][2] = '${:,.2f}'.format(self.bank_account_total)
 			self.db.commit()
 
 	def number_edited (self, renderer, path, text):
@@ -417,22 +415,22 @@ class GUI:
 
 	def credit_card_statement_activated (self, menuitem):
 		import credit_card_statements
-		credit_card_statements.CreditCardStatementGUI(self.db)
+		credit_card_statements.CreditCardStatementGUI()
 	
 	def miscellaneous_income_activated (self, button):
 		import miscellaneous_income
-		miscellaneous_income.MiscellaneousIncomeGUI (self.main)
+		miscellaneous_income.MiscellaneousIncomeGUI ()
 
 	def loan_payment_activated (self, widget):
 		import loan_payment
-		loan_payment.LoanPaymentGUI(self.db)
+		loan_payment.LoanPaymentGUI()
 
 	def double_entry_transaction_activated (self, menuitem):
 		import double_entry_transaction
-		double_entry_transaction.DoubleEntryTransactionGUI(self.db)
+		double_entry_transaction.DoubleEntryTransactionGUI()
 
 	def incoming_invoices_activated (self, menuitem):
 		import incoming_invoice
-		incoming_invoice.IncomingInvoiceGUI(self.db)
+		incoming_invoice.IncomingInvoiceGUI()
 
 	

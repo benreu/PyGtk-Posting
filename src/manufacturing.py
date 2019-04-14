@@ -28,7 +28,7 @@ class Item(object):#this is used by py3o library see their example for more info
 
 
 class ManufacturingGUI:
-	def __init__(self, main):
+	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -38,8 +38,7 @@ class ManufacturingGUI:
 		product_completion.set_match_func(self.product_match_func)
 
 		self.product_id = None
-
-		self.main = main
+		
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		
@@ -50,7 +49,7 @@ class ManufacturingGUI:
 
 	def history_clicked (self, button):
 		from reports import manufacturing_history 
-		manufacturing_history.ManufacturingHistoryGUI (self.main)
+		manufacturing_history.ManufacturingHistoryGUI ()
 
 	def product_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
@@ -282,7 +281,7 @@ class ManufacturingGUI:
 
 	def product_window(self, column):
 		import products
-		products.ProductsGUI(self.main)
+		products.ProductsGUI()
 		
 
 

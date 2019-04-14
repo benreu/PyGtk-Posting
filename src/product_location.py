@@ -17,19 +17,18 @@
 
 
 from gi.repository import Gtk
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/product_location.ui"
+UI_FILE = ui_directory + "/product_location.ui"
 
 class ProductLocationGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 			
 		self.builder.connect_signals(self)
-		self.main = main
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
 
 		self.aisle_text = ""
@@ -53,12 +52,17 @@ class ProductLocationGUI:
 		
 		self.populate_product_location_treeview()
 		self.populate_location_combo()
-		self.handler_id = main.connect("products_changed", self.populate_product_location_treeview)
+		self.handler_ids = list()
+		for connection in (("products_changed", self.populate_product_location_treeview),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def delete_event (self, window, event):
+		#for handler in self.handler_ids:
+		#	broadcaster.disconnect(handler)
 		window.hide()
 		return True
 
@@ -82,7 +86,7 @@ class ProductLocationGUI:
 			return
 		product_id = model[path][9]
 		import product_hub 
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def set_all_column_indicators_false(self):
 		for column in self.treeview.get_columns():

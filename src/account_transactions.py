@@ -22,7 +22,7 @@ import main
 UI_FILE = main.ui_directory + "/account_transactions.ui"
 
 class GUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -33,7 +33,7 @@ class GUI:
 		self.account_treestore = self.builder.get_object('account_transaction_store')
 		self.treeview = self.builder.get_object('treeview1')
 		self.is_parent_account = None
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT number, name, is_parent FROM gl_accounts "
 							"ORDER BY number")

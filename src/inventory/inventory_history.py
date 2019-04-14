@@ -21,7 +21,7 @@ import main
 UI_FILE = main.ui_directory + "/inventory/inventory_history.ui"
 
 class InventoryHistoryGUI:
-	def __init__(self, db, product_id = None):
+	def __init__(self, product_id = None):
 
 		self.previous_keyname = None
 		self.ascending = False
@@ -29,7 +29,7 @@ class InventoryHistoryGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		
 		self.product_id = product_id

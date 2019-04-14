@@ -15,84 +15,121 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GObject
 import psycopg2, apsw, os, shutil
 
+db = None
 cursor = None
+broadcaster = None
 dev_mode = False
 is_admin = False
 
-class Accounts:
-	expense_acc = Gtk.TreeStore(int, str)
-	revenue_acc = Gtk.TreeStore(int, str)
-	product_expense_acc = Gtk.TreeStore(str, str)
-	product_inventory_acc = Gtk.TreeStore(str, str)
-	product_revenue_acc = Gtk.TreeStore(str, str)
+class Broadcast (GObject.GObject):
+	__gsignals__ = { 
+	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	}
+	global db, cursor
 	def __init__ (self):
-		pass
+		GObject.GObject.__init__(self)
+		GObject.timeout_add_seconds(1, self.poll_connection)
+		self.accounts = Accounts ()
+		self.accounts.populate_accounts()
+		cursor.execute("LISTEN products")
+		cursor.execute("LISTEN contacts")
+		cursor.execute("LISTEN accounts")
+		cursor.execute("LISTEN time_clock_entries")
 		
-	@staticmethod
-	def populate_accounts ():
+	def poll_connection (self):
+		if db.closed == 1:
+			return False
+		db.poll()
+		while db.notifies:
+			notify = db.notifies.pop(0)
+			if "product" in notify.payload:
+				self.emit('products_changed')
+			elif "contact" in notify.payload:
+				self.emit('contacts_changed')
+			elif "account" in notify.payload:
+				self.accounts.populate_accounts()
+			elif "clock_entry" in notify.payload:
+				self.emit('clock_entries_changed')
+		return True
+		
+expense_account = Gtk.TreeStore(int, str)
+revenue_account = Gtk.TreeStore(int, str)
+product_expense_account = Gtk.TreeStore(str, str)
+product_inventory_account = Gtk.TreeStore(str, str)
+product_revenue_account = Gtk.TreeStore(str, str)
+
+class Accounts:
+	global	expense_account, \
+			revenue_account, \
+			product_expense_account, \
+			product_inventory_account, \
+			product_revenue_account
+	def populate_accounts (self):
 		global cursor
-		Accounts.expense_acc.clear()
+		expense_account.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
 							"AND parent_number IS NULL")
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
-			parent = Accounts.expense_acc.append(None,[number, name])
-			Accounts.populate_child_expense(number, parent)
+			parent = expense_account.append(None,[number, name])
+			self.populate_child_expense(number, parent)
 		#################################################
-		Accounts.product_expense_acc.clear()
+		product_expense_account.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
 							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
 			show = False
-			parent = Accounts.product_expense_acc.append(None,[number, name])
-			if Accounts.populate_child_product_expense(number, parent) == True:
+			parent = product_expense_account.append(None,[number, name])
+			if self.populate_child_product_expense(number, parent) == True:
 				show = True
 			if show == False:
-				Accounts.product_expense_acc.remove(parent)
+				product_expense_account.remove(parent)
 		##################################################
-		Accounts.product_revenue_acc.clear()
+		product_revenue_account.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
 							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
 			show = False
-			parent = Accounts.product_revenue_acc.append(None,[number, name])
-			if Accounts.populate_child_product_revenue (number, parent) == True:
+			parent = product_revenue_account.append(None,[number, name])
+			if self.populate_child_product_revenue (number, parent) == True:
 				show = True
 			if show == False:
-				Accounts.product_revenue_acc.remove(parent)
+				product_revenue_account.remove(parent)
 		##################################################
-		Accounts.revenue_acc.clear()
+		revenue_account.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
 							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
-			parent = Accounts.revenue_acc.append(None,[number, name])
-			Accounts.populate_child_revenue (number, parent)
+			parent = revenue_account.append(None,[number, name])
+			self.populate_child_revenue (number, parent)
 		##################################################
-		Accounts.product_inventory_acc.clear()
+		product_inventory_account.clear()
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 1 "
 							"AND parent_number IS NULL ORDER BY name")
 		for row in cursor.fetchall():
 			number = str(row[0])
 			name = row[1]
 			show = False
-			parent = Accounts.product_inventory_acc.append(None,[number, name])
-			if Accounts.populate_child_product_inventory(number, parent) == True:
+			parent = product_inventory_account.append(None,[number, name])
+			if self.populate_child_product_inventory(number, parent) == True:
 				show = True
 			if show == False:
-				Accounts.product_inventory_acc.remove(parent)
+				product_inventory_account.remove(parent)
 
-	@staticmethod
-	def populate_child_product_inventory (number, parent):
+	def populate_child_product_inventory (self, number, parent):
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, inventory_account, is_parent "
@@ -103,19 +140,18 @@ class Accounts:
 			name = row[1]
 			if row[2] == True:
 				show = True
-				Accounts.product_inventory_acc.append(parent,[number, name])
+				product_inventory_account.append(parent,[number, name])
 			elif row[3] == True:
-				p = Accounts.product_inventory_acc.append(parent,[number, name])
+				p = product_inventory_account.append(parent,[number, name])
 				c_show = False
-				if Accounts.populate_child_product_inventory(number, p) == True:
+				if self.populate_child_product_inventory(number, p) == True:
 					show = True
 					c_show = True
 				if c_show == False:
-					Accounts.product_inventory_acc.remove(p)
+					product_inventory_account.remove(p)
 		return show
-
-	@staticmethod
-	def populate_child_revenue (number, parent):
+		
+	def populate_child_revenue (self, number, parent):
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, is_parent "
@@ -124,11 +160,10 @@ class Accounts:
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
-			p = Accounts.revenue_acc.append(parent,[number, name])
-			Accounts.populate_child_revenue(number, p)
+			p = revenue_account.append(parent,[number, name])
+			self.populate_child_revenue(number, p)
 
-	@staticmethod
-	def populate_child_product_revenue (number, parent):
+	def populate_child_product_revenue (self, number, parent):
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, revenue_account, is_parent "
@@ -139,19 +174,18 @@ class Accounts:
 			name = row[1]
 			if row[2] == True:
 				show = True
-				Accounts.product_revenue_acc.append(parent,[number, name])
+				product_revenue_account.append(parent,[number, name])
 			elif row[3] == True:
-				p = Accounts.product_revenue_acc.append(parent,[number, name])
+				p = product_revenue_account.append(parent,[number, name])
 				c_show = False
-				if Accounts.populate_child_product_revenue(number, p) == True:
+				if self.populate_child_product_revenue(number, p) == True:
 					show = True
 					c_show = True
 				if c_show == False:
-					Accounts.product_revenue_acc.remove(p)
+					product_revenue_account.remove(p)
 		return show
 
-	@staticmethod
-	def populate_child_product_expense (number, parent):
+	def populate_child_product_expense (self, number, parent):
 		global cursor
 		show = False
 		cursor.execute("SELECT number, name, expense_account, is_parent "
@@ -161,31 +195,30 @@ class Accounts:
 			number = str(row[0])
 			name = row[1]
 			if row[2] == True:
-				p = Accounts.product_expense_acc.append(parent,[number, name])
+				p = product_expense_account.append(parent,[number, name])
 				show = True
 			elif row[3] == True:
-				p = Accounts.product_expense_acc.append(parent,[number, name])
+				p = product_expense_account.append(parent,[number, name])
 				c_show = False
-				if Accounts.populate_child_product_expense(number, p) == True:
+				if self.populate_child_product_expense(number, p) == True:
 					show = True
 					c_show = True
 				if c_show == False:
-					Accounts.product_expense_acc.remove(p)
+					product_expense_account.remove(p)
 		return show
 
-	@staticmethod
-	def populate_child_expense (number, parent):
+	def populate_child_expense (self, number, parent):
 		global cursor
 		cursor.execute("SELECT number, name FROM gl_accounts WHERE "
 							"parent_number = %s ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
-			p = Accounts.expense_acc.append(parent,[number, name])
-			Accounts.populate_child_expense(number, p)
+			p = expense_account.append(parent,[number, name])
+			self.populate_child_expense(number, p)
 
 def connect_to_db (name):
-	global cursor
+	global db, cursor, broadcaster
 	cursor_sqlite = get_apsw_cursor ()
 	if name == None:
 		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
@@ -198,15 +231,16 @@ def connect_to_db (name):
 		sql_host = row[2]
 		sql_port = row[3]
 	try:
-		database = psycopg2.connect (dbname = sql_database, 
-												host = sql_host, 
-												user = sql_user, 
-												password = sql_password, 
-												port = sql_port)
-		cursor = database.cursor()
-		return True, database, sql_database
+		db = psycopg2.connect ( dbname = sql_database, 
+								host = sql_host, 
+								user = sql_user, 
+								password = sql_password, 
+								port = sql_port)
+		cursor = db.cursor()
+		broadcaster = Broadcast()
+		return True, db, sql_database
 	except psycopg2.OperationalError as e:
-		print (e.args)
+		print (e.args[0])
 		return False, None, None
 
 home = os.path.expanduser('~')

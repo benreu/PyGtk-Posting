@@ -26,7 +26,7 @@ import main
 UI_FILE = main.ui_directory + "/customer_payment.ui"
 
 class GUI:
-	def __init__(self, main, customer_id = None):
+	def __init__(self, customer_id = None):
 
 		self.customer_id = customer_id
 		self.payment_type_id = 0
@@ -41,7 +41,7 @@ class GUI:
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		self.accrual = self.cursor.fetchone()[0]
 
-		self.expense_accounts = main.expense_acc
+		self.expense_accounts = main.expense_account
 
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
@@ -66,7 +66,7 @@ class GUI:
 		amount_due_renderer = self.builder.get_object ('cellrendererspin7')
 		amount_due_column.set_cell_data_func(amount_due_renderer, self.amount_due_cell_func)
 
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today ()
 		self.date = self.calendar.get_date()

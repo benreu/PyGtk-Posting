@@ -22,14 +22,14 @@ from decimal import Decimal
 UI_FILE = main.ui_directory + "/reports/net_worth.ui"
 
 class NetWorthGUI(Gtk.Builder):
-	def __init__(self, db):
+	def __init__(self):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
 		self.account_treestore = self.get_object("net_worth_store")
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.populate_net_worth ()
 

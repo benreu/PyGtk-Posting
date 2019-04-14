@@ -23,7 +23,7 @@ import main
 UI_FILE = main.ui_directory + "/loans.ui"
 
 class LoanGUI :
-	def __init__(self, main):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

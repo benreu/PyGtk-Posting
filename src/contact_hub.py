@@ -21,13 +21,12 @@ import main
 UI_FILE = main.ui_directory + "/contact_hub.ui"
 
 class ContactHubGUI:
-	def __init__(self, main, contact_id):
+	def __init__(self, contact_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
 		self.db = main.db
 		self.contact_id = contact_id
 		self.cursor = self.db.cursor()
@@ -53,7 +52,7 @@ class ContactHubGUI:
 
 	def edit_contact_clicked (self, button):
 		import contacts
-		c = contacts.GUI (self.main, self.contact_id)
+		c = contacts.GUI (self.contact_id)
 		c.select_contact ()
 		self.window.destroy()
 
@@ -65,25 +64,25 @@ class ContactHubGUI:
 
 	def contact_history_clicked (self, button):
 		from reports import contact_history
-		c = contact_history.ContactHistoryGUI(self.main)
+		c = contact_history.ContactHistoryGUI()
 		c.builder.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 	def customer_invoices_clicked (self, button):
 		from reports import invoice_history
-		i = invoice_history.InvoiceHistoryGUI(self.main)
+		i = invoice_history.InvoiceHistoryGUI()
 		i.builder.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 	def vendor_po_clicked (self, button):
 		from reports import vendor_history
-		v = vendor_history.VendorHistoryGUI(self.main)
+		v = vendor_history.VendorHistoryGUI()
 		v.builder.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 	def customer_payments_clicked (self, button):
 		from reports import payments_received
-		p = payments_received.PaymentsReceivedGUI(self.db)
+		p = payments_received.PaymentsReceivedGUI()
 		p.builder.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 

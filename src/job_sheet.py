@@ -17,22 +17,24 @@
 
 from gi.repository import Gtk
 from datetime import datetime
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/job_sheet.ui"
+UI_FILE = ui_directory + "/job_sheet.ui"
 
 class JobSheetGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.db = main.db
-		self.cursor = self.db.cursor()
-		self.handler_c_id = main.connect ("contacts_changed", self.populate_customer_store )
-		self.handler_p_id = main.connect ("products_changed", self.populate_product_store )
+		self.db = db
+		self.cursor = db.cursor()
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.populate_customer_store ), 
+						   ("products_changed", self.populate_product_store )):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
 		self.customer_id = 0
 		self.job_id = 0
@@ -53,8 +55,8 @@ class JobSheetGUI:
 		self.window.show_all()
 
 	def destroy (self, window):
-		self.main.disconnect(self.handler_c_id)
-		self.main.disconnect(self.handler_p_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 
 	def product_match_func(self, completion, key, tree_iter):
@@ -96,7 +98,7 @@ class JobSheetGUI:
 
 	def job_window(self, widget):
 		import job_types
-		job_types.GUI(self.db)
+		job_types.GUI()
 
 	def product_combo_changed (self, combo, path, tree_iter):
 		product_id = self.product_store.get_value (tree_iter, 0)
@@ -126,11 +128,11 @@ class JobSheetGUI:
 
 	def contacts_window(self, widget):
 		import contacts
-		contacts.GUI(self.main)
+		contacts.GUI()
 
 	def product_window(self, column):
 		import products
-		products.ProductsGUI(self.main)
+		products.ProductsGUI()
 
 	def populate_product_store (self, m=None):
 		self.product_store.clear()

@@ -19,25 +19,27 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
+from main import db, ui_directory, broadcaster
 import main
 
-UI_FILE = main.ui_directory + "/product_serial_numbers.ui"
+UI_FILE = ui_directory + "/product_serial_numbers.ui"
 
 class ProductSerialNumbersGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
 		self.product_store = self.builder.get_object('product_store')
 		self.contact_store = self.builder.get_object('contact_store')
 		self.serial_number_store = self.builder.get_object('serial_number_treeview_store')
-		self.handler_p_id = main.connect ("products_changed", self.populate_product_store )
-		self.handler_c_id = main.connect ("contacts_changed", self.populate_contact_store )
+		self.handler_ids = list()
+		for connection in (("products_changed", self.populate_product_store ),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		product_completion = self.builder.get_object('add_product_completion')
 		product_completion.set_match_func(self.product_match_func)
 		product_completion = self.builder.get_object('event_product_completion')
@@ -53,7 +55,7 @@ class ProductSerialNumbersGUI:
 		self.populate_product_store()
 		self.populate_contact_store()
 		self.populate_serial_number_history()
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
 		
@@ -61,8 +63,8 @@ class ProductSerialNumbersGUI:
 		self.window.show_all()
 
 	def destroy (self, window):
-		self.main.disconnect(self.handler_c_id)
-		self.main.disconnect(self.handler_p_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 
 	def search_changed (self, entry):

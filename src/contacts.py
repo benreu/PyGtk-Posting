@@ -18,25 +18,23 @@ from gi.repository import Gtk, GLib, Gio
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-import main
+from main import ui_directory, db, broadcaster, is_admin
 
-UI_FILE = main.ui_directory + "/contacts.ui"
+UI_FILE = ui_directory + "/contacts.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class GUI(Gtk.Builder):
 	scanner = None
-	def __init__(self, main_class, contact_id = 0):
-		#Connection.__init__(self)
+	def __init__(self, contact_id = 0):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.main = main_class
-		self.db = main_class.db
-		self.cursor = self.db.cursor()
+		self.db = db
+		self.cursor = db.cursor()
 		self.contact_id = contact_id
 		
 		self.name_widget = self.get_object('entry1')
@@ -78,7 +76,7 @@ class GUI(Gtk.Builder):
 		else:
 			self.select_contact ()
 
-		if main.is_admin == True:
+		if is_admin == True:
 			self.get_object('treeview1').set_tooltip_column(0)
 
 		self.initiate_mailing_info()
@@ -116,14 +114,14 @@ class GUI(Gtk.Builder):
 
 	def mailing_list_clicked (self, button):
 		import mailing_lists
-		mailing_lists.MailingListsGUI(self.main)
+		mailing_lists.MailingListsGUI()
 
 	def customer_markup_percent_clicked (self, button):
-		if main.is_admin == False:
+		if is_admin == False:
 			return
 		self.window.present()
 		import customer_markup_percent
-		customer_markup_percent.CustomerMarkupPercentGUI(self.main)
+		customer_markup_percent.CustomerMarkupPercentGUI()
 
 	def populate_zip_codes (self):
 		zip_code_store = self.get_object("zip_code_store")
@@ -227,11 +225,11 @@ class GUI(Gtk.Builder):
 		self.populate_tax_exemptions ()
 
 	def terms_clicked (self, button):
-		if main.is_admin == False:
+		if is_admin == False:
 			return
 		self.window.present()
-		import contact_terms
-		contact_terms.ContactTermsGUI(self.db)
+		import customer_terms
+		customer_terms.CustomerTermsGUI()
 
 	def file_name_changed(self, widget):
 		self.check_scan_button_validity ()
@@ -456,7 +454,7 @@ class GUI(Gtk.Builder):
 
 	def contact_hub_activated (self, menuitem):
 		import contact_hub
-		contact_hub.ContactHubGUI(self.main, self.contact_id)
+		contact_hub.ContactHubGUI(self.contact_id)
 
 	def name_entry_changed (self, entry):
 		entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
@@ -538,7 +536,7 @@ class GUI(Gtk.Builder):
 		if self.contact_id != 0:
 			import customer_tax_exemptions
 			customer_tax_exemptions.CustomerTaxExemptionsGUI(self.window,
-												self.db, self.contact_id)
+															self.contact_id)
 
 	def customer_active_state_changed(self, widget):
 		if widget.get_active() == False:

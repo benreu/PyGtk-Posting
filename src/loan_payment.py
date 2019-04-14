@@ -24,15 +24,15 @@ import main
 UI_FILE = main.ui_directory + "/loan_payment.ui"
 
 class LoanPaymentGUI:
-	def __init__(self, db, loan_id = None):
+	def __init__(self, loan_id = None):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
-		self.calendar = DateTimeCalendar(self.db)
+		self.db = main.db
+		self.cursor = self.db.cursor()
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
 		self.loan_id = None

@@ -21,9 +21,8 @@ import main
 UI_FILE = main.ui_directory + "/reports/product_account_relationship.ui"
 
 class ProductAccountRelationshipGUI:
-	def __init__(self, main):
+	def __init__(self):
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		
@@ -52,7 +51,7 @@ class ProductAccountRelationshipGUI:
 		product_id = model[path][0]
 		if self.product_window == None or not self.product_window.exists:
 			import products
-			self.product_window = products.ProductsGUI(self.main)
+			self.product_window = products.ProductsGUI()
 			self.product_window.builder.get_object('paned1').set_position(0)
 			self.product_window.builder.get_object('window').resize(600, 600)
 		self.product_window.select_product(product_id)
@@ -70,7 +69,7 @@ class ProductAccountRelationshipGUI:
 			return
 		product_id = model[path][0]
 		import product_hub 
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def expense_search_changed (self, entry):
 		self.expense_text = entry.get_text()

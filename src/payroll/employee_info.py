@@ -31,7 +31,7 @@ UI_FILE = main.ui_directory + "/payroll/employee_info.ui"
 device = None
 
 class EmployeeInfoGUI:
-	def __init__(self, db):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -42,8 +42,8 @@ class EmployeeInfoGUI:
 		self.federal_withholding_store = self.builder.get_object('federal_withholding_store')
 		self.state_withholding_store = self.builder.get_object('state_withholding_store')
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.populate_employee_store ()
 		self.born_calendar = DateTimeCalendar (self.db)

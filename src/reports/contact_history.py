@@ -25,7 +25,7 @@ import main
 UI_FILE = main.ui_directory + "/reports/contact_history.ui"
 
 class ContactHistoryGUI (Gtk.Builder):
-	def __init__(self, main):
+	def __init__(self):
 
 		self.search_iter = 0
 		
@@ -36,7 +36,6 @@ class ContactHistoryGUI (Gtk.Builder):
 		contact_completion = self.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 
@@ -108,7 +107,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		invoice_id = model[path][0]
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
-			self.invoice_history = ih.InvoiceHistoryGUI(self.main)
+			self.invoice_history = ih.InvoiceHistoryGUI()
 		combo = self.invoice_history.builder.get_object('combobox1')
 		combo.set_active_id(self.contact_id)
 		store = self.invoice_history.builder.get_object('invoice_store')

@@ -19,22 +19,23 @@ from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
 from dateutils import DateTimeCalendar
 import spell_check
-import main
+from main import ui_directory, db, broadcaster
 
-UI_FILE = main.ui_directory + "/resource_management.ui"
+UI_FILE = ui_directory + "/resource_management.ui"
 
 class ResourceManagementGUI:
 	timeout_id = None
-	def __init__(self, main, id_ = None):
+	def __init__(self, id_ = None):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		main.connect("shutdown", self.main_shutdown)
-		self.main = main
-		self.db = main.db
-		self.cursor = main.db.cursor()
+		self.handler_ids = list()
+		for connection in (("shutdown", self.main_shutdown), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
+		self.db = db
+		self.cursor = self.db.cursor()
 		self.editing = False
 		self.timer_timeout = None
 		
@@ -424,7 +425,7 @@ class ResourceManagementGUI:
 
 	def tags_clicked (self, button):
 		import resource_management_tags
-		resource_management_tags.ResourceManagementTagsGUI (self.db)
+		resource_management_tags.ResourceManagementTagsGUI ()
 
 	def no_date_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')

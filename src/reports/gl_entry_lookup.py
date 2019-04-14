@@ -22,14 +22,14 @@ import main
 UI_FILE = main.ui_directory + "/reports/gl_entry_lookup.ui"
 
 class GlEntryLookupGUI :
-	def __init__ (self, db, entry_ids):
+	def __init__ (self, entry_ids):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
 		store = self.builder.get_object('lookup_store')
-		self.db = db
+		self.db = main.db
 		c = self.db.cursor()
 		c.execute(	"SELECT "
 						"'Purchase Order', "

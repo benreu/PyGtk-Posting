@@ -24,14 +24,14 @@ UI_FILE = main.ui_directory + "/reports/incoming_invoices.ui"
 
 class IncomingInvoiceGUI:
 	service_provider_id = None
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.service_provider_store = self.builder.get_object('service_provider_store')
 		self.incoming_invoice_store = self.builder.get_object('incoming_invoice_store')

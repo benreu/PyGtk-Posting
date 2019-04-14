@@ -18,27 +18,29 @@
 from gi.repository import Gtk, GLib
 from db import transactor
 from dateutils import DateTimeCalendar
-import main
+from main import ui_directory, db, broadcaster, revenue_account
 
-UI_FILE = main.ui_directory + "//miscellaneous_revenue.ui"
+UI_FILE = ui_directory + "//miscellaneous_revenue.ui"
 
 class MiscellaneousRevenueGUI:
-	def __init__ (self, main):
+	def __init__ (self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
-		self.handler_id = main.connect("contacts_changed", self.populate_contacts )
-		self.builder.get_object('treeview1').set_model(main.revenue_acc)
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.populate_contacts ), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
+		self.builder.get_object('treeview1').set_model(revenue_account)
 		self.contact_store = self.builder.get_object('contact_store')
 		contact_completion = self.builder.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
 		self.contact_id = None
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.day_selected)
 		self.date = None
 		self.populate_contacts ()
@@ -61,7 +63,7 @@ class MiscellaneousRevenueGUI:
 
 	def contacts_clicked (self, button):
 		import contacts
-		contacts.GUI(self.main)
+		contacts.GUI()
 
 	def contact_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -172,7 +174,7 @@ class MiscellaneousRevenueGUI:
 			transactor.post_misc_cash_payment(self.db, self.date, amount, payment_id, revenue_account)
 		self.db.commit()
 		self.cursor.close()
-		self.main.disconnect(self.handler_id)
+		main.disconnect(self.handler_id)
 		self.window.destroy()
 
 	def date_entry_icon_release (self, entry, icon, event):

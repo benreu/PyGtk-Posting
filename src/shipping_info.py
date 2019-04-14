@@ -21,9 +21,9 @@ import main
 UI_FILE = main.ui_directory + "/shipping_info.ui"
 
 class ShippingInfoGUI:
-	def __init__ (self, main_class):
+	def __init__ (self):
 
-		self.db = main_class.db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

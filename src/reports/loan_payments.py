@@ -21,10 +21,10 @@ import main
 UI_FILE = main.ui_directory + "/reports/loan_payments.ui"
 
 class LoanPaymentsGUI:
-	def __init__(self, db):
+	def __init__(self):
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

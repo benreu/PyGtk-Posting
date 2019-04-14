@@ -21,13 +21,12 @@ import main
 UI_FILE = main.ui_directory + "/product_hub.ui"
 
 class ProductHubGUI:
-	def __init__(self, main, product_id):
+	def __init__(self, product_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.main = main
 		self.db = main.db
 		self.product_id = product_id
 		self.cursor = self.db.cursor()
@@ -45,30 +44,30 @@ class ProductHubGUI:
 
 	def edit_product_clicked (self, button):
 		import products
-		p = products.ProductsGUI (self.main)
+		p = products.ProductsGUI ()
 		p.select_product (self.product_id)
 		self.window.destroy()
 
 	def product_location_clicked (self, button):
 		import product_location
-		p = product_location.ProductLocationGUI(self.main)
+		p = product_location.ProductLocationGUI()
 		p.builder.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
 	def product_transactions_clicked (self, button):
 		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self.main, self.product_id)
+		product_transactions.ProductTransactionsGUI(self.product_id)
 		self.window.destroy()
 
 	def product_search_clicked (self, button):
 		import product_search
-		p = product_search.ProductSearchGUI(self.main)
+		p = product_search.ProductSearchGUI()
 		p.builder.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
 	def product_history_clicked (self, button):
 		from reports import product_history
-		p = product_history.ProductHistoryGUI(self.main)
+		p = product_history.ProductHistoryGUI()
 		p.builder.get_object('combobox1').set_active_id (str(self.product_id))
 		self.window.destroy()
 		

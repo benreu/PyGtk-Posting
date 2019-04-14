@@ -17,13 +17,13 @@
 from gi.repository import Gtk, Gdk, GLib, Gio
 from datetime import datetime
 import subprocess
-import spell_check, main
-import main, barcode_generator
+from main import broadcaster, db, ui_directory
+import spell_check, barcode_generator, main
 
 
-UI_FILE = main.ui_directory + "/products.ui"
+UI_FILE = ui_directory + "/products.ui"
 
-def add_non_stock_product (db, vendor_id, product_name, product_number,
+def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 							expense_account, revenue_account):
 	
 	cursor = db.cursor()
@@ -54,7 +54,7 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class ProductsGUI (Gtk.Builder):
-	def __init__(self, main_class, product_id = None, product_location_tab = False, 
+	def __init__(self, product_id = None, product_location_tab = False, 
 					manufactured = False):
 
 		self.previous_keyname = None
@@ -62,15 +62,16 @@ class ProductsGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.main = main_class
-		self.db = main_class.db
-		self.cursor = self.db.cursor()
+		self.cursor = db.cursor()
 		self.repopulated = False
 		self.populating = True
-		self.handler_id = main_class.connect("products_changed", self.populate_product_store)
-		self.get_object('combobox1').set_model(main_class.product_expense_acc)
-		self.get_object('combobox2').set_model(main_class.product_revenue_acc)
-		self.get_object('combobox3').set_model(main_class.product_inventory_acc)
+		self.handler_ids = list()
+		for connection in (("products_changed", self.populate_product_store),):
+			handler = broadcaster.connect (connection[0], connection[1])
+			self.handler_ids.append(handler)
+		self.get_object('combobox1').set_model(main.product_expense_account)
+		self.get_object('combobox2').set_model(main.product_revenue_account)
+		self.get_object('combobox3').set_model(main.product_inventory_account)
 
 		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
@@ -137,20 +138,20 @@ class ProductsGUI (Gtk.Builder):
 		settings.set_int("product-name-column-width", width)
 
 	def destroy(self, window):
-		self.main.disconnect(self.handler_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 		self.exists = False
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
-	
 		product_id = model[path][0]
 		string = '1 ' + str(product_id) 
 		data.set_text(string, -1)
 
 	def location_clicked (self, button):
 		import locations
-		locations.LocationsGUI(self.db)
+		locations.LocationsGUI()
 
 	def help_button_activated (self, menuitem):
 		subprocess.Popen(["yelp", main.help_dir + "/products.page"])
@@ -243,7 +244,7 @@ class ProductsGUI (Gtk.Builder):
 		self.cursor.execute("UPDATE vendor_product_numbers "
 							"SET vendor_sku = %s WHERE id = %s", 
 							(text, row_id))
-		self.db.commit()
+		db.commit()
 		self.populate_vendor_order_numbers ()
 		self.select_row (row_id)
 
@@ -256,9 +257,9 @@ class ProductsGUI (Gtk.Builder):
 			self.cursor.execute("UPDATE vendor_product_numbers "
 								"SET vendor_id = %s WHERE id = %s", 
 								(vendor_id, row_id))
-			self.db.commit()
+			db.commit()
 		except Exception as e:
-			self.db.rollback()
+			db.rollback()
 			self.show_message(str(e) + 
 								"\nprobably you have this vendor already")
 			return
@@ -279,7 +280,7 @@ class ProductsGUI (Gtk.Builder):
 			store.append(row)
 
 	def new_vendor_row_clicked (self, button):
-		c = self.db.cursor()
+		c = db.cursor()
 		c.execute("WITH vendor AS "
 					"(SELECT id FROM contacts WHERE vendor = True "
 						"AND id NOT IN "
@@ -294,7 +295,7 @@ class ProductsGUI (Gtk.Builder):
 		row_id = c.fetchone()[0]
 		self.populate_vendor_order_numbers ()
 		self.select_row (row_id)
-		self.db.commit()
+		db.commit()
 		c.close()
 
 	def select_row(self, row_id):
@@ -313,7 +314,7 @@ class ProductsGUI (Gtk.Builder):
 		row_id = model[path][0]
 		self.cursor.execute("DELETE FROM vendor_product_numbers "
 							"WHERE id = %s", (row_id,))
-		self.db.commit()
+		db.commit()
 		self.populate_vendor_order_numbers ()
 
 	def delete_order_number_menu_activated (self, menuitem):
@@ -324,7 +325,7 @@ class ProductsGUI (Gtk.Builder):
 		row_id = model[path][0]
 		self.cursor.execute("DELETE FROM vendor_product_numbers "
 							"WHERE id = %s", (row_id,))
-		self.db.commit()
+		db.commit()
 		self.populate_vendor_order_numbers ()
 
 	def vendor_order_treeview_button_release (self, treeview, event): 
@@ -393,11 +394,11 @@ class ProductsGUI (Gtk.Builder):
 
 	def contacts_window(self, widget):
 		import contacts
-		contacts.GUI(self.main)
+		contacts.GUI()
 
 	def tax_window(self, widget):
 		import tax_rates
-		tax_rates.TaxRateGUI(self.db)
+		tax_rates.TaxRateGUI()
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.filter_list:
@@ -469,7 +470,7 @@ class ProductsGUI (Gtk.Builder):
 		#print (terms_id, 'cost_changed')
 		#self.cursor.execute("UPDATE products SET cost = %s "
 		#					"WHERE id = %s", (cost, self.product_id))
-		#self.db.commit()
+		#db.commit()
 
 	def sell_changed (self, sell_spin, markup_spin, markup_id):
 		cost = self.get_object('spinbutton1').get_value()
@@ -491,7 +492,7 @@ class ProductsGUI (Gtk.Builder):
 								"(product_id, markup_id, price) "
 								"VALUES (%s, %s, %s)", 
 								(self.product_id, markup_id, sell_price))
-		self.db.commit()
+		db.commit()
 
 	def markup_changed(self, markup_spin, sell_spin, terms_id):
 		cost = self.get_object('spinbutton1').get_value()
@@ -616,7 +617,7 @@ class ProductsGUI (Gtk.Builder):
 
 	def product_hub_activated (self, menuitem):
 		import product_hub
-		product_hub.ProductHubGUI(self.main, self.product_id)
+		product_hub.ProductHubGUI(self.product_id)
 
 	def duplicate_product_activated (self, menuitem):
 		self.product_id = 0
@@ -625,7 +626,7 @@ class ProductsGUI (Gtk.Builder):
 
 	def adjust_inventory_clicked (self, button):
 		from inventory import inventory_adjustment
-		inventory_adjustment.InventoryAdjustmentGUI(self.db, self.product_id)
+		inventory_adjustment.InventoryAdjustmentGUI(self.product_id)
 
 	def location_entry_changed(self, widget):
 		self.get_object('checkbutton1').set_active(True)
@@ -766,7 +767,7 @@ class ProductsGUI (Gtk.Builder):
 			return
 		self.cursor.execute("UPDATE products SET default_expense_account = %s "
 							"WHERE id = %s", (account_number, self.product_id))
-		self.db.commit()
+		db.commit()
 
 	def revenue_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
@@ -774,7 +775,7 @@ class ProductsGUI (Gtk.Builder):
 			return
 		self.cursor.execute("UPDATE products SET revenue_account = %s "
 							"WHERE id = %s", (account_number, self.product_id))
-		self.db.commit()
+		db.commit()
 
 	def inventory_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
@@ -785,7 +786,7 @@ class ProductsGUI (Gtk.Builder):
 		button = self.get_object('button2')
 		button.set_label("Adjust inventory")
 		button.set_sensitive(True)
-		self.db.commit()
+		db.commit()
 
 	def save (self, button = None):
 		name = self.get_object('entry1').get_text()
@@ -849,7 +850,7 @@ class ProductsGUI (Gtk.Builder):
 								invoice_serial))
 			except Exception as e:
 				self.show_message(str(e))
-				self.db.rollback()
+				db.rollback()
 			self.product_id = self.cursor.fetchone()[0]
 			if barcode != '':
 				self.cursor.execute("UPDATE products SET barcode = %s "
@@ -878,8 +879,8 @@ class ProductsGUI (Gtk.Builder):
 									invoice_serial, self.product_id))
 			except Exception as e:
 				self.show_message(str(e))
-				self.db.rollback()
-		c = self.db.cursor()
+				db.rollback()
+		c = db.cursor()
 		c.execute("INSERT INTO product_location "
 					"(product_id, location_id, aisle, rack, cart, "
 					"shelf, cabinet, drawer, bin, locator_visible) "
@@ -900,7 +901,7 @@ class ProductsGUI (Gtk.Builder):
 					locator_visible, 
 					self.product_id, location_id,))
 		self.get_object('spinbutton1').emit("value-changed")
-		self.db.commit()
+		db.commit()
 		self.populate_product_store ()
 		self.repopulated = True
 		button = self.get_object('button2')
@@ -911,7 +912,7 @@ class ProductsGUI (Gtk.Builder):
 			button.set_sensitive(True)
 			button.set_label("Adjust inventory")
 		self.get_object('vendor_button_box').set_sensitive(True)
-		self.db.commit()
+		db.commit()
 		self.populate_vendor_order_numbers ()
 
 	def delete_product_activated (self, widget):
@@ -920,10 +921,10 @@ class ProductsGUI (Gtk.Builder):
 								(self.product_id,))
 		except Exception as e:
 			print (e)
-			self.db.rollback()
+			db.rollback()
 			self.cursor.execute("UPDATE products SET deleted = TRUE "
 								"WHERE id = %s ", (self.product_id,))
-		self.db.commit()
+		db.commit()
 		self.populate_product_store ()
 
 	def new_clicked (self, button):

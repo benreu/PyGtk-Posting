@@ -25,20 +25,20 @@ import main
 UI_FILE = main.ui_directory + "/resource_diary.ui"
 
 class ResourceDiaryGUI:
-	def __init__(self, db):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.populating = False
 
 		textview = self.builder.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
 		

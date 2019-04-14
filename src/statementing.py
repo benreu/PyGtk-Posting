@@ -25,8 +25,8 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, db, store, customer_id, date, total, comment = ""):	
-		self.db = db
+	def __init__(self, store, customer_id, date, total, comment = ""):	
+		self.db = main.db
 		self.cursor = self.db.cursor ()
 		self.customer_id = customer_id
 		self.store = store

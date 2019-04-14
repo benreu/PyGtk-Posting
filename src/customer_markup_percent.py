@@ -21,7 +21,7 @@ import main
 UI_FILE = main.ui_directory + "/customer_markup_percent.ui"
 
 class CustomerMarkupPercentGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

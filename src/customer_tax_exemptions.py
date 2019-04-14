@@ -26,14 +26,14 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class CustomerTaxExemptionsGUI:
-	def __init__(self, window, db, customer_id):
+	def __init__(self, window, customer_id):
 
 		self.customer_id = customer_id
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT name FROM contacts WHERE id = %s",
 							(customer_id,))

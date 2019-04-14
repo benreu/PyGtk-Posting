@@ -21,9 +21,8 @@ import main
 UI_FILE = main.ui_directory + "/reports/main_reports_window.ui"
 
 class MainReportsGUI:
-	def __init__(self, main):
+	def __init__(self):
 
-		self.main = main
 		self.db = main.db
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -34,91 +33,91 @@ class MainReportsGUI:
 
 	def bank_statements_clicked (self, button):
 		from reports import bank_statements
-		bank_statements.BankStatementsGUI(self.db)
+		bank_statements.BankStatementsGUI()
 
 	def manufacturing_history_clicked (self, button):
 		from reports import manufacturing_history
-		manufacturing_history.ManufacturingHistoryGUI(self.main)
+		manufacturing_history.ManufacturingHistoryGUI()
 
 	def product_account_relationship_clicked (self, button):
 		from reports import product_account_relationship
-		product_account_relationship.ProductAccountRelationshipGUI(self.main)
+		product_account_relationship.ProductAccountRelationshipGUI()
 
 	def contact_history_clicked (self, button):
 		from reports import contact_history
-		contact_history.ContactHistoryGUI(self)
+		contact_history.ContactHistoryGUI()
 
 	def vendor_history_clicked (self, menuitem):
 		from reports import vendor_history
-		vendor_history.VendorHistoryGUI(self.main)
+		vendor_history.VendorHistoryGUI()
 
 	def loan_payments_clicked (self, button):
 		from reports import loan_payments
-		loan_payments.LoanPaymentsGUI(self.db)
+		loan_payments.LoanPaymentsGUI()
 
 	def statements_clicked (self, button):
 		from reports import statements
-		statements.StatementsGUI(self.db)
+		statements.StatementsGUI()
 
 	def product_transactions_clicked (self, button):
 		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self.main)
+		product_transactions.ProductTransactionsGUI()
 
 	def invoice_to_payment_matching (self, button):
 		from reports import invoice_to_payment_matching
-		invoice_to_payment_matching.GUI(self.db)
+		invoice_to_payment_matching.GUI()
 
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history
-		pay_stub_history.PayStubHistoryGUI(self.db)
+		pay_stub_history.PayStubHistoryGUI()
 
 	def job_sheet_history_clicked (self, button):
 		from reports import job_sheet_history
-		job_sheet_history.JobSheetHistoryGUI(self.db)
+		job_sheet_history.JobSheetHistoryGUI()
 
 	def time_clock_projects_clicked (self, button):
 		from reports import time_clock_project
-		time_clock_project.GUI(self.db)
+		time_clock_project.GUI()
 
 	def payments_received_clicked (self, button):
 		from reports import payments_received
-		payments_received.PaymentsReceivedGUI(self.db)
+		payments_received.PaymentsReceivedGUI()
 	
 	def time_clock_history_clicked(self, button):
 		from reports import time_clock_history
-		time_clock_history.TimeClockHistoryGUI (self.db)
+		time_clock_history.TimeClockHistoryGUI ()
 
 	def statements_clicked (self, button):
-		from reports import statements
-		statements.StatementsGUI (self.db)
+		from reports import customer_statements
+		customer_statements.StatementsGUI ()
 
 	def count_inventory_clicked (self, button):
 		from reports import inventory_count
-		inventory_count.InventoryCountGUI(self.db)
+		inventory_count.InventoryCountGUI()
 
 	def invoice_amounts_clicked (self, button):
 		from reports import invoice_amounts
-		invoice_amounts.InvoiceAmountsGUI(self.db)
+		invoice_amounts.InvoiceAmountsGUI()
 
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history
-		pay_stub_history.PayStubHistoryGUI(self.db)
+		pay_stub_history.PayStubHistoryGUI()
 
 	def job_sheet_history (self, button):
 		from reports import job_sheet_history
-		job_sheet_history.JobSheetHistoryGUI(self.db)
+		job_sheet_history.JobSheetHistoryGUI()
 
 	def product_history_clicked (self, button):
 		from reports import product_history
-		product_history.ProductHistoryGUI(self.main)
+		product_history.ProductHistoryGUI()
 
 	def profit_loss_clicked (self, button):
 		from reports import profit_loss_report
-		profit_loss_report.ProfitLossReportGUI(self.db)
+		profit_loss_report.ProfitLossReportGUI()
 
 	def net_worth_clicked (self, button):
 		from reports import net_worth
-		net_worth.NetWorthGUI(self.db)
+		net_worth.NetWorthGUI()
 
 
 

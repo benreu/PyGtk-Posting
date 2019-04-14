@@ -22,13 +22,13 @@ import subprocess, re, os, psycopg2
 from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 import purchase_ordering
-import main
+from main import ui_directory, db, broadcaster
 
 items = list()
 
-UI_FILE = main.ui_directory + "/purchase_order_window.ui"
+UI_FILE = ui_directory + "/purchase_order_window.ui"
 
-def add_expense_to_po (db, po_id, product_id, expense_amount ):
+def add_expense_to_po (po_id, product_id, expense_amount ):
 	cursor = db.cursor ()
 	cursor.execute("INSERT INTO purchase_order_line_items "
 					"(purchase_order_id, product_id, qty, remark, price, "
@@ -39,12 +39,13 @@ def add_expense_to_po (db, po_id, product_id, expense_amount ):
 					(po_id, product_id, expense_amount, expense_amount, 
 					product_id))
 	db.commit ()
+	cursor.close()
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 	
 class PurchaseOrderGUI:
-	def __init__(self, main, edit_po_id = None ):
+	def __init__(self, edit_po_id = None ):
 
 		self.purchase_order_id = None
 		self.vendor_id = 0
@@ -68,13 +69,15 @@ class PurchaseOrderGUI:
 		vendor_completion = self.builder.get_object('vendor_completion')
 		vendor_completion.set_match_func(self.vendor_match_func)
 
-		self.main = main
-		self.db = main.db
-		self.cursor = self.db.cursor()
-		self.handler_c_id = main.connect("contacts_changed", self.populate_vendor_store )
-		self.handler_p_id = main.connect("products_changed", self.populate_product_store )
+		self.db = db
+		self.cursor = db.cursor()
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.populate_vendor_store ), 
+						   ("products_changed", self.populate_product_store )):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
 		
@@ -139,8 +142,8 @@ class PurchaseOrderGUI:
 			self.builder.get_object(column_id).set_visible(visible)
 
 	def destroy(self, window):
-		self.main.disconnect(self.handler_c_id)
-		self.main.disconnect(self.handler_p_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.unlock_po()
 		self.cursor.close()
 
@@ -192,7 +195,7 @@ class PurchaseOrderGUI:
 		self.products_from_existing_po ()
 
 	def hold_togglebutton_toggled (self, togglebutton, path):
-		cursor = self.db.cursor()
+		cursor = db.cursor()
 		row_id = self.p_o_store[path][0]
 		try:
 			cursor.execute("UPDATE purchase_order_line_items "
@@ -201,7 +204,7 @@ class PurchaseOrderGUI:
 								"WHERE id = %s FOR UPDATE NOWAIT) "
 							"WHERE id = %s RETURNING hold", (row_id, row_id))
 		except psycopg2.OperationalError as e:
-			self.db.rollback()
+			db.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -209,7 +212,7 @@ class PurchaseOrderGUI:
 		for row in cursor.fetchall():
 			active = row[0]
 			self.p_o_store[path][14] = active
-		self.db.commit()
+		db.commit()
 		self.calculate_totals ()
 		cursor.close()
 
@@ -323,7 +326,7 @@ class PurchaseOrderGUI:
 			return
 		product_id = model[path][2]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def update_line_item_vendor (self, _iter, vendor_id):
 		row_id = self.p_o_store[_iter][0]
@@ -357,11 +360,11 @@ class PurchaseOrderGUI:
 								"SET name = %s WHERE id = %s", 
 								(document_name, purchase_order_id))
 		self.p_o_store[_iter][13] = purchase_order_id
-		self.db.commit()
+		db.commit()
 		
 	def products_activated (self, column):
 		import products
-		products.ProductsGUI(self.main)
+		products.ProductsGUI()
 
 	def populate_vendor_store (self, m=None, i=None):
 		self.populating = True
@@ -390,8 +393,8 @@ class PurchaseOrderGUI:
 
 	def contacts_window(self, widget):
 		import contacts
-		c = contacts.GUI(self.main)
-		c.builder.get_object('radiobutton2').set_active(True)
+		c = contacts.GUI()
+		c.get_object('radiobutton2').set_active(True)
 	
 	def vendor_match_func(self, completion, key, iter):
 		if key in self.vendor_store[iter][1].lower(): 
@@ -400,7 +403,7 @@ class PurchaseOrderGUI:
 
 	def view_purchase_order(self, widget):
 		comment = self.builder.get_object('entry2').get_text()
-		purchase_order = purchase_ordering.Setup(self.db, 
+		purchase_order = purchase_ordering.Setup(db, 
 													self.vendor_id, 
 													comment, 
 													self.datetime, 
@@ -410,10 +413,10 @@ class PurchaseOrderGUI:
 	def post_and_process(self, widget):
 		self.post_purchase_order ()	
 		import unprocessed_po
-		unprocessed_po.GUI (self.main)
+		unprocessed_po.GUI ()
 
 	def post_purchase_order(self, widget = None):
-		cursor = self.db.cursor()
+		cursor = db.cursor()
 		cursor.execute("SELECT "
 							"pg_try_advisory_lock(id) "
 						"FROM purchase_orders "
@@ -423,7 +426,7 @@ class PurchaseOrderGUI:
 				self.show_message("Somebody else is still accessing this PO")
 				return
 		comment = self.builder.get_object('entry2').get_text()
-		purchase_order = purchase_ordering.Setup(self.db,  
+		purchase_order = purchase_ordering.Setup(db,  
 													self.vendor_id, 
 													comment, 
 													self.datetime, 
@@ -443,10 +446,10 @@ class PurchaseOrderGUI:
 							"(%s, True) RETURNING id", 
 							(self.purchase_order_id, old_purchase_id))
 		if cursor.fetchone() == None: #no products held
-			self.db.rollback()
+			db.rollback()
 			self.window.destroy ()
 		else:								#new po created; show it
-			self.db.commit()
+			db.commit()
 			self.products_from_existing_po ()
 		cursor.close()
 
@@ -512,18 +515,18 @@ class PurchaseOrderGUI:
 		"removing row locks is as simple as doing a rollback or commit"
 		"all rows need to be locked whenever a widget is opened to "
 		"edit an invoice row"
-		self.db.rollback() #remove row lock by rolling back
+		db.rollback() #remove row lock by rolling back
 
 	################## start qty
 
 	def qty_editing_started (self, cellrenderer, celleditable, path):
 		row_id = self.p_o_store[path][0]
-		cursor = self.db.cursor()
+		cursor = db.cursor()
 		try:
 			cursor.execute("SELECT qty::text FROM purchase_order_line_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			self.db.rollback()
+			db.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -549,12 +552,12 @@ class PurchaseOrderGUI:
 
 	def order_number_editing_started (self, renderer, entry, path):
 		row_id = self.p_o_store[path][0]
-		cursor = self.db.cursor()
+		cursor = db.cursor()
 		try:
 			cursor.execute("SELECT order_number FROM purchase_order_line_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			self.db.rollback()
+			db.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -625,12 +628,12 @@ class PurchaseOrderGUI:
 		
 	def remark_editing_started (self, cellrenderer, entry, path):
 		row_id = self.p_o_store[path][0]
-		cursor = self.db.cursor()
+		cursor = db.cursor()
 		try:
 			cursor.execute("SELECT remark FROM purchase_order_line_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			self.db.rollback()
+			db.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -649,13 +652,13 @@ class PurchaseOrderGUI:
 	def product_renderer_changed (self, widget, path, iter_):
 		product_id = self.product_store[iter_][0]
 		_iter = self.p_o_store.get_iter(path)
-		self.save_product (_iter, product_id)
+		self.save_product (_iter, int(product_id))
 
 	def product_renderer_editing_started (self, renderer, combo, path):
 		combo.connect('remove-widget', self.product_widget_removed, path)
 		entry = combo.get_child()
 		row_id = self.p_o_store[path][0]
-		cursor = self.db.cursor()
+		cursor = db.cursor()
 		try:
 			cursor.execute("SELECT p.name "
 							"FROM purchase_order_line_items AS poi "
@@ -663,7 +666,7 @@ class PurchaseOrderGUI:
 							"WHERE poi.id = %s "
 							"FOR UPDATE OF poi NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			self.db.rollback()
+			db.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -745,7 +748,7 @@ class PurchaseOrderGUI:
 		revenue_account = self.builder.get_object ('combobox3').get_active_id()
 		if result == Gtk.ResponseType.ACCEPT:
 			import products
-			product_id = products.add_non_stock_product(self.db, 
+			product_id = products.add_non_stock_product(
 												self.vendor_id, product_name,
 												product_number, expense_account,
 												revenue_account)
@@ -760,11 +763,11 @@ class PurchaseOrderGUI:
 	
 	def product_edited (self, cellrenderertext, text, path):
 		"Posting does not allow product names to be edited directly"
-		self.db.rollback () # remove row lock, see editing_canceled
+		db.rollback () # remove row lock, see editing_canceled
 
 	def save_product (self, _iter, product_id):
 		if self.check_for_duplicate_products (product_id, _iter) == True:
-			self.db.rollback() # remove row lock, see editing_canceled
+			db.rollback() # remove row lock, see editing_canceled
 			return # duplicate product, skip the rest of the code
 		vendor_id = self.p_o_store[_iter][11]
 		self.p_o_store[_iter][2] = product_id
@@ -846,7 +849,7 @@ class PurchaseOrderGUI:
 	def save_purchase_order_line (self, _iter):
 		line = self.p_o_store[_iter]
 		if line[2] == 0:
-			self.db.rollback()
+			db.rollback()
 			return # no valid product yet
 		row_id = line[0]
 		qty = line[1]
@@ -884,7 +887,7 @@ class PurchaseOrderGUI:
 								"WHERE id = %s", (purchase_order_id, qty, 
 								product_id, remark, price, ext_price, 
 								expense_account, order_number,  row_id))
-		self.db.commit()
+		db.commit()
 		self.calculate_totals ()
 
 	def calculate_totals(self):
@@ -915,7 +918,7 @@ class PurchaseOrderGUI:
 
 	def add_entry (self):
 		self.check_po_id ()
-		self.db.commit()
+		db.commit()
 		self.p_o_store.append([0, Decimal(1.0), 0, "Select order number", 
 								False, "Select a stock item" , "", "", 
 								Decimal(1), Decimal(1), True, int(self.vendor_id),
@@ -935,7 +938,7 @@ class PurchaseOrderGUI:
 			line_id = model[path][0]
 			self.cursor.execute("DELETE FROM purchase_order_line_items "
 								"WHERE id = %s", (line_id,))
-			self.db.commit()
+			db.commit()
 			self.products_from_existing_po ()
 
 	def key_tree_tab(self, treeview, event):

@@ -20,14 +20,13 @@ import main
 UI_FILE = main.ui_directory + "/open_purchase_orders.ui"
 
 class OpenPurchaseOrderGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.parent = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.open_po_store = self.builder.get_object('open_po_store')
@@ -42,7 +41,7 @@ class OpenPurchaseOrderGUI:
 
 	def new_po_clicked (self, button):
 		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(self.parent)
+		purchase_order_window.PurchaseOrderGUI()
 
 	def focus_in_event (self, window, event):
 		self.populate_store()
@@ -50,7 +49,7 @@ class OpenPurchaseOrderGUI:
 	def open_po_row_activated (self, treeview, path, treeview_column):
 		po_id = self.open_po_store[path][0]
 		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(self.parent, po_id)
+		purchase_order_window.PurchaseOrderGUI(po_id)
 
 	def populate_store (self):
 		selection = self.builder.get_object('treeview-selection1')
@@ -83,7 +82,7 @@ class OpenPurchaseOrderGUI:
 			return
 		po_id = model[path][0]
 		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(self.parent, po_id)
+		purchase_order_window.PurchaseOrderGUI(po_id)
 
 
 

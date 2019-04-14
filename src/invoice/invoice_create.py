@@ -31,7 +31,7 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup(XCloseListener, unohelper.Base):
-	def __init__(self, db, store, contact_id, comment, date,
+	def __init__(self, store, contact_id, comment, date,
 											invoice_id, parent, 
 											doc_type = "Invoice"):
 		self.contact_id = contact_id
@@ -40,7 +40,7 @@ class Setup(XCloseListener, unohelper.Base):
 		self.date = date
 		self.invoice_id = invoice_id
 		self.doc_type = doc_type
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 		self.parent = parent
 		self.invoice_doc = None

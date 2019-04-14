@@ -23,14 +23,14 @@ import main
 UI_FILE = main.ui_directory + "/resource_search.ui"
 
 class ResourceSearchGUI:
-	def __init__ (self, db):
+	def __init__ (self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()

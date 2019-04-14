@@ -24,7 +24,7 @@ import main
 UI_FILE = main.ui_directory + "/reports/product_history.ui"
 
 class ProductHistoryGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.search_iter = 0
 		
@@ -35,7 +35,6 @@ class ProductHistoryGUI:
 		product_completion = self.builder.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 
@@ -108,7 +107,7 @@ class ProductHistoryGUI:
 		contact_id = model[path][8]
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
-			self.invoice_history = ih.InvoiceHistoryGUI(self.main)
+			self.invoice_history = ih.InvoiceHistoryGUI()
 		combo = self.invoice_history.builder.get_object('combobox1')
 		combo.set_active_id(contact_id)
 		store = self.invoice_history.builder.get_object('invoice_store')

@@ -20,19 +20,20 @@
 from gi.repository import Gtk
 from decimal import Decimal
 from pricing import product_retail_price
+import main
 
 UI_FILE = "src/reports/inventory_count.ui"
 
 
 class InventoryCountGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 		self.inventory_store = self.builder.get_object('inventory_store')
 		self.product_store = self.builder.get_object('product_store')
 		self.cursor.execute("SELECT id::text, name || ' {' || ext_name || '}' "

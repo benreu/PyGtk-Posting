@@ -24,7 +24,7 @@ import main
 UI_FILE = main.ui_directory + "/invoice/import_time_clock_entries.ui"
 
 class ImportGUI():
-	def __init__(self, db, contact_id, invoice_id):
+	def __init__(self, contact_id, invoice_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -32,7 +32,7 @@ class ImportGUI():
 
 		self.contact_id = contact_id
 		self.invoice_id = invoice_id
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
 		self.import_store = self.builder.get_object('import_store')

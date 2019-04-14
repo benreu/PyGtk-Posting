@@ -22,9 +22,8 @@ import main
 UI_FILE = main.ui_directory + "/reports/manufacturing_history.ui"
 
 class ManufacturingHistoryGUI(Gtk.Builder):
-	def __init__(self, main):
+	def __init__(self):
 
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 		

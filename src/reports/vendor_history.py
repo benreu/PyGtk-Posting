@@ -24,7 +24,7 @@ import main
 UI_FILE = main.ui_directory + "/reports/vendor_history.ui"
 
 class VendorHistoryGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.search_iter = 0
 		
@@ -45,7 +45,6 @@ class VendorHistoryGUI:
 		treeview.drag_source_set_target_list([dnd])
 
 		self.vendor_id = 0
-		self.main = main
 		self.db = main.db
 		self.cursor = self.db.cursor()
 
@@ -157,7 +156,7 @@ class VendorHistoryGUI:
 			return
 		product_id = model[path][1]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def vendor_match_func(self, completion, key, iter):
 		split_search_text = key.split()

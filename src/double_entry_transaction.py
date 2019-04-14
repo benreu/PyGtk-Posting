@@ -18,21 +18,21 @@
 from gi.repository import Gtk, Gdk, GLib, GObject
 from dateutils import DateTimeCalendar
 from db.transactor import double_entry_transaction
-import main
+from main import db, ui_directory 
 
-UI_FILE = main.ui_directory + "/double_entry_transaction.ui"
+UI_FILE = ui_directory + "/double_entry_transaction.ui"
 
 
 class DoubleEntryTransactionGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
 		self.db = db
-		self.cursor = db.cursor()
-		self.calendar = DateTimeCalendar(self.db)
+		self.cursor = self.db.cursor()
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
 		self.contact_id = 0

@@ -22,15 +22,15 @@ import subprocess, re
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
-import main
+from main import ui_directory, db, broadcaster 
 
-UI_FILE = main.ui_directory + "/documents_window.ui"
+UI_FILE = ui_directory + "/documents_window.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 		
 class DocumentGUI:
-	def __init__(self, main):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -38,16 +38,18 @@ class DocumentGUI:
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
 
-		self.main = main
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
-		self.handler_c_id = main.connect ("contacts_changed", self.populate_customer_store )
-		self.handler_p_id = main.connect ("products_changed", self.populate_product_store )
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.populate_customer_store ), 
+						   ("products_changed", self.populate_product_store )):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
 		self.document_id = 0
 		self.documents_store = self.builder.get_object('documents_store')
 		
-		self.calendar = DateTimeCalendar(self.db)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		
 		enforce_target = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
@@ -143,8 +145,8 @@ class DocumentGUI:
 		print ("please implement me") #FIXME
 
 	def destroy(self, window):
-		self.main.disconnect(self.handler_c_id)
-		self.main.disconnect(self.handler_p_id)
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 
 	def treeview_button_release_event (self, treeview, event):
@@ -166,7 +168,7 @@ class DocumentGUI:
 
 	def product_window(self, column):
 		import products
-		products.ProductsGUI(self.db)
+		products.ProductsGUI()
 
 	def contacts_window(self, widget):
 		import contacts
@@ -535,7 +537,7 @@ class DocumentGUI:
 
 	def document_type_clicked (self, widget):
 		import settings
-		settings.GUI(self.db, 'document_types')
+		settings.GUI('document_types')
 
 	def new_document_clicked (self, widget):
 		if self.document_type == "":

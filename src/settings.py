@@ -22,12 +22,12 @@ import main
 UI_FILE = main.ui_directory + "/settings.ui"
 
 class GUI():
-	def __init__(self, db, setting_container = None):
+	def __init__(self, setting_container = None):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
 		self.document_type_id = 0

@@ -23,14 +23,14 @@ import main
 UI_FILE = main.ui_directory + "/customer_finance_charge.ui"
 
 class CustomerFinanceChargeGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 
 		self.customer_id = None
 
@@ -48,7 +48,7 @@ class CustomerFinanceChargeGUI:
 
 	def payment_window(self, widget):
 		import customer_payment
-		customer_payment.GUI(self.db, customer_id = self.customer_id )
+		customer_payment.GUI(customer_id = self.customer_id )
 
 	def print_statement_clicked(self, button):
 		statement = statementing.Setup(self.db, self.statement_store, 

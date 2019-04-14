@@ -22,13 +22,13 @@ import main
 UI_FILE = main.ui_directory + "/reports/pay_stub_history.ui"
 
 class PayStubHistoryGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = db
-		self.cursor = db.cursor()
+		self.db = main.db
+		self.cursor = self.db.cursor()
 		self.employee_id = None
 
 		self.employee_store= self.builder.get_object('employee_store')

@@ -26,14 +26,14 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class PaymentReceiptGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = db.cursor ()
+		self.db = main.db
+		self.cursor = main.db.cursor ()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.payment_store = self.builder.get_object('payment_store')
