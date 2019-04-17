@@ -877,9 +877,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def check_po_item_id (self, _iter):
 		line = self.p_o_store[_iter]
-		if line[2] == 0:
-			db.rollback()
-			return # no valid product yet
 		row_id = line[0]
 		if row_id != 0:
 			return # we have a valid id
@@ -926,34 +923,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = cursor.fetchone()[0]
 		line[0] = row_id
 		cursor.close()
-		db.commit()
-		#if a default expense account is available, use it
-		self.cursor.execute("SELECT default_expense_account FROM products WHERE id = %s", (product_id,))
-		for row in self.cursor.fetchall():
-			expense_account = row[0]
-			break
-		else: 
-			expense_account = None
-		if row_id == 0:
-			self.cursor.execute("INSERT INTO purchase_order_line_items "
-								"(purchase_order_id, qty, product_id, remark, "
-								"price, ext_price, canceled, expense_account, "
-								"order_number) "
-								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
-								"RETURNING id", (purchase_order_id, qty, 
-								product_id, remark, price, ext_price, False, 
-								expense_account, order_number))
-			row_id = self.cursor.fetchone()[0]
-			line[0] = row_id
-		else:
-			self.cursor.execute("UPDATE purchase_order_line_items "
-								"SET (purchase_order_id, qty, product_id, "
-								"remark, price, ext_price, expense_account, "
-								"order_number) = "
-								"(%s, %s, %s, %s, %s, %s, %s, %s) "
-								"WHERE id = %s", (purchase_order_id, qty, 
-								product_id, remark, price, ext_price, 
-								expense_account, order_number,  row_id))
 		db.commit()
 		self.calculate_totals ()
 
@@ -1011,18 +980,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 			path = self.p_o_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
 		db.commit()
-		self.p_o_store.append([0, Decimal(1.0), 0, "Select order number", 
-								False, "Select a stock item" , "", "", 
-								Decimal(1), Decimal(1), True, int(self.vendor_id),
-								'', self.purchase_order_id, False])
-
-	def select_new_entry (self):
-		treeview = self.builder.get_object('treeview2')
-		for index, row in enumerate(self.p_o_store):
-			if row[10] == True:
-				c = treeview.get_column(0)
-				treeview.set_cursor(index , c, True)
-				break
 
 	def delete_entry_activated (self, menuitem = None):
 		selection = self.get_object("treeview-selection")

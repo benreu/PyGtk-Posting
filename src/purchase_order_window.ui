@@ -68,7 +68,7 @@
       <!-- column-name row_id -->
       <column type="gint"/>
       <!-- column-name qty -->
-      <column type="PyObject"/>
+      <column type="gchararray"/>
       <!-- column-name product_id -->
       <column type="gint"/>
       <!-- column-name order_number -->
@@ -82,9 +82,9 @@
       <!-- column-name remarks -->
       <column type="gchararray"/>
       <!-- column-name price -->
-      <column type="PyObject"/>
+      <column type="gchararray"/>
       <!-- column-name ext_price -->
-      <column type="PyObject"/>
+      <column type="gchararray"/>
       <!-- column-name new_line -->
       <column type="gboolean"/>
       <!-- column-name vendor_id -->
@@ -428,6 +428,9 @@
                         <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
                         <signal name="editing-started" handler="qty_editing_started" swapped="no"/>
                       </object>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -533,6 +536,9 @@
                       <object class="GtkCellRendererText" id="cellrenderertext6">
                         <property name="xalign">1</property>
                       </object>
+                      <attributes>
+                        <attribute name="text">8</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -541,10 +547,14 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Ext. price</property>
                     <property name="reorderable">True</property>
+                    <property name="sort_column_id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext7">
                         <property name="xalign">1</property>
                       </object>
+                      <attributes>
+                        <attribute name="text">9</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
