@@ -319,12 +319,14 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def update_line_item_vendor (self, _iter, vendor_id):
 		row_id = self.p_o_store[_iter][0]
-		self.cursor.execute("SELECT id FROM purchase_orders "
-							"WHERE vendor_id = (%s) "
+		self.cursor.execute("SELECT po.id, c.name FROM purchase_orders AS po "
+							"JOIN contacts AS c ON c.id = vendor_id "
+							"WHERE vendor_id = %s "
 							"AND (paid, closed, canceled) = "
 							"(False, False, False)", (vendor_id, ))
 		for row in self.cursor.fetchall() : # check for active PO
 			purchase_order_id = row[0]
+			vendor_name = row[1]
 			break
 		else:
 			self.cursor.execute("SELECT name FROM contacts WHERE id = %s", 
@@ -348,7 +350,12 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.cursor.execute("UPDATE purchase_orders "
 								"SET name = %s WHERE id = %s", 
 								(document_name, purchase_order_id))
+		self.p_o_store[_iter][11] = int(vendor_id)
+		self.p_o_store[_iter][12] = vendor_name
 		self.p_o_store[_iter][13] = purchase_order_id
+		self.cursor.execute("UPDATE purchase_order_line_items "
+							"SET purchase_order_id = %s "
+							"WHERE id = %s", (purchase_order_id, row_id))
 		db.commit()
 		
 	def products_activated (self, column):
