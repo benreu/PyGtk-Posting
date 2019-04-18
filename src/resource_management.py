@@ -158,8 +158,10 @@ class ResourceManagementGUI:
 		tree_model, path = selection.get_selected_rows()
 		id_ = tree_model[path][0]
 		self.cursor.execute("UPDATE resources "
-							"SET contact_id = %s "
-							"WHERE id = %s", (contact_id, id_))
+							"SET (contact_id, phone_number) = "
+							"(%s, (SELECT phone FROM contacts WHERE id = %s)) "
+							"WHERE id = %s ",
+							(contact_id, contact_id, id_))
 		self.db.commit()
 		self.editing = False
 		self.populate_resource_store(id_)
@@ -173,8 +175,13 @@ class ResourceManagementGUI:
 		contact_id = self.contact_store[tree_iter][0]
 		id_ = self.resource_store[path][0]
 		self.cursor.execute("UPDATE resources "
-							"SET contact_id = %s "
-							"WHERE id = %s", (contact_id, id_))
+							"SET (contact_id, phone_number) = "
+							"(%s, (SELECT phone FROM contacts WHERE id = %s)) "
+							"WHERE id = %s RETURNING phone_number ",
+							(contact_id, contact_id, id_))
+		phone = self.cursor.fetchone()[0]
+		print (phone)
+		self.resource_store[path][0]
 		self.db.commit()
 		self.editing = False
 		self.populate_resource_store(id_)
@@ -369,6 +376,7 @@ class ResourceManagementGUI:
 										tag_name, rgba, phone_number,
 										call_received_time, 
 										c_r_time_formatted, to_do])
+			print (phone_number)
 			if row_id == id_:
 				self.builder.get_object('treeview-selection1').select_iter(iter_)
 		if new == True:
