@@ -174,7 +174,8 @@ class MiscellaneousRevenueGUI:
 			transactor.post_misc_cash_payment(self.db, self.date, amount, payment_id, revenue_account)
 		self.db.commit()
 		self.cursor.close()
-		main.disconnect(self.handler_id)
+		for connection_id in self.handler_ids:
+			broadcaster.disconnect(connection_id)
 		self.window.destroy()
 
 	def date_entry_icon_release (self, entry, icon, event):
