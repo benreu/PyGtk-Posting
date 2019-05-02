@@ -306,7 +306,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		count = 0
 		self.cursor.execute("SELECT r.id, subject, dated_for::text, "
 							"format_date(dated_for), notes, "
-							"tag, red, green, blue, alpha "
+							"tag, red, green, blue, alpha, phone_number "
 							"FROM resources AS r "
 							"JOIN resource_tags AS rt "
 							"ON rt.id = r.tag_id WHERE contact_id = %s", 
@@ -324,8 +324,9 @@ class ContactHistoryGUI (Gtk.Builder):
 			rgba.green = row[7]
 			rgba.blue = row[8]
 			rgba.alpha = row[9]
-			resource_store.append([row_id, subject, dated_for, 
-									date_formatted, notes, tag_name, rgba])
+			phone = row[10]
+			resource_store.append([row_id, subject, dated_for, date_formatted, 
+									notes, tag_name, rgba, phone])
 		if count == 0:
 			self.get_object('label4').set_label('Resources')
 		else:
