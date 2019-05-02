@@ -27,7 +27,7 @@ builder = None
 #therefore we use file variables
 
 class ViewLogGUI:
-	def __init__(self, db, p):
+	def __init__(self, p):
 
 		global parent
 		global builder
@@ -47,7 +47,7 @@ class ViewLogGUI:
 								"Hint: are you starting PyGtk Posting "
 								"with the run.sh?" % l)
 			builder.get_object("textbuffer1").set_text(log_exception)
-			raise Exception (log_exception)
+			return
 		f = open (l, 'r')
 		log_text = f.read()
 		builder.get_object("textbuffer1").set_text(log_text)

@@ -291,7 +291,7 @@ class MainGUI (GObject.GObject):
 
 	def view_log_clicked (self, menuitem):
 		import view_log
-		view_log.ViewLogGUI()
+		view_log.ViewLogGUI(self)
 
 	def payment_receipt_activated (self, menuitem):
 		import payment_receipt
