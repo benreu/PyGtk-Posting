@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
 import subprocess
-from main import ui_directory, db, broadcaster
+from main import ui_directory, db, broadcaster, template_dir
 
 UI_FILE = ui_directory + "/catalog_creator.ui"
 
@@ -283,7 +283,7 @@ class CatalogCreatorGUI(Gtk.Builder):
 			product_list[price_id] = price
 			product_list[barcode_id] = barcode
 		catalog_file = "/tmp/catalog.odt"
-		t = Template(main.template_dir+"/catalog_template.odt", catalog_file , False)
+		t = Template(template_dir+"/catalog_template.odt", catalog_file , False)
 		try:
 			t.render(product_list) #the product_list holds all the catalog info
 		except Exception as e:
