@@ -61,7 +61,7 @@ class GUI:
 		customer_payment.GUI(customer_id = self.customer_id )
 
 	def print_statement_clicked(self, button):
-		statement = statementing.Setup(self.db, self.statement_store, 
+		statement = statementing.Setup( self.statement_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.print_dialog(self.window)
@@ -70,7 +70,7 @@ class GUI:
 		self.builder.get_object('combobox-entry').set_text("")
 
 	def view_statement_clicked (self, button):
-		statement = statementing.Setup(self.db, self.statement_store, 
+		statement = statementing.Setup( self.statement_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.view()
