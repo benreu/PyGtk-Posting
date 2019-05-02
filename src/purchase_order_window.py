@@ -299,6 +299,20 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if self.purchase_order_id != None:
 			self.products_from_existing_po ()
 
+	def vendor_combo_populate_popup (self, entry, menu):
+		separator = Gtk.SeparatorMenuItem ()
+		separator.show ()
+		menu.prepend(separator)
+		contact_hub_menu = Gtk.MenuItem.new_with_label("Contact hub")
+		contact_hub_menu.connect("activate", self.contact_hub_clicked)
+		contact_hub_menu.show()
+		menu.prepend(contact_hub_menu)
+
+	def contact_hub_clicked (self, menuitem):
+		if self.vendor_id != 0:
+			import contact_hub
+			contact_hub.ContactHubGUI(self.vendor_id)
+
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3 and self.menu_visible == False:
 			menu = self.get_object('right_click_menu')
