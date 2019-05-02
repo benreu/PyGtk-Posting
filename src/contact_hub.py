@@ -58,14 +58,14 @@ class ContactHubGUI:
 
 	def job_sheet_history_clicked (self, button):
 		from reports import job_sheet_history
-		j = job_sheet_history.JobSheetHistoryGUI(self.db)
+		j = job_sheet_history.JobSheetHistoryGUI()
 		j.builder.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
 	def contact_history_clicked (self, button):
 		from reports import contact_history
 		c = contact_history.ContactHistoryGUI()
-		c.builder.get_object('combobox1').set_active_id(str(self.contact_id))
+		c.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 	def customer_invoices_clicked (self, button):
