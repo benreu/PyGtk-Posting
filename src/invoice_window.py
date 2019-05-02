@@ -307,15 +307,15 @@ class InvoiceGUI:
 		separator = Gtk.SeparatorMenuItem ()
 		separator.show ()
 		menu.prepend(separator)
-		edit_customer_menu = Gtk.MenuItem.new_with_label("Edit customer")
-		edit_customer_menu.connect("activate", self.edit_customer_clicked)
-		edit_customer_menu.show()
-		menu.prepend(edit_customer_menu)
+		contact_hub_menu = Gtk.MenuItem.new_with_label("Contact hub")
+		contact_hub_menu.connect("activate", self.contact_hub_clicked)
+		contact_hub_menu.show()
+		menu.prepend(contact_hub_menu)
 
-	def edit_customer_clicked (self, menuitem):
-		if self.customer_id != None:
-			import contacts
-			contacts.GUI(self.customer_id)
+	def contact_hub_clicked (self, menuitem):
+		if self.customer_id != 0:
+			import contact_hub
+			contact_hub.ContactHubGUI(self.customer_id)
 
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object("treeview-selection")
