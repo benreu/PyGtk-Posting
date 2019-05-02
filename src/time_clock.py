@@ -24,7 +24,6 @@ UI_FILE = ui_directory + "/time_clock.ui"
 
 class TimeClockGUI :
 	entry_id = 0
-	exists = True
 	def __init__(self, parent = None):
 		
 		self.builder = Gtk.Builder()
@@ -47,13 +46,15 @@ class TimeClockGUI :
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
-		self.parent = parent
+
+	def delete_event (self, window, event):
+		window.hide()
+		return True
 
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 		self.cursor.close()
-		self.exists = False
 
 	def focus_in (self, widget, event):
 		self.stack.set_visible_child_name('employee_page')
