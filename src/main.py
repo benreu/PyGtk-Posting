@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+#
 # main.py
 #
 # Copyright (C) 2018 - reuben
@@ -15,8 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
-import psycopg2, apsw, os, shutil
+import psycopg2, apsw, os, shutil, sys
 
 db = None
 cursor = None
@@ -296,4 +300,13 @@ def get_apsw_cursor ():
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()
 	return cursor
+
+
+def main_app():
+	import pygtk_posting
+	app = pygtk_posting.MainGUI()
+	Gtk.main()
+
 		
+if __name__ == "__main__":	
+	sys.exit(main_app())

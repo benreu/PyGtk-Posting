@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # pygtk_posting.py
 # Copyright (C) 2016 reuben 
@@ -16,12 +15,8 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gi
-gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, GObject, Gdk
-from datetime import datetime, date
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-import os, sys, subprocess, psycopg2, re
+import os, subprocess, re
 import main
 
 UI_FILE = main.ui_directory + "/pygtk_posting.ui"
@@ -30,13 +25,6 @@ invoice_window = None
 ccm = None
 
 class MainGUI (GObject.GObject):
-	"The main class that does all the heavy lifting"
-	__gsignals__ = { 
-	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
-	}
 	log_file = None
 	time_clock_object = None
 	keybinding = None
@@ -78,7 +66,6 @@ class MainGUI (GObject.GObject):
 		result, db_connection, self.db_name = main.connect_to_db(database_to_connect)
 		if result == True:
 			self.db = db_connection
-			#self.db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 			self.window.set_title('%s - PyGtk Posting' % self.db_name)
 			self.check_db_version()
 			self.cursor = self.db.cursor()
@@ -731,15 +718,4 @@ class MainGUI (GObject.GObject):
 		from reports import net_worth
 		net_worth.NetWorthGUI()
 
-
-GObject.type_register(MainGUI)
-
-def main_gui():
-	
-	app = MainGUI()
-	Gtk.main()
-
-		
-if __name__ == "__main__":	
-	sys.exit(main_gui())
 
