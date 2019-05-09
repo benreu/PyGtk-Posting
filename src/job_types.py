@@ -22,67 +22,64 @@ import main
 UI_FILE = main.ui_directory + "/job_types.ui"
 
 
-class GUI:
-	def __init__(self, db):
+class GUI (Gtk.Builder):
+	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
-		self.db = db
+		self.db = main.db
 		self.cursor = self.db.cursor()
 
-		self.job_store = Gtk.ListStore(str, int)
-		self.treeview = self.builder.get_object('treeview1')
+		self.job_store = self.get_object('job_type_store')
 		self.job_treeview_populate ()
 
 		self.id_ = 0
-		self.treeview.set_model(self.job_store)		
-		renderer_1 = Gtk.CellRendererText() 
-		column_1 = Gtk.TreeViewColumn('Job type', renderer_1, text=0)
-		self.treeview.append_column(column_1)
 		
-		self.window = self.builder.get_object('window1')			
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def row_activate(self, treeview, path, treeviewcolumn):
 		treeiter = self.job_store.get_iter(path)
-		self.id_ = self.job_store.get_value(treeiter, 1)
-		self.cursor.execute("SELECT * FROM job_types WHERE id = (%s)", (self.id_, ) )
-		for string in self.cursor.fetchall():
-			
-			name = string[1]
-			self.builder.get_object('entry1').set_text(name)
+		self.id_ = self.job_store.get_value(treeiter, 0)
+		self.cursor.execute("SELECT name FROM job_types "
+							"WHERE id = %s", (self.id_, ) )
+		for row in self.cursor.fetchall():
+			name = row[0]
+			self.get_object('entry1').set_text(name)
 
 	def job_treeview_populate (self):
 		self.job_store.clear()
-		self.cursor.execute("SELECT * FROM job_types")
-		for i in self.cursor.fetchall():
-			id_ = i[0]
-			name = i[1]
-			self.job_store.append([name,id_])
+		self.cursor.execute("SELECT id, name FROM job_types ORDER BY name")
+		for row in self.cursor.fetchall():
+			self.job_store.append(row)
 
 	def save(self, widget):
 		job = widget.get_text()
 		if self.id_ == 0:
-			self.cursor.execute("INSERT INTO job_types (name) VALUES (%s)", (job,))
+			self.cursor.execute("INSERT INTO job_types (name) "
+								"VALUES (%s)", (job,))
 		else:
-			self.cursor.execute("UPDATE job_types SET (name) = (%s) WHERE id = %s", (job,self.id_))
+			self.cursor.execute("UPDATE job_types "
+								"SET name = %s "
+								"WHERE id = %s", (job,self.id_))
 		self.db.commit()
 		self.job_treeview_populate ()
-		self.new(widget)
 
 	def delete (self, widget):
-		store, path = self.builder.get_object("treeview-selection1").get_selected_rows ()
+		selection = self.get_object("treeview-selection1")
+		store, path = selection.get_selected_rows ()
 		if path != []:
 			treeiter = self.job_store.get_iter(path)
-			id_ = self.job_store.get_value(treeiter, 1)
-			self.cursor.execute("DELETE FROM job_types WHERE id = %s", (id_ ,))
+			id_ = self.job_store.get_value(treeiter, 0)
+			self.cursor.execute("UPDATE job_types SET deleted = True "
+								"WHERE id = %s", (id_ ,))
 			self.db.commit()
 			self.job_treeview_populate ()
 
 	def new(self, widget):
-		widget.set_text("")
+		widget.set_text("New job type")
 		self.id_ = 0
 
 
