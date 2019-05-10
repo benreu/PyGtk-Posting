@@ -20,9 +20,9 @@ import os, sys
 from datetime import datetime
 import invoice_window
 from pricing import get_customer_product_price
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/jobs_to_invoice.ui"
+UI_FILE = constants.ui_directory + "/jobs_to_invoice.ui"
 
 
 class GUI:
@@ -32,7 +32,7 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.jobs_store = self.builder.get_object('jobs_to_invoice_store')

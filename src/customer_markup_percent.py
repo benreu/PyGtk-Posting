@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/customer_markup_percent.ui"
+UI_FILE = constants.ui_directory + "/customer_markup_percent.ui"
 
 class CustomerMarkupPercentGUI:
 	def __init__(self):
@@ -27,8 +27,8 @@ class CustomerMarkupPercentGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
-		self.cursor = main.db.cursor()
+		self.db = constants.db
+		self.cursor = constants.db.cursor()
 
 		self.customer_markup_store = self.builder.get_object('customer_markup_store')
 		self.populate_markup_store ()

@@ -20,9 +20,9 @@ gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
 import time
 from db.database_tools import get_apsw_cursor
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/db/backup_restore.ui"
+UI_FILE = constants.ui_directory + "/db/backup_restore.ui"
 
 class Utilities:
 	def __init__(self, parent):

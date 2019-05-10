@@ -19,9 +19,9 @@ from gi.repository import Gtk, GLib
 import psycopg2
 from db import transactor
 from dateutils import DateTimeCalendar
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/credit_card_statements.ui"
+UI_FILE = constants.ui_directory + "/credit_card_statements.ui"
 
 class CreditCardStatementGUI:
 	def __init__(self):
@@ -35,7 +35,7 @@ class CreditCardStatementGUI:
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
 									'fees_rewards_description_store')
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.calendar = DateTimeCalendar()

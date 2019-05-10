@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/job_types.ui"
+UI_FILE = constants.ui_directory + "/job_types.ui"
 
 
 class GUI:

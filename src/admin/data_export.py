@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk
 import xlrd, xlsxwriter, subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/admin/data_export.ui"
+UI_FILE = constants.ui_directory + "/admin/data_export.ui"
 
 
 class DataExportUI:

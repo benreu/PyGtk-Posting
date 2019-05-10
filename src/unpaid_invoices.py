@@ -17,26 +17,24 @@ from gi.repository import Gtk
 from db import transactor
 from dateutils import DateTimeCalendar
 import subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/unpaid_invoices.ui"
+UI_FILE = constants.ui_directory + "/unpaid_invoices.ui"
 
 class GUI (Gtk.Builder):
 	figure = None
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
-		self.main = main
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.store = self.get_object('unpaid_invoice_store')
 		self.window = self.get_object('window')
 		self.window.show_all()
-		main.unpaid_invoices_window = self.window
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect("day-selected", self.date_selected)
@@ -53,8 +51,8 @@ class GUI (Gtk.Builder):
 		cellrenderer.set_property("text" , str(amount))
 
 	def destroy(self, window):
-		self.exists = False
-		self.cursor.close()
+		window.hide()
+		return True
 	
 	def treeview_button_release_event (self, widget, event):
 		if event.button == 3:
@@ -68,7 +66,7 @@ class GUI (Gtk.Builder):
 			return
 		customer_id = model[path][2]
 		import contact_hub
-		contact_hub.ContactHubGUI(self.main, customer_id)
+		contact_hub.ContactHubGUI(customer_id)
 
 	def invoice_chart_clicked (self, button):
 		if self.figure == None:

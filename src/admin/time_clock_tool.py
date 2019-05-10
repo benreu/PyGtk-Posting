@@ -20,9 +20,9 @@
 from gi.repository import Gtk, Gdk
 from datetime import datetime, date, timedelta 
 from dateutils import seconds_to_user_format, seconds_to_compact_string
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/admin/time_clock_tool.ui"
+UI_FILE = constants.ui_directory + "/admin/time_clock_tool.ui"
 
 
 class TimeClockToolGUI:

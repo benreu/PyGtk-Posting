@@ -17,14 +17,14 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/manufacturing_history.ui"
+UI_FILE = constants.ui_directory + "/reports/manufacturing_history.ui"
 
 class ManufacturingHistoryGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.product_text = ''

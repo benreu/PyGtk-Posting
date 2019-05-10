@@ -16,10 +16,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 from decimal import Decimal
 
-UI_FILE = main.ui_directory + "/reports/net_worth.ui"
+UI_FILE = constants.ui_directory + "/reports/net_worth.ui"
 
 class NetWorthGUI(Gtk.Builder):
 	def __init__(self):
@@ -29,7 +29,7 @@ class NetWorthGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.account_treestore = self.get_object("net_worth_store")
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.populate_net_worth ()
 

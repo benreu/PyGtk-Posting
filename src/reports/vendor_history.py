@@ -19,9 +19,9 @@
 from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/vendor_history.ui"
+UI_FILE = constants.ui_directory + "/reports/vendor_history.ui"
 
 class VendorHistoryGUI:
 	def __init__(self):
@@ -45,7 +45,7 @@ class VendorHistoryGUI:
 		treeview.drag_source_set_target_list([dnd])
 
 		self.vendor_id = 0
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.vendor_store = self.builder.get_object('vendor_store')

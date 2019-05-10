@@ -20,9 +20,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 from pricing import product_retail_price
-import main
+import constants
 
-UI_FILE = "src/reports/inventory_count.ui"
+UI_FILE = constants.ui_directory + "src/reports/inventory_count.ui"
 
 
 class InventoryCountGUI:
@@ -32,7 +32,7 @@ class InventoryCountGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.inventory_store = self.builder.get_object('inventory_store')
 		self.product_store = self.builder.get_object('product_store')

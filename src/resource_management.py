@@ -19,7 +19,7 @@ from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
 from dateutils import DateTimeCalendar
 import spell_check
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/resource_management.ui"
 
@@ -417,7 +417,7 @@ class ResourceManagementGUI:
 		if self.builder.get_object('time_clock_checkbutton').get_active() == True:
 			if not self.time_clock:
 				import time_clock
-				self.time_clock = time_clock.TimeClockGUI(self.main)
+				self.time_clock = time_clock.TimeClockGUI()
 			else:
 				self.time_clock.present()
 

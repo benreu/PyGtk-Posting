@@ -21,7 +21,7 @@ from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/invoice_window.ui"
 
@@ -1074,7 +1074,7 @@ class InvoiceGUI:
 
 	def help_clicked (self, widget):
 		import subprocess
-		subprocess.Popen(["yelp", main.help_dir + "/invoice.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/invoice.page"])
 
 	def window_key_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

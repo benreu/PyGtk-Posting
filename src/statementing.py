@@ -18,7 +18,7 @@
 from gi.repository import Gtk
 import subprocess, psycopg2, re
 from datetime import datetime, timedelta
-import printing, main
+import printing, constants
 
 items = list()
 class Item(object):#this is used by py3o library see their example for more info
@@ -26,7 +26,7 @@ class Item(object):#this is used by py3o library see their example for more info
 
 class Setup():
 	def __init__(self, store, customer_id, date, total, comment = ""):	
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor ()
 		self.customer_id = customer_id
 		self.store = store
@@ -101,7 +101,7 @@ class Setup():
 		self.data = dict(items = items, statement = document, contact = customer, company = company)
 		from py3o.template import Template #import for every statement or there is an error about invalid magic header numbers
 		self.statement_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/statement_template.odt", self.statement_file , True)
+		t = Template(constants.template_dir+"/statement_template.odt", self.statement_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 		subprocess.call(["odt2pdf", self.statement_file])
 

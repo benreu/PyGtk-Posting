@@ -19,9 +19,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject, Pango
 from datetime import datetime
 import time, ssl
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/time_clock_history.ui"
+UI_FILE = constants.ui_directory + "/reports/time_clock_history.ui"
 
 
 class TimeClockHistoryGUI:
@@ -31,7 +31,7 @@ class TimeClockHistoryGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.sunday_store = self.builder.get_object('liststore1')

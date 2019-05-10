@@ -1,6 +1,5 @@
 # employee_info.py
 #
-# main.py
 # Copyright (C) 2016 reuben 
 # 
 # pygtk-posting is free software: you can redistribute it and/or modify it
@@ -24,9 +23,9 @@ from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
 import sane, psycopg2, subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/payroll/employee_info.ui"
+UI_FILE = constants.ui_directory + "/payroll/employee_info.ui"
 
 device = None
 
@@ -42,7 +41,7 @@ class EmployeeInfoGUI:
 		self.federal_withholding_store = self.builder.get_object('federal_withholding_store')
 		self.state_withholding_store = self.builder.get_object('state_withholding_store')
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.populate_employee_store ()

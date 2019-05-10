@@ -17,43 +17,29 @@
 
 from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/pygtk_posting.ui"
+UI_FILE = constants.ui_directory + "/main_window.ui"
 
 invoice_window = None
 ccm = None
 
-class MainGUI (GObject.GObject):
+class MainGUI :
 	log_file = None
 	time_clock_object = None
 	keybinding = None
 	prod_loc_class = None
 
 	def __init__(self):
-		GObject.GObject.__init__(self)
-		try:
-			variable = sys.argv[1]
-			if 'database ' in variable:
-				database_to_connect = re.sub('database ', '', variable)
-				log_variable = sys.argv[2]
-				if log_variable != 'None':
-					self.log_file = variable
-			else:
-				database_to_connect = None
-				self.log_file = variable
-		except Exception as e:
-			print ("Non-fatal: %s when trying to retrieve sys args" % e)
-			database_to_connect = None
-			main.dev_mode = True
-			#self.builder.get_object('menuitem35').set_label("Admin logout")
-		main.set_directories()
 		self.builder = Gtk.Builder()
-		self.builder.add_from_file(main.ui_directory + "/pygtk_posting.ui")
+		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.db = constants.db
+		self.cursor = self.db.cursor()
 		self.window = self.builder.get_object('main_window')
+		self.window.set_title('%s - PyGtk Posting' % constants.db_name)
 		self.window.show_all()
-		self.set_admin_menus(main.dev_mode)
+		self.set_admin_menus(constants.dev_mode)
 		about_window = self.builder.get_object('aboutdialog1')
 		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
 		about_window.add_credit_section("Suggestions/advice from (in no particular order)", 
@@ -63,24 +49,15 @@ class MainGUI (GObject.GObject):
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		result, db_connection, self.db_name = main.connect_to_db(database_to_connect)
-		if result == True:
-			self.db = db_connection
-			self.window.set_title('%s - PyGtk Posting' % self.db_name)
-			self.check_db_version()
-			self.cursor = self.db.cursor()
-			self.window.connect("focus-in-event", self.focus) #connect the focus signal only if we successfully connect
-			self.populate_modules ()
-		else:
-			from db import database_tools
-			database_tools.GUI(True)
 		self.unpaid_invoices_window = None
 		self.open_invoices_window = None
 		self.populate_quick_commands()
-		if not main.dev_mode or True:
+		self.populate_modules ()
+		self.check_db_version ()
+		if not constants.dev_mode:
 			self.connect_keybindings()
 		import traceback_handler
-		traceback_handler.Log(self.log_file)
+		traceback_handler.Log()
 
 	def present (self, keybinding):
 		self.window.present()
@@ -115,7 +92,7 @@ class MainGUI (GObject.GObject):
 	def populate_modules (self):
 		import importlib.util as i_utils
 		cwd = os.getcwd()
-		module_folder = main.modules_dir
+		module_folder = constants.modules_dir
 		files = os.listdir(module_folder)
 		menu = self.builder.get_object('menu11')
 		for file_ in files:
@@ -148,7 +125,7 @@ class MainGUI (GObject.GObject):
 			ccm.window.present()
 
 	def admin_login_clicked (self, menuitem):
-		if main.is_admin == True:
+		if constants.is_admin == True:
 			self.set_admin_menus (False)
 			menuitem.set_label("Admin login")
 		else:
@@ -166,7 +143,7 @@ class MainGUI (GObject.GObject):
 		self.builder.get_object('menuitem64').set_sensitive(value)
 		self.builder.get_object('menuitem49').set_sensitive(value)
 		self.builder.get_object('menuitem80').set_sensitive(value)
-		main.is_admin = value
+		constants.is_admin = value
 
 	def blank_clicked (self, button):
 		pass
@@ -289,7 +266,7 @@ class MainGUI (GObject.GObject):
 		inventory_count.InventoryCountGUI()
 
 	def user_manual_help (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/index.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/index.page"])
 
 	def create_document_clicked (self, widget):
 		import documents_window
@@ -365,7 +342,7 @@ class MainGUI (GObject.GObject):
 	def open_invoices (self, widget):
 		if self.open_invoices_window == None:
 			import open_invoices
-			open_invoices.OpenInvoicesGUI()
+			self.open_invoices_window = open_invoices.OpenInvoicesGUI()
 		else:
 			self.open_invoices_window.present()
 
@@ -391,7 +368,7 @@ class MainGUI (GObject.GObject):
 
 	def check_admin (self, external = True):
 		"check for admin, external option to show extra alert for not being admin"
-		if main.is_admin == False:
+		if constants.is_admin == False:
 			dialog = self.builder.get_object('admin_dialog')
 			self.builder.get_object('label21').set_visible(external)
 			result = dialog.run()
@@ -588,7 +565,7 @@ class MainGUI (GObject.GObject):
 			self.unpaid_invoices_window.present()
 
 	def destroy(self, widget):
-		main.broadcaster.emit("shutdown")
+		constants.broadcaster.emit("shutdown")
 		self.cursor.execute("UNLISTEN products")
 		self.cursor.execute("UNLISTEN contacts")
 		self.db.close ()

@@ -31,6 +31,7 @@
     <property name="default_height">400</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
+    <signal name="focus-in-event" handler="focus" swapped="no"/>
     <child>
       <placeholder/>
     </child>

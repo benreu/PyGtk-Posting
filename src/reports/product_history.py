@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/product_history.ui"
+UI_FILE = constants.ui_directory + "/reports/product_history.ui"
 
 class ProductHistoryGUI:
 	def __init__(self):
@@ -35,7 +35,7 @@ class ProductHistoryGUI:
 		product_completion = self.builder.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.invoice_history = None

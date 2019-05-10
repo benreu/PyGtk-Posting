@@ -18,7 +18,7 @@ from gi.repository import Gtk, GLib, Gio
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-from main import ui_directory, db, broadcaster, is_admin
+from constants import ui_directory, db, broadcaster, is_admin
 
 UI_FILE = ui_directory + "/contacts.ui"
 
@@ -282,7 +282,7 @@ class GUI(Gtk.Builder):
 	def delete_file_clicked (self, widget):
 		dialog = self.get_object('dialog1')
 		combo = self.get_object('comboboxtext3')
-		if main.is_admin == False:
+		if constants.is_admin == False:
 			self.get_object('button17').set_sensitive(False)
 			self.get_object('label17').set_label("You are not admin !")
 		else:
@@ -341,7 +341,7 @@ class GUI(Gtk.Builder):
 		self.db.commit()
 
 	def contact_help_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/contacts.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/contacts.page"])
 
 	def print_10_env_clicked (self, button):
 		contact = Item()
@@ -373,7 +373,7 @@ class GUI(Gtk.Builder):
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		env_file = "/tmp/env10_template.odt"
-		t = Template(main.template_dir+"env10_template.odt", env_file , True)
+		t = Template(constants.template_dir+"env10_template.odt", env_file , True)
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.Popen("soffice --headless -p " + env_file, shell = True)
 		#subprocess.call("libreoffice " + label_file, shell = True)
@@ -408,7 +408,7 @@ class GUI(Gtk.Builder):
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		label_file = "/tmp/letter_template.odt"
-		t = Template(main.template_dir+"letter_template.odt", label_file , True)
+		t = Template(constants.template_dir+"letter_template.odt", label_file , True)
 		t.render(data) #the data holds all the info of the invoice
 		subprocess.call("libreoffice " + label_file, shell = True)
 

@@ -16,14 +16,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/product_account_relationship.ui"
+UI_FILE = constants.ui_directory + "/reports/product_account_relationship.ui"
 
 class ProductAccountRelationshipGUI:
 	def __init__(self):
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.product_text = ''

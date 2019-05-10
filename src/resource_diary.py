@@ -20,9 +20,9 @@ from gi.repository import Gtk
 from datetime import timedelta
 from dateutils import DateTimeCalendar
 import spell_check
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/resource_diary.ui"
+UI_FILE = constants.ui_directory + "/resource_diary.ui"
 
 class ResourceDiaryGUI:
 	def __init__(self):
@@ -31,7 +31,7 @@ class ResourceDiaryGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.populating = False
 

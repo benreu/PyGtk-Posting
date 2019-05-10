@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk, GLib
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/budget_configuration.ui"
+UI_FILE = constants.ui_directory + "/budget_configuration.ui"
 
 class BudgetConfigurationGUI:
 	def __init__(self):
@@ -27,7 +27,7 @@ class BudgetConfigurationGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.populate_budgets()
 		self.populate_fiscals()

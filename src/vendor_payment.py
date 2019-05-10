@@ -22,9 +22,9 @@ from dateutils import DateTimeCalendar
 from check_writing import set_written_ck_amnt_text, get_check_number
 from db.transactor import VendorPayment, vendor_check_payment, \
 							vendor_debit_payment, post_purchase_order_accounts
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/vendor_payment.ui"
+UI_FILE = constants.ui_directory + "/vendor_payment.ui"
 
 
 class GUI:
@@ -36,7 +36,7 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.calendar = DateTimeCalendar (self.db)

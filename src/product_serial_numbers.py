@@ -19,8 +19,8 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
-from main import db, ui_directory, broadcaster
-import main
+from constants import db, ui_directory, broadcaster
+import constants
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
 

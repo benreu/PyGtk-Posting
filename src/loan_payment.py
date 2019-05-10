@@ -19,9 +19,9 @@ from gi.repository import Gtk, Gdk, GLib, GObject
 from check_writing import set_written_ck_amnt_text, get_check_number
 from dateutils import DateTimeCalendar
 from db import transactor 
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/loan_payment.ui"
+UI_FILE = constants.ui_directory + "/loan_payment.ui"
 
 class LoanPaymentGUI:
 	def __init__(self, loan_id = None):
@@ -30,7 +30,7 @@ class LoanPaymentGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)

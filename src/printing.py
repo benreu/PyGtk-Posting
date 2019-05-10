@@ -18,7 +18,7 @@
 import gi
 gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
-import main, os
+import constants, os
 
 class Operation (Gtk.PrintOperation):
 	settings_file = None
@@ -31,7 +31,7 @@ class Operation (Gtk.PrintOperation):
 		
 		if settings_file:
 			self.settings_file = (os.path.join
-									(main.preferences_path,
+									(constants.preferences_path,
 									'%s_print_settings' % settings_file))
 			try:
 				settings = Gtk.PrintSettings.new_from_file(self.settings_file)

@@ -15,9 +15,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/open_invoices.ui"
+UI_FILE = constants.ui_directory + "/open_invoices.ui"
 
 class OpenInvoicesGUI:
 	def __init__(self):
@@ -27,17 +27,20 @@ class OpenInvoicesGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.open_invoice_store = self.builder.get_object('open_invoice_store')
 		self.populate_store ()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
-		main.open_invoices_window = self.window
+
+	def present (self):
+		self.window.present()
 
 	def delete_event (self, window, event):
-		self.exists = False
+		window.hide()
+		return True
 
 	def focus_in_event (self, window, event):
 		self.populate_store()

@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/contact_hub.ui"
+UI_FILE = constants.ui_directory + "/contact_hub.ui"
 
 class ContactHubGUI:
 	def __init__(self, contact_id):
@@ -27,7 +27,7 @@ class ContactHubGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.contact_id = contact_id
 		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT name, vendor, customer, service_provider "

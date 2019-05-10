@@ -17,9 +17,9 @@
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from dateutils import calendar_to_datetime, set_calendar_from_datetime 
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/resource_calendar.ui"
+UI_FILE = constants.ui_directory + "/resource_calendar.ui"
 
 
 class ResourceCalendarGUI:
@@ -29,7 +29,7 @@ class ResourceCalendarGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.date_time = datetime.today ()

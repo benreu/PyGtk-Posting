@@ -21,7 +21,7 @@ from datetime import datetime
 import subprocess, re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 items = list()
 
@@ -175,7 +175,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			cursor.close()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/purchase_order.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/purchase_order.page"])
 
 	def view_all_toggled (self, checkbutton):
 		self.products_from_existing_po ()

@@ -18,7 +18,7 @@
 from gi.repository import Gtk, Gdk, GLib, GObject
 from dateutils import DateTimeCalendar
 from db.transactor import double_entry_transaction
-from main import db, ui_directory 
+from constants import db, ui_directory 
 
 UI_FILE = ui_directory + "/credit_card_merchant.ui"
 

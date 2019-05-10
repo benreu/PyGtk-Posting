@@ -17,9 +17,9 @@
 
 import gi
 from gi.repository import Gtk, Gdk, GObject
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/quick_command.ui"
+UI_FILE = constants.ui_directory + "/quick_command.ui"
 
 class QuickCommandGUI(Gtk.Builder):
 	command_text = ''

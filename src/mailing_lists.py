@@ -18,9 +18,9 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/mailing_lists.ui"
+UI_FILE = constants.ui_directory + "/mailing_lists.ui"
 
 
 class MailingListsGUI:
@@ -31,7 +31,7 @@ class MailingListsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.window = self.builder.get_object('window1')

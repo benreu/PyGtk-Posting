@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk, GLib
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/accounts_configuration.ui"
+UI_FILE = constants.ui_directory + "/accounts_configuration.ui"
 
 
 class GUI():
@@ -28,7 +28,7 @@ class GUI():
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.account_treestore = self.builder.get_object('account_treestore')

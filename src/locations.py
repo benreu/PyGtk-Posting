@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/locations.ui"
+UI_FILE = constants.ui_directory + "/locations.ui"
 
 class LocationsGUI:
 	def __init__(self):
@@ -27,7 +27,7 @@ class LocationsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.location_store = self.builder.get_object('location_store')

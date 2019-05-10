@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GLib
 from dateutils import DateTimeCalendar
 from db import transactor
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/loans.ui"
+UI_FILE = constants.ui_directory + "/loans.ui"
 
 class LoanGUI :
 	def __init__(self):
@@ -29,7 +29,7 @@ class LoanGUI :
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.loan_store = self.builder.get_object('loan_store')

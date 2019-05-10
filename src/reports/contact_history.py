@@ -20,9 +20,9 @@ from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
 import dateutils
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/contact_history.ui"
+UI_FILE = constants.ui_directory + "/reports/contact_history.ui"
 
 class ContactHistoryGUI (Gtk.Builder):
 	def __init__(self):
@@ -36,7 +36,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		contact_completion = self.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.invoice_history = None

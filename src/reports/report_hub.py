@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/report_hub.ui"
+UI_FILE = constants.ui_directory + "/reports/report_hub.ui"
 
 class ReportHubGUI (Gtk.Builder):
 	def __init__(self, treeview):

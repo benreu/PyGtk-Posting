@@ -25,7 +25,7 @@ from time import strftime
 from datetime import datetime, timedelta
 from multiprocessing import Process
 from db import transactor
-import printing, main
+import printing, constants
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -40,7 +40,7 @@ class Setup(XCloseListener, unohelper.Base):
 		self.date = date
 		self.invoice_id = invoice_id
 		self.doc_type = doc_type
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.parent = parent
 		self.invoice_doc = None
@@ -180,7 +180,7 @@ class Setup(XCloseListener, unohelper.Base):
 		self.data = dict(items = items, document = document, contact = customer, terms = terms, company = company)
 		from py3o.template import Template #import for every invoice or there is an error about invalid magic header numbers
 		self.invoice_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/invoice_template.odt", self.invoice_file , True)
+		t = Template(constants.template_dir+"/invoice_template.odt", self.invoice_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 
 	def save (self):

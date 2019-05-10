@@ -21,9 +21,10 @@ from datetime import date, timedelta
 import subprocess
 from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
-import main
+from constants import db, ui_directory, help_dir
+from accounts import expense_account
 
-UI_FILE = main.ui_directory + "/customer_payment.ui"
+UI_FILE = ui_directory + "/customer_payment.ui"
 
 class GUI:
 	def __init__(self, customer_id = None):
@@ -34,14 +35,14 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
 		self.cursor.execute ("SELECT enforce_exact_payment FROM settings")
 		self.exact_payment = self.cursor.fetchone()[0]
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		self.accrual = self.cursor.fetchone()[0]
 
-		self.expense_accounts = main.expense_account
+		self.expense_accounts = expense_account
 
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
@@ -90,7 +91,7 @@ class GUI:
 		spinbutton.select_region(0, -1)
 
 	def help_button_clicked (self, button):
-		subprocess.Popen (["yelp", main.help_dir + "/customer_payment.page"])
+		subprocess.Popen (["yelp", help_dir + "/customer_payment.page"])
 
 	def total_cell_func(self, column, cellrenderer, model, iter1, data):
 		amount = model.get_value(iter1, 4)

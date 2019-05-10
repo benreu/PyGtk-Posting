@@ -20,9 +20,9 @@ import subprocess
 from inventory import inventorying
 import locations, barcode_generator
 from pricing import product_retail_price
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/receive_orders.ui"
+UI_FILE = constants.ui_directory + "/receive_orders.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -30,7 +30,7 @@ class Item(object):#this is used by py3o library see their example for more info
 class ReceiveOrdersGUI:
 	def __init__(self):
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.previous_keyname = None
 		self.ascending = False
@@ -200,7 +200,7 @@ class ReceiveOrdersGUI:
 			data = dict(label = label)
 			from py3o.template import Template
 			label_file = "/tmp/product_label.odt"
-			t = Template(main.template_dir+"/product_label_template.odt", label_file )
+			t = Template(constants.template_dir+"/product_label_template.odt", label_file )
 			t.render(data) #the self.data holds all the info
 			subprocess.call("soffice -p --headless " + label_file, shell = True)
 

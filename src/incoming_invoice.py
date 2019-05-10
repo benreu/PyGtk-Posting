@@ -21,8 +21,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 from check_writing import set_written_ck_amnt_text, get_check_number
 from db import transactor
-from main import ui_directory, db, broadcaster
-import main
+from constants import ui_directory, db, broadcaster
+import accounts
 
 UI_FILE = ui_directory + "/incoming_invoice.ui"
 
@@ -39,8 +39,8 @@ class IncomingInvoiceGUI:
 		for connection in (("contacts_changed", self.populate_service_providers ),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.expense_account_store = main.expense_account
-		self.builder.get_object('cellrenderercombo1').set_property('model', main.expense_account)
+		self.expense_account_store = accounts.expense_account
+		self.builder.get_object('cellrenderercombo1').set_property('model', accounts.expense_account)
 		
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)

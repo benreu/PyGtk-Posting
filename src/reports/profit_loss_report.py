@@ -16,10 +16,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 from decimal import Decimal
 
-UI_FILE = main.ui_directory + "/reports/profit_loss_report.ui"
+UI_FILE = constants.ui_directory + "/reports/profit_loss_report.ui"
 
 class ProfitLossReportGUI(Gtk.Builder):
 	def __init__(self):
@@ -28,7 +28,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.populate_fiscals ()
 

@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/customer_tax_exemptions.ui"
+UI_FILE = constants.ui_directory + "/customer_tax_exemptions.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -33,7 +33,7 @@ class CustomerTaxExemptionsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT name FROM contacts WHERE id = %s",
 							(customer_id,))
@@ -50,7 +50,7 @@ class CustomerTaxExemptionsGUI:
 		self.dialog.hide()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/tax_exemptions.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/tax_exemptions.page"])
 
 	def populate_treeview (self):
 		self.tax_exemption_store.clear()

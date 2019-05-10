@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/gl_entry_lookup.ui"
+UI_FILE = constants.ui_directory + "/reports/gl_entry_lookup.ui"
 
 class GlEntryLookupGUI :
 	def __init__ (self, entry_ids):
@@ -29,7 +29,7 @@ class GlEntryLookupGUI :
 		self.builder.connect_signals(self)
 
 		store = self.builder.get_object('lookup_store')
-		self.db = main.db
+		self.db = constants.db
 		c = self.db.cursor()
 		c.execute(	"SELECT "
 						"'Purchase Order', "

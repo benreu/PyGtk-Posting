@@ -21,7 +21,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from main import get_apsw_cursor
 import log_utils
-from main import db, ui_directory
+from constants import db, ui_directory, sql_dir
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -154,7 +154,7 @@ class GUI:
 			db.commit()
 			self.error = False
 			self.window.close()
-			subprocess.Popen(["./src/pygtk_posting.py", 
+			subprocess.Popen(["./src/main.py", 
 								"database %s" % selected, self.log_file])
 
 	def login_single_clicked(self, widget):
@@ -174,7 +174,7 @@ class GUI:
 			cursor_sqlite.execute("UPDATE connection SET db_name = '%s'" % (selected))
 			self.error = False
 			self.window.close()
-			subprocess.Popen(["./src/pygtk_posting.py", 
+			subprocess.Popen(["./src/main.py", 
 								"database %s" % selected, self.log_file])
 			Gtk.main_quit()
 
@@ -239,7 +239,7 @@ class GUI:
 		cursor_sqlite.execute("UPDATE connection SET db_name = ('%s')" % (db_name))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
-		subprocess.Popen(["./src/pygtk_posting.py"])
+		subprocess.Popen(["./src/main.py"])
 		GLib.timeout_add_seconds (1, Gtk.main_quit)
 
 	def close_db (self, db_name):
@@ -282,25 +282,25 @@ class GUI:
 		return True
 
 	def create_tables (self):
-		sql_file = os.path.join(main.sql_dir, 'create_db.sql')
+		sql_file = os.path.join(sql_dir, 'create_db.sql')
 		with open(sql_file, 'r') as sql:
 			return self.execute_file(sql)
 
 	def update_tables_major (self):
 		self.status_update("Updating tables (major) ...")
-		sql_file = os.path.join(main.sql_dir, 'update_db_major.sql')
+		sql_file = os.path.join(sql_dir, 'update_db_major.sql')
 		with open(sql_file, 'r') as sql:
 			return self.execute_file(sql)
 
 	def update_tables_minor (self):
 		self.status_update("Updating tables (minor) ...")
-		sql_file = os.path.join(main.sql_dir, 'update_db_minor.sql')
+		sql_file = os.path.join(sql_dir, 'update_db_minor.sql')
 		with open(sql_file, 'r') as sql:
 			return self.execute_file(sql)
 
 	def add_primary_data (self):
 		self.status_update("Creating basic information...")
-		sql_file = os.path.join(main.sql_dir, 'insert_basic.sql')
+		sql_file = os.path.join(sql_dir, 'insert_basic.sql')
 		with open(sql_file, 'r') as sql:
 			return self.execute_file(sql)
 

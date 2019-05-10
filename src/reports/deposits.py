@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/deposits.ui"
+UI_FILE = constants.ui_directory + "/reports/deposits.ui"
 
 class DepositsGUI(Gtk.Builder):
 	def __init__(self):
@@ -28,7 +28,7 @@ class DepositsGUI(Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.deposit_store = self.get_object('deposit_store')

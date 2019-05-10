@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GObject, GLib
 from datetime import datetime, date, timedelta
-from main import cursor
+from constants import cursor
 import time
 
 PARSE_STRING = "%b %d %Y"

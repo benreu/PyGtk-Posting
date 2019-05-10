@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/product_hub.ui"
+UI_FILE = constants.ui_directory + "/product_hub.ui"
 
 class ProductHubGUI:
 	def __init__(self, product_id):
@@ -27,7 +27,7 @@ class ProductHubGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.product_id = product_id
 		self.cursor = self.db.cursor()
 		self.cursor.execute ("SELECT name FROM products WHERE id = %s", (product_id,))

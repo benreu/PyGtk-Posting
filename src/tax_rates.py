@@ -16,16 +16,16 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/tax_rates.ui"
+UI_FILE = constants.ui_directory + "/tax_rates.ui"
 
 class TaxRateGUI:
 	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.tax_store = self.builder.get_object("tax_store")

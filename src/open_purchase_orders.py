@@ -15,9 +15,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/open_purchase_orders.ui"
+UI_FILE = constants.ui_directory + "/open_purchase_orders.ui"
 
 class OpenPurchaseOrderGUI:
 	def __init__(self):
@@ -27,7 +27,7 @@ class OpenPurchaseOrderGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.open_po_store = self.builder.get_object('open_po_store')
 		self.populate_store ()
