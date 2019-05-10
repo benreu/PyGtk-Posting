@@ -54,6 +54,8 @@ python_PYTHON = time_clock_project.ui \
 	export_to_xls.py \
 	export_to_xls.ui \
 	customer_statements.py \
-	customer_statements.ui
+	customer_statements.ui \
+	product_markup.py \
+	product_markup.ui
 
 uidir = $(pkgdatadir)/reports/ui

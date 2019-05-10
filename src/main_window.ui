@@ -514,6 +514,24 @@
                               <object class="GtkMenuItem">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Manufacturing history</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="manufacturing_history" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="label" translatable="yes">Markup rate</property>
+                                <property name="use_underline">True</property>
+                                <signal name="activate" handler="markup_rate_activated" swapped="no"/>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Product transactions</property>
                                 <property name="use_underline">True</property>
                                 <signal name="activate" handler="product_transactions" swapped="no"/>
@@ -535,15 +553,6 @@
                                 <property name="label" translatable="yes">Product / Account relationship</property>
                                 <property name="use_underline">True</property>
                                 <signal name="activate" handler="product_account_relationship" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkMenuItem">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Manufacturing history</property>
-                                <property name="use_underline">True</property>
-                                <signal name="activate" handler="manufacturing_history" swapped="no"/>
                               </object>
                             </child>
                           </object>

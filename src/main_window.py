@@ -214,6 +214,10 @@ class MainGUI :
 		import customer_terms
 		customer_terms.CustomerTermsGUI()
 
+	def markup_rate_activated (self, widget):
+		from reports import product_markup
+		product_markup.ProductMarkupGUI()
+
 	def document_reports_window (self, widget):
 		print ("not done yet")
 
