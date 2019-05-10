@@ -23,13 +23,13 @@ import constants
 UI_FILE = constants.ui_directory + "/db/sql_window.ui"
 
 class SQLWindowGUI :
-	def __init__(self, db):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		GObject.type_register(GtkSource.View)
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = db
+		self.db = main.db
 
 		language_manager = GtkSource.LanguageManager()
 		self.source_view = self.builder.get_object('gtksourceview1')
