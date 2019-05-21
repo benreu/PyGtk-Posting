@@ -47,6 +47,12 @@ class ContactHubGUI:
 	def destroy (self, window):
 		self.cursor.close()
 
+	def invoice_to_payment_matching_clicked (self, button):
+		from reports import invoice_to_payment_matching
+		i = invoice_to_payment_matching.GUI()
+		i.builder.get_object('combobox1').set_active_id(self.contact_id)
+		self.window.destroy()
+
 	def cancel_clicked (self, button):
 		self.window.destroy()
 
