@@ -385,9 +385,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor.execute("SELECT "
 							"id::text, "
 							"name, "
-							"COALESCE((SELECT name FROM purchase_orders "
-							"WHERE (closed, canceled) = (False, False) "
-							"AND vendor_id = c_outer.id), 'No PO')"
+								"COALESCE((SELECT name FROM purchase_orders "
+								"WHERE (closed, canceled) = (False, False) "
+								"AND vendor_id = c_outer.id LIMIT 1), 'No PO')"
 						"FROM contacts AS c_outer "
 						"WHERE (deleted, vendor) "
 						"= (False, True) ORDER BY name")
