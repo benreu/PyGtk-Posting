@@ -69,6 +69,7 @@ modules_dir = ''
 sql_dir = ''
 cur_dir = os.getcwd()
 home = os.path.expanduser('~')
+preferences_path = os.path.join(home, '.config/posting')
 def set_directories ():
 	global help_dir, ui_directory, template_dir, modules_dir, sql_dir
 	if cur_dir.split('/')[1] == "usr": #posting is launching from an installed .deb

@@ -25,13 +25,11 @@ import psycopg2, apsw, os, shutil, sys, re
 
 
 def get_apsw_cursor ():
-	home = os.path.expanduser('~')
-	preferences_path = os.path.join(home, '.config/posting')
 	import constants
 	if constants.dev_mode == True:
 		pref_file = os.path.join(os.getcwd(), 'local_settings')
 	else:
-		pref_file = os.path.join(preferences_path, 'local_settings')
+		pref_file = os.path.join(constants.preferences_path, 'local_settings')
 	if not os.path.exists(pref_file):
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()
