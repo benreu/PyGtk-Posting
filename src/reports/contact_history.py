@@ -25,6 +25,7 @@ import constants
 UI_FILE = constants.ui_directory + "/reports/contact_history.ui"
 
 class ContactHistoryGUI (Gtk.Builder):
+	contact_id = None
 	def __init__(self):
 
 		self.search_iter = 0
@@ -71,6 +72,12 @@ class ContactHistoryGUI (Gtk.Builder):
 
 	def close_transaction_window (self, window, event):
 		self.cursor.close()
+
+	def contact_hub_clicked (self, button):
+		if self.contact_id == None:
+			return
+		import contact_hub
+		contact_hub.ContactHubGUI(self.contact_id)
 
 	def amount_cell_func(self, view_column, cellrenderer, model, iter1, column):
 		price = '{:,.2f}'.format(model.get_value(iter1, column))
