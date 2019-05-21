@@ -134,12 +134,22 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if self.vendor_id == 0:
 			return
 		qty, product_id = list_[0], list_[1]
-		_iter = self.p_o_store.append([0, '1', int(product_id), '', 
-										True, '', '', '', '0', 
+		cursor = db.cursor()
+		cursor.execute("SELECT COALESCE(vendor_sku, ''), p.name "
+						"FROM vendor_product_numbers AS vpn "
+						"JOIN products AS p ON p.id = vpn.product_id "
+						"WHERE (product_id, vendor_id) = (%s, %s)",
+						(product_id, self.vendor_id))
+		for row in cursor.fetchall():
+			order_number = row[0]
+			name = row[1]
+		_iter = self.p_o_store.append([0, '1', int(product_id), order_number, 
+										True, name, '', '', '0', 
 										'0', True, 
 										int(self.vendor_id), '', 
 										self.purchase_order_id, False])
-		self.save_product(_iter, product_id)
+		self.check_po_item_id(_iter)
+		cursor.close()
 
 	def export_to_csv_activated (self, menuitem):
 		import csv 
