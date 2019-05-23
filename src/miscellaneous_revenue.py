@@ -18,7 +18,8 @@
 from gi.repository import Gtk, GLib
 from db import transactor
 from dateutils import DateTimeCalendar
-from constants import ui_directory, db, broadcaster, revenue_account
+from constants import ui_directory, db, broadcaster
+from accounts import revenue_account
 
 UI_FILE = ui_directory + "//miscellaneous_revenue.ui"
 
