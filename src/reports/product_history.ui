@@ -122,6 +122,7 @@
     <property name="window_position">center</property>
     <property name="default_width">900</property>
     <property name="default_height">500</property>
+    <property name="icon_name">pygtk-posting</property>
     <signal name="delete-event" handler="close_transaction_window" swapped="no"/>
     <child>
       <placeholder/>
@@ -205,6 +206,8 @@
             <property name="can_focus">True</property>
             <property name="scrollable">True</property>
             <property name="enable_popup">True</property>
+            <property name="group_name">posting</property>
+            <signal name="create-window" handler="notebook_create_window" swapped="no"/>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
@@ -323,6 +326,7 @@
               <packing>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -441,6 +445,7 @@
                 <property name="position">1</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -544,6 +549,7 @@
                 <property name="position">2</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -632,6 +638,7 @@
                 <property name="position">3</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -642,7 +649,6 @@
               </object>
               <packing>
                 <property name="position">3</property>
-                <property name="tab_expand">True</property>
                 <property name="tab_fill">False</property>
               </packing>
             </child>
