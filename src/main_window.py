@@ -651,10 +651,6 @@ class MainGUI :
 		from reports import loan_payments
 		loan_payments.LoanPaymentsGUI()
 
-	def product_transactions (self, button):
-		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI()
-
 	def invoice_to_payment_matching (self, button):
 		from reports import invoice_to_payment_matching
 		invoice_to_payment_matching.GUI()

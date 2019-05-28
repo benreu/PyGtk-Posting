@@ -54,11 +54,6 @@ class ProductHubGUI:
 		p.builder.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
-	def product_transactions_clicked (self, button):
-		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI(self.product_id)
-		self.window.destroy()
-
 	def product_search_clicked (self, button):
 		import product_search
 		p = product_search.ProductSearchGUI()

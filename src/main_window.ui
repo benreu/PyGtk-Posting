@@ -532,15 +532,6 @@
                               <object class="GtkMenuItem">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Product transactions</property>
-                                <property name="use_underline">True</property>
-                                <signal name="activate" handler="product_transactions" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkMenuItem">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Product history</property>
                                 <property name="use_underline">True</property>
                                 <signal name="activate" handler="product_history" swapped="no"/>

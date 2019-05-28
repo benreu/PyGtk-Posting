@@ -58,7 +58,6 @@ class ProductHistoryGUI:
 		window.add(new_notebook)
 		new_notebook.set_group_name('posting')
 		window.show_all()
-		window.set_name('New window')
 		window.connect('destroy', self.sub_window_destroyed, new_notebook, notebook)
 		window.set_transient_for(self.window)
 		window.move(x, y)
