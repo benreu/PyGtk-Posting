@@ -1,4 +1,4 @@
-# customer_history.py
+# product_history.py
 #
 # Copyright (C) 2016 - reuben
 #
@@ -48,18 +48,6 @@ class ProductHistoryGUI:
 			name = row[1]
 			ext_name = row[2]
 			self.product_store.append([id_ , name, ext_name])
-			
-		qty_column = self.builder.get_object ('treeviewcolumn4')
-		qty_renderer = self.builder.get_object ('cellrenderertext4')
-		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func, 5)
-			
-		price_column = self.builder.get_object ('treeviewcolumn5')
-		price_renderer = self.builder.get_object ('cellrenderertext5')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func, 6)
-
-		price_column = self.builder.get_object ('treeviewcolumn8')
-		price_renderer = self.builder.get_object ('cellrenderertext9')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func, 5)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -92,14 +80,6 @@ class ProductHistoryGUI:
 
 	def close_transaction_window (self, window, event):
 		self.cursor.close()
-
-	def qty_cell_func(self, view_column, cellrenderer, model, iter1, column):
-		price = '{:,.1f}'.format(model.get_value(iter1, column))
-		cellrenderer.set_property("text" , price)
-
-	def price_cell_func(self, view_column, cellrenderer, model, iter1, column):
-		price = '{:,.2f}'.format(model.get_value(iter1, column))
-		cellrenderer.set_property("text" , price)
 		
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
@@ -209,6 +189,7 @@ class ProductHistoryGUI:
 								"contacts.name, "
 								"qty, "
 								"price, "
+								"price::text, "
 								"order_number "
 							"FROM purchase_orders AS po "
 							"JOIN purchase_order_line_items AS poli "
@@ -236,7 +217,9 @@ class ProductHistoryGUI:
 								"i.name, "
 								"'Comments: ' || comments, "
 								"qty, "
+								"qty::text, "
 								"price, "
+								"price::text, "
 								"c.id::text, "
 								"c.name "
 							"FROM invoices AS i "
