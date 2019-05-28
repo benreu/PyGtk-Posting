@@ -401,7 +401,7 @@ class MainGUI :
 	def backup_window (self, n):
 		from db import backup_restore
 		u = backup_restore.Utilities(self)
-		u.backup_gui (self.db_name)
+		u.backup_gui ()
 
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()

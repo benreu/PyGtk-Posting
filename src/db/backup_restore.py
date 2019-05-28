@@ -36,14 +36,14 @@ class Utilities:
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 
-	def backup_gui (self, database):
-		self.database = database
+	def backup_gui (self):
+		self.database = constants.db_name
 		self.result = False
 		self.builder.get_object('backup_scrolled_window').add(self.terminal)
 		backup_window = self.builder.get_object('backupdialog')
 		backup_window.set_transient_for(self.parent_window)
 		day = time.strftime("%Y-%m-%d-%H:%M")
-		backup_window.set_current_name(database + "_" + day +".pbk")
+		backup_window.set_current_name(self.database + "_" + day +".pbk")
 		backup_window.show_all()
 		result = backup_window.run()
 		if result == Gtk.ResponseType.ACCEPT:
