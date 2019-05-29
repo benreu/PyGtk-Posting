@@ -57,14 +57,21 @@ class ProductHistoryGUI:
 		new_notebook = Gtk.Notebook()
 		window.add(new_notebook)
 		new_notebook.set_group_name('posting')
-		window.show_all()
+		new_notebook.connect('page-removed', self.notebook_page_removed, window)
 		window.connect('destroy', self.sub_window_destroyed, new_notebook, notebook)
 		window.set_transient_for(self.window)
-		window.move(x, y)
+		window.set_destroy_with_parent(True)
 		window.set_size_request(400, 400)
 		window.set_title('Product History')
 		window.set_icon_name('pygtk-posting')
+		window.move(x, y)
+		window.show_all()
 		return new_notebook
+
+	def notebook_page_removed (self, notebook, child, page, window):
+		#destroy the window after the notebook is empty
+		if notebook.get_n_pages() == 0:
+			window.destroy()
 
 	def sub_window_destroyed (self, window, notebook, dest_notebook):
 		# detach the notebook pages in reverse sequence to avoid index errors
