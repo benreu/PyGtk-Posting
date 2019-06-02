@@ -67,7 +67,7 @@ class GUI:
 	def backup_database_clicked(self, widget):
 		from db.backup_restore import Utilities 
 		u = Utilities(parent = self )
-		u.backup_gui(self.active_database )
+		u.backup_gui()
 
 	def restore_database_clicked(self, widget):
 		restore_database_name = self.builder.get_object('entry6').get_text()
@@ -92,7 +92,6 @@ class GUI:
 		cursor_sqlite = get_apsw_cursor ()
 		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
-			self.active_database = sql_database
 		self.builder.get_object('combobox1').set_active_id(sql_database)
 		self.builder.get_object('label10').set_text("Current database : " + sql_database)
 		self.builder.get_object('label14').set_text(sql_database)
