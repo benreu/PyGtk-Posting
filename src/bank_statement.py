@@ -22,9 +22,10 @@ from datetime import datetime
 from db import transactor
 from decimal import Decimal
 from dateutils import DateTimeCalendar
-import main
+from constants import ui_directory, db
+from accounts import expense_account
 
-UI_FILE = main.ui_directory + "/bank_statement.ui"
+UI_FILE = ui_directory + "/bank_statement.ui"
 
 class GUI:
 	def __init__(self):
@@ -33,9 +34,9 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = db
 		self.cursor = self.db.cursor()
-		self.builder.get_object('treeview2').set_model(main.expense_account)
+		self.builder.get_object('treeview2').set_model(expense_account)
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)

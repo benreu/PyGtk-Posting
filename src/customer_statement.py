@@ -19,9 +19,9 @@ from gi.repository import Gtk, Gdk
 import os, sys, subprocess
 from datetime import datetime
 import customer_payment, statementing
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/customer_statement.ui"
+UI_FILE = constants.ui_directory + "/customer_statement.ui"
 
 class GUI:
 	def __init__(self):
@@ -30,7 +30,7 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.customer_id = None
@@ -55,13 +55,13 @@ class GUI:
 		dialog.hide()
 
 	def help_button_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/statement.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/statement.page"])
 
 	def payment_window(self, widget):
 		customer_payment.GUI(customer_id = self.customer_id )
 
 	def print_statement_clicked(self, button):
-		statement = statementing.Setup(self.db, self.statement_store, 
+		statement = statementing.Setup( self.statement_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.print_dialog(self.window)
@@ -70,7 +70,7 @@ class GUI:
 		self.builder.get_object('combobox-entry').set_text("")
 
 	def view_statement_clicked (self, button):
-		statement = statementing.Setup(self.db, self.statement_store, 
+		statement = statementing.Setup( self.statement_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.view()

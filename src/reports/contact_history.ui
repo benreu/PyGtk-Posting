@@ -39,6 +39,8 @@
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
       <!-- column-name description -->
       <column type="gchararray"/>
     </columns>
@@ -70,6 +72,8 @@
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
       <!-- column-name date_printed -->
       <column type="gchararray"/>
       <!-- column-name date_printed_formatted -->
@@ -86,6 +90,8 @@
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
       <!-- column-name payment_text -->
       <column type="gchararray"/>
     </columns>
@@ -135,6 +141,8 @@
       <column type="gchararray"/>
       <!-- column-name tag_color -->
       <column type="GdkRGBA"/>
+      <!-- column-name phone -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="statements_store">
@@ -149,6 +157,8 @@
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
       <!-- column-name date_printed -->
       <column type="gchararray"/>
       <!-- column-name date_print_formatted -->
@@ -239,6 +249,20 @@
             </child>
             <child>
               <object class="GtkButton">
+                <property name="label" translatable="yes">Contact hub</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="contact_hub_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton">
                 <property name="label" translatable="yes">Report hub</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -249,7 +273,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -278,6 +302,8 @@
             <property name="can_focus">True</property>
             <property name="scrollable">True</property>
             <property name="enable_popup">True</property>
+            <property name="group_name">posting</property>
+            <signal name="create-window" handler="notebook_create_window" swapped="no"/>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
@@ -356,7 +382,7 @@
                             <property name="xalign">1</property>
                           </object>
                           <attributes>
-                            <attribute name="text">5</attribute>
+                            <attribute name="text">6</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -367,11 +393,11 @@
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Date printed</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">6</property>
+                        <property name="sort_column_id">7</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext4"/>
                           <attributes>
-                            <attribute name="text">7</attribute>
+                            <attribute name="text">8</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -382,6 +408,7 @@
               <packing>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -433,7 +460,7 @@
                             <property name="xalign">1</property>
                           </object>
                           <attributes>
-                            <attribute name="text">3</attribute>
+                            <attribute name="text">4</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -443,11 +470,11 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Description</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">4</property>
+                        <property name="sort_column_id">5</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext12"/>
                           <attributes>
-                            <attribute name="text">4</attribute>
+                            <attribute name="text">5</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -459,6 +486,7 @@
                 <property name="position">1</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -551,6 +579,9 @@
               </object>
               <packing>
                 <property name="position">2</property>
+                <property name="tab_expand">True</property>
+                <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -621,6 +652,22 @@
                         </child>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Phone</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">7</property>
+                        <child>
+                          <object class="GtkCellRendererText">
+                            <property name="editable">True</property>
+                          </object>
+                          <attributes>
+                            <attribute name="text">7</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
@@ -628,6 +675,7 @@
                 <property name="position">3</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -649,7 +697,9 @@
               </object>
               <packing>
                 <property name="position">4</property>
-                <property name="tab_fill">False</property>
+                <property name="tab_expand">True</property>
+                <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -730,7 +780,7 @@
                             <property name="xalign">1</property>
                           </object>
                           <attributes>
-                            <attribute name="text">4</attribute>
+                            <attribute name="text">5</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -740,11 +790,11 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Printed</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">5</property>
+                        <property name="sort_column_id">6</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext19"/>
                           <attributes>
-                            <attribute name="text">6</attribute>
+                            <attribute name="text">7</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -756,6 +806,7 @@
                 <property name="position">5</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -845,6 +896,7 @@
                 <property name="position">6</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">
@@ -896,7 +948,7 @@
                             <property name="xalign">1</property>
                           </object>
                           <attributes>
-                            <attribute name="text">3</attribute>
+                            <attribute name="text">4</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -906,11 +958,11 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Description</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">4</property>
+                        <property name="sort_column_id">5</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext26"/>
                           <attributes>
-                            <attribute name="text">4</attribute>
+                            <attribute name="text">5</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -922,6 +974,7 @@
                 <property name="position">7</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
+                <property name="detachable">True</property>
               </packing>
             </child>
             <child type="tab">

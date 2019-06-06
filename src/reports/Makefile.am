@@ -4,14 +4,12 @@ python_PYTHON = time_clock_project.ui \
 	time_clock_project.py \
 	inventory_count.py \
 	inventory_count.ui \
-	product_transactions.py \
 	job_sheet_history.ui \
 	job_sheet_history.py \
 	time_clock_history.ui \
 	time_clock_history.py \
 	pay_stub_history.py \
 	pay_stub_history.ui \
-	product_transactions.ui \
 	main_reports_window.py \
 	main_reports_window.ui \
 	payments_received.py \
@@ -54,6 +52,8 @@ python_PYTHON = time_clock_project.ui \
 	export_to_xls.py \
 	export_to_xls.ui \
 	customer_statements.py \
-	customer_statements.ui
+	customer_statements.ui \
+	product_markup.py \
+	product_markup.ui
 
 uidir = $(pkgdatadir)/reports/ui

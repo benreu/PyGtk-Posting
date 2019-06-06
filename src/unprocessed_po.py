@@ -23,9 +23,9 @@ from datetime import datetime
 import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/unprocessed_po.ui"
+UI_FILE = constants.ui_directory + "/unprocessed_po.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -33,7 +33,7 @@ class Item(object):#this is used by py3o library see their example for more info
 class GUI:
 	def __init__(self, po_id = None):
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.purchase_order_id = None
 		self.text = 0
@@ -124,11 +124,11 @@ class GUI:
 			return
 		product_id = model[path][2]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def edit_po_clicked (self, widget):
 		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(self.main, self.purchase_order_id)
+		purchase_order_window.PurchaseOrderGUI(self.purchase_order_id)
 
 	def populate_expense_product_combo (self):
 		combo = self.builder.get_object ('comboboxtext1')

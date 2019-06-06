@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/pay_stub_history.ui"
+UI_FILE = constants.ui_directory + "/reports/pay_stub_history.ui"
 
 class PayStubHistoryGUI:
 	def __init__(self):
@@ -27,7 +27,7 @@ class PayStubHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.employee_id = None
 

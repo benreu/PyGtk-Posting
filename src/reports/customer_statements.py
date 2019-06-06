@@ -18,9 +18,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/customer_statements.ui"
+UI_FILE = constants.ui_directory + "/reports/customer_statements.ui"
 
 class StatementsGUI:
 	def __init__(self):
@@ -29,7 +29,7 @@ class StatementsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.customer_id = None

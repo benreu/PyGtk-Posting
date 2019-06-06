@@ -16,12 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import main, sys, logging, traceback
+import constants, sys, logging, traceback
 
-UI_FILE = main.ui_directory + "/traceback_handler.ui"
+UI_FILE = constants.ui_directory + "/traceback_handler.ui"
 
 class Log :
-	def __init__(self, log_file):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -31,8 +31,8 @@ class Log :
 		c_handler.setLevel(logging.WARNING)
 		c_format = logging.Formatter('%(message)s')
 		self.logger.addHandler(c_handler)
-		if log_file != None:
-			f_handler = logging.FileHandler(log_file)
+		if constants.log_file != None:
+			f_handler = logging.FileHandler(constants.log_file)
 			f_handler.setLevel(logging.DEBUG)
 			f_format = logging.Formatter('%(message)s')
 			self.logger.addHandler(f_handler)

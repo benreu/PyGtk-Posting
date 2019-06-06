@@ -16,9 +16,9 @@
 
 from gi.repository import Gtk
 from datetime import datetime
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/inventory/inventory_adjustment.ui"
+UI_FILE = constants.ui_directory + "/inventory/inventory_adjustment.ui"
 
 class InventoryAdjustmentGUI:
 	def __init__(self, product_id):
@@ -27,7 +27,7 @@ class InventoryAdjustmentGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.product_store = self.builder.get_object('product_store')
 		self.location_store = self.builder.get_object('location_store')

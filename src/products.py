@@ -17,8 +17,15 @@
 from gi.repository import Gtk, Gdk, GLib, Gio
 from datetime import datetime
 import subprocess
-from main import broadcaster, db, ui_directory
-import spell_check, barcode_generator, main
+from constants import 	broadcaster, \
+						db, ui_directory, \
+						is_admin, \
+						help_dir, \
+						template_dir
+from accounts import 	product_revenue_account, \
+						product_expense_account, \
+						product_inventory_account
+import spell_check, barcode_generator
 
 
 UI_FILE = ui_directory + "/products.ui"
@@ -69,9 +76,9 @@ class ProductsGUI (Gtk.Builder):
 		for connection in (("products_changed", self.populate_product_store),):
 			handler = broadcaster.connect (connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.get_object('combobox1').set_model(main.product_expense_account)
-		self.get_object('combobox2').set_model(main.product_revenue_account)
-		self.get_object('combobox3').set_model(main.product_inventory_account)
+		self.get_object('combobox1').set_model(product_expense_account)
+		self.get_object('combobox2').set_model(product_revenue_account)
+		self.get_object('combobox3').set_model(product_inventory_account)
 
 		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
@@ -103,7 +110,7 @@ class ProductsGUI (Gtk.Builder):
 			self.get_object('notebook1').set_current_page(1)
 		if manufactured == True:
 			self.get_object('radiobutton3').set_active(True)
-		if main.is_admin == True:
+		if is_admin == True:
 			self.get_object('treeview2').set_tooltip_column(0)
 		
 		self.window = self.get_object('window')
@@ -154,7 +161,7 @@ class ProductsGUI (Gtk.Builder):
 		locations.LocationsGUI()
 
 	def help_button_activated (self, menuitem):
-		subprocess.Popen(["yelp", main.help_dir + "/products.page"])
+		subprocess.Popen(["yelp", help_dir + "/products.page"])
 
 	def print_label(self, widget):
 		location_id = self.get_object('comboboxtext6').get_active_id()
@@ -207,7 +214,7 @@ class ProductsGUI (Gtk.Builder):
 		data = dict(label = label)
 		from py3o.template import Template
 		label_file = "/tmp/product_label.odt"
-		t = Template(main.template_dir+"/product_label_template.odt", label_file )
+		t = Template(template_dir+"/product_label_template.odt", label_file )
 		t.render(data) #the self.data holds all the info
 		subprocess.Popen(["soffice", label_file])
 

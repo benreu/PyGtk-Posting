@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GLib
 import subprocess
 import barcode_generator
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/manufacturing.ui"
+UI_FILE = constants.ui_directory + "/manufacturing.ui"
 
 
 class Item(object):#this is used by py3o library see their example for more info
@@ -39,7 +39,7 @@ class ManufacturingGUI:
 
 		self.product_id = None
 		
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.populate_stores ()
@@ -99,7 +99,7 @@ class ManufacturingGUI:
 		label.barcode = barcode
 		from py3o.template import Template
 		label_file = "/tmp/manufacturing_serial_label.odt"
-		t = Template(main.template_dir+"/manufacturing_serial_template.odt", label_file )
+		t = Template(constants.template_dir+"/manufacturing_serial_template.odt", label_file )
 		data = dict(label = label)
 		t.render(data) #the self.data holds all the info
 		for i in range(label_qty):

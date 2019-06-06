@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 import subprocess, psycopg2
 import printing
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/payment_receipt.ui"
+UI_FILE = constants.ui_directory + "/payment_receipt.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -32,8 +32,8 @@ class PaymentReceiptGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
-		self.cursor = main.db.cursor ()
+		self.db = constants.db
+		self.cursor = constants.db.cursor ()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.payment_store = self.builder.get_object('payment_store')
@@ -217,7 +217,7 @@ class PaymentReceiptGUI:
 		data = dict(payment = payment, contact = customer, company = company)
 		from py3o.template import Template 
 		self.receipt_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/payment_receipt_template.odt", self.receipt_file , True)
+		t = Template(constants.template_dir+"/payment_receipt_template.odt", self.receipt_file , True)
 		t.render(data) #the data holds all the info of the invoice
 
 

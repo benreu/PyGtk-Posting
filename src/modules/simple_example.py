@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
 UI_FILE = "src/modules/simple_example.ui"
 
@@ -28,7 +28,7 @@ class GUI:
 		self.builder.connect_signals(self)
 
 		
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.populate_combo ()
 		self.window = self.builder.get_object('window1')

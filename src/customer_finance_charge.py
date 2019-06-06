@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 import subprocess
 from datetime import datetime
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/customer_finance_charge.ui"
+UI_FILE = constants.ui_directory + "/customer_finance_charge.ui"
 
 class CustomerFinanceChargeGUI:
 	def __init__(self):
@@ -29,7 +29,7 @@ class CustomerFinanceChargeGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.customer_id = None
@@ -44,7 +44,7 @@ class CustomerFinanceChargeGUI:
 		self.window.show_all()
 
 	def help_button_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/finance_charge.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/finance_charge.page"])
 
 	def payment_window(self, widget):
 		import customer_payment

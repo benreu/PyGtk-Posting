@@ -16,18 +16,19 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GObject
-import log_utils
+import constants
 
-UI_FILE = "src/view_log.ui"
+UI_FILE = constants.ui_directory + "/view_log.ui"
 
 parent = None
 builder = None
+ 
 
 #for some odd reason, self (instance) variables get lost
 #therefore we use file variables
 
 class ViewLogGUI:
-	def __init__(self, db, p):
+	def __init__(self, p):
 
 		global parent
 		global builder
@@ -41,16 +42,15 @@ class ViewLogGUI:
 
 
 	def focus (self, window, event):
-		l = parent.log_file
-		if l == None:
+		if constants.log_file == None:
 			log_exception = ("Log file '%s' was not found. \n"
 								"Hint: are you starting PyGtk Posting "
-								"with the run.sh?" % l)
+								"with the run.sh?" % constants.log_file)
 			builder.get_object("textbuffer1").set_text(log_exception)
-			raise Exception (log_exception)
-		f = open (l, 'r')
-		log_text = f.read()
-		builder.get_object("textbuffer1").set_text(log_text)
+			return
+		with open (constants.log_file, 'r') as f:
+			log_text = f.read()
+			builder.get_object("textbuffer1").set_text(log_text)
 
 
 

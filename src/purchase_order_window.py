@@ -21,7 +21,7 @@ from datetime import datetime
 import subprocess, re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 items = list()
 
@@ -134,12 +134,22 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if self.vendor_id == 0:
 			return
 		qty, product_id = list_[0], list_[1]
-		_iter = self.p_o_store.append([0, '1', int(product_id), '', 
-										True, '', '', '', '0', 
+		cursor = db.cursor()
+		cursor.execute("SELECT COALESCE(vendor_sku, ''), p.name "
+						"FROM vendor_product_numbers AS vpn "
+						"JOIN products AS p ON p.id = vpn.product_id "
+						"WHERE (product_id, vendor_id) = (%s, %s)",
+						(product_id, self.vendor_id))
+		for row in cursor.fetchall():
+			order_number = row[0]
+			name = row[1]
+		_iter = self.p_o_store.append([0, '1', int(product_id), order_number, 
+										True, name, '', '', '0', 
 										'0', True, 
 										int(self.vendor_id), '', 
 										self.purchase_order_id, False])
-		self.save_product(_iter, product_id)
+		self.check_po_item_id(_iter)
+		cursor.close()
 
 	def export_to_csv_activated (self, menuitem):
 		import csv 
@@ -175,7 +185,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			cursor.close()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/purchase_order.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/purchase_order.page"])
 
 	def view_all_toggled (self, checkbutton):
 		self.products_from_existing_po ()
@@ -299,6 +309,20 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if self.purchase_order_id != None:
 			self.products_from_existing_po ()
 
+	def vendor_combo_populate_popup (self, entry, menu):
+		separator = Gtk.SeparatorMenuItem ()
+		separator.show ()
+		menu.prepend(separator)
+		contact_hub_menu = Gtk.MenuItem.new_with_label("Contact hub")
+		contact_hub_menu.connect("activate", self.contact_hub_clicked)
+		contact_hub_menu.show()
+		menu.prepend(contact_hub_menu)
+
+	def contact_hub_clicked (self, menuitem):
+		if self.vendor_id != 0:
+			import contact_hub
+			contact_hub.ContactHubGUI(self.vendor_id)
+
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3 and self.menu_visible == False:
 			menu = self.get_object('right_click_menu')
@@ -371,9 +395,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor.execute("SELECT "
 							"id::text, "
 							"name, "
-							"COALESCE((SELECT name FROM purchase_orders "
-							"WHERE (closed, canceled) = (False, False) "
-							"AND vendor_id = c_outer.id), 'No PO')"
+								"COALESCE((SELECT name FROM purchase_orders "
+								"WHERE (closed, canceled) = (False, False) "
+								"AND vendor_id = c_outer.id LIMIT 1), 'No PO')"
 						"FROM contacts AS c_outer "
 						"WHERE (deleted, vendor) "
 						"= (False, True) ORDER BY name")

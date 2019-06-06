@@ -18,7 +18,7 @@
 from gi.repository import Gtk
 import re, subprocess
 from db import transactor
-import printing, main
+import printing, constants
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -26,7 +26,7 @@ class Item(object):#this is used by py3o library see their example for more info
 class Setup :
 	def __init__ (self, credit_items_store, credit_memo_id, customer_id):
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = db.cursor()
 		self.credit_items_store = credit_items_store
 		self.credit_memo_id = credit_memo_id
@@ -116,7 +116,7 @@ class Setup :
 		self.data = dict(items = items, document = document, contact = customer, company = company)
 		from py3o.template import Template
 		self.credit_memo_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/credit_memo_template.odt", self.credit_memo_file , True)
+		t = Template(constants.template_dir+"/credit_memo_template.odt", self.credit_memo_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 
 	def view_odt (self):

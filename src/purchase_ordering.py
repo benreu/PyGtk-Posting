@@ -20,7 +20,7 @@ import subprocess, re
 from datetime import timedelta
 from decimal import Decimal
 from db import transactor
-import printing, main
+import printing, constants
 
 
 items = list()
@@ -154,14 +154,14 @@ class Setup():
 	def view(self):
 		from py3o.template import Template 
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
+		t = Template(constants.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data) #the self.data holds all the info of the purchase_order
 		subprocess.Popen("libreoffice " + purchase_order_file, shell = True)
 
 	def print_dialog(self, window):
 		from py3o.template import Template
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
+		t = Template(constants.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = 'purchase_order')
@@ -177,7 +177,7 @@ class Setup():
 	def print_directly(self):
 		from py3o.template import Template
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(main.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
+		t = Template(constants.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = 'purchase_order')

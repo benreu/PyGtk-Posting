@@ -7,7 +7,6 @@ pygtk_postingdir = $(pythondir)/pygtk_posting
 
 
 pygtk_posting_PYTHON = \
-	pygtk_posting.py \
 	account_transactions.py \
 	bank_statement.py \
 	contacts.py \
@@ -46,7 +45,6 @@ pygtk_posting_PYTHON = \
 	check_writing.py \
 	loan_payment.py \
 	loan_payment.ui\
-	pygtk_posting.ui \
 	contacts.ui \
 	products.ui \
 	account_transactions.ui \
@@ -84,7 +82,6 @@ pygtk_posting_PYTHON = \
 	resource_calendar.py \
 	resource_calendar.ui \
 	open_invoices.py \
-	log_utils.py \
 	open_invoices.ui \
 	resource_diary.py \
 	resource_diary.ui \
@@ -149,7 +146,11 @@ pygtk_posting_PYTHON = \
 	customer_finance_charge.py \
 	customer_finance_charge.ui \
 	quick_command.py \
-	quick_command.ui
+	quick_command.ui \
+	constants.py \
+	main_window.py \
+	main_window.ui \
+	accounts.py
 
 
 EXTRA_DIST = $(ui_DATA)

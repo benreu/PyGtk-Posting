@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/accounts_overview.ui"
+UI_FILE = constants.ui_directory + "/accounts_overview.ui"
 
 class AccountsOverviewGUI:
 	def __init__(self):
@@ -27,7 +27,7 @@ class AccountsOverviewGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.populate_account_combos()

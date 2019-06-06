@@ -22,7 +22,7 @@ import subprocess, re
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
-from main import ui_directory, db, broadcaster 
+from constants import ui_directory, db, broadcaster 
 
 UI_FILE = ui_directory + "/documents_window.ui"
 
@@ -172,7 +172,7 @@ class DocumentGUI:
 
 	def contacts_window(self, widget):
 		import contacts
-		contacts.GUI(self.main, True)
+		contacts.GUI(True)
 
 	def view_document_clicked(self, widget):
 		comment = self.builder.get_object('entry3').get_text()
@@ -653,7 +653,7 @@ class DocumentGUI:
 		self.calculate_totals ()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", main.help_dir + "/invoice.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/invoice.page"])
 
 	def window_key_event (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

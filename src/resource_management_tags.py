@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/resource_management_tags.ui"
+UI_FILE = constants.ui_directory + "/resource_management_tags.ui"
 
 class ResourceManagementTagsGUI:
 	def __init__(self):
@@ -28,7 +28,7 @@ class ResourceManagementTagsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
 		self.tag_edit_store = self.builder.get_object('tag_edit_store')

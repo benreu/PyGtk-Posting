@@ -20,9 +20,9 @@ from gi.repository import Gtk
 import subprocess
 from datetime import datetime
 from dateutils import seconds_to_compact_string
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/time_clock_project.ui"
+UI_FILE = constants.ui_directory + "/reports/time_clock_project.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -33,7 +33,7 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.time_store = self.builder.get_object('time_store')
@@ -161,7 +161,7 @@ class GUI:
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
 		time_file = "/tmp/employee_time.odt"
 		time_file_pdf = "/tmp/employee_time.pdf"
-		t = Template(main.template_dir+"/employee_time.odt", time_file , False)
+		t = Template(constants.template_dir+"/employee_time.odt", time_file , False)
 		t.render(data) #the self.data holds all the info of the invoice
 		subprocess.call('odt2pdf ' + time_file, shell = True)
 		subprocess.Popen('soffice ' + time_file, shell = True)

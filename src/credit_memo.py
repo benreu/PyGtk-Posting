@@ -18,7 +18,7 @@
 from gi.repository import Gtk, Gdk, GLib
 import psycopg2
 from dateutils import DateTimeCalendar
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/credit_memo.ui"
 

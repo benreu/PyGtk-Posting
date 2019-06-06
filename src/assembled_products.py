@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 import os, sys
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/assembled_products.ui"
 

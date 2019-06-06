@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/job_sheet_history.ui"
+UI_FILE = constants.ui_directory + "/reports/job_sheet_history.ui"
 
 class JobSheetHistoryGUI:
 	def __init__(self):
@@ -29,7 +29,7 @@ class JobSheetHistoryGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.customer_text = ''
 		self.ext_name = ''
@@ -47,7 +47,7 @@ class JobSheetHistoryGUI:
 		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 
 		self.populate_job_sheet_treeview ()
-		if main.is_admin == True:
+		if constants.is_admin == True:
 			self.builder.get_object ('treeview1').set_tooltip_column(0)
 			self.builder.get_object ('treeview2').set_tooltip_column(0)
 		self.window = self.builder.get_object('window1')

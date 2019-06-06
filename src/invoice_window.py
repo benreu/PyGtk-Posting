@@ -21,7 +21,7 @@ from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/invoice_window.ui"
 
@@ -307,15 +307,15 @@ class InvoiceGUI:
 		separator = Gtk.SeparatorMenuItem ()
 		separator.show ()
 		menu.prepend(separator)
-		edit_customer_menu = Gtk.MenuItem.new_with_label("Edit customer")
-		edit_customer_menu.connect("activate", self.edit_customer_clicked)
-		edit_customer_menu.show()
-		menu.prepend(edit_customer_menu)
+		contact_hub_menu = Gtk.MenuItem.new_with_label("Contact hub")
+		contact_hub_menu.connect("activate", self.contact_hub_clicked)
+		contact_hub_menu.show()
+		menu.prepend(contact_hub_menu)
 
-	def edit_customer_clicked (self, menuitem):
-		if self.customer_id != None:
-			import contacts
-			contacts.GUI(self.customer_id)
+	def contact_hub_clicked (self, menuitem):
+		if self.customer_id != 0:
+			import contact_hub
+			contact_hub.ContactHubGUI(self.customer_id)
 
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object("treeview-selection")
@@ -451,7 +451,7 @@ class InvoiceGUI:
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
-			self.invoice = invoice_create.Setup(self.db, self.invoice_store, 
+			self.invoice = invoice_create.Setup(self.invoice_store, 
 												self.customer_id, comment, 
 												self.datetime, self.invoice_id,
 												self, self.document_type)
@@ -1074,7 +1074,7 @@ class InvoiceGUI:
 
 	def help_clicked (self, widget):
 		import subprocess
-		subprocess.Popen(["yelp", main.help_dir + "/invoice.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/invoice.page"])
 
 	def window_key_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

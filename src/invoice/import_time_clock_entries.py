@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 from datetime import datetime
 from pricing import get_customer_product_price
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/invoice/import_time_clock_entries.ui"
+UI_FILE = constants.ui_directory + "/invoice/import_time_clock_entries.ui"
 
 class ImportGUI():
 	def __init__(self, contact_id, invoice_id):
@@ -32,7 +32,7 @@ class ImportGUI():
 
 		self.contact_id = contact_id
 		self.invoice_id = invoice_id
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.import_store = self.builder.get_object('import_store')

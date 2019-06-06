@@ -18,9 +18,9 @@
 
 from gi.repository import Gtk
 import subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/incoming_invoices.ui"
+UI_FILE = constants.ui_directory + "/reports/incoming_invoices.ui"
 
 class IncomingInvoiceGUI:
 	service_provider_id = None
@@ -30,7 +30,7 @@ class IncomingInvoiceGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.service_provider_store = self.builder.get_object('service_provider_store')

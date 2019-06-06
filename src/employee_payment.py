@@ -20,9 +20,9 @@ import os, sys, subprocess, time, re, psycopg2
 from datetime import datetime, timedelta
 from dateutils import datetime_to_text, calendar_to_text, \
 					calendar_to_datetime, set_calendar_from_datetime 
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/employee_time.ui"
+UI_FILE = constants.ui_directory + "/employee_time.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -33,7 +33,7 @@ class EmployeePaymentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.datetime = datetime.today()
 		date_text = datetime_to_text(self.datetime)
@@ -227,7 +227,7 @@ class EmployeePaymentGUI:
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
 		self.time_file = "/tmp/employee_time.odt"
 		self.time_file_pdf = "/tmp/employee_time.pdf"
-		t = Template(main.template_dir+"/employee_time.odt", self.time_file , True)
+		t = Template(constants.template_dir+"/employee_time.odt", self.time_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 				
 		subprocess.call('soffice ' + self.time_file, shell = True)

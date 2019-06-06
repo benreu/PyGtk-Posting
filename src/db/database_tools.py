@@ -20,8 +20,8 @@ import subprocess, psycopg2, re, os
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from main import get_apsw_cursor
-import log_utils
-from main import db, ui_directory, sql_dir
+from constants import db, ui_directory, sql_dir
+from constants import log_file as LOG_FILE
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -36,9 +36,6 @@ class GUI:
 		self.statusbar = self.builder.get_object("statusbar2")
 		self.progressbar = self.builder.get_object("progressbar1")
 		database_utils.PROGRESSBAR = self.progressbar
-		self.log_file = log_utils.log_file
-		if self.log_file == None:
-			self.log_file = 'None'
 		if error == False: 
 			self.db = db
 			self.cursor = self.db.cursor()
@@ -70,7 +67,7 @@ class GUI:
 	def backup_database_clicked(self, widget):
 		from db.backup_restore import Utilities 
 		u = Utilities(parent = self )
-		u.backup_gui(self.active_database )
+		u.backup_gui()
 
 	def restore_database_clicked(self, widget):
 		restore_database_name = self.builder.get_object('entry6').get_text()
@@ -95,7 +92,6 @@ class GUI:
 		cursor_sqlite = get_apsw_cursor ()
 		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
-			self.active_database = sql_database
 		self.builder.get_object('combobox1').set_active_id(sql_database)
 		self.builder.get_object('label10').set_text("Current database : " + sql_database)
 		self.builder.get_object('label14').set_text(sql_database)
@@ -140,42 +136,21 @@ class GUI:
 	def login_multiple_clicked(self, widget):
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
-			cursor_sqlite = get_apsw_cursor ()
-			for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-				sql_user = row[0]
-				sql_password = row[1]
-				sql_host = row[2]
-				sql_port = row[3]
-			db = psycopg2.connect( database= selected, host= sql_host, 
-									user=sql_user, password = sql_password, 
-									port = sql_port)
-			cursor = db.cursor()
-			cursor.close()
-			db.commit()
 			self.error = False
 			self.window.close()
-			subprocess.Popen(["./src/pygtk_posting.py", 
-								"database %s" % selected, self.log_file])
+			subprocess.Popen(["./src/main.py", 
+								"database %s" % selected, str(LOG_FILE)])
 
 	def login_single_clicked(self, widget):
 		self.db.close()
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			cursor_sqlite = get_apsw_cursor ()
-			for row in cursor_sqlite.execute("SELECT * FROM connection;"):
-				sql_user = row[0]
-				sql_password = row[1]
-				sql_host = row[2]
-				sql_port = row[3]
-			self.db = psycopg2.connect( database= selected, host= sql_host, 
-										user=sql_user, password = sql_password, 
-										port = sql_port)
-			self.cursor = self.db.cursor()
 			cursor_sqlite.execute("UPDATE connection SET db_name = '%s'" % (selected))
 			self.error = False
 			self.window.close()
-			subprocess.Popen(["./src/pygtk_posting.py", 
-								"database %s" % selected, self.log_file])
+			subprocess.Popen(["./src/main.py", 
+								"database %s" % selected, str(LOG_FILE)])
 			Gtk.main_quit()
 
 	def add_db(self,widget):
@@ -239,7 +214,7 @@ class GUI:
 		cursor_sqlite.execute("UPDATE connection SET db_name = ('%s')" % (db_name))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
-		subprocess.Popen(["./src/pygtk_posting.py"])
+		subprocess.Popen(["./src/main.py"])
 		GLib.timeout_add_seconds (1, Gtk.main_quit)
 
 	def close_db (self, db_name):

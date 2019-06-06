@@ -1,4 +1,4 @@
-# customer_history.py
+# product_history.py
 #
 # Copyright (C) 2016 - reuben
 #
@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/product_history.ui"
+UI_FILE = constants.ui_directory + "/reports/product_history.ui"
 
 class ProductHistoryGUI:
 	def __init__(self):
@@ -35,7 +35,7 @@ class ProductHistoryGUI:
 		product_completion = self.builder.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.invoice_history = None
@@ -48,32 +48,44 @@ class ProductHistoryGUI:
 			name = row[1]
 			ext_name = row[2]
 			self.product_store.append([id_ , name, ext_name])
-			
-		qty_column = self.builder.get_object ('treeviewcolumn4')
-		qty_renderer = self.builder.get_object ('cellrenderertext4')
-		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func, 5)
-			
-		price_column = self.builder.get_object ('treeviewcolumn5')
-		price_renderer = self.builder.get_object ('cellrenderertext5')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func, 6)
-
-		price_column = self.builder.get_object ('treeviewcolumn8')
-		price_renderer = self.builder.get_object ('cellrenderertext9')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func, 5)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def notebook_create_window (self, notebook, widget, x, y):
+		window = Gtk.Window()
+		new_notebook = Gtk.Notebook()
+		window.add(new_notebook)
+		new_notebook.set_group_name('posting')
+		new_notebook.connect('page-removed', self.notebook_page_removed, window)
+		window.connect('destroy', self.sub_window_destroyed, new_notebook, notebook)
+		window.set_transient_for(self.window)
+		window.set_destroy_with_parent(True)
+		window.set_size_request(400, 400)
+		window.set_title('Product History')
+		window.set_icon_name('pygtk-posting')
+		window.move(x, y)
+		window.show_all()
+		return new_notebook
+
+	def notebook_page_removed (self, notebook, child, page, window):
+		#destroy the window after the notebook is empty
+		if notebook.get_n_pages() == 0:
+			window.destroy()
+
+	def sub_window_destroyed (self, window, notebook, dest_notebook):
+		# detach the notebook pages in reverse sequence to avoid index errors
+		for page_num in reversed(range(notebook.get_n_pages())):
+			widget = notebook.get_nth_page(page_num)
+			tab_label = notebook.get_tab_label(widget)
+			notebook.detach_tab(widget)
+			dest_notebook.append_page(widget, tab_label)
+			dest_notebook.set_tab_detachable(widget, True)
+			dest_notebook.set_tab_reorderable(widget, True)
+			dest_notebook.child_set_property(widget, 'tab-expand', True)
+
 	def close_transaction_window (self, window, event):
 		self.cursor.close()
-
-	def qty_cell_func(self, view_column, cellrenderer, model, iter1, column):
-		price = '{:,.1f}'.format(model.get_value(iter1, column))
-		cellrenderer.set_property("text" , price)
-
-	def price_cell_func(self, view_column, cellrenderer, model, iter1, column):
-		price = '{:,.2f}'.format(model.get_value(iter1, column))
-		cellrenderer.set_property("text" , price)
 		
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
@@ -183,6 +195,7 @@ class ProductHistoryGUI:
 								"contacts.name, "
 								"qty, "
 								"price, "
+								"price::text, "
 								"order_number "
 							"FROM purchase_orders AS po "
 							"JOIN purchase_order_line_items AS poli "
@@ -210,7 +223,9 @@ class ProductHistoryGUI:
 								"i.name, "
 								"'Comments: ' || comments, "
 								"qty, "
+								"qty::text, "
 								"price, "
+								"price::text, "
 								"c.id::text, "
 								"c.name "
 							"FROM invoices AS i "

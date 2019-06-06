@@ -19,7 +19,7 @@
 from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
-from main import ui_directory, db, broadcaster, is_admin
+from constants import ui_directory, db, broadcaster, is_admin
 
 UI_FILE = ui_directory + "/reports/invoice_history.ui"
 
@@ -162,7 +162,7 @@ class InvoiceHistoryGUI:
 			return
 		product_id = model[path][2]
 		import product_hub
-		product_hub.ProductHubGUI(self.main, product_id)
+		product_hub.ProductHubGUI(product_id)
 
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()

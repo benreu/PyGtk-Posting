@@ -19,7 +19,7 @@
 
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
-from main import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/product_search.ui"
 

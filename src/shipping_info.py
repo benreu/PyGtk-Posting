@@ -16,14 +16,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/shipping_info.ui"
+UI_FILE = constants.ui_directory + "/shipping_info.ui"
 
 class ShippingInfoGUI:
 	def __init__ (self):
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

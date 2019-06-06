@@ -18,7 +18,8 @@
 from gi.repository import Gtk, GLib
 from db import transactor
 from dateutils import DateTimeCalendar
-from main import ui_directory, db, broadcaster, revenue_account
+from constants import ui_directory, db, broadcaster
+from accounts import revenue_account
 
 UI_FILE = ui_directory + "//miscellaneous_revenue.ui"
 
@@ -174,7 +175,8 @@ class MiscellaneousRevenueGUI:
 			transactor.post_misc_cash_payment(self.db, self.date, amount, payment_id, revenue_account)
 		self.db.commit()
 		self.cursor.close()
-		main.disconnect(self.handler_id)
+		for connection_id in self.handler_ids:
+			broadcaster.disconnect(connection_id)
 		self.window.destroy()
 
 	def date_entry_icon_release (self, entry, icon, event):

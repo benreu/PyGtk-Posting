@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 import dateutils
 from decimal import Decimal
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/payments_received.ui"
+UI_FILE = constants.ui_directory + "/reports/payments_received.ui"
 
 
 
@@ -31,7 +31,7 @@ class PaymentsReceivedGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.treeview = self.builder.get_object('treeview1')

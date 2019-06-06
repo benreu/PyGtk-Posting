@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, GLib
 from db import transactor
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/settings.ui"
+UI_FILE = constants.ui_directory + "/settings.ui"
 
 class GUI():
 	def __init__(self, setting_container = None):
@@ -27,7 +27,7 @@ class GUI():
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.document_type_id = 0

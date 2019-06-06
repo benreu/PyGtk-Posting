@@ -15,9 +15,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/admin/duplicate_contact.ui"
+UI_FILE = constants.ui_directory + "/admin/duplicate_contact.ui"
 
 class DuplicateContactGUI:
 	def __init__(self, db):

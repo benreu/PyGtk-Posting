@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/account_transactions.ui"
+UI_FILE = constants.ui_directory + "/account_transactions.ui"
 
 class GUI:
 	def __init__(self):
@@ -33,7 +33,7 @@ class GUI:
 		self.account_treestore = self.builder.get_object('account_transaction_store')
 		self.treeview = self.builder.get_object('treeview1')
 		self.is_parent_account = None
-		self.db = main.db
+		self.db = constants.db
 		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT number, name, is_parent FROM gl_accounts "
 							"ORDER BY number")

@@ -19,9 +19,9 @@ from gi.repository import Gtk
 import xlrd
 from xlrd.biffh import XLRDError
 from psycopg2 import IntegrityError
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/admin/product_import.ui"
+UI_FILE = constants.ui_directory + "/admin/product_import.ui"
 
 
 class ProductsImportGUI:

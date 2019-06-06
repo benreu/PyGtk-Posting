@@ -143,6 +143,22 @@
                 <property name="top_attach">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Invoice to payment matching</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="invoice_to_payment_matching_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
