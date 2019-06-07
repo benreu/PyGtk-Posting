@@ -35,7 +35,7 @@ class CustomerFinanceChargeGUI:
 		self.customer_id = None
 
 		self.customer_store = self.builder.get_object('customer_store')
-		self.statement_store = self.builder.get_object('statement_store')
+		self.finance_charge_store = self.builder.get_object('finance_charge_store')
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 		self.customer_combobox_populate ()
@@ -51,16 +51,16 @@ class CustomerFinanceChargeGUI:
 		customer_payment.GUI(customer_id = self.customer_id )
 
 	def print_statement_clicked(self, button):
-		statement = statementing.Setup(self.db, self.statement_store, 
+		statement = statementing.Setup(self.db, self.finance_charge_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.print_dialog(self.window)
 		self.customer_combobox_populate ()
-		self.statement_store.clear()
+		self.finance_charge_store.clear()
 		self.builder.get_object('combobox-entry').set_text("")
 
 	def view_statement_clicked (self, button):
-		statement = statementing.Setup(self.db, self.statement_store, 
+		statement = statementing.Setup(self.db, self.finance_charge_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.view()
@@ -76,54 +76,48 @@ class CustomerFinanceChargeGUI:
 						"WHERE (canceled, posted, customer_id) = "
 						"(False, True, c.id)),  "
 						"(SELECT amount + amount_owed AS payments_total FROM "
-								"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
-								"FROM payments_incoming "
-								"WHERE (customer_id, misc_income) = (c.id, False)"
-								") pi, "
-								"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
-								"FROM credit_memos WHERE (customer_id, posted) = (c.id, True)"
-								") cm "
+							"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
+							"FROM payments_incoming "
+							"WHERE (customer_id, misc_income) = (c.id, False)"
+							") pi, "
+							"(SELECT COALESCE(SUM(amount_owed), 0.0) "
+								" AS amount_owed "
+							"FROM credit_memos WHERE (customer_id, posted) "
+								"= (c.id, True)"
+							") cm "
 						"), "
 					"name, ext_name FROM contacts AS c "
 					"WHERE customer = True ORDER by name"
 					") "
 					"SELECT  "
-					"id, "
-					"invoices_total - payments_total AS balance_due, "
-					"name, "
-					"ext_name, "
-					"(invoices_total - payments_total) *.015 AS finance_fee, "
-					"invoices_total, "
-					"payments_total "
+						"id::text, "
+						"name, "
+						"ext_name, "
+						"(invoices_total - payments_total)::money "
+							"AS balance_due, "
+						"((invoices_total - payments_total) * "
+							"(SELECT finance_rate FROM settings))::money "
+								"AS finance_fee "
 					"FROM table2 "
 					"WHERE (invoices_total-payments_total) > 0  "
-					"GROUP BY id,name,balance_due,"
-						"invoices_total,payments_total,ext_name  "
-					"ORDER BY name")
+					"ORDER BY name, ext_name")
 		for row in c.fetchall():
-			customer_id = row[0]
-			unpaid = row[1]
-			customer_name = row[2]
-			customer_ext_name = row[3]
-			self.customer_store.append([str(customer_id), customer_name, 
-									customer_ext_name, 
-									'Balance : ${:,.2f}'.format(unpaid),
-									unpaid])
+			self.customer_store.append(row)
 		c.close()
 
 	def focus (self, window, event):
 		self.customer_combobox_populate ()
 		if self.customer_id != None:
-			self.populate_statement_store()
+			self.populate_finance_charge_store()
 
 	def customer_combobox_changed(self, combo): #updates the customer
 		active = self.builder.get_object('combobox1').get_active()
 		if active == -1:
 			return
 		self.customer_id = self.customer_store[active][0]
-		self.customer_total = self.customer_store[active][4]
+		self.customer_total = self.customer_store[active][3]
 		self.builder.get_object('label2').set_label (str(self.customer_total))
-		self.populate_statement_store()
+		self.populate_finance_charge_store()
 
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -136,62 +130,24 @@ class CustomerFinanceChargeGUI:
 		customer_id = model[iter][0]
 		self.builder.get_object('combobox1').set_active_id (customer_id)
 
-	def populate_statement_store (self):
-		self.statement_store.clear()
+	def populate_finance_charge_store (self):
+		self.finance_charge_store.clear()
 		c_id = self.customer_id
-		self.cursor.execute("SELECT * FROM "
-								"(SELECT "
-									"id::text, "
-									"name, "
-									"date_inserted::text AS date, "
-									"format_date(date_inserted), "
-									"amount, "
-									"amount::text "
-								"FROM statements " 
-								"WHERE id =(SELECT MAX(id) FROM statements "
-								"WHERE customer_id = %s)"
-								") s "
-								"UNION "
-								"(SELECT "
-									"id::text, "
-									"name, "
-									"dated_for::text AS date, "
-									"format_date(dated_for), "
-									"amount_due, "
-									"amount_due::text "
-								"FROM invoices "
-								"WHERE (canceled, posted, customer_id) = "
-								"(False, True, %s) "
-								"AND statement_id IS NULL"
-								") "
-								"UNION "
-								"(SELECT "
-									"id::text, "
-									"name, "
-									"date_created::text AS date, "
-									"format_date(date_created), "
-									"(-amount_owed), "
-									"(-amount_owed)::text "
-								"FROM credit_memos "
-								"WHERE (posted, customer_id) = (True, %s) "
-								"AND statement_id IS NULL"
-								") "
-								"UNION "
-								"(SELECT "
-									"payment_text, "
-									"payment_info(id), "
-									"date_inserted::text AS date, "
-									"format_date(date_inserted), "
-									"amount, "
-									"amount::text "
-								"FROM payments_incoming "
-								"WHERE (customer_id, misc_income) = "
-								"(%s, False) AND statement_id IS NULL"
-								") "
+		self.cursor.execute("SELECT "
+								"id::text, "
+								"name, "
+								"dated_for::text AS date, "
+								"format_date(dated_for), "
+								"amount_due, "
+								"amount_due::text "
+							"FROM invoices "
+							"WHERE (canceled, posted, customer_id) = "
+							"(False, True, %s) "
+							"AND paid = False "
 							"ORDER BY date", 
-							(c_id, c_id, c_id, c_id))
+							(c_id, ))
 		for row in self.cursor.fetchall():
-			self.statement_store.append(row)
+			self.finance_charge_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)
 
 
