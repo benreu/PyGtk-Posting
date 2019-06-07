@@ -8,12 +8,12 @@
       <column type="gchararray"/>
       <!-- column-name customer_name -->
       <column type="gchararray"/>
-      <!-- column-name customer_c_o -->
+      <!-- column-name customer_ext_name -->
       <column type="gchararray"/>
-      <!-- column-name customer_balance_formatted -->
+      <!-- column-name balance_due -->
       <column type="gchararray"/>
-      <!-- column-name customer_balance -->
-      <column type="PyObject"/>
+      <!-- column-name finance_fee -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkEntryCompletion" id="customer_completion">
@@ -114,6 +114,12 @@
                   <object class="GtkCellRendererText" id="cellrenderertext7"/>
                   <attributes>
                     <attribute name="text">3</attribute>
+                  </attributes>
+                </child>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">4</attribute>
                   </attributes>
                 </child>
                 <child internal-child="entry">
