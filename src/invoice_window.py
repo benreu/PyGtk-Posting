@@ -345,8 +345,9 @@ class InvoiceGUI:
 		x_size = self.window.get_size()[0]
 		x = int(x) + int(x_size)
 		window = self.builder.get_object('document_list_window')
-		window.move(x , int(y))
 		window.show_all()
+		window.present()
+		window.move(x , int(y))
 
 	def populate_document_list (self):
 		selection = self.builder.get_object('treeview-selection4')
@@ -379,15 +380,18 @@ class InvoiceGUI:
 
 	def document_list_row_activated (self, treeview, path, column):
 		self.invoice_id = self.document_list_store[path][0]
-		self.cursor.execute("SELECT comments FROM invoices WHERE id = %s",
-														(self.invoice_id,))
-		comments = self.cursor.fetchone()[0]
-		self.builder.get_object("comment_buffer").set_text(comments)
+		self.cursor.execute("SELECT "
+								"comments, "
+								"COALESCE(dated_for, now()) "
+							"FROM invoices WHERE id = %s",
+							(self.invoice_id,))
+		for row in self.cursor.fetchall():
+			comments = row[0]
+			date = row[1]
+			self.builder.get_object("comment_buffer").set_text(comments)
+			self.calendar.set_date(date)
 		self.document_type = self.document_list_store[path][2]
 		self.populate_invoice_items()
-		self.cursor.execute("SELECT dated_for FROM invoices WHERE id = %s", (self.invoice_id,))
-		date = self.cursor.fetchone()[0]
-		self.calendar.set_date(date)
 
 	def update_invoice_name (self, document_prefix):
 		self.cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
@@ -897,10 +901,13 @@ class InvoiceGUI:
 		entry.grab_focus()
 
 	def show_error_dialog (self, error):
-		self.builder.get_object('label2').set_label(error)
-		dialog = self.builder.get_object('error_dialog')
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									error)
 		dialog.run()
-		dialog.hide()
+		dialog.destroy()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		entry = self.builder.get_object('entry11')
