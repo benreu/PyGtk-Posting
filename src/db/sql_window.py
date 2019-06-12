@@ -29,7 +29,7 @@ class SQLWindowGUI :
 		GObject.type_register(GtkSource.View)
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = main.db
+		self.db = constants.db
 
 		language_manager = GtkSource.LanguageManager()
 		self.source_view = self.builder.get_object('gtksourceview1')
