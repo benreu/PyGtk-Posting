@@ -108,7 +108,8 @@ class CustomerFinanceChargeGUI:
 	def focus (self, window, event):
 		self.customer_combobox_populate ()
 		if self.customer_id != None:
-			self.populate_finance_charge_store()
+			pass
+			#self.populate_finance_charge_store()
 
 	def customer_combobox_changed(self, combo): #updates the customer
 		active = self.builder.get_object('combobox1').get_active()
@@ -133,20 +134,33 @@ class CustomerFinanceChargeGUI:
 	def populate_finance_charge_store (self):
 		self.finance_charge_store.clear()
 		c_id = self.customer_id
-		self.cursor.execute("SELECT "
-								"id::text, "
-								"name, "
-								"dated_for::text AS date, "
-								"format_date(dated_for), "
-								"amount_due, "
-								"amount_due::text "
-							"FROM invoices "
-							"WHERE (canceled, posted, customer_id) = "
-							"(False, True, %s) "
-							"AND paid = False "
-							"ORDER BY date", 
-							(c_id, ))
-		for row in self.cursor.fetchall():
+		c = self.db.cursor()
+		c.execute("WITH invoice_cte AS "
+					"(SELECT i.id, i.name, i.dated_for, "
+						"(CASE WHEN SUM(i.amount_due) OVER (ORDER BY i.id) > "
+							"p.amount " 
+						"THEN LEAST(SUM(i.amount_due) OVER (ORDER BY i.id) "
+							"- p.amount, i.amount_due) "
+						"ELSE 0.00 "
+						"END) AS amount_unpaid " 
+					"FROM invoices i "
+					"CROSS JOIN " 
+						"(SELECT SUM(amount) AS amount " 
+						"FROM payments_incoming WHERE customer_id = %s " 
+						") p "
+					"WHERE customer_id = %s ORDER BY i.id ) "
+					"SELECT "
+						"id::text, "
+						"name, "
+						"dated_for::text, "
+						"format_date(dated_for), "
+						"amount_unpaid, "
+						"amount_unpaid::text, "
+						"ROUND(amount_unpaid * (SELECT finance_rate FROM settings) / 100, 2), "
+						"ROUND(amount_unpaid * (SELECT finance_rate FROM settings) / 100, 2)::text "
+					"FROM invoice_cte WHERE amount_unpaid != 0.00 " , 
+					(c_id, c_id))
+		for row in c.fetchall():
 			self.finance_charge_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)
 

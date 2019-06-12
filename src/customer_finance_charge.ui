@@ -55,6 +55,10 @@
       <column type="gfloat"/>
       <!-- column-name amount_formatted -->
       <column type="gchararray"/>
+      <!-- column-name interest -->
+      <column type="gfloat"/>
+      <!-- column-name interest_formatted -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -246,11 +250,23 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">4</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext3">
-                        <property name="xalign">1</property>
-                      </object>
+                      <object class="GtkCellRendererText" id="cellrenderertext3"/>
                       <attributes>
                         <attribute name="text">5</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Interest</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">6</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">7</attribute>
                       </attributes>
                     </child>
                   </object>
