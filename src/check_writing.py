@@ -31,7 +31,7 @@ def get_check_number (db, bank_account):
 	check_number += 1
 	return check_number
 
-def set_written_ck_amnt_text ( text):
+def get_written_check_amount_text ( text):
 	amount = re.sub("[^0-9.]", "", str(text))
 	dollars = "0"
 	cents = "00"
@@ -57,8 +57,8 @@ def set_written_ck_amnt_text ( text):
 	if len(dollars) > 1:
 		tens = dollars[len(dollars)-2]
 		ones = dollars[len(dollars)-1]
-		if tens < "2" and tens > "0":				
-			tens = tens + ones				
+		if tens < "2" and tens > "0":
+			tens = tens + ones
 			tens = int(tens)
 			tens = Money[tens]
 			ones = ""
