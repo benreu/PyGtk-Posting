@@ -261,7 +261,7 @@ class GUI:
 		self.populate_vendor_invoice_store ()
 		self.calculate_invoice_totals ()
 
-	def post_check_without_printing_clicked (self):
+	def post_check_without_printing_clicked (self, button):
 		self.post_check()
 		
 	def print_check_clicked (self, button):
@@ -326,6 +326,7 @@ class GUI:
 		self.db.commit()
 		self.populate_vendor_invoice_store ()
 		self.calculate_invoice_totals ()
+		self.builder.get_object('box14').set_sensitive(False)
 
 	def mark_invoices_paid (self ):
 		for row in self.vendor_invoice_store:
