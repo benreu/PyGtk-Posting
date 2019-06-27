@@ -19,7 +19,7 @@ from gi.repository import Gtk, GLib, GObject
 import re
 from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
-from check_writing import set_written_ck_amnt_text, get_check_number
+from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
 from constants import ui_directory, db, broadcaster
 import accounts
@@ -201,7 +201,7 @@ class IncomingInvoiceGUI:
 		total = Decimal()
 		for row in self.expense_percentage_store:
 			total += row[1]
-		money_text = set_written_ck_amnt_text (total)
+		money_text = get_written_check_amount_text (total)
 		self.builder.get_object('label10').set_label(money_text)
 		self.builder.get_object('entry4').set_text('${:,.2f}'.format(total))
 		self.builder.get_object('entry5').set_text('${:,.2f}'.format(total))
