@@ -254,21 +254,25 @@ class InvoiceHistoryGUI:
 	def load_invoice_items (self, load_all = False):
 		store = self.builder.get_object('invoice_items_store')
 		store.clear()
-		if load_all == True:			
+		if load_all == True:
 			self.cursor.execute("SELECT "
 									"ili.id, "
 									"ili.qty::float,  "
-									"product_id, "
-									"name, "
-									"ext_name, "
-									"remark, "
+									"ili.product_id, "
+									"p.name, "
+									"p.ext_name, "
+									"ili.remark, "
 									"ili.price, "
 									"ili.ext_price, "
-									"ili.invoice_id "
+									"ili.invoice_id, "
+									"i.dated_for::text, "
+									"format_date(i.dated_for), "
+									"c.name "
 								"FROM invoice_items AS ili "
-								"JOIN products "
-								"ON products.id = ili.product_id "
-								"ORDER BY name ")
+								"JOIN products AS p ON p.id = ili.product_id "
+								"JOIN invoices AS i ON i.id = ili.invoice_id "
+								"JOIN contacts AS c ON c.id = i.customer_id "
+								"ORDER BY p.name ")
 		else:
 			selection = self.builder.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
@@ -285,21 +289,23 @@ class InvoiceHistoryGUI:
 			self.cursor.execute("SELECT "
 									"ili.id, "
 									"ili.qty::float,  "
-									"product_id, "
-									"name, "
-									"ext_name, "
-									"remark, "
+									"ili.product_id, "
+									"p.name, "
+									"p.ext_name, "
+									"ili.remark, "
 									"ili.price, "
 									"ili.ext_price, "
-									"ili.invoice_id "
+									"ili.invoice_id, "
+									"i.dated_for::text, "
+									"format_date(i.dated_for), "
+									"c.name "
 								"FROM invoice_items AS ili "
-								"JOIN products "
-								"ON products.id = ili.product_id "
+								"JOIN products AS p ON p.id = ili.product_id "
+								"JOIN invoices AS i ON i.id = ili.invoice_id "
+								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE invoice_id IN " + args)
 		for row in self.cursor.fetchall():
 			store.append(row)
-			while Gtk.events_pending():
-				Gtk.main_iteration()
 
 	def search_entry_search_changed (self, entry):
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
