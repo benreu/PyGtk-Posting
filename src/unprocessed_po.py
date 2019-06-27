@@ -266,27 +266,30 @@ class GUI:
 
 	def populate_purchase_order_items_store (self):
 		self.purchase_order_items_store.clear()
-		self.cursor.execute("SELECT "
-								"poli.id, "
-								"qty, "
-								"p.id, "
-								"p.name, "
-								"remark, "
-								"price, "
-								"ext_price, "
-								"a.expense_account, "
-								"a.name, "
-								"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
-								"expense "
-							"FROM purchase_order_line_items AS poli "
-							"JOIN products AS p ON p.id = poli.product_id "
-							"LEFT JOIN gl_accounts AS a "
-							"ON a.number = poli.expense_account "
-							"WHERE purchase_order_id = (%s) ORDER BY poli.id", 
-							(self.purchase_order_id, ))
-		for row in self.cursor.fetchall() :
+		c = self.db.cursor()
+		c.execute("SELECT "
+						"poli.id, "
+						"qty, "
+						"p.id, "
+						"p.name, "
+						"remark, "
+						"price, "
+						"ext_price, "
+						"a.expense_account, "
+						"a.name, "
+						"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
+						"expense, "
+						"order_number "
+					"FROM purchase_order_line_items AS poli "
+					"JOIN products AS p ON p.id = poli.product_id "
+					"LEFT JOIN gl_accounts AS a "
+					"ON a.number = poli.expense_account "
+					"WHERE purchase_order_id = (%s) ORDER BY poli.id", 
+					(self.purchase_order_id, ))
+		for row in c.fetchall() :
 			self.purchase_order_items_store.append(row)
 		self.calculate_totals ()
+		c.close()
 
 	def check_expense_accounts (self):
 		for row in self.purchase_order_items_store:
