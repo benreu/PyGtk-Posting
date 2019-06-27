@@ -443,7 +443,7 @@ class InvoiceGUI:
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
-			self.invoice = invoice_create.Setup(self.db, self.invoice_store, 
+			self.invoice = invoice_create.Setup(self.invoice_store, 
 												self.customer_id, comment, 
 												self.datetime, self.invoice_id, 
 												self, self.document_type)
