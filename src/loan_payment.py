@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib, GObject
-from check_writing import set_written_ck_amnt_text, get_check_number
+from check_writing import get_written_check_amount_text, get_check_number
 from dateutils import DateTimeCalendar
 from db import transactor 
 import constants
@@ -251,7 +251,7 @@ class LoanPaymentGUI:
 		principal = self.builder.get_object('spinbutton1').get_value()
 		interest = self.builder.get_object('spinbutton2').get_value()
 		self.total = principal + interest
-		money_text = set_written_ck_amnt_text (self.total)
+		money_text = get_written_check_amount_text (self.total)
 		self.builder.get_object('label15').set_label(money_text)
 		formatted_total = '{:,.2f}'.format(self.total)
 		self.builder.get_object('entry4').set_text(formatted_total)
