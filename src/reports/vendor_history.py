@@ -49,36 +49,13 @@ class VendorHistoryGUI:
 		self.cursor = self.db.cursor()
 
 		self.vendor_store = self.builder.get_object('vendor_store')
-		self.cursor.execute("SELECT c.id, c.name "
+		self.cursor.execute("SELECT c.id::text, c.name "
 							"FROM purchase_orders AS p "
 							"JOIN contacts AS c ON c.id = p.vendor_id "
 							"GROUP BY c.id, c.name "
 							"ORDER BY c.name")
-		for vendor in self.cursor.fetchall():
-			id_ = vendor[0]
-			name = vendor[1]
-			self.vendor_store.append([str(id_) , name])
-
-		column = self.builder.get_object ('treeviewcolumn12')
-		renderer = self.builder.get_object ('cellrenderertext14')
-		column.set_cell_data_func(renderer, self.amount_cell_func, 6)
-
-		column = self.builder.get_object ('treeviewcolumn5')
-		renderer = self.builder.get_object ('cellrenderertext5')
-		column.set_cell_data_func(renderer, self.amount_cell_func, 5)
-
-		self.cursor.execute("SELECT qty_prec, price_prec FROM settings.purchase_order")
 		for row in self.cursor.fetchall():
-			qty_prec = row[0]
-			price_prec = row[1]
-			
-		column = self.builder.get_object ('treeviewcolumn7')
-		renderer = self.builder.get_object ('cellrenderertext8')
-		column.set_cell_data_func(renderer, self.qty_cell_func, qty_prec)
-
-		column = self.builder.get_object ('treeviewcolumn11')
-		renderer = self.builder.get_object ('cellrenderertext13')
-		column.set_cell_data_func(renderer, self.price_cell_func, price_prec)
+			self.vendor_store.append(row)
 		
 		self.product_name = ''
 		self.product_ext_name = ''
@@ -90,18 +67,6 @@ class VendorHistoryGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
-
-	def price_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
-		price = '{:.{prec}f}'.format(model.get_value(iter1, 5), prec=prec)
-		cellrenderer.set_property("text" , price)
-
-	def qty_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
-		qty = '{:.{prec}f}'.format(model.get_value(iter1, 0), prec=prec)
-		cellrenderer.set_property("text" , qty)
-
-	def amount_cell_func(self, treecolumn, cellrenderer, model, iter1, column):
-		amount = '{:,.2f}'.format(model.get_value(iter1, column))
-		cellrenderer.set_property("text" , amount)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -238,14 +203,28 @@ class VendorHistoryGUI:
 	def load_purchase_order_items (self, load_all = False):
 		store = self.builder.get_object('purchase_order_items_store')
 		store.clear()
-		if load_all == True:			
-			self.cursor.execute("SELECT poli.id, poli.qty,  "
-								"product_id, name, ext_name, poli.price, "
-								"poli.ext_price, remark, order_number "
+		if load_all == True:
+			self.cursor.execute("SELECT "
+									"poli.id, "
+									"poli.qty, "
+									"product_id, "
+									"p.name, "
+									"p.ext_name, "
+									"poli.remark, "
+									"poli.price, "
+									"poli.price::text, "
+									"poli.ext_price, "
+									"poli.ext_price::text, "
+									"poli.order_number, "
+									"po.id, "
+									"po.date_created::text, "
+									"format_date(po.date_created), "
+									"c.name "
 								"FROM purchase_order_line_items AS poli "
-								"JOIN products "
-								"ON products.id = poli.product_id "
-								"ORDER BY name ")
+								"JOIN products AS p ON p.id = poli.product_id "
+								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN contacts AS c ON c.id = po.vendor_id "
+								"ORDER BY p.name ")
 		else:
 			selection = self.builder.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
@@ -259,28 +238,29 @@ class VendorHistoryGUI:
 				args = str(tuple(id_list))
 			else:				# single variables do not work in tuple > SQL
 				args = "(%s)" % id_list[0] 
-			self.cursor.execute("SELECT poli.id, poli.qty,  "
-								"product_id, name, ext_name, poli.price, "
-								"poli.ext_price, remark, order_number "
+			self.cursor.execute("SELECT "
+									"poli.id, "
+									"poli.qty, "
+									"product_id, "
+									"p.name, "
+									"p.ext_name, "
+									"poli.remark, "
+									"poli.price, "
+									"poli.price::text, "
+									"poli.ext_price, "
+									"poli.ext_price::text, "
+									"poli.order_number, "
+									"po.id, "
+									"po.date_created::text, "
+									"format_date(po.date_created), "
+									"c.name "
 								"FROM purchase_order_line_items AS poli "
-								"JOIN products "
-								"ON products.id = poli.product_id "
+								"JOIN products AS p ON p.id = poli.product_id "
+								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN contacts AS c ON c.id = po.vendor_id "
 								"WHERE purchase_order_id IN " + args)
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			ext_name = row[4]
-			price = row[5]
-			ext_price = row[6]
-			remark = row[7]
-			order_number = row[8]
-			store.append([float(qty), product_id,
-											product_name, ext_name, remark, 
-											price, ext_price, order_number])
-			while Gtk.events_pending():
-				Gtk.main_iteration()
+			store.append(row)
 
 	def search_entry_search_changed (self, entry):
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()

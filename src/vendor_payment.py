@@ -69,6 +69,9 @@ class GUI:
 	def destroy(self, window):
 		self.cursor.close()
 
+	def refresh_clicked (self, button):
+		self.populate_vendor_liststore()
+
 	def split_cell_func(self, column, cellrenderer, model, iter1, data):
 		price = model.get_value(iter1, 0)
 		cellrenderer.set_property("text", str(price))
@@ -79,7 +82,7 @@ class GUI:
 
 	def populate_vendor_liststore (self):
 		self.vendor_store.clear()
-		self.cursor.execute("SELECT contacts.id, contacts.name "
+		self.cursor.execute("SELECT contacts.id::text, contacts.name "
 							"FROM purchase_orders "
 							"JOIN contacts ON contacts.id = "
 							"purchase_orders.vendor_id "
@@ -88,9 +91,7 @@ class GUI:
 							"GROUP BY contacts.id, contacts.name "
 							"ORDER BY contacts.name")
 		for row in self.cursor.fetchall():
-			vendor_id = row[0]
-			vendor_name = row[1]
-			self.vendor_store.append([str(vendor_id), vendor_name])
+			self.vendor_store.append(row)
 
 	def vendor_combo_changed (self, combo):
 		vendor_id = combo.get_active_id()
@@ -116,7 +117,6 @@ class GUI:
 		self.c_c_multi_payment_store.clear()
 		if self.builder.get_object('checkbutton1').get_active() == True:
 			self.cursor.execute ("SELECT id, invoice_description, amount_due, "
-								"FALSE, "
 								"date_created::text, "
 								"format_date(date_created) "
 								"FROM purchase_orders "
@@ -125,7 +125,6 @@ class GUI:
 								"ORDER BY date_created")
 		else:
 			self.cursor.execute ("SELECT id, invoice_description, amount_due, "
-								"FALSE, "
 								"date_created::text, "
 								"format_date(date_created) "
 								"FROM purchase_orders "
@@ -136,7 +135,7 @@ class GUI:
 			self.vendor_invoice_store.append(row)
 		self.check_cash_entries_valid ()
 		self.check_credit_card_entries_valid ()
-		self.calculate_invoice_totals ()
+		self.check_cheque_entries_valid ()
 
 	def focus (self, winow, event):
 		self.populate_credit_card_combo ()
@@ -218,48 +217,44 @@ class GUI:
 		else:
 			self.builder.get_object('button2').set_sensitive(True)
 
-	def pay_renderer_toggled (self, renderer, path):
-		active = self.vendor_invoice_store[path][3]
-		self.vendor_invoice_store[path][3] = not active
-		self.calculate_invoice_totals ()
-
-	def calculate_invoice_totals (self):
-		total = Decimal()
-		for row in self.vendor_invoice_store:
-			pay = row[3]
-			if pay == True:
-				total += row[2]
-		self.multiple_invoice_total = total
-		if total > 0.00:
-			self.builder.get_object('comboboxtext3').set_sensitive(True)
-			self.check_cheque_entries_valid ()
-		else:
+	def invoice_selection_changed (self, selection):
+		model, paths = selection.get_selected_rows()
+		self.c_c_multi_payment_store.clear()
+		if paths == []:
 			self.builder.get_object('comboboxtext3').set_sensitive(False)
 			self.builder.get_object('box11').set_sensitive(False)
 			self.builder.get_object('box14').set_sensitive(False)
-		self.checking_total = total
+			self.builder.get_object('button6').set_sensitive(False)
+			self.builder.get_object('button3').set_sensitive(False)
+			return
+		if len (paths) == 1:
+			path = paths[0]
+			invoice_name = self.vendor_invoice_store[path][1]
+			self.builder.get_object ('entry5').set_text(invoice_name)
+			total = self.vendor_invoice_store[path][2]
+		else:
+			total = Decimal()
+			for path in paths:
+				total += model[path][2]
+			self.builder.get_object ('entry5').set_text("Multiple invoices")
+		self.builder.get_object('comboboxtext3').set_sensitive(True)
+		self.check_cheque_entries_valid ()
+		self.selected_invoices_total = round(total, 2)
+		self.add_multi_payment (total)
+		self.check_cash_entries_valid ()
+		self.total = total
 		self.builder.get_object('entry3').set_text('${:,.2f}'.format(total))
 		self.builder.get_object('entry6').set_text('${:,.2f}'.format(total))
-
-	def invoice_row_activated (self, treeview, path, treeviewcolumn):
-		invoice_name = self.vendor_invoice_store[path][1]
-		invoice_amount = self.vendor_invoice_store[path][2]
-		self.single_invoice_total = round(invoice_amount, 2)
-		self.builder.get_object ('entry5').set_text(invoice_name)
-		self.c_c_multi_payment_store.clear()
-		self.add_multi_payment (invoice_amount)
-		self.check_cash_entries_valid ()
 
 	def debit_payment_clicked (self, button):
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id()
 		transaction_number = self.builder.get_object('entry4').get_text()
-		vendor_debit_payment (self.db, self.date, self.multiple_invoice_total, 
+		vendor_debit_payment (self.db, self.date, self.total, 
 								checking_account_number, transaction_number)
 		self.mark_invoices_paid ()
 		self.db.commit ()
 		self.populate_vendor_invoice_store ()
-		self.calculate_invoice_totals ()
 
 	def post_check_without_printing_clicked (self, button):
 		self.post_check()
@@ -319,33 +314,24 @@ class GUI:
 		check_number =  self.builder.get_object('entry2').get_text()
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id ()
-		vendor_check_payment (self.db, self.date, self.multiple_invoice_total, 
+		vendor_check_payment (self.db, self.date, self.total, 
 								checking_account_number, check_number, 
 								self.vendor_name)
 		self.mark_invoices_paid ()
 		self.db.commit()
 		self.populate_vendor_invoice_store ()
-		self.calculate_invoice_totals ()
 		self.builder.get_object('box14').set_sensitive(False)
 
 	def mark_invoices_paid (self ):
-		for row in self.vendor_invoice_store:
-			if row[3] == True:
-				invoice_id = row[0]
-				invoice_amount = row[2]
-				self.cursor.execute("UPDATE purchase_orders "
-									"SET (paid, date_paid) = "
-									"(True, %s) WHERE id = %s", 
-									(self.date, invoice_id))
-				post_purchase_order_accounts (self.db, invoice_id, self.date)
-
-	def pay_with_credit_card_focused (self, box, frame):
-		if box == self.builder.get_object('box10'):
-			self.builder.get_object ('treeviewcolumn3').set_visible(False)
-
-	def pay_with_check_focused (self, box, frame):
-		if box == self.builder.get_object('box2'):
-			self.builder.get_object ('treeviewcolumn3').set_visible(True)
+		selection = self.builder.get_object('treeview-selection1')
+		model, paths = selection.get_selected_rows()
+		for path in paths:
+			po_id = model[path][0]
+			self.cursor.execute("UPDATE purchase_orders "
+								"SET (paid, date_paid) = "
+								"(True, %s) WHERE id = %s", 
+								(self.date, po_id))
+			post_purchase_order_accounts (self.db, po_id, self.date)
 
 	def credit_card_changed(self, widget):
 		self.check_credit_card_entries_valid ()
@@ -354,17 +340,14 @@ class GUI:
 		self.check_cash_entries_valid ()
 	
 	def pay_with_credit_card_clicked (self, widget):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		po_id = model[path][0]
+		self.mark_invoices_paid()
 		c_c_combo = self.builder.get_object('comboboxtext2')
 		c_c_account_number = c_c_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
-		self.cursor.execute("UPDATE purchase_orders SET (paid, date_paid) "
-							"= (True, %s) WHERE id = %s", (self.date, po_id))
-		post_purchase_order_accounts (self.db, po_id, self.date)
-		payment = VendorPayment(self.db, self.date, 
-									self.multi_payment_total, description)
+		payment = VendorPayment(self.db, 
+								self.date, 
+								self.total, 
+								description)
 		for row in self.c_c_multi_payment_store:
 			amount = row[0]
 			date = row[1]
@@ -376,17 +359,14 @@ class GUI:
 		self.check_cash_entries_valid ()
 		
 	def pay_with_cash_clicked (self, button):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		po_id = model[path][0]
+		self.mark_invoices_paid()
 		cash_combo = self.builder.get_object('comboboxtext1')
 		cash_account_number = cash_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
-		self.cursor.execute("UPDATE purchase_orders SET (paid, date_paid) "
-							"= (True, %s) WHERE id = %s", (self.date, po_id))
-		post_purchase_order_accounts (self.db, po_id, self.date)
-		payment = VendorPayment(self.db, self.date, 
-									self.multi_payment_total, description)
+		payment = VendorPayment(self.db, 
+								self.date, 
+								self.total, 
+								description)
 		payment.cash (cash_account_number)
 		self.db.commit()
 		self.populate_vendor_liststore ()
@@ -465,7 +445,7 @@ class GUI:
 		if self.builder.get_object('comboboxtext2').get_active_id() == None:
 			button.set_label("No credit card selected")
 			return
-		if self.single_invoice_total != self.multi_payment_total :
+		if self.selected_invoices_total != self.multi_payment_total :
 			button.set_label("Invoice and payment do not match")
 			return
 		button.set_label ("Pay")
