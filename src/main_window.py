@@ -218,8 +218,9 @@ class MainGUI :
 		from reports import product_markup
 		product_markup.ProductMarkupGUI()
 
-	def document_reports_window (self, widget):
-		print ("not done yet")
+	def document_history_window (self, widget):
+		from reports import document_history
+		document_history.DocumentHistoryGUI()
 
 	def mailing_list_activated (self, widget):
 		import mailing_lists

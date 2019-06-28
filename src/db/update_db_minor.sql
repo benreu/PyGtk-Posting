@@ -150,6 +150,13 @@ ALTER TABLE settings ALTER COLUMN finance_rate SET NOT NULL;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS finance_charge boolean DEFAULT FALSE;
 UPDATE invoices SET finance_charge = False WHERE finance_charge IS NULL;
 ALTER TABLE invoices ALTER COLUMN finance_charge SET NOT NULL;
+--version 0.5.11
+ALTER TABLE IF EXISTS public.document_lines RENAME TO document_items;
+ALTER TABLE public.document_items ALTER COLUMN document_id SET NOT NULL;
+ALTER TABLE public.document_items ALTER COLUMN product_id SET NOT NULL;
+ALTER TABLE public.document_items ALTER COLUMN min SET DEFAULT 0.00;
+ALTER TABLE public.document_items ALTER COLUMN max SET DEFAULT 100.00;
+ALTER TABLE public.document_items ALTER COLUMN qty SET DEFAULT 1.00;
 
 
 
