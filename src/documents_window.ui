@@ -36,7 +36,7 @@
       <!-- column-name row_id -->
       <column type="gint"/>
       <!-- column-name qty -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name product_id -->
       <column type="gint"/>
       <!-- column-name product_name -->
@@ -44,9 +44,9 @@
       <!-- column-name ext_product_name -->
       <column type="gchararray"/>
       <!-- column-name minimum -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name maximum -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name retailer_id -->
       <column type="gint"/>
       <!-- column-name retailer_name -->
@@ -58,14 +58,14 @@
       <!-- column-name priority -->
       <column type="gchararray"/>
       <!-- column-name price -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name s_price -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
       <!-- column-name ext_price -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkListStore" id="import_store">
+  <object class="GtkListStore" id="existing_store">
     <columns>
       <!-- column-name document_id -->
       <column type="gint"/>
@@ -100,6 +100,16 @@
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Email invoice</property>
         <property name="use_underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="import_from_history">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Import items from history</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="import_items_from_history_activated" swapped="no"/>
       </object>
     </child>
     <child>
@@ -330,18 +340,6 @@
                     <property name="top_attach">0</property>
                   </packing>
                 </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox" id="box9">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkButton" id="button4">
                     <property name="label" translatable="yes">New document</property>
@@ -352,9 +350,8 @@
                     <signal name="clicked" handler="new_document_clicked" swapped="no"/>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">0</property>
                   </packing>
                 </child>
                 <child>
@@ -364,12 +361,11 @@
                     <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="import_window_clicked" swapped="no"/>
+                    <signal name="clicked" handler="existing_documents_clicked" swapped="no"/>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">1</property>
                   </packing>
                 </child>
                 <child>
@@ -382,16 +378,15 @@
                     <signal name="clicked" handler="delete_document_clicked" swapped="no"/>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">2</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">0</property>
               </packing>
             </child>
           </object>
@@ -853,9 +848,10 @@
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="import_dialog">
+  <object class="GtkDialog" id="existing_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Existing Documents</property>
+    <property name="window_position">center</property>
     <property name="default_width">400</property>
     <property name="default_height">150</property>
     <property name="icon_name">pygtk-posting</property>
@@ -874,11 +870,8 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkButton" id="button1">
-                <property name="label" translatable="yes">Import document</property>
+                <property name="label" translatable="yes">Select existing document</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -886,7 +879,7 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">0</property>
               </packing>
             </child>
           </object>
@@ -918,7 +911,7 @@
                     <property name="can_focus">True</property>
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
-                    <property name="model">import_store</property>
+                    <property name="model">existing_store</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection5"/>
                     </child>

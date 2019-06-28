@@ -18,7 +18,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime, timedelta
-import subprocess, re
+import subprocess, re, psycopg2
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
@@ -61,7 +61,7 @@ class DocumentGUI:
 		#self.treeview.drag_dest_set_target_list(None)
 		#self.treeview.drag_dest_add_text_targets()
 		
-		self.import_store = self.builder.get_object('import_store')
+		self.existing_store = self.builder.get_object('existing_store')
 		self.customer_store = self.builder.get_object('customer_store')
 		self.product_store = self.builder.get_object('product_store')
 		product_completion = self.builder.get_object('product_completion')
@@ -70,30 +70,6 @@ class DocumentGUI:
 		customer_completion.set_match_func(self.customer_match_func)
 		self.retailer_completion = self.builder.get_object('retailer_completion')
 		self.retailer_completion.set_match_func(self.customer_match_func)
-
-		qty_column = self.builder.get_object ('treeviewcolumn1')
-		qty_renderer = self.builder.get_object ('cellrenderertext2')
-		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
-
-		minimum_column = self.builder.get_object ('treeviewcolumn8')
-		minimum_renderer = self.builder.get_object ('cellrenderertext9')
-		minimum_column.set_cell_data_func(minimum_renderer, self.minimum_cell_func)
-
-		maximum_column = self.builder.get_object ('treeviewcolumn9')
-		maximum_renderer = self.builder.get_object ('cellrenderertext10')
-		maximum_column.set_cell_data_func(maximum_renderer, self.maximum_cell_func)
-
-		price_column = self.builder.get_object ('treeviewcolumn4')
-		price_renderer = self.builder.get_object ('cellrenderertext5')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
-
-		s_price_column = self.builder.get_object ('treeviewcolumn13')
-		s_price_renderer = self.builder.get_object ('cellrenderertext13')
-		s_price_column.set_cell_data_func(s_price_renderer, self.s_price_cell_func)
-
-		ext_price_column = self.builder.get_object ('treeviewcolumn6')
-		ext_price_renderer = self.builder.get_object ('cellrenderertext7')
-		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
 		
 		self.populate_product_store ()
 		self.populate_customer_store ()
@@ -188,17 +164,15 @@ class DocumentGUI:
 								self.document_name )
 		if self.builder.get_object('menuitem1').get_active() == True:
 			d.print_directly()
-			#print "print_directly"
 		else:
 			d.print_dialog(self.window)
-			#print "print dialog"
 		d.post(self.document_id)	
 		if self.builder.get_object('menuitem4').get_active() == True:
-			self.cursor.execute("SELECT * FROM contacts "
+			self.cursor.execute("SELECT name, email FROM contacts "
 								"WHERE id = %s", (self.contact_id, ))
 			for row in self.cursor.fetchall():
-				name = row[1]
-				email = row[9]
+				name = row[0]
+				email = row[1]
 				if email != "":
 					email = "%s '< %s >'" % (name, email)
 					d.email(email)
@@ -208,23 +182,21 @@ class DocumentGUI:
 	################## start customer
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE (deleted, customer) = "
-							"(False, True) ORDER BY 2")
-		for i in self.cursor.fetchall():
-			contact_id = i[0]
-			name = i[1]
-			self.customer_store.append([str(contact_id),name ])
+							"(False, True) ORDER BY name")
+		for row in self.cursor.fetchall():
+			self.customer_store.append(row)
 		
 	def customer_match_selected(self, completion, model, iter):
 		self.contact_id = model[iter][0]
 		self.customer_selected (self.contact_id)
-		#return True
 
 	def customer_match_func(self, completion, key, iter):
-		if key in self.customer_store[iter][1].lower(): #key is the typed text (always lower case ?!) ; model[iter][1] is to match for every line in the model
-			return True# it's a hit!
-		return False # no match
+		for text in key.split():
+			if text not in self.customer_store[iter][1].lower(): 
+				return False 
+		return True
 
 	def customer_combobox_changed(self, widget, toggle_button=None): #updates the customer
 		contact_id = widget.get_active_id()
@@ -238,70 +210,117 @@ class DocumentGUI:
 		self.builder.get_object('button4').set_sensitive(True)
 		self.builder.get_object('button11').set_sensitive(True)
 		self.builder.get_object('button12').set_sensitive(True)
-		self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)",(name_id,))
+		self.cursor.execute("SELECT "
+								"name, "
+								"ext_name, "
+								"address, "
+								"phone "
+							"FROM contacts "
+							"WHERE id = %s",(name_id,))
 		for row in self.cursor.fetchall() :
-			self.customer_name_default_label = row[1]
-			self.builder.get_object('entry10').set_text(row[3])
-			self.builder.get_object('entry11').set_text(row[2])
-			self.builder.get_object('entry12').set_text(row[8])
+			self.customer_name_default_label = row[0]
+			self.builder.get_object('entry11').set_text(row[1])
+			self.builder.get_object('entry10').set_text(row[2])
+			self.builder.get_object('entry12').set_text(row[3])
 		self.builder.get_object('button2').set_sensitive(True)
 		self.builder.get_object('menuitem2').set_sensitive(True)
 		job_type_combo = self.builder.get_object('comboboxtext2')
 		if job_type_combo.get_active() < 0 :
 			job_type_combo.set_active(0)
-		self.populate_import_store ()
+		self.populate_existing_store ()
 
 	################## start qty
 
-	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
-		qty = '{:,.1f}'.format(model.get_value(iter1, 1))
-		cellrenderer.set_property("text" , qty)
-
 	def qty_edited(self, widget, path, text):
-		self.documents_store[path][1] = round(float(text), 1)
-		self.calculate_row_total(path)
+		row_id = self.documents_store[path][0]
+		try:
+			self.cursor.execute("UPDATE document_items "
+								"SET (qty, ext_price) = "
+								"(%s, (%s * price)) "
+								"WHERE id = %s "
+								"RETURNING qty::text, ext_price::text", 
+								(text, text, row_id))
+			for row in self.cursor.fetchall():
+				self.documents_store[path][1] = row[0]
+				self.documents_store[path][14] = row[1]
+		except psycopg2.DataError as e:
+			self.db.rollback()
+			self.show_message (e)
+			return False
+		self.db.commit()
 		self.calculate_totals ()
-		self.save_document_line (path)
 
 	################## start minimum
 
-	def minimum_cell_func(self, column, cellrenderer, model, iter1, data):
-		minimum = '{:,.2f}'.format(model.get_value(iter1, 5))
-		cellrenderer.set_property("text" , minimum)
-
 	def minimum_edited(self, widget, path, text):
-		self.documents_store[path][5] = round(float(text), 2)
-		self.save_document_line (path)
+		row_id = self.documents_store[path][0]
+		try:
+			self.cursor.execute("UPDATE document_items SET min = %s "
+									"WHERE id = %s "
+									"RETURNING min::text", (text, row_id))
+			self.db.commit()
+			for row in self.cursor.fetchall():
+				minimum = row[0]
+				self.documents_store[path][5] = minimum
+		except psycopg2.DataError as e:
+			self.db.rollback()
+			self.show_message (e)
+			return False
 
 	################## start maximum
 
-	def maximum_cell_func(self, column, cellrenderer, model, iter1, data):
-		maximum = '{:,.2f}'.format(model.get_value(iter1, 6))
-		cellrenderer.set_property("text" , maximum)
-
 	def maximum_edited(self, widget, path, text):
-		self.documents_store[path][6] = round(float(text), 2)
-		self.save_document_line (path)
+		row_id = self.documents_store[path][0]
+		try:
+			self.cursor.execute("UPDATE document_items SET max = %s "
+									"WHERE id = %s "
+									"RETURNING max::text", (text, row_id))
+			self.db.commit()
+			for row in self.cursor.fetchall():
+				maximum = row[0]
+				self.documents_store[path][6] = maximum
+		except psycopg2.DataError as e:
+			self.db.rollback()
+			self.show_message (e)
+			return False
 
 	################## start freeze
 
 	def freeze_toggled (self, cell_renderer, path):
-		is_active = cell_renderer.get_active()
-		self.documents_store[path][9] = not is_active
-		self.save_document_line (path)
+		row_id = self.documents_store[path][0]
+		self.cursor.execute("UPDATE document_items SET type_1 = NOT "
+								"(SELECT type_1 FROM document_items "
+									"WHERE id = %s) "
+								"WHERE id = %s "
+								"RETURNING type_1", (row_id, row_id))
+		self.db.commit()
+		for row in self.cursor.fetchall():
+			freeze = row[0]
+			self.documents_store[path][9] = freeze
 		
 	################## start remark
 
 	def remark_edited(self, widget, path, text):
-		self.documents_store[path][10] = text
-		self.save_document_line (path)
+		row_id = self.documents_store[path][0]
+		self.cursor.execute("UPDATE document_items SET remark = %s "
+								"WHERE id = %s "
+								"RETURNING remark", (text, row_id))
+		self.db.commit()
+		for row in self.cursor.fetchall():
+			remark = row[0]
+			self.documents_store[path][10] = remark
 
 	################## start priority
 
 	def priority_edited(self, widget, path, text):
-		self.documents_store[path][11] = text
-		self.calculate_totals ()
-		self.save_document_line (path)
+		row_id = self.documents_store[path][0]
+		self.cursor.execute("UPDATE document_items SET priority = %s "
+								"WHERE id = %s "
+								"RETURNING priority", (text, row_id))
+		self.db.commit()
+		for row in self.cursor.fetchall():
+			priority = row[0]
+			self.documents_store[path][11] = priority
 
 	################## start retailer
 
@@ -317,12 +336,12 @@ class DocumentGUI:
 		self.documents_store[path][7] = int(retailer_id)
 		self.documents_store[path][8] = retailer_name
 		self.save_document_line (path)
-		#return True
 
 	def retailer_match_func(self, completion, key, iter):
-		if key in self.customer_store[iter][1].lower(): #key is the typed text (always lower case ?!) ; model[iter][1] is to match for every line in the model
-			return True# it's a hit!
-		return False # no match
+		for text in key.split():
+			if text not in self.customer_store[iter][1].lower(): 
+				return False 
+		return True
 	
 	def retailer_changed (self, combo, path, _iter):
 		retailer_id = self.customer_store[_iter][0]
@@ -333,32 +352,40 @@ class DocumentGUI:
 		
 	################## start price
 
-	def s_price_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = '{:,.2f}'.format(model.get_value(iter1, 13))
-		cellrenderer.set_property("text" , price)
-
-	def price_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = '{:,.2f}'.format(model.get_value(iter1, 12))
-		cellrenderer.set_property("text" , price)
-
 	def s_price_edited (self, widget, path, text):
-		self.documents_store[path][13] = float(text)
-		self.save_document_line (path)
+		row_id = self.documents_store[path][0]
+		try:
+			self.cursor.execute("UPDATE document_items "
+								"SET s_price = %s "
+								"WHERE id = %s "
+								"RETURNING s_price::text", 
+								(text, row_id))
+			for row in self.cursor.fetchall():
+				self.documents_store[path][13] = row[0]
+		except psycopg2.DataError as e:
+			self.db.rollback()
+			self.show_message (e)
+			return False
+		self.db.commit()
 		
-	def price_edited(self, widget, path, text):	
-		self.documents_store[path][12] = float(text)
-		self.calculate_row_total(path)
-		self.calculate_totals()
-		self.save_document_line (path)
-
-	def set_sticky_price(self, widget):
-		self.price_renderer_value = widget.get_chars(0, -1)
-
-	################## end price
-
-	def ext_price_cell_func(self, column, cellrenderer, model, iter1, data):
-		ext_price = '{:,.2f}'.format(model.get_value(iter1, 14))
-		cellrenderer.set_property("text" , ext_price)
+	def price_edited(self, widget, path, text):
+		row_id = self.documents_store[path][0]
+		try:
+			self.cursor.execute("UPDATE document_items "
+								"SET (price, ext_price) = "
+								"(%s, (qty * %s)) "
+								"WHERE id = %s "
+								"RETURNING price::text, ext_price::text", 
+								(text, text, row_id))
+			for row in self.cursor.fetchall():
+				self.documents_store[path][12] = row[0]
+				self.documents_store[path][14] = row[1]
+		except psycopg2.DataError as e:
+			self.db.rollback()
+			self.show_message (e)
+			return False
+		self.db.commit()
+		self.calculate_totals ()
 		
 	################## start product
 	
@@ -387,55 +414,89 @@ class DocumentGUI:
 	def product_selected (self, product_id, path):
 		if int(product_id) == self.documents_store[path][2]:
 			return # product did not change
-		self.cursor.execute("SELECT name, ext_name FROM products "
-							"WHERE id = %s", (product_id,))
+		iter_ = self.documents_store.get_iter(path)
+		row_id = self.documents_store[iter_][0]
+		self.cursor.execute("UPDATE document_items "
+							"SET product_id = %s WHERE id = %s;"
+							"SELECT name, ext_name FROM products "
+							"WHERE id = %s", (product_id, row_id, product_id))
 		tupl = self.cursor.fetchone()
+		self.db.commit()
 		product_name, product_ext_name = tupl[0], tupl[1]
-		self.documents_store[path][3] = product_name
-		self.documents_store[path][4] = product_ext_name
-		self.documents_store[path][2] = int(product_id)
+		self.documents_store[iter_][2] = int(product_id)
+		self.documents_store[iter_][3] = product_name
+		self.documents_store[iter_][4] = product_ext_name
 		price = get_customer_product_price(self.db, self.contact_id, product_id)
-		self.documents_store[path][12] = price
-		self.calculate_row_total(path)
+		self.documents_store[iter_][12] = str(price)
 		self.calculate_totals()
-		self.save_document_line (path)# auto save feature
 		
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id, name, ext_name FROM products "
+		self.cursor.execute("SELECT "
+								"id::text, "
+								"name ||' {' || ext_name ||'}' FROM products "
 							"WHERE (deleted, sellable, stock) = "
 							"(False, True, True) ORDER BY name ")
 		for row in self.cursor.fetchall():
-			_id_ = row[0]
-			name = row[1]
-			ext_name = row[2]
-			total_name = "%s {%s}"% (name, ext_name)
-			self.product_store.append([str(_id_), total_name])
+			self.product_store.append(row)
 
 	################## end product
-
-	def calculate_row_total (self, path):
-		line = self.documents_store[path]
-		qty = line[1]
-		price = line[12]
-		ext_price = qty * price
-		line[14] = ext_price
 	
 	def calculate_totals (self, widget = None):
-		self.subtotal = 0  
-		self.tax = 0
-		self.total = 0 
-		for item in self.documents_store:
-			self.total = self.total + item[14]
-		total = '${:,.2f}'.format(self.total)
-		self.builder.get_object('entry8').set_text(total)
+		self.cursor.execute("SELECT "
+								"COALESCE(SUM(ext_price), 0.00)::text "
+							"FROM document_items WHERE document_id = %s", 
+							(self.document_id,))
+		for row in self.cursor.fetchall():
+			self.total = row[0]
+		self.builder.get_object('entry8').set_text(self.total)
 
 	def add_entry (self, widget):
-		self.cursor.execute("SELECT id, name FROM products "
-							"WHERE (deleted, sellable) = (False, True)")
+		c = self.db.cursor()
+		c.execute("INSERT INTO document_items " 
+						"(document_id, product_id, retailer_id) "
+					"VALUES "
+						"(%s, "
+						"(SELECT id FROM products "
+							"WHERE (deleted, sellable, stock) = "
+									"(False, True, True) LIMIT 1), "
+						"%s) "
+					"RETURNING "
+						"id ", 
+					(self.document_id, self.contact_id))
+		row_id = c.fetchone()[0]
+		c.execute("SELECT "
+						"di.id, "
+						"qty::text, "
+						"p.id, "
+						"p.name, "
+						"p.ext_name, "
+						"min::text, "
+						"max::text, "
+						"retailer_id, "
+						"COALESCE(c.name, ''), "
+						"type_1, "
+						"remark, "
+						"priority, "
+						"price::text, "
+						"s_price::text, "
+						"ext_price::text "
+					"FROM document_items AS di "
+					"JOIN products AS p ON di.product_id = p.id "
+					"LEFT JOIN contacts AS c ON di.retailer_id = c.id "
+					"WHERE di.id = %s",
+					(row_id,))
 		self.builder.get_object('button15').set_sensitive(True)
-		for i in self.cursor.fetchall():
-			product_id = i[0]
+		self.db.commit()
+		for row in c.fetchall():
+			iter_ = self.documents_store.append(row)
+			treeview = self.builder.get_object('treeview2')
+			c = treeview.get_column(0)
+			path = self.documents_store.get_path(iter_)
+			treeview.set_cursor(path , c, True)#set the cursor to the last appended item
+			return
+			row_id = row[0]
+			product_id = row[1]
 			product_name = i[1]
 			price = get_customer_product_price (self.db, self.contact_id, product_id)
 			self.documents_store.append([0, 1.0, product_id, product_name, "", 
@@ -448,43 +509,18 @@ class DocumentGUI:
 			c = treeview.get_column(0)
 			treeview.set_cursor(last , c, True)	#set the cursor to the last appended item
 			break
+		c.close()
 
 	def delete_entry (self, widget):
 		selection = self.builder.get_object("treeview-selection")
 		row, path = selection.get_selected_rows ()
+		if path == []:
+			return
 		document_line_item_id = self.documents_store[path][0]
-		self.cursor.execute("DELETE FROM document_lines WHERE id = %s",
+		self.cursor.execute("DELETE FROM document_items WHERE id = %s",
 							(document_line_item_id,))
 		self.db.commit()
 		self.populate_document_store ()
-
-	def save_document_line (self, path):
-		line = self.documents_store[path]
-		line_id = line[0]
-		qty = line[1]
-		product_id = line[2]
-		product_name = line[3]
-		product_ext_name = line[4]
-		minimum = line[5]
-		maximum = line[6]
-		retailer_id = line[7]
-		retailer_name = line[8]
-		type_1 = line[9]
-		remark = line[10]
-		priority = line[11]
-		price = line[12]
-		s_price = line[13]
-		ext_price = line[14]
-		if retailer_id == 0:
-			retailer_id = None
-		if line_id == 0:
-			self.cursor.execute("INSERT INTO document_lines (document_id, qty, product_id, min, max, retailer_id, type_1, remark, priority, price, s_price, ext_price, canceled, finished) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (self.document_id, qty, product_id, minimum, maximum, retailer_id, type_1, remark, priority, price, s_price, ext_price, False, 0.00))
-			line_id = self.cursor.fetchone()[0]
-			line[0] = line_id
-		else:
-			self.cursor.execute("UPDATE document_lines SET (document_id, qty, product_id, min, max, retailer_id, type_1, remark, priority, price, s_price, ext_price) = (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) WHERE id = %s", (self.document_id, qty, product_id, minimum, maximum, retailer_id, type_1, remark, priority, price, s_price, ext_price, line_id))
-		self.db.commit()
-		self.calculate_totals ()
 
 	def key_tree_tab (self, treeview, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -523,7 +559,7 @@ class DocumentGUI:
 		self.cursor.execute("DELETE FROM documents WHERE id = %s", (self.document_id,))
 		self.db.commit()
 		self.builder.get_object('entry3').set_text('')
-		self.populate_import_store ()
+		self.populate_existing_store ()
 
 	def document_type_changed (self, widget):
 		document_type = widget.get_active_text()
@@ -533,7 +569,7 @@ class DocumentGUI:
 			self.builder.get_object('window').set_title("New " + document_type)
 			self.builder.get_object('button15').set_label("Post " + document_type)
 			self.calendar.set_today()
-			self.populate_import_store ()
+			self.populate_existing_store ()
 
 	def document_type_clicked (self, widget):
 		import settings
@@ -546,12 +582,25 @@ class DocumentGUI:
 		self.documents_store.clear()
 		self.builder.get_object('label6').set_text(" Current %s : " % self.document_type)
 		comment = self.builder.get_object('entry3').get_text()
-		self.cursor.execute("INSERT INTO documents (contact_id, closed, invoiced, canceled, date_created, dated_for, document_type_id, pending_invoice) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (self.contact_id, False, False, False, datetime.today(), self.date, self.document_type_id, False))
+		self.cursor.execute("INSERT INTO documents "
+								"(contact_id, "
+								"closed, "
+								"invoiced, "
+								"canceled, "
+								"date_created, "
+								"dated_for, "
+								"document_type_id, "
+								"pending_invoice) "
+							"VALUES "
+							"(%s, %s, %s, %s, %s, %s, %s, %s) "
+							"RETURNING id", 
+							(self.contact_id, False, False, False, datetime.today(), self.date, self.document_type_id, False))
 		self.document_id = self.cursor.fetchone()[0]
 		self.set_document_name ()
 		self.db.commit()
 		self.builder.get_object('button13').set_sensitive(True)
 		self.builder.get_object('button14').set_sensitive(True)
+		self.builder.get_object('import_from_history').set_sensitive(True)
 
 	def set_document_name (self):
 		type_text = self.document_type[0:3]
@@ -569,44 +618,44 @@ class DocumentGUI:
 		self.db.commit()
 		self.builder.get_object('entry5').set_text(self.document_name)
 		
-	def populate_import_store (self):
+	def populate_existing_store (self):
 		model, path = self.builder.get_object('treeview-selection5').get_selected_rows()
-		self.import_store.clear()
+		self.existing_store.clear()
 		doc_count = 0
 		self.cursor.execute("SELECT id, name FROM documents "
-							"WHERE (document_type_id, closed, canceled, "
-							"contact_id)  = "
-							"(%s, False, False, %s)", 
+							"WHERE "
+								"(document_type_id, closed, "
+								"canceled, contact_id) "
+							"= "
+								"(%s, False, False, %s) ORDER BY id", 
 							(self.document_type_id, self.contact_id))
 		for row in self.cursor.fetchall():
 			doc_count += 1
-			line_id = row[0]
-			line_name = row[1]
-			self.import_store.append([line_id, line_name])
+			self.existing_store.append(row)
 		self.builder.get_object('button11').set_label("Existing documents (%s)"
 																	% doc_count)
 		if path != []:
 			self.builder.get_object('treeview-selection5').select_path(path)
 
-	def import_window_clicked (self, widget):
-		import_dialog = self.builder.get_object('import_dialog')
-		self.populate_import_store ()
-		result = import_dialog.run()
+	def existing_documents_clicked (self, widget):
+		existing_dialog = self.builder.get_object('existing_dialog')
+		self.populate_existing_store ()
+		result = existing_dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
-			self.import_document ()
-		import_dialog.hide()
+			self.existing_document ()
+		existing_dialog.hide()
 
-	def import_document (self):
+	def existing_document (self):
 		selection = self.builder.get_object('treeview-selection5')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		tree_iter = model.get_iter(path)
-		self.document_id = model.get_value(tree_iter, 0)
+		self.document_id = model[path][0]
 		self.populate_document_store()
 		self.builder.get_object('button13').set_sensitive(True)
 		self.builder.get_object('button14').set_sensitive(True)
 		self.builder.get_object('button15').set_sensitive(True)
+		self.builder.get_object('import_from_history').set_sensitive(True)
 		
 	def populate_document_store (self):
 		self.documents_store.clear()
@@ -621,39 +670,84 @@ class DocumentGUI:
 			self.date = row[1]
 			self.builder.get_object('entry1').set_text(row[2])
 		self.builder.get_object('entry5').set_text(self.document_name)
-		self.cursor.execute("SELECT dli.id, qty, p.id, p.name, ext_name, min, max, "
-							"type_1, type_2, priority, remark, price, s_price, "
-							"retailer_id, COALESCE(c.name, '') "
-							"FROM document_lines AS dli "
-							"JOIN products AS p ON dli.product_id = p.id "
-							"LEFT JOIN contacts AS c ON dli.retailer_id = c.id "
-							"WHERE document_id = %s ORDER BY dli.id", 
+		self.cursor.execute("SELECT "
+								"di.id, "
+								"qty::text, "
+								"p.id, "
+								"p.name, "
+								"p.ext_name, "
+								"min::text, "
+								"max::text, "
+								"retailer_id, "
+								"COALESCE(c.name, ''), "
+								"type_1, "
+								"remark, "
+								"priority, "
+								"price::text, "
+								"s_price::text, "
+								"ext_price::text "
+							"FROM document_items AS di "
+							"JOIN products AS p ON di.product_id = p.id "
+							"LEFT JOIN contacts AS c ON di.retailer_id = c.id "
+							"WHERE document_id = %s ORDER BY di.id", 
 							(self.document_id, ) )
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			ext_name = row[4]
-			min = row[5]
-			max = row[6]
-			type_1 = row[7]
-			type_2 = row[8]
-			priority = row[9]
-			remark = row[10]
-			price = row[11]
-			s_price = row[12]
-			retailer_id = row[13]
-			retailer_name = row[14]
-			ext_price = qty * price
-			self.documents_store.append([row_id, qty, product_id, product_name, 
-										ext_name, min, max, retailer_id,
-										retailer_name, type_1, remark, priority,
-										price, s_price, ext_price])
+			self.documents_store.append(row)
 		self.calculate_totals ()
 
+	def import_items_from_history_activated (self, menuitem):
+		button = Gtk.Button(label = 'Import items from document history')
+		button.show()
+		from reports import document_history
+		dh = document_history.DocumentHistoryGUI()
+		dh.window.set_transient_for (self.window)
+		dh.get_object("box1").pack_start(button, False, False, 10)
+		dh.get_object("all_customer_checkbutton").set_active(True)
+		dh.get_object("box3").set_visible(False)
+		selection = dh.get_object("treeview-selection1")
+		selection.set_mode(Gtk.SelectionMode.SINGLE)
+		selection.select_path(0)
+		button.connect("clicked", self.import_items_from_history, dh)
+
+	def import_items_from_history(self, button, dh):
+		model, path = dh.get_object("treeview-selection1").get_selected_rows()
+		if path == []:
+			return
+		old_id = model[path][0]
+		self.cursor.execute("INSERT INTO document_items "
+								"(qty, "
+								"document_id, "
+								"product_id, "
+								"min, "
+								"max, "
+								"retailer_id, "
+								"type_1, "
+								"remark, "
+								"priority, "
+								"price, "
+								"s_price, "
+								"ext_price) "
+							"(SELECT "
+								"qty, "
+								"%s, "
+								"product_id, "
+								"min, "
+								"max, "
+								"%s, "
+								"type_1, "
+								"remark, "
+								"priority, "
+								"price, "
+								"s_price, "
+								"ext_price "
+							"FROM document_items WHERE document_id = %s)", 
+							(self.document_id, self.contact_id, old_id))
+		self.populate_document_store ()
+		self.db.commit()
+		dh.window.destroy()
+
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/invoice.page"])
+		subprocess.Popen(["yelp", constants.help_dir + "/document.page"])
 
 	def window_key_event (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -683,7 +777,7 @@ class DocumentGUI:
 		self.documents_store[path][7]= None
 		self.documents_store[path][8] = ''
 		line_id = self.documents_store[path][0]
-		self.cursor.execute("UPDATE document_lines SET retailer_id = NULL "
+		self.cursor.execute("UPDATE document_items SET retailer_id = NULL "
 							"WHERE id = %s", (line_id, ))
 		self.db.commit()
 
@@ -699,7 +793,6 @@ class DocumentGUI:
 			for index, row in enumerate(self.documents_store):
 				if row[2] == product_id:
 					row[1] += 1.0 # increase the qty by one
-					self.save_document_line(index)
 					treeview = self.builder.get_object('treeview2')
 					c = treeview.get_column(0)
 					treeview.set_cursor(index , c, False)	#set the cursor to the last appended item
@@ -707,18 +800,23 @@ class DocumentGUI:
 			product_name = i[1]
 			price = i[2]
 			ext_name = i[3]
-			self.documents_store.append([0, 1.0, product_id, product_name, ext_name, 0.0, 100.00, int(self.contact_id), self.customer_name_default_label, False, "", "1", price, 0.00, 1])
-			last = self.documents_store.iter_n_children ()-1
-			#last -= 1 #iter_n_children starts at 1 ; set_cursor starts at 0 ## function merged with above line
-			self.save_document_line(last)
+			self.documents_store.append([0, 1.0, product_id, product_name, ext_name, 0.0, 100.00, int(self.contact_id), self.customer_name_default_label, False, "", "1", price, 0.00, 1]) #FIXME
+			last = self.documents_store.iter_n_children() - 1
 			treeview = self.builder.get_object('treeview2')
 			c = treeview.get_column(0)
 			treeview.set_cursor(last , c, False)	#set the cursor to the last appended item
 			return
 		else:
-			print ("please make a window to alert the user that the barcode does not exist!")
+			raise Exception ("please make a window to alert the user that the barcode does not exist!")
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
 
 
 
-
-		
