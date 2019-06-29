@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, GObject, Gdk, GLib
+from gi.repository import Gtk, Gdk
 from decimal import Decimal
 import subprocess
 from constants import ui_directory, db, broadcaster, is_admin
@@ -59,10 +59,6 @@ class InvoiceHistoryGUI:
 			name = customer[1]
 			ext_name = customer[2]
 			self.customer_store.append([id_ , name, ext_name])
-
-		amount_column = self.builder.get_object ('treeviewcolumn5')
-		amount_renderer = self.builder.get_object ('cellrenderertext5')
-		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
 		
 		if is_admin == True:
 			self.builder.get_object('treeview2').set_tooltip_column(0)
@@ -86,17 +82,13 @@ class InvoiceHistoryGUI:
 		else:
 			self.builder.get_object('treeview-selection1').unselect_all()
 
-	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = '{:,.2f}'.format(model.get_value(iter1, 6))
-		cellrenderer.set_property("text" , price)
-
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		treeiter = model.get_iter(path)
 		if self.invoice_store.iter_has_child(treeiter) == True:
 			return # not an individual line item
+		qty = model.get_value(treeiter, 1)
 		product_id = model.get_value(treeiter, 3)
-		qty = model.get_value(treeiter, 5)
 		data.set_text(str(qty) + ' ' + str(product_id), -1)
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
