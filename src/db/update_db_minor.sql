@@ -155,6 +155,9 @@ ALTER TABLE public.document_items ALTER COLUMN product_id SET NOT NULL;
 ALTER TABLE public.document_items ALTER COLUMN min SET DEFAULT 0.00;
 ALTER TABLE public.document_items ALTER COLUMN max SET DEFAULT 100.00;
 ALTER TABLE public.document_items ALTER COLUMN qty SET DEFAULT 1.00;
+--version 0.5.12
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERENCES gl_entries ON DELETE RESTRICT;
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS incoming_invoice_id bigint REFERENCES incoming_invoices ON DELETE RESTRICT;
 
 
 
