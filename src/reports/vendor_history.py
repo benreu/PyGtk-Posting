@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, GObject, Gdk, GLib
+from gi.repository import Gtk, Gdk
 from decimal import Decimal
 import subprocess
 import constants
@@ -73,8 +73,8 @@ class VendorHistoryGUI:
 		treeiter = model.get_iter(path)
 		if self.po_store.iter_has_child(treeiter) == True:
 			return # not an individual line item
-		qty = model.get_value(treeiter, 0)
-		product_id = model.get_value(treeiter, 1)
+		qty = model.get_value(treeiter, 1)
+		product_id = model.get_value(treeiter, 3)
 		data.set_text(str(qty) + ' ' + str(product_id), -1)
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
@@ -207,6 +207,7 @@ class VendorHistoryGUI:
 			self.cursor.execute("SELECT "
 									"poli.id, "
 									"poli.qty, "
+									"poli.qty::text, "
 									"product_id, "
 									"p.name, "
 									"p.ext_name, "
@@ -241,6 +242,7 @@ class VendorHistoryGUI:
 			self.cursor.execute("SELECT "
 									"poli.id, "
 									"poli.qty, "
+									"poli.qty::text, "
 									"product_id, "
 									"p.name, "
 									"p.ext_name, "
@@ -271,16 +273,16 @@ class VendorHistoryGUI:
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.product_name.split():
-			if text not in model[tree_iter][3].lower():
-				return False
-		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][4].lower():
 				return False
-		for text in self.remark.split():
+		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][5].lower():
 				return False
+		for text in self.remark.split():
+			if text not in model[tree_iter][6].lower():
+				return False
 		for text in self.order_number.split():
-			if text not in model[tree_iter][10].lower():
+			if text not in model[tree_iter][11].lower():
 				return False
 		return True
 
