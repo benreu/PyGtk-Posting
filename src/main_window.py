@@ -148,6 +148,10 @@ class MainGUI :
 	def blank_clicked (self, button):
 		pass
 
+	def shipping_history_activated (self, menuitem):
+		from reports import shipping_history
+		shipping_history.ShippingHistoryGUI()
+
 	def deposits_report (self, menuitem):
 		from reports import deposits
 		deposits.DepositsGUI()
