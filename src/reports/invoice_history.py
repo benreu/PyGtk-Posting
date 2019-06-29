@@ -321,13 +321,13 @@ class InvoiceHistoryGUI:
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.product_name.split():
-			if text not in model[tree_iter][3].lower():
-				return False
-		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][4].lower():
 				return False
-		for text in self.remark.split():
+		for text in self.product_ext_name.split():
 			if text not in model[tree_iter][5].lower():
+				return False
+		for text in self.remark.split():
+			if text not in model[tree_iter][6].lower():
 				return False
 		return True
 
