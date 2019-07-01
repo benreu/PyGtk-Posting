@@ -119,7 +119,7 @@ class VendorHistoryGUI:
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		product_id = model[path][1]
+		product_id = model[path][3]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
 

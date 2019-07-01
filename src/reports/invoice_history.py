@@ -152,7 +152,7 @@ class InvoiceHistoryGUI:
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		product_id = model[path][2]
+		product_id = model[path][3]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
 
