@@ -18,7 +18,7 @@ from gi.repository import Gtk, GLib, Gio
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-from constants import ui_directory, db, broadcaster, is_admin
+from constants import ui_directory, db, broadcaster, is_admin, help_dir, template_dir
 
 UI_FILE = ui_directory + "/contacts.ui"
 
@@ -282,7 +282,7 @@ class GUI(Gtk.Builder):
 	def delete_file_clicked (self, widget):
 		dialog = self.get_object('dialog1')
 		combo = self.get_object('comboboxtext3')
-		if constants.is_admin == False:
+		if is_admin == False:
 			self.get_object('button17').set_sensitive(False)
 			self.get_object('label17').set_label("You are not admin !")
 		else:
@@ -341,7 +341,7 @@ class GUI(Gtk.Builder):
 		self.db.commit()
 
 	def contact_help_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/contacts.page"])
+		subprocess.Popen(["yelp", help_dir + "/contacts.page"])
 
 	def print_10_env_clicked (self, button):
 		contact = Item()
@@ -373,10 +373,9 @@ class GUI(Gtk.Builder):
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		env_file = "/tmp/env10_template.odt"
-		t = Template(constants.template_dir+"env10_template.odt", env_file , True)
-		t.render(data) #the data holds all the info of the invoice
-		subprocess.Popen("soffice --headless -p " + env_file, shell = True)
-		#subprocess.call("libreoffice " + label_file, shell = True)
+		t = Template(template_dir+"/env10_template.odt", env_file , True)
+		t.render(data)
+		subprocess.Popen(["soffice", env_file])
 
 	def open_co_letter_head (self, button):
 		contact = Item()
@@ -408,9 +407,9 @@ class GUI(Gtk.Builder):
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		label_file = "/tmp/letter_template.odt"
-		t = Template(constants.template_dir+"letter_template.odt", label_file , True)
-		t.render(data) #the data holds all the info of the invoice
-		subprocess.call("libreoffice " + label_file, shell = True)
+		t = Template(template_dir+"/letter_template.odt", label_file , True)
+		t.render(data)
+		subprocess.Popen(["soffice", label_file])
 
 	def print_shipping_label_clicked (self, button):
 		contact = Item()
@@ -443,8 +442,8 @@ class GUI(Gtk.Builder):
 		from py3o.template import Template
 		label_file = "/tmp/contact_label_template.odt"
 		t = Template("./templates/contact_label_template.odt", label_file , True)
-		t.render(data) #the data holds all the info of the invoice
-		subprocess.call("libreoffice " + label_file, shell = True)
+		t.render(data) 
+		subprocess.Popen(["soffice", label_file])
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -515,7 +514,7 @@ class GUI(Gtk.Builder):
 				file_data = row[1]
 				view_file = open("/tmp/" + file_name,'wb')
 				view_file.write(file_data)
-				subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
+				subprocess.call(["xdg-open", "/tmp/" + str(file_name)])
 				view_file.close()
 		else:											#view exemption file
 			exemption_selection = self.get_object('treeview-selection2')
@@ -529,7 +528,7 @@ class GUI(Gtk.Builder):
 				pdf_data = row[0]
 				view_file = open("/tmp/exemption.pdf",'wb')
 				view_file.write(pdf_data)
-				subprocess.call("xdg-open /tmp/exemption.pdf", shell = True)
+				subprocess.call(["xdg-open", "/tmp/exemption.pdf"])
 				view_file.close()
 
 	def tax_exemption_window(self, widget):
