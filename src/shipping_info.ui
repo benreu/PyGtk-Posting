@@ -60,7 +60,13 @@
       <column type="gint"/>
       <!-- column-name invoice_id -->
       <column type="gint"/>
+      <!-- column-name invoice_id_formatted -->
+      <column type="gchararray"/>
       <!-- column-name tracking_number -->
+      <column type="gchararray"/>
+      <!-- column-name date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -72,6 +78,9 @@
     <property name="default_width">440</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
+    <child>
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -90,17 +99,6 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Invoice</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
                 <property name="top_attach">1</property>
               </packing>
             </child>
@@ -112,23 +110,25 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="entry1">
+              <object class="GtkEntry" id="tracking_number_entry">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <signal name="changed" handler="tracking_number_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
-              <object class="GtkComboBox">
+              <object class="GtkComboBox" id="customer_combo">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <property name="model">customer_store</property>
@@ -151,28 +151,140 @@
               </object>
               <packing>
                 <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Payment info</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="incoming_invoice_button">
+                <property name="label" translatable="yes">Incoming invoice window</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Opens an Incoming Invoice window to enter the financial transaction.
+This transaction will be linked to the shipping info.</property>
+                <signal name="clicked" handler="incoming_invoice_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Date</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkComboBox">
+              <object class="GtkEntry" id="entry2">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="primary_icon_stock">gtk-find</property>
+                <signal name="icon-release" handler="calendar_entry_icon_released" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="model">invoice_store</property>
-                <property name="has_entry">True</property>
-                <property name="entry_text_column">1</property>
-                <property name="id_column">0</property>
-                <signal name="changed" handler="invoice_changed" swapped="no"/>
-                <child internal-child="entry">
-                  <object class="GtkEntry">
-                    <property name="can_focus">True</property>
-                    <property name="completion">invoice_completion</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes"> and/or </property>
                   </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="shipping_description_entry">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="can_focus">True</property>
+                    <property name="tooltip_text" translatable="yes">If this shipment does not apply to an invoice, enter shipping description</property>
+                    <property name="placeholder_text" translatable="yes">Description</property>
+                    <signal name="changed" handler="shipping_description_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">1</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Invoice </property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">Select the invoice that contains the shipment items</property>
+                    <property name="model">invoice_store</property>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">0</property>
+                    <property name="id_column">0</property>
+                    <signal name="changed" handler="invoice_changed" swapped="no"/>
+                    <child internal-child="entry">
+                      <object class="GtkEntry">
+                        <property name="can_focus">True</property>
+                        <property name="completion">invoice_completion</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
           </object>
@@ -189,6 +301,20 @@
             <property name="homogeneous">True</property>
             <child>
               <object class="GtkButton">
+                <property name="label" translatable="yes">Shipping history</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="shipping_history_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton">
                 <property name="label" translatable="yes">Help</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -198,7 +324,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -213,7 +339,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -246,7 +372,7 @@
                     <child>
                       <object class="GtkCellRendererText"/>
                       <attributes>
-                        <attribute name="text">1</attribute>
+                        <attribute name="text">2</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -256,13 +382,27 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Tracking number</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">2</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText">
                         <property name="editable">True</property>
                       </object>
                       <attributes>
-                        <attribute name="text">2</attribute>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Date</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">4</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">5</attribute>
                       </attributes>
                     </child>
                   </object>

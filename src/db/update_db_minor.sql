@@ -156,8 +156,13 @@ ALTER TABLE public.document_items ALTER COLUMN min SET DEFAULT 0.00;
 ALTER TABLE public.document_items ALTER COLUMN max SET DEFAULT 100.00;
 ALTER TABLE public.document_items ALTER COLUMN qty SET DEFAULT 1.00;
 --version 0.5.12
-ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERENCES gl_entries ON DELETE RESTRICT;
 ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS incoming_invoice_id bigint REFERENCES incoming_invoices ON DELETE RESTRICT;
+--version 0.5.13
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS date_shipped date DEFAULT now();
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS contact_id bigint REFERENCES contacts ON DELETE RESTRICT;
+UPDATE shipping_info SET contact_id = c_join.contact_id FROM (SELECT co.id AS contact_id, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
+UPDATE shipping_info SET date_shipped = c_join.dated_for FROM (SELECT co.id AS contact_id, i.dated_for AS dated_for, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
+ALTER TABLE shipping_info ALTER COLUMN contact_id SET NOT NULL;
 
 
 
