@@ -27,14 +27,15 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 
-class ManufacturingGUI:
+class ManufacturingGUI(Gtk.Builder):
 	def __init__(self):
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
 
-		self.product_store = self.builder.get_object('product_store')
-		product_completion = self.builder.get_object('product_completion')
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
+
+		self.product_store = self.get_object('product_store')
+		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 
 		self.product_id = None
@@ -44,7 +45,7 @@ class ManufacturingGUI:
 		
 		self.populate_stores ()
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def history_clicked (self, button):
@@ -60,7 +61,8 @@ class ManufacturingGUI:
 
 	def product_match_selected(self, completion, model, iter_):
 		self.product_id = model[iter_][0]
-		self.product_selected()
+		self.get_object('combobox2').set_active_id(self.product_id)
+		return True
 
 	def product_combo_changed(self, combo):
 		product_id = combo.get_active_id()
@@ -69,17 +71,17 @@ class ManufacturingGUI:
 			self.product_selected ()
 
 	def reprint_serial_number_clicked (self, button):
-		barcode = self.builder.get_object('spinbutton3').get_value_as_int()
+		barcode = self.get_object('spinbutton3').get_value_as_int()
 		self.print_serial_number(barcode, 1)
 
 	def print_serial_number_clicked (self, button):
-		serial_start = self.builder.get_object('spinbutton2').get_value_as_int()
-		serial_number_qty = self.builder.get_object('spinbutton1').get_value_as_int()
-		label_qty = self.builder.get_object('spinbutton4').get_value_as_int()
+		serial_start = self.get_object('spinbutton2').get_value_as_int()
+		serial_number_qty = self.get_object('spinbutton1').get_value_as_int()
+		label_qty = self.get_object('spinbutton4').get_value_as_int()
 		for i in range(serial_number_qty):
 			barcode = serial_start + i
-			self.builder.get_object('serial_adjustment').set_lower(barcode)
-			self.builder.get_object('spinbutton2').set_value (barcode)
+			self.get_object('serial_adjustment').set_lower(barcode)
+			self.get_object('spinbutton2').set_value (barcode)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 			self.print_serial_number(barcode, label_qty)
@@ -107,20 +109,20 @@ class ManufacturingGUI:
 
 	def start_serial_number_value_changed (self, spinbutton):
 		serial_number = spinbutton.get_value_as_int()
-		qty = self.builder.get_object('spinbutton1').get_value_as_int()
-		self.builder.get_object('label10').set_label(str(qty + serial_number))
+		qty = self.get_object('spinbutton1').get_value_as_int()
+		self.get_object('label10').set_label(str(qty + serial_number))
 
 	def qty_spinbutton_changed (self,spinbutton):
 		qty = spinbutton.get_value_as_int()
-		serial_number = self.builder.get_object('spinbutton2').get_value_as_int()
+		serial_number = self.get_object('spinbutton2').get_value_as_int()
 		self.cursor.execute("SELECT name FROM products "
 							"WHERE id = %s", (self.product_id,))
 		for row in self.cursor.fetchall():
 			product_name = row[0]
 		manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
-		self.builder.get_object('entry1').set_text(manufacturing_name_string)
-		self.builder.get_object('entry2').set_text(manufacturing_name_string)
-		self.builder.get_object('label10').set_label(str(qty + serial_number))
+		self.get_object('entry1').set_text(manufacturing_name_string)
+		self.get_object('entry2').set_text(manufacturing_name_string)
+		self.get_object('label10').set_label(str(qty + serial_number))
 		
 	def product_selected (self):
 		self.cursor.execute("SELECT name, serial_number, assembly_notes "
@@ -129,11 +131,10 @@ class ManufacturingGUI:
 		for row in self.cursor.fetchall():
 			product_name = row[0]
 			serial_number = row[1]
-			self.builder.get_object('notes_buffer').set_text(row[2])
-		self.builder.get_object('spinbutton2').set_value(int(serial_number))
-		self.builder.get_object('serial_adjustment').set_lower(int(serial_number))
-		self.builder.get_object('label2').set_label(" units of '%s'" % product_name)
-		self.builder.get_object('combobox-entry').set_text(product_name)
+			self.get_object('notes_buffer').set_text(row[2])
+		self.get_object('spinbutton2').set_value(int(serial_number))
+		self.get_object('serial_adjustment').set_lower(int(serial_number))
+		self.get_object('label2').set_label(" units of '%s'" % product_name)
 		self.cursor.execute("SELECT id, name, time_clock_projects_id, qty "
 							"FROM manufacturing_projects "
 							"WHERE (product_id, active) = (%s, True)", 
@@ -143,18 +144,18 @@ class ManufacturingGUI:
 			manufacturing_name = row[1]
 			time_clock_projects_id = row[2]
 			project_qty = row[3]
-			self.builder.get_object('spinbutton1').set_value(project_qty)
-			self.builder.get_object('entry2').set_text(manufacturing_name)
+			self.get_object('spinbutton1').set_value(project_qty)
+			self.get_object('entry2').set_text(manufacturing_name)
 			self.cursor.execute("SELECT name FROM time_clock_projects "
 								"WHERE id = %s", (time_clock_projects_id,))
 			for row in self.cursor.fetchall():
 				project_name = row[0]
-				self.builder.get_object('entry1').set_text(project_name)
-				self.builder.get_object('checkbutton1').set_active(True)
+				self.get_object('entry1').set_text(project_name)
+				self.get_object('checkbutton1').set_active(True)
 				break
 			else:
-				self.builder.get_object('checkbutton1').set_active(False)
-				qty = self.builder.get_object('spinbutton1').get_text()
+				self.get_object('checkbutton1').set_active(False)
+				qty = self.get_object('spinbutton1').get_text()
 				manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
 			self.cursor.execute("SELECT COUNT(DISTINCT(employee_id)), "
 								"SUM(stop_time - start_time)::text "
@@ -165,32 +166,32 @@ class ManufacturingGUI:
 			for row in self.cursor.fetchall():
 				employee_count = row[0]
 				formatted_time = row[1].split('.')[0]
-				time_label = self.builder.get_object('label3')
+				time_label = self.get_object('label3')
 				time_string = ("%s employee(s) spent "
 								"%s (hour:minute:second) "
 								"on this manufacturing process")\
 								% (employee_count, formatted_time)
 				time_label.set_label(time_string)
-			self.builder.get_object('button4').set_sensitive(True)
-			self.builder.get_object('button1').set_sensitive(True)
-			self.builder.get_object('button3').set_sensitive(False)
+			self.get_object('button4').set_sensitive(True)
+			self.get_object('button1').set_sensitive(True)
+			self.get_object('button3').set_sensitive(False)
 			break
 		else:
-			self.builder.get_object('button4').set_sensitive(False)
-			self.builder.get_object('button1').set_sensitive(False)
-			self.builder.get_object('button3').set_sensitive(True)
-			self.builder.get_object('checkbutton1').set_active(True)
-			self.builder.get_object('spinbutton1').set_value(0)
+			self.get_object('button4').set_sensitive(False)
+			self.get_object('button1').set_sensitive(False)
+			self.get_object('button3').set_sensitive(True)
+			self.get_object('checkbutton1').set_active(True)
+			self.get_object('spinbutton1').set_value(0)
 			manufacturing_name_string = "Manufacturing : %s [0]" % product_name
-			self.builder.get_object('entry2').set_text(manufacturing_name_string)
+			self.get_object('entry2').set_text(manufacturing_name_string)
 			#print (manufacturing_name_string)
-			self.builder.get_object('entry1').set_text(manufacturing_name_string)
+			self.get_object('entry1').set_text(manufacturing_name_string)
 
 	def new_clicked (self, button):
-		qty = self.builder.get_object('spinbutton1').get_text()
-		manufacturing_name = self.builder.get_object('entry2').get_text()
-		project_name = self.builder.get_object('entry1').get_text()
-		if self.builder.get_object('checkbutton1').get_active() == True:
+		qty = self.get_object('spinbutton1').get_text()
+		manufacturing_name = self.get_object('entry2').get_text()
+		project_name = self.get_object('entry1').get_text()
+		if self.get_object('checkbutton1').get_active() == True:
 			# this manufacturing project is time tracked
 			self.cursor.execute("INSERT INTO time_clock_projects "
 								"(name, start_date, active, permanent) "
@@ -214,10 +215,10 @@ class ManufacturingGUI:
 		self.product_selected ()
 
 	def update_clicked (self, button):
-		qty = self.builder.get_object('spinbutton1').get_text()
-		manufacturing_name = self.builder.get_object('entry2').get_text()
-		project_name = self.builder.get_object('entry1').get_text()
-		time_clock_active = self.builder.get_object('checkbutton1').get_active()
+		qty = self.get_object('spinbutton1').get_text()
+		manufacturing_name = self.get_object('entry2').get_text()
+		project_name = self.get_object('entry1').get_text()
+		time_clock_active = self.get_object('checkbutton1').get_active()
 		self.cursor.execute("UPDATE manufacturing_projects SET "
 							"(name, qty) = (%s, %s) WHERE id = %s", 
 							(manufacturing_name, qty, self.project_id))
@@ -277,7 +278,7 @@ class ManufacturingGUI:
 
 	def project_name_entry_icon_released (self, entry, icon_position, event):
 		project_name = entry.get_text()
-		self.builder.get_object('entry2').set_text(project_name)
+		self.get_object('entry2').set_text(project_name)
 
 	def product_window(self, column):
 		import products
