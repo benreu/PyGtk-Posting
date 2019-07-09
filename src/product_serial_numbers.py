@@ -222,6 +222,9 @@ class ProductSerialNumbersGUI:
 			self.builder.get_object('label10').set_text(str(e))
 			self.db.rollback()
 
+	def refresh_clicked (self, button):
+		self.populate_serial_number_history ()
+
 	def date_entry_icon_released (self, entry, icon, event):
 		self.calendar.set_relative_to (entry)
 		self.calendar.show()
