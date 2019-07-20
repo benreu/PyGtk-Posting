@@ -23,16 +23,16 @@ import constants
 
 UI_FILE = constants.ui_directory + "/reports/product_history.ui"
 
-class ProductHistoryGUI:
+class ProductHistoryGUI (Gtk.Builder):
 	def __init__(self):
 
 		self.search_iter = 0
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__ (self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
-		product_completion = self.builder.get_object('product_completion')
+		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 
 		self.db = constants.db
@@ -40,7 +40,7 @@ class ProductHistoryGUI:
 
 		self.invoice_history = None
 
-		self.product_store = self.builder.get_object('product_store')
+		self.product_store = self.get_object('product_store')
 		self.cursor.execute("SELECT id::text, name, ext_name FROM products "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
@@ -49,7 +49,7 @@ class ProductHistoryGUI:
 			ext_name = row[2]
 			self.product_store.append([id_ , name, ext_name])
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def notebook_create_window (self, notebook, widget, x, y):
@@ -103,17 +103,17 @@ class ProductHistoryGUI:
 			f.close()
 
 	def invoice_treeview_button_release_event (self, treeview, event):
-		selection = self.builder.get_object('treeview-selection4')
+		selection = self.get_object('treeview-selection4')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		if event.button == 3:
-			menu = self.builder.get_object('invoice_menu')
+			menu = self.get_object('invoice_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
 	def invoice_history_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection4')
+		selection = self.get_object('treeview-selection4')
 		model, path = selection.get_selected_rows()
 		invoice_id = model[path][0]
 		contact_id = model[path][8]
@@ -149,14 +149,18 @@ class ProductHistoryGUI:
 		self.product_id = model[iter][0]
 		self.populate_product_stores ()
 
+	def refresh_clicked (self, button):
+		self.populate_product_stores ()
+
 	def populate_product_stores (self):
+		self.get_object('refresh_button').set_sensitive(True)
 		self.populate_product_invoices ()
 		self.populate_purchase_orders ()
 		self.populate_warranty_store ()
 		self.populate_manufacturing_store ()
 
 	def populate_warranty_store (self):
-		warranty_store = self.builder.get_object('warranty_store')
+		warranty_store = self.get_object('warranty_store')
 		warranty_store.clear()
 		count = 0
 		self.cursor.execute("SELECT "
@@ -179,13 +183,13 @@ class ProductHistoryGUI:
 			count += 1
 			warranty_store.append(row)
 		if count == 0:
-			self.builder.get_object('label8').set_label('Warranty')
+			self.get_object('label8').set_label('Warranty')
 		else:
 			label = "<span weight='bold'>Warranty (%s)</span>" % count
-			self.builder.get_object('label8').set_markup(label)
+			self.get_object('label8').set_markup(label)
 
 	def populate_purchase_orders (self):
-		po_store = self.builder.get_object('po_store')
+		po_store = self.get_object('po_store')
 		po_store.clear()
 		count = 0
 		self.cursor.execute("SELECT "
@@ -207,13 +211,13 @@ class ProductHistoryGUI:
 			count += 1
 			po_store.append(row)
 		if count == 0:
-			self.builder.get_object('label4').set_label('Purchase Orders')
+			self.get_object('label4').set_label('Purchase Orders')
 		else:
 			label = "<span weight='bold'>Purchase Orders (%s)</span>" % count
-			self.builder.get_object('label4').set_markup(label)
+			self.get_object('label4').set_markup(label)
 
 	def populate_product_invoices (self):
-		invoice_store = self.builder.get_object('invoice_store')
+		invoice_store = self.get_object('invoice_store')
 		invoice_store.clear()
 		count = 0
 		self.cursor.execute("SELECT "
@@ -238,13 +242,13 @@ class ProductHistoryGUI:
 			count += 1
 			invoice_store.append(row)
 		if count == 0:
-			self.builder.get_object('label2').set_label('Invoices')
+			self.get_object('label2').set_label('Invoices')
 		else:
 			label = "<span weight='bold'>Invoices (%s)</span>" % count
-			self.builder.get_object('label2').set_markup(label)
+			self.get_object('label2').set_markup(label)
 
 	def populate_manufacturing_store (self):
-		store = self.builder.get_object('manufacturing_store')
+		store = self.get_object('manufacturing_store')
 		store.clear()
 		count = 0
 		self.cursor.execute("SELECT "
@@ -264,10 +268,10 @@ class ProductHistoryGUI:
 			store.append(row) 
 			count+= 1
 		if count == 0:
-			self.builder.get_object('label3').set_label('Manufacturing')
+			self.get_object('label3').set_label('Manufacturing')
 		else:
 			label = "<span weight='bold'>Manufacturing (%s)</span>" % count
-			self.builder.get_object('label3').set_markup(label)
+			self.get_object('label3').set_markup(label)
 
 
 
