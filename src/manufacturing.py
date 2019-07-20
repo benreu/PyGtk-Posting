@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GLib
 import subprocess
 import barcode_generator
-import constants
+from constants import ui_directory, template_dir, db, broadcaster
 
-UI_FILE = constants.ui_directory + "/manufacturing.ui"
+UI_FILE = ui_directory + "/manufacturing.ui"
 
 
 class Item(object):#this is used by py3o library see their example for more info
@@ -28,11 +28,18 @@ class Item(object):#this is used by py3o library see their example for more info
 
 
 class ManufacturingGUI(Gtk.Builder):
+	timeout_id = None
+	project_id = 0
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		
+		self.handler_ids = list()
+		for connection in (("shutdown", self.main_shutdown),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.product_store = self.get_object('product_store')
 		product_completion = self.get_object('product_completion')
@@ -40,7 +47,7 @@ class ManufacturingGUI(Gtk.Builder):
 
 		self.product_id = None
 		
-		self.db = constants.db
+		self.db = db
 		self.cursor = self.db.cursor()
 		
 		self.populate_stores ()
@@ -101,7 +108,7 @@ class ManufacturingGUI(Gtk.Builder):
 		label.barcode = barcode
 		from py3o.template import Template
 		label_file = "/tmp/manufacturing_serial_label.odt"
-		t = Template(constants.template_dir+"/manufacturing_serial_template.odt", label_file )
+		t = Template(template_dir+"/manufacturing_serial_template.odt", label_file )
 		data = dict(label = label)
 		t.render(data) #the self.data holds all the info
 		for i in range(label_qty):
@@ -125,17 +132,24 @@ class ManufacturingGUI(Gtk.Builder):
 		self.get_object('label10').set_label(str(qty + serial_number))
 		
 	def product_selected (self):
+		if self.timeout_id:
+			self.save_notes()
 		self.cursor.execute("SELECT name, serial_number, assembly_notes "
 							"FROM products "
 							"WHERE id = %s", (self.product_id,))
 		for row in self.cursor.fetchall():
 			product_name = row[0]
 			serial_number = row[1]
-			self.get_object('notes_buffer').set_text(row[2])
+			self.get_object('assembly_notes_buffer').set_text(row[2])
 		self.get_object('spinbutton2').set_value(int(serial_number))
 		self.get_object('serial_adjustment').set_lower(int(serial_number))
 		self.get_object('label2').set_label(" units of '%s'" % product_name)
-		self.cursor.execute("SELECT id, name, time_clock_projects_id, qty "
+		self.cursor.execute("SELECT "
+								"id, "
+								"name, "
+								"time_clock_projects_id, "
+								"qty, "
+								"batch_notes "
 							"FROM manufacturing_projects "
 							"WHERE (product_id, active) = (%s, True)", 
 							(self.product_id,))
@@ -144,8 +158,10 @@ class ManufacturingGUI(Gtk.Builder):
 			manufacturing_name = row[1]
 			time_clock_projects_id = row[2]
 			project_qty = row[3]
+			batch_notes = row[4]
 			self.get_object('spinbutton1').set_value(project_qty)
 			self.get_object('entry2').set_text(manufacturing_name)
+			self.get_object('batch_notes_buffer').set_text(batch_notes)
 			self.cursor.execute("SELECT name FROM time_clock_projects "
 								"WHERE id = %s", (time_clock_projects_id,))
 			for row in self.cursor.fetchall():
@@ -156,7 +172,7 @@ class ManufacturingGUI(Gtk.Builder):
 			else:
 				self.get_object('checkbutton1').set_active(False)
 				qty = self.get_object('spinbutton1').get_text()
-				manufacturing_name_string = "Manufacturing : %s [%s]" %(product_name, qty)
+				manufacturing_name = "Manufacturing : %s [%s]" %(product_name, qty)
 			self.cursor.execute("SELECT COUNT(DISTINCT(employee_id)), "
 								"SUM(stop_time - start_time)::text "
 								"FROM time_clock_entries "
@@ -177,20 +193,21 @@ class ManufacturingGUI(Gtk.Builder):
 			self.get_object('button3').set_sensitive(False)
 			break
 		else:
+			self.project_id = 0
 			self.get_object('button4').set_sensitive(False)
 			self.get_object('button1').set_sensitive(False)
 			self.get_object('button3').set_sensitive(True)
 			self.get_object('checkbutton1').set_active(True)
 			self.get_object('spinbutton1').set_value(0)
-			manufacturing_name_string = "Manufacturing : %s [0]" % product_name
-			self.get_object('entry2').set_text(manufacturing_name_string)
-			#print (manufacturing_name_string)
-			self.get_object('entry1').set_text(manufacturing_name_string)
+			manufacturing_name = "Manufacturing : %s [0]" % product_name
+		self.get_object('entry2').set_text(manufacturing_name)
+		self.get_object('entry1').set_text(manufacturing_name)
 
 	def new_clicked (self, button):
 		qty = self.get_object('spinbutton1').get_text()
 		manufacturing_name = self.get_object('entry2').get_text()
 		project_name = self.get_object('entry1').get_text()
+		self.get_object('batch_notes_buffer').set_text('')
 		if self.get_object('checkbutton1').get_active() == True:
 			# this manufacturing project is time tracked
 			self.cursor.execute("INSERT INTO time_clock_projects "
@@ -268,13 +285,11 @@ class ManufacturingGUI(Gtk.Builder):
 		
 	def populate_stores(self):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (manufactured, deleted) = "
 							"(True, False) ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
+			self.product_store.append(row)
 
 	def project_name_entry_icon_released (self, entry, icon_position, event):
 		project_name = entry.get_text()
@@ -283,7 +298,30 @@ class ManufacturingGUI(Gtk.Builder):
 	def product_window(self, column):
 		import products
 		products.ProductsGUI()
-		
+
+	def main_shutdown (self, main):
+		if self.timeout_id:
+			self.save_notes()
+
+	def batch_notes_buffer_changed (self, textbuffer):
+		if self.project_id == 0:
+			return
+		start_iter = textbuffer.get_start_iter()
+		end_iter = textbuffer.get_end_iter()
+		self.notes = textbuffer.get_text(start_iter, end_iter, True)
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
+		self.timeout_id = GLib.timeout_add_seconds(10, self.save_notes)
+
+	def save_notes (self ):
+		if self.timeout_id:
+			GLib.source_remove(self.timeout_id)
+		self.cursor.execute("UPDATE manufacturing_projects "
+							"SET batch_notes = %s "
+							"WHERE id = %s", 
+							(self.notes, self.project_id))
+		self.db.commit()
+		self.timeout_id = None
 
 
-		
+

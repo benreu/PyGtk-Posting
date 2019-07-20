@@ -163,6 +163,10 @@ ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS contact_id bigint REFERENCES 
 UPDATE shipping_info SET contact_id = c_join.contact_id FROM (SELECT co.id AS contact_id, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
 UPDATE shipping_info SET date_shipped = c_join.dated_for FROM (SELECT co.id AS contact_id, i.dated_for AS dated_for, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
 ALTER TABLE shipping_info ALTER COLUMN contact_id SET NOT NULL;
+--version 0.5.14
+ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS batch_notes varchar DEFAULT '';
+UPDATE manufacturing_projects SET batch_notes = '' WHERE batch_notes IS NULL;
+ALTER TABLE manufacturing_projects ALTER COLUMN batch_notes SET NOT NULL;
 
 
 
