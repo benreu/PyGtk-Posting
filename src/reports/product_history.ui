@@ -317,11 +317,11 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Customer</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">8</property>
+                        <property name="sort_column_id">10</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext12"/>
                           <attributes>
-                            <attribute name="text">8</attribute>
+                            <attribute name="text">10</attribute>
                           </attributes>
                         </child>
                       </object>
