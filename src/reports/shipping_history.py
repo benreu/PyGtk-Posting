@@ -37,12 +37,13 @@ class ShippingHistoryGUI (Gtk.Builder):
 						"si.tracking_number, "
 						"i.id, "
 						"c.name, "
-						"COALESCE(amount, 0.00), "
-						"COALESCE(amount::text, 'N/A') "
+						"COALESCE(ii.amount, 0.00), "
+						"COALESCE(ii.amount::text, 'N/A') "
 					"FROM shipping_info AS si "
 					"JOIN invoices AS i ON i.id = si.invoice_id "
 					"JOIN contacts AS c ON c.id = i.customer_id "
-					"LEFT JOIN gl_entries AS ge ON ge.id = si.gl_entry_id "
+					"LEFT JOIN incoming_invoices AS ii "
+						"ON ii.id = si.incoming_invoice_id "
 					"ORDER BY dated_for")
 		for row in c.fetchall():
 			shipping_store.append(row)

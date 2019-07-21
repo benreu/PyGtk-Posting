@@ -434,11 +434,12 @@ class ContactHistoryGUI (Gtk.Builder):
 						"si.id, "
 						"si.tracking_number, "
 						"i.id, "
-						"COALESCE(amount, 0.00), "
-						"COALESCE(amount::text, 'N/A') "
+						"COALESCE(ii.amount, 0.00), "
+						"COALESCE(ii.amount::text, 'N/A') "
 					"FROM shipping_info AS si "
 					"JOIN invoices AS i ON i.id = si.invoice_id "
-					"LEFT JOIN gl_entries AS ge ON ge.id = si.gl_entry_id "
+					"LEFT JOIN incoming_invoices AS ii "
+						"ON ii.id = si.incoming_invoice_id "
 					"WHERE customer_id = %s"
 					"ORDER BY dated_for", 
 					(self.contact_id,))
