@@ -202,6 +202,7 @@
                 <property name="primary_icon_name">edit-find-symbolic</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Contact</property>
                 <signal name="search-changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -731,6 +732,7 @@
                 <property name="hexpand">True</property>
                 <property name="editable">False</property>
                 <property name="primary_icon_stock">gtk-find</property>
+                <signal name="icon-release" handler="date_entry_icon_released" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
