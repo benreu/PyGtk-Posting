@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from constants import ui_directory, db, broadcaster
 
@@ -306,7 +306,7 @@ class JobSheetGUI:
 		self.builder.get_object('comboboxtext2').set_active_id(str(self.job_id))
 		self.builder.get_object('button7').set_sensitive(False)
 
-	def delete_line(self, widget):
+	def delete_line(self, widget = None):
 		selection = self.builder.get_object("treeview-selection1")
 		store, path = selection.get_selected_rows ()
 		if path != []: # a row is selected
@@ -316,16 +316,19 @@ class JobSheetGUI:
 			self.db.commit()
 			self.populate_job_treeview ()
 			
-	def new_line (self, widget):
+	def new_line (self, widget = None):
 		self.cursor.execute("SELECT id, name FROM products "
 							"WHERE deleted = False LIMIT 1")
 		for row in self.cursor.fetchall():
 			product_id = row[0]
 			product_name = row[1]
-			self.job_store.append([0, 1, product_id, product_name, ""])
-		path = self.job_store.iter_n_children()
-		line = self.job_store[path - 1]
+			iter_ = self.job_store.append([0, 1, product_id, product_name, ""])
+		line = self.job_store[iter_]
 		self.save_line(line)
+		path = self.job_store.get_path(iter_)
+		treeview = self.builder.get_object('treeview1')
+		column = treeview.get_column(0)
+		treeview.set_cursor(path, column, True)
 
 	def post_job_clicked (self, widget):
 		self.cursor.execute("UPDATE job_sheets SET (contact_id, completed) "
@@ -374,7 +377,7 @@ class JobSheetGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()	
-		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE (deleted, customer) = (False, True) "
 							"ORDER BY name")
 		for i in self.cursor.fetchall():
@@ -382,7 +385,33 @@ class JobSheetGUI:
 			name = i[1]
 			ext_name = i[2]
 			self.customer_store.append([str(serial), name, ext_name])
-		
-		
 
-		
+	def window_key_release_event_ (self, window, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if keyname == 'F1':
+			pass # self.help_clicked ()
+		elif keyname == 'F2':
+			self.new_line ()
+		elif keyname == 'F3':
+			self.delete_line ()
+
+	def treeview_key_release_event (self, treeview, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		path, col = treeview.get_cursor()
+		# only visible columns!!
+		columns = [c for c in treeview.get_columns() if c.get_visible()]
+		colnum = columns.index(col)
+		if keyname=="Tab":
+			if colnum + 1 < len(columns):
+				next_column = columns[colnum + 1]
+			else:
+				tmodel = treeview.get_model()
+				titer = tmodel.iter_next(tmodel.get_iter(path))
+				if titer is None:
+					titer = tmodel.get_iter_first()
+					path = tmodel.get_path(titer)
+					next_column = columns[0]
+			GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
+
+
+

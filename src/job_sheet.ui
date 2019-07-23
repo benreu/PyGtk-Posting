@@ -77,6 +77,7 @@
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
+    <signal name="key-release-event" handler="window_key_release_event_" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -305,6 +306,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">job_store</property>
+                <signal name="key-release-event" handler="treeview_key_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
