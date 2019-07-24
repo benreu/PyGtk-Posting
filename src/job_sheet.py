@@ -42,6 +42,7 @@ class JobSheetGUI:
 		self.customer_store = self.builder.get_object('customer_store')
 		self.populate_customer_store ()
 		self.product_store = self.builder.get_object('product_store')
+		self.job_type_store = self.builder.get_object('job_type_store')
 		self.populate_product_store()
 
 		customer_completion = self.builder.get_object('customer_completion')
@@ -152,32 +153,28 @@ class JobSheetGUI:
 		cellrenderer.set_property("text" , qty)
 
 	def job_combobox_populate (self):
-		job_combo = self.builder.get_object('comboboxtext3')
+		job_combo = self.builder.get_object('job_type_combo')
 		job = job_combo.get_active_id()
-		job_combo.remove_all()
-		self.cursor.execute("SELECT id, name FROM job_types")
-		for i in self.cursor.fetchall():
-			id_ = i[0]
-			name = i[1]
-			job_combo.append(str(id_), name)
+		model = job_combo.get_model()
+		model.clear()
+		self.cursor.execute("SELECT id::text, name "
+							"FROM job_types ORDER BY name")
+		for row in self.cursor.fetchall():
+			model.append(row)
 		job_combo.set_active_id(job)
 
 	def populate_existing_job_combobox (self):
 		existing_job_combo = self.builder.get_object('comboboxtext2')
 		existing_job = existing_job_combo.get_active_id()
 		existing_job_combo.remove_all()
-		self.cursor.execute("SELECT id, job_type_id, description "
-							"FROM job_sheets "
+		self.cursor.execute("SELECT js.id::text, "
+							"jt.name || ' : ' || js.description "
+							"FROM job_sheets AS js "
+							"JOIN job_types AS jt ON jt.id = js.job_type_id "
 							"WHERE (completed, invoiced, contact_id) "
 							"= (False, False, %s)", (self.customer_id,)) 
-		for i in self.cursor.fetchall():
-			id_ = i[0]
-			job_type_id = i[1]
-			self.cursor.execute("SELECT name FROM job_types WHERE id = %s", 
-																(job_type_id,))
-			job_name = self.cursor.fetchone()[0]
-			description = i[2]
-			existing_job_combo.append(str(id_), job_name + " : " + description)
+		for row in self.cursor.fetchall():
+			existing_job_combo.append(row[0], row[1])
 		existing_job_combo.set_active_id(existing_job)
 
 	def delete_existing_job	(self, widget):
@@ -227,7 +224,7 @@ class JobSheetGUI:
 	def existing_job_combo_changed (self, widget):
 		if widget.get_active_id() != None:
 			self.project_name = widget.get_active_text()
-			self.builder.get_object('comboboxtext3').set_active(-1)
+			self.builder.get_object('job_type_combo').set_active(-1)
 			self.builder.get_object('button5').set_sensitive(True)
 			self.builder.get_object('button3').set_sensitive(True)
 			self.builder.get_object('entry1').set_text("")
@@ -256,7 +253,7 @@ class JobSheetGUI:
 			self.customer_id = id_
 			self.populate_existing_job_combobox ()	
 			self.job_combobox_populate ()
-			self.builder.get_object('comboboxtext3').set_active(-1)
+			self.builder.get_object('job_type_combo').set_active(-1)
 			
 	def customer_match_selected(self, completion, model, iter_):
 		self.job_id = 0
@@ -265,7 +262,7 @@ class JobSheetGUI:
 		self.job_combobox_populate ()
 		self.populate_existing_job_combobox ()
 		self.builder.get_object('combobox1').set_active_id(model[iter_][0])
-		self.builder.get_object('comboboxtext3').set_active(-1)
+		self.builder.get_object('job_type_combo').set_active(-1)
 		return True
 		
 	def description_changed(self, widget):
@@ -281,8 +278,9 @@ class JobSheetGUI:
 		description = self.builder.get_object('entry1').get_text()
 		time_clock_project = self.builder.get_object('checkbutton2').get_active()
 		contact_name = self.builder.get_object('combobox-entry').get_text()
-		job_name = self.builder.get_object('comboboxtext3').get_active_text()
-		job_type_id = self.builder.get_object('comboboxtext3').get_active_id()
+		iter_ = self.builder.get_object('job_type_combo').get_active_iter()
+		job_type_id = self.job_type_store[iter_][0]
+		job_name = self.job_type_store[iter_][1]
 		job_name_description = self.builder.get_object('entry1').get_text()
 		self.cursor.execute("INSERT INTO job_sheets "
 							"(description, job_type_id, time_clock, "
@@ -341,7 +339,7 @@ class JobSheetGUI:
 							(datetime.today(), self.job_id))
 		self.job_store.clear()
 		self.builder.get_object('comboboxtext2').set_active(-1)
-		self.builder.get_object('comboboxtext3').set_active(-1)
+		self.builder.get_object('job_type_combo').set_active(-1)
 		self.builder.get_object('checkbutton2').set_active(False)
 		self.job_id = 0
 		self.populate_customer_store ()
