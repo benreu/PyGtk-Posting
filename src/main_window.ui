@@ -1545,11 +1545,11 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button10">
-                    <property name="label" translatable="yes">Jobs To Invoice</property>
+                    <property name="label" translatable="yes">Open Job Sheets</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="clicked" handler="jobs_to_invoice_window" swapped="no"/>
+                    <signal name="clicked" handler="open_job_sheets_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1583,7 +1583,7 @@
     <property name="transient_for">main_window</property>
     <property name="has_resize_grip">True</property>
     <property name="program_name">PyGtk Posting</property>
-    <property name="version">0.5.14 (alpha)</property>
+    <property name="version">0.5.15 (alpha)</property>
     <property name="copyright" translatable="yes">Copyleft Reuben Rissler 2015-2018</property>
     <property name="comments" translatable="yes">Accounting and business management for Linux</property>
     <property name="authors">Reuben Rissler &lt;pygtk.posting@gmail.com&gt;

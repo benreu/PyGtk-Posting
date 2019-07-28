@@ -150,7 +150,9 @@ pygtk_posting_PYTHON = \
 	constants.py \
 	main_window.py \
 	main_window.ui \
-	accounts.py
+	accounts.py \
+	open_job_sheets.py \
+	open_job_sheets.ui
 
 
 EXTRA_DIST = $(ui_DATA)

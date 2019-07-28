@@ -167,6 +167,30 @@ ALTER TABLE shipping_info ALTER COLUMN contact_id SET NOT NULL;
 ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS batch_notes varchar DEFAULT '';
 UPDATE manufacturing_projects SET batch_notes = '' WHERE batch_notes IS NULL;
 ALTER TABLE manufacturing_projects ALTER COLUMN batch_notes SET NOT NULL;
+--version 0.5.15
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_withholding_exempt boolean DEFAULT False;
+UPDATE payroll.employee_info SET state_withholding_exempt = False WHERE state_withholding_exempt IS NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_withholding_exempt SET NOT NULL;
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS fed_withholding_exempt boolean DEFAULT False;
+UPDATE payroll.employee_info SET fed_withholding_exempt = False WHERE fed_withholding_exempt IS NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_withholding_exempt SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN date_created SET DEFAULT now();
+ALTER TABLE payroll.employee_info ALTER COLUMN born SET DEFAULT '1970-1-1';
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security SET DEFAULT '';
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN wage SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET DEFAULT 30;
+ALTER TABLE payroll.employee_info ALTER COLUMN married SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET DEFAULT now();
+ALTER TABLE payroll.employee_info ALTER COLUMN state_income_status SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_credits SET DEFAULT 0;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_extra_withholding SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_income_status SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_credits SET DEFAULT 0;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_extra_withholding SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN on_payroll_since SET DEFAULT now();
+UPDATE payroll.employee_info SET on_payroll_since = '1970-1-1' WHERE on_payroll_since IS NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN on_payroll_since SET NOT NULL;
 
 
 
