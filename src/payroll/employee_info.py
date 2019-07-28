@@ -15,10 +15,8 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gi
-gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib
-from dateutils import DateTimeCalendar, date_to_user_format
+from dateutils import DateTimeCalendar
 from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
@@ -29,42 +27,41 @@ UI_FILE = constants.ui_directory + "/payroll/employee_info.ui"
 
 device = None
 
-class EmployeeInfoGUI:
+class EmployeeInfoGUI(Gtk.Builder):
 	def __init__(self):
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
-		self.employee_store = self.builder.get_object('employee_store')
-		self.s_s_medicare_store = self.builder.get_object('s_s_medicare_store')
-		self.federal_withholding_store = self.builder.get_object('federal_withholding_store')
-		self.state_withholding_store = self.builder.get_object('state_withholding_store')
+		self.employee_store = self.get_object('employee_store')
+		self.s_s_medicare_store = self.get_object('s_s_medicare_store')
+		self.federal_withholding_store = self.get_object('federal_withholding_store')
+		self.state_withholding_store = self.get_object('state_withholding_store')
 
 		self.db = constants.db
 		self.cursor = self.db.cursor()
 
 		self.populate_employee_store ()
-		self.born_calendar = DateTimeCalendar (self.db)
-		self.on_payroll_since_calendar = DateTimeCalendar (self.db)
+		self.born_calendar = DateTimeCalendar ()
+		self.on_payroll_since_calendar = DateTimeCalendar ()
 		self.born_calendar.connect("day-selected", 
 								self.born_calendar_date_selected )
 		self.on_payroll_since_calendar.connect ("day-selected", 
 								self.on_payroll_since_calendar_date_selected)
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 		
-		self.builder.get_object("button5").set_label("No scanner selected")
-		self.builder.get_object("button5").set_sensitive(False)
+		self.get_object("button5").set_label("No scanner selected")
+		self.get_object("button5").set_sensitive(False)
 
-		#self.data_queue = Queue()
-		#self.scanner_store = self.builder.get_object("scanner_store")
-		#thread = Process(target=self.get_scanners)
-		#thread.start()
-		
-		#GLib.timeout_add(100, self.populate_scanners)
+		self.data_queue = Queue()
+		self.scanner_store = self.get_object("scanner_store")
+		thread = Process(target=self.get_scanners)
+		thread.start()
+		GLib.timeout_add(100, self.populate_scanners)
 
 	def populate_scanners(self):
 		try:
@@ -90,52 +87,51 @@ class EmployeeInfoGUI:
 		self.cursor.execute("SELECT id, name FROM contacts "
 							"WHERE employee = True")
 		for row in self.cursor.fetchall():
-			employee_id = row[0]
-			employee_name = row[1]
-			self.employee_store.append([employee_id, employee_name])
+			self.employee_store.append(row)
 		self.populating = False
 
 	def employee_treeview_cursor_changed (self, treeview):
 		if self.populating == True:
 			return
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.employee_id = model[path][0]
 		self.employee_selected ()
 
 	def employee_selected (self):
 		self.populating = True
-		self.cursor.execute("SELECT COALESCE(born, '1970-1-1'), "
-							"COALESCE (social_security, ''), "
-							"COALESCE (social_security_exempt, False), "
-							"COALESCE (on_payroll_since, '1970-1-1'), "
-							"COALESCE (wage, 10.00), "
-							"COALESCE (payment_frequency, 10), "
-							"COALESCE (married, False), "
-							"COALESCE (last_updated, '1970-1-1'), "
-							"COALESCE (state_withholding_exempt, False), "
-							"COALESCE (state_credits, 0), "
-							"COALESCE (state_extra_withholding, 0.00), "
-							"COALESCE (fed_withholding_exempt, False), "
-							"COALESCE (fed_credits, 0), "
-							"COALESCE (fed_extra_withholding, 0.00) "
+		self.cursor.execute("SELECT "
+							"born, "
+							"social_security, "
+							"social_security_exempt, "
+							"on_payroll_since, "
+							"wage, "
+							"payment_frequency, "
+							"married, "
+							"format_date(last_updated), "
+							"state_withholding_exempt, "
+							"state_credits, "
+							"state_extra_withholding, "
+							"fed_withholding_exempt, "
+							"fed_credits, "
+							"fed_extra_withholding "
 							"FROM payroll.employee_info WHERE employee_id = %s",
 							(self.employee_id,))
 		for row in self.cursor.fetchall():
 			self.born_calendar.set_date (row[0])
-			self.builder.get_object('entry2').set_text(row[1])
-			self.builder.get_object('checkbutton3').set_active(row[2])
+			self.get_object('entry2').set_text(row[1])
+			self.get_object('checkbutton3').set_active(row[2])
 			self.on_payroll_since_calendar.set_date (row[3])
-			self.builder.get_object('spinbutton6').set_value(row[4])
-			self.builder.get_object('spinbutton5').set_value(row[5])
-			self.builder.get_object('checkbutton4').set_active(row[6])
-			self.builder.get_object('label6').set_text(row[7])
-			self.builder.get_object('checkbutton2').set_active(row[8])
-			self.builder.get_object('spinbutton3').set_value(row[9])
-			self.builder.get_object('spinbutton2').set_value(row[10])
-			self.builder.get_object('checkbutton1').set_active(row[11])
-			self.builder.get_object('spinbutton4').set_value(row[12])
-			self.builder.get_object('spinbutton1').set_value(row[13])
+			self.get_object('spinbutton6').set_value(row[4])
+			self.get_object('spinbutton5').set_value(row[5])
+			self.get_object('checkbutton4').set_active(row[6])
+			self.get_object('label6').set_text(row[7])
+			self.get_object('checkbutton2').set_active(row[8])
+			self.get_object('spinbutton3').set_value(row[9])
+			self.get_object('spinbutton2').set_value(row[10])
+			self.get_object('checkbutton1').set_active(row[11])
+			self.get_object('spinbutton4').set_value(row[12])
+			self.get_object('spinbutton1').set_value(row[13])
 			break
 		else:
 			self.cursor.execute("INSERT INTO payroll.employee_info (employee_id) "
@@ -149,36 +145,30 @@ class EmployeeInfoGUI:
 		self.s_s_medicare_store.clear()
 		self.state_withholding_store.clear()
 		self.federal_withholding_store.clear()
-		self.cursor.execute("SELECT id, date_inserted "
+		self.cursor.execute("SELECT id, format_date(date_inserted) "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND s_s_medicare_exemption_pdf IS NOT NULL "
 							"ORDER BY id", 
 							(self.employee_id,))
 		for row in self.cursor.fetchall():
-			id = row[0]
-			date_formatted = date_to_user_format(row[1])
-			self.s_s_medicare_store.append([id, date_formatted])
-		self.cursor.execute("SELECT id, date_inserted "
+			self.s_s_medicare_store.append(row)
+		self.cursor.execute("SELECT id, format_date(date_inserted) "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND state_withholding_pdf IS NOT NULL "
 							"ORDER BY id", 
 							(self.employee_id,))
 		for row in self.cursor.fetchall():
-			id = row[0]
-			date_formatted = date_to_user_format(row[1])
-			self.state_withholding_store.append([id, date_formatted])
-		self.cursor.execute("SELECT id, date_inserted "
+			self.state_withholding_store.append(row)
+		self.cursor.execute("SELECT id, format_date(date_inserted) "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND fed_withholding_pdf IS NOT NULL "
 							"ORDER BY id", 
 							(self.employee_id,))
 		for row in self.cursor.fetchall():
-			id = row[0]
-			date_formatted = date_to_user_format(row[1])
-			self.federal_withholding_store.append([id, date_formatted])
+			self.federal_withholding_store.append(row)
 
 	def s_s_m_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -342,18 +332,18 @@ class EmployeeInfoGUI:
 
 	def scanner_combo_changed (self, combo):
 		if combo.get_active() > -1:
-			self.builder.get_object("button5").set_label("Scan")
-			self.builder.get_object("button5").set_sensitive(True)
+			self.get_object("button5").set_label("Scan")
+			self.get_object("button5").set_sensitive(True)
 
 	def show_scan_pdf_dialog (self, column):
 		global device
-		dialog = self.builder.get_object("dialog1")
+		dialog = self.get_object("dialog1")
 		result = dialog.run()
 		dialog.hide()
 		if result != Gtk.ResponseType.ACCEPT:
 			return
 		if device == None:
-			device_address = self.builder.get_object("combobox1").get_active_id()
+			device_address = self.get_object("combobox1").get_active_id()
 			device = sane.open(device_address)
 		document = device.scan()
 		path = "/tmp/posting_pdf.pdf"
@@ -391,11 +381,11 @@ class EmployeeInfoGUI:
 				break
 			else:
 				label = 'Do you want to add a file from the scanner?'
-				self.builder.get_object('label9').set_label(label)
+				self.get_object('label9').set_label(label)
 				self.show_scan_pdf_dialog("state_withholding_pdf")
 		elif event.button == 3:
 			label = 'Do you want to update the file from the scanner?'
-			self.builder.get_object('label9').set_label(label)
+			self.get_object('label9').set_label(label)
 			self.show_scan_pdf_dialog("state_withholding_pdf")
 				
 	def s_s_m_button_release_event (self, button, event):
@@ -415,11 +405,11 @@ class EmployeeInfoGUI:
 				break
 			else:
 				label = 'Do you want to add a file from the scanner?'
-				self.builder.get_object('label9').set_label(label)
+				self.get_object('label9').set_label(label)
 				self.show_scan_pdf_dialog("s_s_medicare_exemption_pdf")
 		elif event.button == 3:
 			label = 'Do you want to update the file from the scanner?'
-			self.builder.get_object('label9').set_label(label)
+			self.get_object('label9').set_label(label)
 			self.show_scan_pdf_dialog("s_s_medicare_exemption_pdf")
 
 	def fed_button_release_event (self, button, event):
@@ -439,16 +429,16 @@ class EmployeeInfoGUI:
 				break
 			else: # table 
 				label = 'Do you want to add a file from the scanner?'
-				self.builder.get_object('label9').set_label(label)
+				self.get_object('label9').set_label(label)
 				self.show_scan_pdf_dialog("fed_withholding_pdf")
 		elif event.button == 3:
 			label = 'Do you want to update the file from the scanner?'
-			self.builder.get_object('label9').set_label(label)
+			self.get_object('label9').set_label(label)
 			self.show_scan_pdf_dialog("fed_withholding_pdf")
 			
 	def born_calendar_date_selected (self, calendar):
 		date_text = calendar.get_text()
-		self.builder.get_object('entry1').set_text(date_text)
+		self.get_object('entry1').set_text(date_text)
 		if self.populating == True:
 			return
 		date = calendar.get_date ()
@@ -464,7 +454,7 @@ class EmployeeInfoGUI:
 
 	def on_payroll_since_calendar_date_selected (self, calendar):
 		date_text = calendar.get_text()
-		self.builder.get_object('entry3').set_text(date_text)
+		self.get_object('entry3').set_text(date_text)
 		if self.populating == True:
 			return
 		date = calendar.get_date ()

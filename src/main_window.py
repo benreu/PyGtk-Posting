@@ -315,10 +315,10 @@ class MainGUI :
 	def statements_to_print_window(self, widget):
 		import statements_to_print
 		statements_to_print.GUI()
-				
-	def jobs_to_invoice_window(self, widget):
-		import jobs_to_invoice
-		jobs_to_invoice.GUI()
+
+	def open_job_sheets_clicked (self, button):
+		import open_job_sheets
+		open_job_sheets.OpenJobSheetsGUI()
 
 	def double_entry_transaction_clicked (self, menuitem):
 		import double_entry_transaction
