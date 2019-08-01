@@ -23,22 +23,22 @@ from constants import ui_directory, db, broadcaster, is_admin
 
 UI_FILE = ui_directory + "/reports/invoice_history.ui"
 
-class InvoiceHistoryGUI:
+class InvoiceHistoryGUI(Gtk.Builder):
 	exists = True
 	def __init__(self):
 
 		self.search_iter = 0
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.search_store = Gtk.ListStore(str)
-		self.invoice_store = self.builder.get_object('invoice_store')
-		customer_completion = self.builder.get_object('customer_completion')
+		self.invoice_store = self.get_object('invoice_store')
+		customer_completion = self.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
-		treeview = self.builder.get_object('treeview2')
+		treeview = self.get_object('treeview2')
 
 		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
 		treeview.drag_source_set( Gdk.ModifierType.BUTTON1_MASK ,[dnd], Gdk.DragAction.COPY)
@@ -49,28 +49,26 @@ class InvoiceHistoryGUI:
 		self.db = db
 		self.cursor = self.db.cursor()
 
-		self.customer_store = self.builder.get_object('customer_store')
-		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name FROM contacts AS c "
+		self.customer_store = self.get_object('customer_store')
+		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
+							"FROM contacts AS c "
 							"JOIN invoices ON invoices.customer_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
 							"GROUP BY c.id, c.name ORDER BY name")
-		for customer in self.cursor.fetchall():
-			id_ = customer[0]
-			name = customer[1]
-			ext_name = customer[2]
-			self.customer_store.append([id_ , name, ext_name])
+		for row in self.cursor.fetchall():
+			self.customer_store.append(row)
 		
 		if is_admin == True:
-			self.builder.get_object('treeview2').set_tooltip_column(0)
+			self.get_object('treeview2').set_tooltip_column(0)
 		
 		self.product_name = ''
 		self.product_ext_name = ''
 		self.remark = ''
 		
-		self.filter = self.builder.get_object ('invoice_items_filter')
+		self.filter = self.get_object ('invoice_items_filter')
 		self.filter.set_visible_func(self.filter_func)
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def present(self):
@@ -78,9 +76,9 @@ class InvoiceHistoryGUI:
 
 	def select_all_invoices_toggled (self, checkbutton):
 		if checkbutton.get_active():
-			self.builder.get_object('treeview-selection1').select_all()
+			self.get_object('treeview-selection1').select_all()
 		else:
-			self.builder.get_object('treeview-selection1').unselect_all()
+			self.get_object('treeview-selection1').unselect_all()
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -110,27 +108,27 @@ class InvoiceHistoryGUI:
 		self.cursor.close()
 		
 	def invoice_treeview_button_release_event (self, treeview, event):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		if event.button == 3:
-			menu = self.builder.get_object('invoice_menu')
+			menu = self.get_object('invoice_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 			
 	def invoice_item_treeview_button_release_event (self, treeview, event):
-		selection = self.builder.get_object('treeview-selection2')
+		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		if event.button == 3:
-			menu = self.builder.get_object('invoice_item_menu')
+			menu = self.get_object('invoice_item_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
 	def view_invoice_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection2')
+		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -148,7 +146,7 @@ class InvoiceHistoryGUI:
 			f.close()
 
 	def product_hub_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection2')
+		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -167,33 +165,33 @@ class InvoiceHistoryGUI:
 		active = togglebutton.get_active()
 		self.load_customer_invoices ()
 		if active == True:
-			self.builder.get_object('checkbutton1').set_active(False)
-			self.builder.get_object('select_all_checkbutton').set_active(False)
+			self.get_object('checkbutton1').set_active(False)
+			self.get_object('select_all_checkbutton').set_active(False)
 		
 	def customer_changed(self, combo):
 		customer_id = combo.get_active_id ()
 		if customer_id == None:
 			return
 		self.customer_id = customer_id
-		self.builder.get_object('checkbutton1').set_active(False)
-		self.builder.get_object('checkbutton3').set_active(False)
-		self.builder.get_object('select_all_checkbutton').set_active(False)
+		self.get_object('checkbutton1').set_active(False)
+		self.get_object('checkbutton3').set_active(False)
+		self.get_object('select_all_checkbutton').set_active(False)
 		self.load_customer_invoices ()
 
 	def customer_match_selected (self, completion, model, iter):
 		self.customer_id = model[iter][0]
-		self.builder.get_object('checkbutton1').set_active(False)
-		self.builder.get_object('checkbutton3').set_active(False)
-		self.builder.get_object('select_all_checkbutton').set_active(False)
+		self.get_object('checkbutton1').set_active(False)
+		self.get_object('checkbutton3').set_active(False)
+		self.get_object('select_all_checkbutton').set_active(False)
 		self.load_customer_invoices ()
 
 	def load_customer_invoices (self):
-		invoice_treeview = self.builder.get_object('treeview1')
+		invoice_treeview = self.get_object('treeview1')
 		model = invoice_treeview.get_model()
 		invoice_treeview.set_model(None)
 		model.clear()
 		total = Decimal()
-		if self.builder.get_object('checkbutton3').get_active() == True:
+		if self.get_object('checkbutton3').get_active() == True:
 			self.cursor.execute("SELECT "
 									"i.id, "
 									"dated_for::text, "
@@ -202,6 +200,7 @@ class InvoiceHistoryGUI:
 									"c.name, "
 									"'Comments: ' || comments, "
 									"COALESCE(total, 0.00), "
+									"COALESCE(total, 0.00)::text, "
 									"date_printed::text, "
 									"format_date(date_printed)"
 								"FROM invoices AS i "
@@ -228,23 +227,23 @@ class InvoiceHistoryGUI:
 			total += row[6]
 			model.append(row)
 		invoice_treeview.set_model(model)
-		self.builder.get_object('label3').set_label(str(total))
+		self.get_object('label3').set_label(str(total))
 
 	def invoice_row_changed (self, selection):
-		self.builder.get_object('checkbutton1').set_active(False)
+		self.get_object('checkbutton1').set_active(False)
 		self.load_invoice_items ()
 
 	def all_products_togglebutton_toggled (self, togglebutton):
 		active = togglebutton.get_active()
 		self.load_invoice_items (load_all = active)
 		if active == True:
-			self.builder.get_object('checkbutton3').set_active(False)
+			self.get_object('checkbutton3').set_active(False)
 
 	def select_all_activated (self, menuitem):
-		self.builder.get_object('treeview-selection1').select_all()
+		self.get_object('treeview-selection1').select_all()
 
 	def load_invoice_items (self, load_all = False):
-		store = self.builder.get_object('invoice_items_store')
+		store = self.get_object('invoice_items_store')
 		store.clear()
 		if load_all == True:
 			self.cursor.execute("SELECT "
@@ -269,7 +268,7 @@ class InvoiceHistoryGUI:
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"ORDER BY p.name ")
 		else:
-			selection = self.builder.get_object('treeview-selection1')
+			selection = self.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
 			id_list = []
 			for path in paths:
@@ -306,9 +305,9 @@ class InvoiceHistoryGUI:
 			store.append(row)
 
 	def search_entry_search_changed (self, entry):
-		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
-		self.product_ext_name = self.builder.get_object('searchentry2').get_text().lower()
-		self.remark = self.builder.get_object('searchentry3').get_text().lower()
+		self.product_name = self.get_object('searchentry1').get_text().lower()
+		self.product_ext_name = self.get_object('searchentry2').get_text().lower()
+		self.remark = self.get_object('searchentry3').get_text().lower()
 		self.filter.refilter()
 
 	def filter_func(self, model, tree_iter, r):
