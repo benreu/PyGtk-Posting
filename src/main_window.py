@@ -492,11 +492,11 @@ class MainGUI :
 		for row in self.cursor.fetchall():
 			unpaid_po = row[0]
 		self.builder.get_object('button5').set_label("Unprocessed Orders\n               (%s)" % unpaid_po)
-		self.cursor.execute("SELECT COUNT(id) FROM job_sheets WHERE (invoiced, completed) = (False, True)")	
+		self.cursor.execute("SELECT COUNT(id) FROM job_sheets WHERE (invoiced, completed) = (False, False)")	
 		jobs = 0
 		for row in self.cursor.fetchall():
 			jobs = row[0]
-		self.builder.get_object('button10').set_label("Jobs To Invoice\n           (%s)" % jobs)
+		self.builder.get_object('button10').set_label("Open Job Sheets\n           (%s)" % jobs)
 		self.cursor.execute("SELECT COUNT(id) FROM documents WHERE (canceled, invoiced, pending_invoice) = (False, False, True)")	
 		documents = 0
 		for row in self.cursor.fetchall():
