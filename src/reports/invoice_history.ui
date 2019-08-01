@@ -125,8 +125,10 @@
       <column type="gchararray"/>
       <!-- column-name remark -->
       <column type="gchararray"/>
-      <!-- column-name amount -->
+      <!-- column-name amount_sort -->
       <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
       <!-- column-name date_printed -->
       <column type="gchararray"/>
       <!-- column-name date_printed_formatted -->
@@ -377,7 +379,7 @@
                             <property name="xalign">1</property>
                           </object>
                           <attributes>
-                            <attribute name="text">6</attribute>
+                            <attribute name="text">7</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -388,11 +390,11 @@
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Date printed</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">7</property>
+                        <property name="sort_column_id">8</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext4"/>
                           <attributes>
-                            <attribute name="text">8</attribute>
+                            <attribute name="text">9</attribute>
                           </attributes>
                         </child>
                       </object>
