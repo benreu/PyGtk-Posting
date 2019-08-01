@@ -21,12 +21,12 @@ from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/job_sheet.ui"
 
-class JobSheetGUI:
+class JobSheetGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.db = db
 		self.cursor = db.cursor()
@@ -38,21 +38,21 @@ class JobSheetGUI:
 		
 		self.customer_id = 0
 		self.job_id = 0
-		self.job_store = self.builder.get_object('job_store')
-		self.customer_store = self.builder.get_object('customer_store')
+		self.job_store = self.get_object('job_store')
+		self.customer_store = self.get_object('customer_store')
 		self.populate_customer_store ()
-		self.product_store = self.builder.get_object('product_store')
-		self.job_type_store = self.builder.get_object('job_type_store')
+		self.product_store = self.get_object('product_store')
+		self.job_type_store = self.get_object('job_type_store')
 		self.populate_product_store()
 
-		customer_completion = self.builder.get_object('customer_completion')
+		customer_completion = self.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 		
-		qty_column = self.builder.get_object ('treeviewcolumn1')
-		qty_renderer = self.builder.get_object ('cellrendererspin1')
+		qty_column = self.get_object ('treeviewcolumn1')
+		qty_renderer = self.get_object ('cellrendererspin1')
 		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, window):
@@ -68,7 +68,7 @@ class JobSheetGUI:
 		return True
 
 	def product_editing_started (self, renderer, combo, path):
-		product_completion = self.builder.get_object('product_completion')
+		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 		combo_entry = combo.get_child()
 		combo_entry.set_completion(product_completion)
@@ -76,7 +76,7 @@ class JobSheetGUI:
 	def product_match_selected(self, completion, model, iter_):
 		product_id = model[iter_][0]
 		product_name = model[iter_][1]
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.job_store[path][2] = int(product_id)
 		self.job_store[path][3] = product_name
@@ -144,7 +144,7 @@ class JobSheetGUI:
 			self.product_store.append(row)
 
 	def focus(self, window, void):
-		if self.builder.get_object("entry1").get_text() == "":
+		if self.get_object("entry1").get_text() == "":
 			self.job_combobox_populate ()
 		self.populate_existing_job_combobox ()
 
@@ -153,7 +153,7 @@ class JobSheetGUI:
 		cellrenderer.set_property("text" , qty)
 
 	def job_combobox_populate (self):
-		job_combo = self.builder.get_object('job_type_combo')
+		job_combo = self.get_object('job_type_combo')
 		job = job_combo.get_active_id()
 		model = job_combo.get_model()
 		model.clear()
@@ -164,7 +164,7 @@ class JobSheetGUI:
 		job_combo.set_active_id(job)
 
 	def populate_existing_job_combobox (self):
-		existing_job_combo = self.builder.get_object('comboboxtext2')
+		existing_job_combo = self.get_object('comboboxtext2')
 		existing_job = existing_job_combo.get_active_id()
 		existing_job_combo.remove_all()
 		self.cursor.execute("SELECT js.id::text, "
@@ -212,48 +212,48 @@ class JobSheetGUI:
 	def new_job_combo_changed(self, widget):
 		if widget.get_active_id() != None: # something actually selected
 			#self.save ()
-			self.builder.get_object('comboboxtext2').set_active(-1)
+			self.get_object('comboboxtext2').set_active(-1)
 			self.job_id = 0 # new job
 			self.job_store.clear()
-			self.builder.get_object('entry1').set_sensitive(True)
-			self.builder.get_object('entry1').set_text("")
+			self.get_object('entry1').set_sensitive(True)
+			self.get_object('entry1').set_text("")
 		else: # changed by code to nothing
-			self.builder.get_object('button7').set_sensitive(False)
-			self.builder.get_object('button5').set_sensitive(False)
+			self.get_object('button7').set_sensitive(False)
+			self.get_object('button5').set_sensitive(False)
 
 	def existing_job_combo_changed (self, widget):
 		if widget.get_active_id() != None:
 			self.project_name = widget.get_active_text()
-			self.builder.get_object('job_type_combo').set_active(-1)
-			self.builder.get_object('button5').set_sensitive(True)
-			self.builder.get_object('button3').set_sensitive(True)
-			self.builder.get_object('entry1').set_text("")
-			self.builder.get_object('entry1').set_sensitive(False)
+			self.get_object('job_type_combo').set_active(-1)
+			self.get_object('button5').set_sensitive(True)
+			self.get_object('button3').set_sensitive(True)
+			self.get_object('entry1').set_text("")
+			self.get_object('entry1').set_sensitive(False)
 			self.job_id = widget.get_active_id()
 			self.populate_job_treeview()
 			self.cursor.execute("SELECT id FROM time_clock_projects "
 								"WHERE (job_sheet_id, active) = (%s, True)", 
 								(self.job_id,))
 			for row in self.cursor.fetchall():
-				self.builder.get_object('checkbutton2').set_active(True)
+				self.get_object('checkbutton2').set_active(True)
 				break
 			else:
-				self.builder.get_object('checkbutton2').set_active(False)
+				self.get_object('checkbutton2').set_active(False)
 		else:
-			self.builder.get_object('button7').set_sensitive(False)
-			self.builder.get_object('button5').set_sensitive(False)
-			self.builder.get_object('button3').set_sensitive(False)
+			self.get_object('button7').set_sensitive(False)
+			self.get_object('button5').set_sensitive(False)
+			self.get_object('button3').set_sensitive(False)
 
 	def customer_combo_changed(self, widget):
 		id_ = widget.get_active_id()
 		if id_ != None:
-			self.builder.get_object('comboboxtext2').set_sensitive(True)
+			self.get_object('comboboxtext2').set_sensitive(True)
 			self.job_id = 0
 			self.job_store.clear()
 			self.customer_id = id_
 			self.populate_existing_job_combobox ()	
 			self.job_combobox_populate ()
-			self.builder.get_object('job_type_combo').set_active(-1)
+			self.get_object('job_type_combo').set_active(-1)
 			
 	def customer_match_selected(self, completion, model, iter_):
 		self.job_id = 0
@@ -261,12 +261,12 @@ class JobSheetGUI:
 		self.customer_id = self.customer_store[iter_][0]
 		self.job_combobox_populate ()
 		self.populate_existing_job_combobox ()
-		self.builder.get_object('combobox1').set_active_id(model[iter_][0])
-		self.builder.get_object('job_type_combo').set_active(-1)
+		self.get_object('combobox1').set_active_id(model[iter_][0])
+		self.get_object('job_type_combo').set_active(-1)
 		return True
 		
 	def description_changed(self, widget):
-		self.builder.get_object('button7').set_sensitive(True)
+		self.get_object('button7').set_sensitive(True)
 
 	def job_description_entry_activated (self, entry):
 		self.create_new_job()
@@ -275,13 +275,13 @@ class JobSheetGUI:
 		self.create_new_job()
 
 	def create_new_job (self):
-		description = self.builder.get_object('entry1').get_text()
-		time_clock_project = self.builder.get_object('checkbutton2').get_active()
-		contact_name = self.builder.get_object('combobox-entry').get_text()
-		iter_ = self.builder.get_object('job_type_combo').get_active_iter()
+		description = self.get_object('entry1').get_text()
+		time_clock_project = self.get_object('checkbutton2').get_active()
+		contact_name = self.get_object('combobox-entry').get_text()
+		iter_ = self.get_object('job_type_combo').get_active_iter()
 		job_type_id = self.job_type_store[iter_][0]
 		job_name = self.job_type_store[iter_][1]
-		job_name_description = self.builder.get_object('entry1').get_text()
+		job_name_description = self.get_object('entry1').get_text()
 		self.cursor.execute("INSERT INTO job_sheets "
 							"(description, job_type_id, time_clock, "
 							"date_inserted, invoiced, completed, contact_id) "
@@ -301,11 +301,11 @@ class JobSheetGUI:
 								self.job_id))
 		self.db.commit()
 		self.populate_existing_job_combobox ()
-		self.builder.get_object('comboboxtext2').set_active_id(str(self.job_id))
-		self.builder.get_object('button7').set_sensitive(False)
+		self.get_object('comboboxtext2').set_active_id(str(self.job_id))
+		self.get_object('button7').set_sensitive(False)
 
 	def delete_line(self, widget = None):
-		selection = self.builder.get_object("treeview-selection1")
+		selection = self.get_object("treeview-selection1")
 		store, path = selection.get_selected_rows ()
 		if path != []: # a row is selected
 			job_line_id = store[path][0]
@@ -324,7 +324,7 @@ class JobSheetGUI:
 		line = self.job_store[iter_]
 		self.save_line(line)
 		path = self.job_store.get_path(iter_)
-		treeview = self.builder.get_object('treeview1')
+		treeview = self.get_object('treeview1')
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, True)
 
@@ -338,16 +338,16 @@ class JobSheetGUI:
 							"WHERE job_sheet_id = %s", 
 							(datetime.today(), self.job_id))
 		self.job_store.clear()
-		self.builder.get_object('comboboxtext2').set_active(-1)
-		self.builder.get_object('job_type_combo').set_active(-1)
-		self.builder.get_object('checkbutton2').set_active(False)
+		self.get_object('comboboxtext2').set_active(-1)
+		self.get_object('job_type_combo').set_active(-1)
+		self.get_object('checkbutton2').set_active(False)
 		self.job_id = 0
 		self.populate_customer_store ()
 		self.populate_existing_job_combobox ()
 		self.db.commit()
 
 	def populate_job_treeview(self):
-		treeselection = self.builder.get_object('treeview-selection1')
+		treeselection = self.get_object('treeview-selection1')
 		model, path = treeselection.get_selected_rows ()
 		self.job_store.clear()
 		self.cursor.execute("SELECT id, qty, product_id, remark "
