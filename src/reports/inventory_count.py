@@ -22,7 +22,7 @@ from decimal import Decimal
 from pricing import product_retail_price
 import constants
 
-UI_FILE = constants.ui_directory + "src/reports/inventory_count.ui"
+UI_FILE = constants.ui_directory + "/reports/inventory_count.ui"
 
 
 class InventoryCountGUI:
