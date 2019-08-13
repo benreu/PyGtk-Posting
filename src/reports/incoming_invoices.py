@@ -40,8 +40,8 @@ class IncomingInvoiceGUI:
 
 		self.populate_service_provider_store ()
 
-		window = self.builder.get_object('window1')
-		window.show_all()
+		self.window = self.builder.get_object('window1')
+		self.window.show_all()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -52,18 +52,29 @@ class IncomingInvoiceGUI:
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
+		if path == []:
+			return
 		file_id = model[path][0]
 		self.cursor.execute("SELECT attached_pdf FROM incoming_invoices "
-							"WHERE id = %s", (file_id,))
+							"WHERE id = %s "
+							"AND attached_pdf IS NOT NULL", (file_id,))
 		for row in self.cursor.fetchall():
 			file_name = "/tmp/Attachment.pdf"
 			file_data = row[0]
-			if file_data == None:
-				return
-			f = open(file_name,'wb')
-			f.write(file_data)
-			subprocess.call("xdg-open %s" % file_name, shell = True)
-			f.close()
+			with open(file_name,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_name])
+			break
+		else: # no pdf found, give the user the option to attach one
+			import pdf_attachment
+			dialog = pdf_attachment.Dialog(self.window)
+			result = dialog.run()
+			if result == Gtk.ResponseType.ACCEPT:
+				file_data = dialog.get_pdf ()
+				self.cursor.execute("UPDATE incoming_invoices "
+									"SET attached_pdf = %s "
+									"WHERE id = %s", (file_data, file_id))
+				self.db.commit()
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()
