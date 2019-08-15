@@ -175,22 +175,71 @@ ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS fed_withholding_exemp
 UPDATE payroll.employee_info SET fed_withholding_exempt = False WHERE fed_withholding_exempt IS NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN fed_withholding_exempt SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN date_created SET DEFAULT now();
+ALTER TABLE payroll.employee_info ALTER COLUMN date_created SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN born SET DEFAULT '1970-1-1';
+ALTER TABLE payroll.employee_info ALTER COLUMN born SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN social_security SET DEFAULT '';
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN wage SET DEFAULT 0.00;
-ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET DEFAULT 30;
+ALTER TABLE payroll.employee_info ALTER COLUMN wage SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET DEFAULT 24;
+ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN married SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN married SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET DEFAULT now();
+ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN state_income_status SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_income_status SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN state_credits SET DEFAULT 0;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_credits SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN state_extra_withholding SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_extra_withholding SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN fed_income_status SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_income_status SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN fed_credits SET DEFAULT 0;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_credits SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN fed_extra_withholding SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_extra_withholding SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN on_payroll_since SET DEFAULT now();
 UPDATE payroll.employee_info SET on_payroll_since = '1970-1-1' WHERE on_payroll_since IS NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN on_payroll_since SET NOT NULL;
+--version 0.5.16
+ALTER TABLE IF EXISTS payroll.employee_payments RENAME TO emp_payments;
+ALTER TABLE IF EXISTS payroll.employee_pdf_archive RENAME TO emp_pdf_archive;
 
+CREATE OR REPLACE FUNCTION payroll.pay_stubs_employee_info_update_func ()
+  RETURNS trigger AS
+$func$
+BEGIN
+	UPDATE payroll.employee_info SET current = False 
+		WHERE (id, current) = (SELECT NEW.employee_info_id, True);
+	RETURN NEW;
+END
+$func$  LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS pay_stubs_employee_info_update_trigger ON payroll.pay_stubs;
+CREATE TRIGGER pay_stubs_employee_info_update_trigger
+AFTER INSERT OR UPDATE ON payroll.pay_stubs
+FOR EACH ROW EXECUTE PROCEDURE payroll.pay_stubs_employee_info_update_func() ;
+
+CREATE OR REPLACE FUNCTION payroll.employee_info_update_non_current_error_func ()
+	RETURNS trigger AS
+$func$
+BEGIN
+	IF OLD.current = False THEN 
+		RAISE EXCEPTION 'Non-current entries in employee_info are not editable';
+	END IF;
+	RETURN NEW;
+END
+$func$  LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS employee_info_update_non_current_error_trigger ON payroll.employee_info;
+CREATE TRIGGER employee_info_update_non_current_error_trigger
+BEFORE UPDATE ON payroll.employee_info
+FOR EACH ROW EXECUTE PROCEDURE payroll.employee_info_update_non_current_error_func() ;
+
+CREATE UNIQUE INDEX IF NOT EXISTS employee_info_employee_current_unique
+ON payroll.employee_info (employee_id, current)
+WHERE current = True;
 
 

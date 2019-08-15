@@ -21,9 +21,9 @@ from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
 import sane, psycopg2, subprocess
-import constants
+from constants import db, ui_directory, broadcaster
 
-UI_FILE = constants.ui_directory + "/payroll/employee_info.ui"
+UI_FILE = ui_directory + "/payroll/employee_info.ui"
 
 device = None
 
@@ -39,12 +39,12 @@ class EmployeeInfoGUI(Gtk.Builder):
 		self.federal_withholding_store = self.get_object('federal_withholding_store')
 		self.state_withholding_store = self.get_object('state_withholding_store')
 
-		self.db = constants.db
+		self.db = db
 		self.cursor = self.db.cursor()
 
 		self.populate_employee_store ()
-		self.born_calendar = DateTimeCalendar ()
-		self.on_payroll_since_calendar = DateTimeCalendar ()
+		self.born_calendar = DateTimeCalendar (override = True)
+		self.on_payroll_since_calendar = DateTimeCalendar (override = True)
 		self.born_calendar.connect("day-selected", 
 								self.born_calendar_date_selected )
 		self.on_payroll_since_calendar.connect ("day-selected", 
@@ -52,7 +52,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 		
 		self.window = self.get_object('window1')
 		self.window.show_all()
-
+		broadcaster.connect("shutdown", self.main_shutdown)
 		
 		self.get_object("button5").set_label("No scanner selected")
 		self.get_object("button5").set_sensitive(False)
@@ -81,6 +81,11 @@ class EmployeeInfoGUI(Gtk.Builder):
 		devices = sane.get_devices()
 		self.data_queue.put(devices)
 
+	def main_shutdown (self):
+		# commit all changes before shutdown,
+		# because committing changes releases the row lock
+		self.db.commit()
+
 	def populate_employee_store (self):
 		self.populating = True
 		self.employee_store.clear()
@@ -96,28 +101,42 @@ class EmployeeInfoGUI(Gtk.Builder):
 		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.employee_id = model[path][0]
-		self.employee_selected ()
+		self.select_employee ()
 
-	def employee_selected (self):
+	def select_employee (self):
 		self.populating = True
-		self.cursor.execute("SELECT "
-							"born, "
-							"social_security, "
-							"social_security_exempt, "
-							"on_payroll_since, "
-							"wage, "
-							"payment_frequency, "
-							"married, "
-							"format_date(last_updated), "
-							"state_withholding_exempt, "
-							"state_credits, "
-							"state_extra_withholding, "
-							"fed_withholding_exempt, "
-							"fed_credits, "
-							"fed_extra_withholding "
-							"FROM payroll.employee_info WHERE employee_id = %s",
+		self.db.commit() # save and unlock the current employee
+		cursor = self.db.cursor()
+		try:
+			cursor.execute("SELECT "
+								"born, "
+								"social_security, "
+								"social_security_exempt, "
+								"on_payroll_since, "
+								"wage, "
+								"payment_frequency, "
+								"married, "
+								"format_date(last_updated), "
+								"state_withholding_exempt, "
+								"state_credits, "
+								"state_extra_withholding, "
+								"fed_withholding_exempt, "
+								"fed_credits, "
+								"fed_extra_withholding "
+							"FROM payroll.employee_info "
+							"WHERE employee_id = %s "
+							"ORDER BY current DESC, id DESC "
+							"LIMIT 1 FOR UPDATE NOWAIT",
 							(self.employee_id,))
-		for row in self.cursor.fetchall():
+		except psycopg2.OperationalError as e:
+			self.db.rollback()
+			cursor.close()
+			self.get_object('box1').set_sensitive(False)
+			error = str(e) + "Hint: somebody else is editing this employee info"
+			self.show_message (error)
+			self.populating = False
+			return False
+		for row in cursor.fetchall():
 			self.born_calendar.set_date (row[0])
 			self.get_object('entry2').set_text(row[1])
 			self.get_object('checkbutton3').set_active(row[2])
@@ -134,12 +153,14 @@ class EmployeeInfoGUI(Gtk.Builder):
 			self.get_object('spinbutton1').set_value(row[13])
 			break
 		else:
-			self.cursor.execute("INSERT INTO payroll.employee_info (employee_id) "
+			cursor.execute("INSERT INTO payroll.employee_info (employee_id) "
 								"VALUES (%s)", (self.employee_id,))
 			self.db.commit()
-			GLib.timeout_add(50, self.employee_selected)
+			GLib.timeout_add(50, self.select_employee)
 		self.populating = False
 		self.populate_exemption_forms ()
+		cursor.close()
+		self.get_object('box1').set_sensitive(True)
 
 	def populate_exemption_forms (self):
 		self.s_s_medicare_store.clear()
@@ -215,120 +236,60 @@ class EmployeeInfoGUI(Gtk.Builder):
 			subprocess.Popen("xdg-open %s" % file_name, shell = True)
 			f.close()
 
-	def payment_frequency_value_changed (self, spinbutton):
+	def payments_per_year_value_changed (self, spinbutton):
 		if self.populating == True:
 			return
-		payment_frequency = spinbutton.get_value ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (payment_frequency, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(payment_frequency, datetime.today(),
-							self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def state_income_status_toggled (self, checkbutton):
 		if self.populating == True:
 			return
-		status = checkbutton.get_active ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (state_withholding_exempt, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(status, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def state_credits_value_changed (self, spinbutton):
 		if self.populating == True:
 			return
-		state_credits = spinbutton.get_value ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (state_credits, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(state_credits, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def state_extra_withholding_value_changed (self, spinbutton):
 		if self.populating == True:
 			return
-		state_withholding = spinbutton.get_value ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (state_extra_withholding, last_updated) = "
-							"(%s, %s) "
-							"WHERE employee_id = %s", 
-							(state_withholding, datetime.today(), 
-							self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def federal_income_status_toggled (self, checkbutton):
 		if self.populating == True:
 			return
-		status = checkbutton.get_active ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (fed_withholding_exempt, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(status, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def federal_credits_value_changed (self, spinbutton):
 		if self.populating == True:
 			return
-		federal_credits = spinbutton.get_value ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (fed_credits, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(federal_credits, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def federal_extra_withholding_value_changed (self, spinbutton):
 		if self.populating == True:
 			return
-		fed_withholding = spinbutton.get_value ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (fed_extra_withholding, last_updated) = "
-							"(%s, %s) "
-							"WHERE employee_id = %s", 
-							(fed_withholding, datetime.today(), 
-							self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def married_checkbutton_toggled (self, checkbutton):
 		if self.populating == True:
 			return
-		married = checkbutton.get_active ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (married, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(married, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def social_security_entry_changed (self, entry):
 		if self.populating == True:
 			return
-		s_s = entry.get_text ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (social_security, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(s_s, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def wage_spinbutton_value_changed (self, spinbutton):
 		if self.populating == True:
 			return
-		wage = spinbutton.get_value ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (wage, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(wage, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def social_security_exemption_changed (self, checkbutton):
 		if self.populating == True:
 			return
-		exemption = checkbutton.get_active ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (social_security_exempt, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(exemption, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def scanner_combo_changed (self, combo):
 		if combo.get_active() > -1:
@@ -441,12 +402,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 		self.get_object('entry1').set_text(date_text)
 		if self.populating == True:
 			return
-		date = calendar.get_date ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (born, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(date, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 
 	def born_entry_icon_released (self, entry, icon, event):
 		self.born_calendar.set_relative_to(entry)
@@ -457,16 +413,116 @@ class EmployeeInfoGUI(Gtk.Builder):
 		self.get_object('entry3').set_text(date_text)
 		if self.populating == True:
 			return
-		date = calendar.get_date ()
-		self.cursor.execute ("UPDATE payroll.employee_info "
-							"SET (on_payroll_since, last_updated) = (%s, %s) "
-							"WHERE employee_id = %s", 
-							(date, datetime.today(), self.employee_id))
-		self.db.commit()
+		self.auto_save_employee_info ()
 		
 	def on_payroll_since_entry_icon_released (self, entry, icon, event):
 		self.on_payroll_since_calendar.set_relative_to(entry)
 		self.on_payroll_since_calendar.show ()
 
+	def save_clicked (self, button):
+		born = self.born_calendar.get_date ()
+		social_security = self.get_object('entry2').get_text()
+		social_security_exempt = self.get_object('checkbutton3').get_active()
+		on_payroll_since = self.on_payroll_since_calendar.get_date ()
+		wage = self.get_object('spinbutton6').get_value()
+		payment_frequency = self.get_object('spinbutton5').get_value()
+		married = self.get_object('checkbutton4').get_active()
+		state_withholding_exempt = self.get_object('checkbutton2').get_active()
+		state_credits = self.get_object('spinbutton3').get_value()
+		state_extra_withholding = self.get_object('spinbutton2').get_value()
+		fed_withholding_exempt = self.get_object('checkbutton1').get_active()
+		fed_credits = self.get_object('spinbutton4').get_value()
+		fed_extra_withholding = self.get_object('spinbutton1').get_value()
+		c = self.db.cursor()
+		c.execute ("INSERT INTO payroll.employee_info "
+						"(born, "
+						"social_security, "
+						"social_security_exempt, "
+						"on_payroll_since, "
+						"wage, "
+						"payment_frequency, "
+						"married, "
+						"state_withholding_exempt, "
+						"state_credits, "
+						"state_extra_withholding, "
+						"fed_withholding_exempt, "
+						"fed_credits, "
+						"fed_extra_withholding, "
+						"employee_id) "
+					"VALUES (%s, %s, %s, %s, %s, %s, %s, "
+						"%s, %s, %s, %s, %s, %s, %s) "
+					"ON CONFLICT (current, employee_id) "
+						"WHERE current = True "
+					"DO UPDATE SET "
+						"(born, "
+						"social_security, "
+						"social_security_exempt, "
+						"on_payroll_since, "
+						"wage, "
+						"payment_frequency, "
+						"married, "
+						"state_withholding_exempt, "
+						"state_credits, "
+						"state_extra_withholding, "
+						"fed_withholding_exempt, "
+						"fed_credits, "
+						"fed_extra_withholding, "
+						"last_updated) "
+					"= "
+						"(EXCLUDED.born, "
+						"EXCLUDED.social_security, "
+						"EXCLUDED.social_security_exempt, "
+						"EXCLUDED.on_payroll_since, "
+						"EXCLUDED.wage, "
+						"EXCLUDED.payment_frequency, "
+						"EXCLUDED.married, "
+						"EXCLUDED.state_withholding_exempt, "
+						"EXCLUDED.state_credits, "
+						"EXCLUDED.state_extra_withholding, "
+						"EXCLUDED.fed_withholding_exempt, "
+						"EXCLUDED.fed_credits, "
+						"EXCLUDED.fed_extra_withholding, "
+						"now()) "
+					"WHERE (employee_info.employee_id, employee_info.current) = "
+						"(EXCLUDED.employee_id, True) ", 
+					(born,
+					social_security,
+					social_security_exempt,
+					on_payroll_since,
+					wage,
+					payment_frequency,
+					married,
+					state_withholding_exempt,
+					state_credits,
+					state_extra_withholding,
+					fed_withholding_exempt,
+					fed_credits,
+					fed_extra_withholding, 
+					self.employee_id))
+		c.close()
+		self.get_object('treeview1').set_sensitive(True)
 
-		
+	def cancel_clicked (self, button):
+		self.select_employee()
+		self.get_object('treeview1').set_sensitive(True)
+
+	def auto_save_employee_info (self):
+		# if we ever decide to implement autosave again, the caveats are :
+		# 1 locking the row
+		# 2 upserts increment the id
+		self.get_object('treeview1').set_sensitive(False)
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog( self.window,
+									0,
+									Gtk.MessageType.ERROR,
+									Gtk.ButtonsType.CLOSE,
+									message)
+		dialog.run()
+		dialog.destroy()
+
+	def window_delete_event (self, window, event):
+		# save any uncommitted changes and unlock the selected row
+		self.db.commit() 
+
+
