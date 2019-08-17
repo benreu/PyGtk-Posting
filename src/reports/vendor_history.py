@@ -79,16 +79,15 @@ class VendorHistoryGUI:
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.po_store[path][0]
-		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders WHERE id = %s", (file_id,))
+		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders "
+							"WHERE id = %s AND pdf_data IS NOT NULL", 
+							(file_id,))
 		for row in self.cursor.fetchall():
-			file_name = row[0]
-			if file_name == None:
-				return
+			file_url = "/tmp/" + row[0]
 			file_data = row[1]
-			f = open("/tmp/" + file_name,'wb')
-			f.write(file_data)
-			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
-			f.close()
+			with open(file_url,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_url])
 
 	def close_transaction_window(self, window, void):
 		self.window.destroy()
@@ -289,19 +288,21 @@ class VendorHistoryGUI:
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
+		if path == []:
+			return
 		po_id = model[path][0]
 		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
-							"WHERE id = %s", (po_id,))
+							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+							(po_id,))
 		for row in self.cursor.fetchall():
-			file_name = model[path][3]
+			file_url = "/tmp/PO %d attachment.pdf" % po_id
 			file_data = row[0]
-			if file_data == None:
-				self.run_attach_dialog (po_id)
-				return
-			f = open(file_name,'wb')
-			f.write(file_data)
-			subprocess.call("xdg-open %s" % file_name, shell = True)
-			f.close()
+			with open(file_url,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_url])
+			break
+		else:
+			self.run_attach_dialog (po_id)
 
 	def run_attach_dialog (self, po_id):
 		import pdf_attachment
@@ -313,7 +314,5 @@ class VendorHistoryGUI:
 								"WHERE id = %s", (file_data, po_id))
 			self.db.commit()
 
-
-		
 
 
