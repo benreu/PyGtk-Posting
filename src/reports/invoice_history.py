@@ -216,6 +216,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 									"c.name, "
 									"'Comments: ' || comments, "
 									"COALESCE(total, 0.00), "
+									"COALESCE(total, 0.00)::text, "
 									"date_printed::text, "
 									"format_date(date_printed)"
 								"FROM invoices AS i "
