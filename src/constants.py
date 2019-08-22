@@ -22,11 +22,13 @@ dev_mode = False
 db = None
 cursor = None
 broadcaster = None
+ACCOUNTS = None
 is_admin = False
 log_file = None
 
 def start_broadcaster ():
-	global broadcaster
+	global broadcaster, ACCOUNTS
+	import accounts as ACCOUNTS
 	broadcaster = Broadcast()
 
 class Broadcast (GObject.GObject):
@@ -36,7 +38,7 @@ class Broadcast (GObject.GObject):
 	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
 	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
 	}
-	global db, cursor
+	global db, cursor, ACCOUNTS
 	def __init__ (self):
 		GObject.GObject.__init__(self)
 		GObject.timeout_add_seconds(1, self.poll_connection)
@@ -56,8 +58,7 @@ class Broadcast (GObject.GObject):
 			elif "contact" in notify.payload:
 				self.emit('contacts_changed')
 			elif "account" in notify.payload:
-				import accounts
-				accounts.populate_accounts()
+				ACCOUNTS.populate_accounts()
 			elif "clock_entry" in notify.payload:
 				self.emit('clock_entries_changed')
 		return True
