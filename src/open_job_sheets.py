@@ -36,9 +36,17 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		self.jobs_store = self.get_object('jobs_to_invoice_store')
 		self.job_sheet_line_store = self.get_object("job_sheet_line_store")
 		self.populate_job_store ()
+		self.populate_contact_store ()
 		
 		self.window = self.get_object('window1')
 		self.window.show_all()
+
+	def populate_contact_store (self):
+		store = self.get_object ('contact_store')
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+							"ORDER BY name, ext_name")
+		for row in self.cursor.fetchall():
+			store.append(row)
 
 	def populate_job_store(self):
 		self.jobs_store.clear()
@@ -59,6 +67,33 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		for row in c.fetchall():
 			self.jobs_store.append(row)
 		c.close()
+
+	def job_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('menu')
+			menu.show_all()
+			menu.popup_at_pointer()
+
+	def move_job_to_contact_menu_activated (self, menuitem):
+		dialog = self.get_object('move_dialog')
+		response = dialog.run()
+		dialog.hide()
+		if response != Gtk.ResponseType.ACCEPT:
+			return
+		customer_id = self.get_object ('contact_combo').get_active_id()
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		job_id = model[path][0]
+		self.cursor.execute("UPDATE job_sheets SET contact_id = %s "
+							"WHERE id = %s", (customer_id, job_id))
+		self.db.commit()
+		self.populate_job_store ()
+
+	def contact_match_selected (self, entrycompletion, model, t_iter):
+		contact_id = model[t_iter][0]
+		self.get_object('contact_combo').set_active_id(contact_id)
 
 	def row_activate(self, treeview, path, treeviewcolumn):
 		job_id = self.jobs_store[path][0]
