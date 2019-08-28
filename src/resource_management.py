@@ -180,7 +180,6 @@ class ResourceManagementGUI:
 							"WHERE id = %s RETURNING phone_number ",
 							(contact_id, contact_id, id_))
 		phone = self.cursor.fetchone()[0]
-		print (phone)
 		self.resource_store[path][0]
 		self.db.commit()
 		self.editing = False
@@ -376,7 +375,6 @@ class ResourceManagementGUI:
 										tag_name, rgba, phone_number,
 										call_received_time, 
 										c_r_time_formatted, to_do])
-			print (phone_number)
 			if row_id == id_:
 				self.builder.get_object('treeview-selection1').select_iter(iter_)
 		if new == True:
