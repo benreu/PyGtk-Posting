@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
+from invoice_window import create_new_invoice 
 from constants import ui_directory, db, broadcaster
 
 UI_FILE = ui_directory + "/job_sheet.ui"
@@ -328,15 +329,39 @@ class JobSheetGUI(Gtk.Builder):
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, True)
 
-	def post_job_clicked (self, widget):
-		self.cursor.execute("UPDATE job_sheets SET (contact_id, completed) "
-							"= (%s, True) WHERE id = %s", 
-							(self.customer_id, self.job_id))
-		self.populate_job_treeview ()
-		self.cursor.execute("UPDATE time_clock_projects "
-							"SET (stop_date, active) = (%s, False) "
-							"WHERE job_sheet_id = %s", 
-							(datetime.today(), self.job_id))
+	def post_job_to_invoice_clicked (self, widget):
+		c = self.db.cursor()
+		c.execute("SELECT i.id, i.name, c.name FROM invoices AS i "
+					"JOIN contacts AS c ON c.id = i.customer_id "
+					"WHERE (i.posted, i.canceled, i.active, i.customer_id) = "
+					"(False, False, True, %s) "
+					"LIMIT 1", (self.customer_id,))
+		for row in c.fetchall():
+			invoice_id = row[0]
+			invoice_name = row[1]
+			customer_name = row[2]
+			message = "Invoice '%s' already exists for customer '%s'.\n"\
+						"Do you want to append the items?" \
+						% (invoice_name, customer_name)
+			action = self.show_invoice_exists_message (message) 
+			if action == 2:
+				break # append the items
+			else:
+				return # cancel posting to invoice altogether
+		else: # create new invoice
+			invoice_id = create_new_invoice (datetime.today(), customer_id)
+		c.execute("INSERT INTO invoice_items "
+						"(qty, product_id, remark, invoice_id) "
+					"SELECT qty, product_id, remark, %s "
+					"FROM job_sheet_line_items AS jsli "
+						"WHERE jsli.job_sheet_id = %s; "
+					"UPDATE job_sheets SET (invoiced, completed) "
+						"= (True, True) WHERE id = %s; "
+					"UPDATE time_clock_projects "
+					"SET (stop_date, active) = (%s, False) "
+					"WHERE job_sheet_id = %s", 
+					(invoice_id, self.job_id, self.job_id, 
+					datetime.today(), self.job_id))
 		self.job_store.clear()
 		self.get_object('comboboxtext2').set_active(-1)
 		self.get_object('job_type_combo').set_active(-1)
@@ -410,6 +435,20 @@ class JobSheetGUI(Gtk.Builder):
 					path = tmodel.get_path(titer)
 					next_column = columns[0]
 			GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
+
+	def show_invoice_exists_message (self, message):
+		dialog = Gtk.Dialog(	"", 
+								self.window,
+								0)
+		dialog.add_button("Cancel", 1)
+		dialog.add_button("Append items", 2)
+		label = Gtk.Label(message)
+		box = dialog.get_content_area()
+		box.add(label)
+		label.show()
+		response = dialog.run()
+		dialog.destroy()
+		return response
 
 
 
