@@ -171,12 +171,15 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		self.populate_job_store()
 
 	def focus (self, window, event):
-		pass
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		self.populate_job_store()
+		selection.select_path(path)
 
 	def show_invoice_exists_message (self, message):
-		dialog = Gtk.Dialog(	"", 
-								self.window,
-								0)
+		dialog = Gtk.Dialog("", self.window, 0)
 		dialog.add_button("Cancel", 1)
 		dialog.add_button("Append items", 2)
 		label = Gtk.Label(message)
