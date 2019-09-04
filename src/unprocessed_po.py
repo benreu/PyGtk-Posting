@@ -243,7 +243,8 @@ class GUI:
 								"po.id::text, "
 								"po.name, "
 								"'Vendor: ' || c.name, "
-								"(attached_pdf IS NOT NULL) "
+								"(attached_pdf IS NOT NULL), "
+								"COALESCE(po.invoice_description, c.name) "
 							"FROM purchase_orders AS po "
 							"JOIN contacts AS c ON c.id = po.vendor_id "
 							"WHERE (canceled, invoiced, closed) = "
@@ -256,8 +257,8 @@ class GUI:
 		if po_id == None:
 			return
 		path = combo.get_active()
-		vendor_name = self.po_store[path][2]
-		self.builder.get_object('entry6').set_text(vendor_name.split(":")[1])
+		invoice_description = self.po_store[path][4]
+		self.builder.get_object('entry6').set_text(invoice_description)
 		self.purchase_order_id = po_id
 		self.populate_purchase_order_items_store ()
 		self.builder.get_object("button7").set_sensitive(True)
