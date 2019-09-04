@@ -200,16 +200,19 @@ class Setup():
 									"closed, "
 									"invoiced, "
 									"name, "
-									"date_created) "
+									"date_created, "
+									"comments) "
 								"= (%s, "
 									"True, "
 									"False, "
+									"%s, "
 									"%s, "
 									"%s) "
 								"WHERE id = %s", 
 							(dat, 
 							self.document_name, 
-							datetime, 
+							datetime,
+							self.comment, 
 							purchase_order_id))
 		self.db.commit()
 
