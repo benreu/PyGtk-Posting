@@ -380,7 +380,9 @@
                     <property name="title" translatable="yes">Order number</property>
                     <property name="reorderable">True</property>
                     <child>
-                      <object class="GtkCellRendererText"/>
+                      <object class="GtkCellRendererText">
+                        <property name="editable">True</property>
+                      </object>
                       <attributes>
                         <attribute name="text">11</attribute>
                       </attributes>
