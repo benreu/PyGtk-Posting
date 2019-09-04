@@ -80,7 +80,7 @@
       <column type="gchararray"/>
       <!-- column-name name -->
       <column type="gchararray"/>
-      <!-- column-name remark -->
+      <!-- column-name description -->
       <column type="gchararray"/>
       <!-- column-name amount -->
       <column type="gfloat"/>
@@ -90,6 +90,8 @@
       <column type="gboolean"/>
       <!-- column-name posted -->
       <column type="gboolean"/>
+      <!-- column-name comments -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="scanner_store">
@@ -266,7 +268,7 @@
                     <property name="search_column">3</property>
                     <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
-                    <property name="tooltip_column">4</property>
+                    <property name="tooltip_column">9</property>
                     <signal name="button-release-event" handler="po_treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="row_activated" swapped="no"/>
                     <child internal-child="selection">
@@ -306,12 +308,13 @@
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn4">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Remark</property>
+                        <property name="title" translatable="yes">Description</property>
                         <property name="expand">True</property>
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">4</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext4">
+                            <property name="editable">True</property>
                             <property name="ellipsize">middle</property>
                           </object>
                           <attributes>
