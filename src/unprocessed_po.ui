@@ -72,6 +72,8 @@
       <column type="gchararray"/>
       <!-- column-name attachment -->
       <column type="gboolean"/>
+      <!-- column-name invoice comments or number -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="purchase_order_items_store">
