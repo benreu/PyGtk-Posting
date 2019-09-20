@@ -202,6 +202,7 @@ class GUI:
 								, (account_number, account_number))
 		self.bank_account_total = self.get_bank_account_total(account_number)
 		self.builder.get_object('button2').set_sensitive(True)
+		self.builder.get_object('refresh_button').set_sensitive(True)
 		self.builder.get_object('label13').set_label(str(self.bank_account_total))
 		self.account_number = account_number
 		self.populate_treeview ()
@@ -218,6 +219,9 @@ class GUI:
 								"WHERE credit = True) c  ")
 		bank_account_total = self.cursor.fetchone()[0]
 		return bank_account_total
+
+	def refresh_clicked (self, button):
+		self.populate_treeview()
 
 	def populate_treeview(self ):
 		self.bank_transaction_store.clear()
