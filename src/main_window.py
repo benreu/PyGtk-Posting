@@ -535,6 +535,8 @@ class MainGUI :
 			self.time_clock_object = time_clock.TimeClockGUI()
 		else:
 			self.time_clock_object.window.present()
+			self.time_clock_object.populate_employees ()
+			self.time_clock_object.populate_job_store ()
 
 	def kit_products_activated (self, db):
 		import kit_products
