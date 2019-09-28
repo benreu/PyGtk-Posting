@@ -241,5 +241,10 @@ FOR EACH ROW EXECUTE PROCEDURE payroll.employee_info_update_non_current_error_fu
 CREATE UNIQUE INDEX IF NOT EXISTS employee_info_employee_current_unique
 ON payroll.employee_info (employee_id, current)
 WHERE current = True;
+--version 0.5.17
+UPDATE purchase_order_line_items SET order_number = '' WHERE order_number IS NULL;
+ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET DEFAULT '';
+ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET NOT NULL;
+
 
 
