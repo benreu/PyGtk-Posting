@@ -17,6 +17,7 @@
 
 
 from datetime import datetime
+from constants import db as DB
 
 class Deposit:
 	def __init__(self, db, date):
@@ -560,18 +561,33 @@ def post_voided_check (db, bank_account, date, cheque_number):
 					(date, bank_account, bank_account, cheque_number))
 	cursor.close()
 
-def double_entry_transaction (db, date, debit_account, credit_account, 
-													amount, description):
-	cursor = db.cursor()
-	cursor.execute(	"WITH new_row AS "
-						"(INSERT INTO gl_transactions "
-						"(date_inserted) VALUES (%s) RETURNING id) "
-					"INSERT INTO gl_entries "
-					"(credit_account, debit_account, amount, "
+class DoubleEntryTransaction :
+	def __init__(self, date, description):
+		self.desc = description
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_transactions "
+						"(date_inserted) VALUES (%s) RETURNING id", 
+					(date,))
+		self.trans_id = c.fetchone()[0]
+		c.close()
+
+	def post_credit_entry (self, amount, account_number):
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+					"(credit_account, amount, "
 					"transaction_description, gl_transaction_id) "
-					"VALUES (%s, %s, %s, %s, (SELECT id FROM new_row))", 
-					(date, credit_account, debit_account, amount, description))
-	cursor.close()
+					"VALUES (%s, %s, %s, %s)", 
+					(account_number, amount, self.desc, self.trans_id))
+		c.close()
+
+	def post_debit_entry (self, amount, account_number):
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+					"(debit_account, amount, "
+					"transaction_description, gl_transaction_id) "
+					"VALUES (%s, %s, %s, %s)", 
+					(account_number, amount, self.desc, self.trans_id))
+		c.close()
 
 def post_misc_check_payment (db, date, amount, payment_id, revenue_account):
 	cursor = db.cursor()
