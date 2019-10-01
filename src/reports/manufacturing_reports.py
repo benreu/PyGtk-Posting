@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 import numpy as np
 import constants
 
@@ -42,11 +43,13 @@ class ManufacturingReportsGUI (Gtk.Builder):
 
 	def profit_to_time_chart_clicked (self, button):
 		window = Gtk.Window()
-		scrolled_window = Gtk.ScrolledWindow()
-		window.add(scrolled_window)
+		box = Gtk.VBox()
+		window.add(box)
 		figure = Figure(figsize=(4, 4), dpi=100)
 		canvas = FigureCanvas(figure) 
-		scrolled_window.add(canvas)
+		box.pack_start(canvas, True, True, 0)
+		toolbar = NavigationToolbar(canvas, window)
+		box.pack_start(toolbar, False, False, 0)
 		figure.subplots_adjust(left=0.3, right=0.99, top=0.9, bottom=0.1)
 		c = constants.db.cursor()
 		product_name = list()
