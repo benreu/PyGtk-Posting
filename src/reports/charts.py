@@ -49,7 +49,8 @@ class ChartsGUI (Gtk.Builder):
 		c.execute("WITH cte AS "
 						"(SELECT SUM(amount_due) AS amount, "
 							"date_trunc(%s, dated_for) AS date_group "
-						"FROM invoices WHERE dated_for IS NOT NULL "
+						"FROM invoices "
+						"WHERE canceled = False AND dated_for IS NOT NULL "
 						"GROUP BY date_group ORDER BY date_group) "
 					"SELECT amount, date_group::date FROM cte", (date_field,))
 		for row in c.fetchall():
