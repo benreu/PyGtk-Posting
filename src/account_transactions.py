@@ -99,7 +99,7 @@ class GUI:
 		else:
 			path_result = "(%s)" % paths[0] 
 		from reports import gl_entry_lookup
-		gl_entry_lookup.GlEntryLookupGUI(self.db, path_result)
+		gl_entry_lookup.GlEntryLookupGUI(path_result)
 
 	def treecolumn_clicked (self, column):
 		label = self.builder.get_object('label1')
