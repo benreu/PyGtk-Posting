@@ -396,6 +396,15 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_Charts</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="charts_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem24">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>

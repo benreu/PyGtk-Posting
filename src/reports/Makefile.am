@@ -60,6 +60,8 @@ python_PYTHON = time_clock_project.ui \
 	shipping_history.py \
 	shipping_history.ui \
 	manufacturing_reports.py \
-	manufacturing_reports.ui
+	manufacturing_reports.ui \
+	charts.py \
+	charts.ui
 
 uidir = $(pkgdatadir)/reports/ui

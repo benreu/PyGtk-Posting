@@ -320,6 +320,10 @@ class MainGUI :
 		import open_job_sheets
 		open_job_sheets.OpenJobSheetsGUI()
 
+	def charts_activated (self, menuitem):
+		from reports import charts
+		charts.ChartsGUI()
+
 	def double_entry_transaction_clicked (self, menuitem):
 		import double_entry_transaction
 		double_entry_transaction.DoubleEntryTransactionGUI()
