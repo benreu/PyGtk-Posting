@@ -54,8 +54,6 @@
       <column type="gchararray"/>
       <!-- column-name invoice_amount -->
       <column type="PyObject"/>
-      <!-- column-name invoice_to_pay -->
-      <column type="gboolean"/>
       <!-- column-name date -->
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
@@ -143,6 +141,20 @@
               </packing>
             </child>
             <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkCheckButton" id="checkbutton1">
                 <property name="label" translatable="yes">View all  </property>
                 <property name="visible">True</property>
@@ -154,7 +166,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
             <child>
@@ -168,7 +180,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
             <child>
@@ -182,7 +194,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">5</property>
               </packing>
             </child>
           </object>
@@ -202,11 +214,14 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">vendor_invoice_sort</property>
+                <property name="rubber_banding">True</property>
                 <property name="activate_on_single_click">True</property>
                 <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
-                <signal name="row-activated" handler="invoice_row_activated" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection1"/>
+                  <object class="GtkTreeSelection" id="treeview-selection1">
+                    <property name="mode">multiple</property>
+                    <signal name="changed" handler="invoice_selection_changed" swapped="no"/>
+                  </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
@@ -235,32 +250,15 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
-                    <property name="visible">False</property>
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Pay</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">3</property>
-                    <child>
-                      <object class="GtkCellRendererToggle" id="cellrenderertoggle1">
-                        <signal name="toggled" handler="pay_renderer_toggled" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="active">3</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">4</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext4"/>
                       <attributes>
-                        <attribute name="text">5</attribute>
+                        <attribute name="text">4</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -284,7 +282,6 @@
                 <property name="can_focus">False</property>
                 <property name="border_width">10</property>
                 <property name="orientation">vertical</property>
-                <signal name="set-focus-child" handler="pay_with_credit_card_focused" swapped="no"/>
                 <child>
                   <object class="GtkBox" id="box15">
                     <property name="visible">True</property>
@@ -587,7 +584,6 @@
                 <property name="can_focus">False</property>
                 <property name="border_width">10</property>
                 <property name="orientation">vertical</property>
-                <signal name="set-focus-child" handler="pay_with_check_focused" swapped="no"/>
                 <child>
                   <object class="GtkBox" id="box13">
                     <property name="visible">True</property>
@@ -728,7 +724,6 @@
                     <property name="margin_top">10</property>
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">in</property>
-                    <signal name="set-focus-child" handler="pay_with_check_focused" swapped="no"/>
                     <child>
                       <object class="GtkBox" id="box3">
                         <property name="visible">True</property>
@@ -813,7 +808,6 @@
                                 <property name="placeholder_text" translatable="yes">Amount</property>
                                 <property name="input_purpose">number</property>
                                 <property name="input_hints">GTK_INPUT_HINT_SPELLCHECK | GTK_INPUT_HINT_NONE</property>
-                                <signal name="activate" handler="check_amount_changed" swapped="no"/>
                                 <signal name="changed" handler="check_amount_changed" swapped="no"/>
                               </object>
                               <packing>
@@ -831,8 +825,10 @@
                         </child>
                         <child>
                           <object class="GtkBox" id="box7">
+                            <property name="height_request">25</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="margin_bottom">10</property>
                             <child>
                               <object class="GtkLabel" id="label13">
                                 <property name="visible">True</property>
@@ -847,75 +843,6 @@
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkBox" id="box8">
-                                <property name="width_request">3</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="hexpand">False</property>
-                                <property name="orientation">vertical</property>
-                                <child>
-                                  <object class="GtkLabel" id="label14">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">00</property>
-                                    <attributes>
-                                      <attribute name="font-desc" value="cmmi10 Bold 10"/>
-                                    </attributes>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSeparator" id="separator3">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel" id="label15">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">100</property>
-                                    <attributes>
-                                      <attribute name="font-desc" value="cmmi10 Bold 10"/>
-                                    </attributes>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label16">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="margin_left">15</property>
-                                <property name="margin_right">15</property>
-                                <property name="label" translatable="yes">Dollars</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
@@ -941,10 +868,23 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkButton" id="button1">
+                              <object class="GtkButton" id="button7">
+                                <property name="label" translatable="yes">Post check without printing</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">True</property>
+                                <signal name="clicked" handler="post_check_without_printing_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="button8">
                                 <property name="label" translatable="yes">Print check</property>
                                 <property name="visible">True</property>
-                                <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <signal name="clicked" handler="print_check_clicked" swapped="no"/>
@@ -952,7 +892,22 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="error_label">
+                                <property name="can_focus">False</property>
+                                <property name="no_show_all">True</property>
+                                <property name="label" translatable="yes">Error prompt</property>
+                                <attributes>
+                                  <attribute name="foreground" value="#efef29292929"/>
+                                </attributes>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                           </object>

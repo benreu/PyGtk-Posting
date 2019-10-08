@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, GObject, Gdk, GLib
+from gi.repository import Gtk, Gdk
 from decimal import Decimal
 import subprocess
 import constants
@@ -49,36 +49,13 @@ class VendorHistoryGUI:
 		self.cursor = self.db.cursor()
 
 		self.vendor_store = self.builder.get_object('vendor_store')
-		self.cursor.execute("SELECT c.id, c.name "
+		self.cursor.execute("SELECT c.id::text, c.name "
 							"FROM purchase_orders AS p "
 							"JOIN contacts AS c ON c.id = p.vendor_id "
 							"GROUP BY c.id, c.name "
 							"ORDER BY c.name")
-		for vendor in self.cursor.fetchall():
-			id_ = vendor[0]
-			name = vendor[1]
-			self.vendor_store.append([str(id_) , name])
-
-		column = self.builder.get_object ('treeviewcolumn12')
-		renderer = self.builder.get_object ('cellrenderertext14')
-		column.set_cell_data_func(renderer, self.amount_cell_func, 6)
-
-		column = self.builder.get_object ('treeviewcolumn5')
-		renderer = self.builder.get_object ('cellrenderertext5')
-		column.set_cell_data_func(renderer, self.amount_cell_func, 5)
-
-		self.cursor.execute("SELECT qty_prec, price_prec FROM settings.purchase_order")
 		for row in self.cursor.fetchall():
-			qty_prec = row[0]
-			price_prec = row[1]
-			
-		column = self.builder.get_object ('treeviewcolumn7')
-		renderer = self.builder.get_object ('cellrenderertext8')
-		column.set_cell_data_func(renderer, self.qty_cell_func, qty_prec)
-
-		column = self.builder.get_object ('treeviewcolumn11')
-		renderer = self.builder.get_object ('cellrenderertext13')
-		column.set_cell_data_func(renderer, self.price_cell_func, price_prec)
+			self.vendor_store.append(row)
 		
 		self.product_name = ''
 		self.product_ext_name = ''
@@ -91,39 +68,26 @@ class VendorHistoryGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
-	def price_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
-		price = '{:.{prec}f}'.format(model.get_value(iter1, 5), prec=prec)
-		cellrenderer.set_property("text" , price)
-
-	def qty_cell_func(self, treecolumn, cellrenderer, model, iter1, prec):
-		qty = '{:.{prec}f}'.format(model.get_value(iter1, 0), prec=prec)
-		cellrenderer.set_property("text" , qty)
-
-	def amount_cell_func(self, treecolumn, cellrenderer, model, iter1, column):
-		amount = '{:,.2f}'.format(model.get_value(iter1, column))
-		cellrenderer.set_property("text" , amount)
-
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		treeiter = model.get_iter(path)
 		if self.po_store.iter_has_child(treeiter) == True:
 			return # not an individual line item
-		qty = model.get_value(treeiter, 0)
-		product_id = model.get_value(treeiter, 1)
+		qty = model.get_value(treeiter, 1)
+		product_id = model.get_value(treeiter, 3)
 		data.set_text(str(qty) + ' ' + str(product_id), -1)
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.po_store[path][0]
-		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders WHERE id = %s", (file_id,))
+		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders "
+							"WHERE id = %s AND pdf_data IS NOT NULL", 
+							(file_id,))
 		for row in self.cursor.fetchall():
-			file_name = row[0]
-			if file_name == None:
-				return
+			file_url = "/tmp/" + row[0]
 			file_data = row[1]
-			f = open("/tmp/" + file_name,'wb')
-			f.write(file_data)
-			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
-			f.close()
+			with open(file_url,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_url])
 
 	def close_transaction_window(self, window, void):
 		self.window.destroy()
@@ -154,7 +118,7 @@ class VendorHistoryGUI:
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		product_id = model[path][1]
+		product_id = model[path][3]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
 
@@ -196,11 +160,12 @@ class VendorHistoryGUI:
 						"date_created::text, "
 						"format_date(date_created), "
 						"name, "
-						"comments, "
+						"invoice_description, "
 						"COALESCE(total, 0.00), "
 						"COALESCE(total, 0.00)::text, "
 						"paid, "
-						"closed "
+						"closed, "
+						"'Comments:\n' || comments "
 						"FROM purchase_orders "
 						"WHERE canceled =  false "
 						"ORDER BY date_created")
@@ -210,11 +175,12 @@ class VendorHistoryGUI:
 						"date_created::text, "
 						"format_date(date_created), "
 						"name, "
-						"comments, "
+						"invoice_description, "
 						"COALESCE(total, 0.00), "
 						"COALESCE(total, 0.00)::text, "
 						"paid, "
-						"closed "
+						"closed, "
+						"'Comments:\n' || comments "
 						"FROM purchase_orders "
 						"WHERE (vendor_id, canceled) = "
 						"(%s, False) ORDER BY date_created", 
@@ -238,14 +204,29 @@ class VendorHistoryGUI:
 	def load_purchase_order_items (self, load_all = False):
 		store = self.builder.get_object('purchase_order_items_store')
 		store.clear()
-		if load_all == True:			
-			self.cursor.execute("SELECT poli.id, poli.qty,  "
-								"product_id, name, ext_name, poli.price, "
-								"poli.ext_price, remark, order_number "
+		if load_all == True:
+			self.cursor.execute("SELECT "
+									"poli.id, "
+									"poli.qty, "
+									"poli.qty::text, "
+									"product_id, "
+									"p.name, "
+									"p.ext_name, "
+									"poli.remark, "
+									"poli.price, "
+									"poli.price::text, "
+									"poli.ext_price, "
+									"poli.ext_price::text, "
+									"poli.order_number, "
+									"po.id, "
+									"po.date_created::text, "
+									"format_date(po.date_created), "
+									"c.name "
 								"FROM purchase_order_line_items AS poli "
-								"JOIN products "
-								"ON products.id = poli.product_id "
-								"ORDER BY name ")
+								"JOIN products AS p ON p.id = poli.product_id "
+								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN contacts AS c ON c.id = po.vendor_id "
+								"ORDER BY p.name ")
 		else:
 			selection = self.builder.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
@@ -259,28 +240,30 @@ class VendorHistoryGUI:
 				args = str(tuple(id_list))
 			else:				# single variables do not work in tuple > SQL
 				args = "(%s)" % id_list[0] 
-			self.cursor.execute("SELECT poli.id, poli.qty,  "
-								"product_id, name, ext_name, poli.price, "
-								"poli.ext_price, remark, order_number "
+			self.cursor.execute("SELECT "
+									"poli.id, "
+									"poli.qty, "
+									"poli.qty::text, "
+									"product_id, "
+									"p.name, "
+									"p.ext_name, "
+									"poli.remark, "
+									"poli.price, "
+									"poli.price::text, "
+									"poli.ext_price, "
+									"poli.ext_price::text, "
+									"poli.order_number, "
+									"po.id, "
+									"po.date_created::text, "
+									"format_date(po.date_created), "
+									"c.name "
 								"FROM purchase_order_line_items AS poli "
-								"JOIN products "
-								"ON products.id = poli.product_id "
+								"JOIN products AS p ON p.id = poli.product_id "
+								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN contacts AS c ON c.id = po.vendor_id "
 								"WHERE purchase_order_id IN " + args)
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			qty = row[1]
-			product_id = row[2]
-			product_name = row[3]
-			ext_name = row[4]
-			price = row[5]
-			ext_price = row[6]
-			remark = row[7]
-			order_number = row[8]
-			store.append([float(qty), product_id,
-											product_name, ext_name, remark, 
-											price, ext_price, order_number])
-			while Gtk.events_pending():
-				Gtk.main_iteration()
+			store.append(row)
 
 	def search_entry_search_changed (self, entry):
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
@@ -291,35 +274,37 @@ class VendorHistoryGUI:
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.product_name.split():
-			if text not in model[tree_iter][2].lower():
-				return False
-		for text in self.product_ext_name.split():
-			if text not in model[tree_iter][3].lower():
-				return False
-		for text in self.remark.split():
 			if text not in model[tree_iter][4].lower():
 				return False
+		for text in self.product_ext_name.split():
+			if text not in model[tree_iter][5].lower():
+				return False
+		for text in self.remark.split():
+			if text not in model[tree_iter][6].lower():
+				return False
 		for text in self.order_number.split():
-			if text not in model[tree_iter][7].lower():
+			if text not in model[tree_iter][11].lower():
 				return False
 		return True
 
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
+		if path == []:
+			return
 		po_id = model[path][0]
 		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
-							"WHERE id = %s", (po_id,))
+							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+							(po_id,))
 		for row in self.cursor.fetchall():
-			file_name = model[path][3]
+			file_url = "/tmp/PO %d attachment.pdf" % po_id
 			file_data = row[0]
-			if file_data == None:
-				self.run_attach_dialog (po_id)
-				return
-			f = open(file_name,'wb')
-			f.write(file_data)
-			subprocess.call("xdg-open %s" % file_name, shell = True)
-			f.close()
+			with open(file_url,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_url])
+			break
+		else:
+			self.run_attach_dialog (po_id)
 
 	def run_attach_dialog (self, po_id):
 		import pdf_attachment
@@ -331,7 +316,5 @@ class VendorHistoryGUI:
 								"WHERE id = %s", (file_data, po_id))
 			self.db.commit()
 
-
-		
 
 

@@ -15,144 +15,213 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, Gdk, GLib, GObject
+from gi.repository import Gtk
 from dateutils import DateTimeCalendar
-from db.transactor import double_entry_transaction
+from decimal import Decimal
+from db.transactor import DoubleEntryTransaction
 from constants import db, ui_directory 
 
 UI_FILE = ui_directory + "/double_entry_transaction.ui"
+TWO_PLACES = Decimal('0.01')
 
-
-class DoubleEntryTransactionGUI:
+class DoubleEntryTransactionGUI (Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
-		self.contact_id = 0
-		self.account_store = self.builder.get_object('account_store')
+		self.account_store = self.get_object('account_store')
 		self.populate_stores()
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def populate_stores (self):
+		self.cursor = db.cursor()
 		self.account_store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
-							"WHERE (type = 5 OR type = 1) "
-							"AND parent_number IS NULL "
+		self.cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
+							"WHERE parent_number IS NULL "
 							"ORDER BY number")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			tree_parent = self.account_store.append(None,[account_number, 
-																account_name])
-			self.get_child_accounts (self.account_store, account_number, tree_parent)
+			iter_ = self.account_store.append(None, row)
+			self.get_child_accounts (row[0], row[2], iter_)
+		self.cursor.close()
 
-	def get_child_accounts (self, store, parent_number, tree_parent):
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
-							"WHERE parent_number = %s", (parent_number,))
+	def get_child_accounts (self, account_number, account_path, parent):
+		self.cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
+							"WHERE parent_number = %s ORDER BY name", 
+							(account_number,))
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			parent = store.append(tree_parent,[account_number, account_name])
-			self.get_child_accounts (store, account_number, parent)
+			path = account_path + row[2]
+			iter_ = self.account_store.append(parent, [row[0], row[1], path])
+			self.get_child_accounts (row[0], path, iter_)
 
 	def check_if_all_requirements_valid (self):
-		post_button = self.builder.get_object('button2')
+		post_button = self.get_object('button2')
 		post_button.set_sensitive(False)
-		description = self.builder.get_object('entry2').get_text()
-		if self.date == 'None':
+		description = self.get_object('entry2').get_text()
+		if self.date == None:
 			post_button.set_label ('No date selected')
-			return # no description
+			return # no date selected
 		if description == '':
 			post_button.set_label ('No description')
 			return # no description
-		amount = self.builder.get_object('spinbutton1').get_value()
-		if amount == 0.00:
-			post_button.set_label ('Amount is $0.00')
-			return # no account selected
-		credit_selection = self.builder.get_object('treeview-selection3')
-		model, path = credit_selection.get_selected_rows()
-		if path != []:
-			treeiter = model.get_iter(path)
-			if model.iter_has_child(treeiter) == True:
-				post_button.set_label('Credit parent account selected')
-				return # parent account selected
-		else:
-			post_button.set_label ('No credit account selected')
-			return # no account selected
-		debit_selection = self.builder.get_object('treeview-selection2')
-		model, path = debit_selection.get_selected_rows()
-		if path != []:
-			treeiter = model.get_iter(path)
-			if model.iter_has_child(treeiter) == True:
-				post_button.set_label('Debit parent account selected')
-				return # parent account selected
-		else:
-			post_button.set_label ('No debit account selected')
-			return # no account selected
+		store = self.get_object('debit_store')
+		debit_amount = Decimal()
+		for row in store:
+			if Decimal(row[0]) == Decimal(0):
+				post_button.set_label ('0.00 debit amount')
+				return # zero amount
+			if row[1] == 0:
+				post_button.set_label ('Debit account not selected')
+				return # account not selected
+			debit_amount += Decimal(row[0])
+		store = self.get_object('credit_store')
+		credit_amount = Decimal()
+		for row in store:
+			if Decimal(row[0]) == Decimal(0):
+				post_button.set_label ('0.00 credit amount')
+				return # zero amount
+			if row[1] == 0:
+				post_button.set_label ('Credit account not selected')
+				return # account not selected
+			credit_amount += Decimal(row[0])
+		if debit_amount != credit_amount:
+			post_button.set_label ('Credit and debit do not match')
+			return # credit and debit amount do not match
+		if debit_amount == Decimal(0):
+			post_button.set_label ('No rows added')
+			return # credit and debit amount do not match
 		post_button.set_sensitive (True)
 		post_button.set_label ('Post transaction')
 
-	def debit_row_activate (self, treeview, path, treeviewcolumn):
+	def add_debit_row_clicked (self, button):
+		store = self.get_object('debit_store')
+		iter_ = store.append(['0.00', 0, 'Select account', 'No account'])
+		self.get_object('treeview-selection2').select_iter(iter_)
 		self.check_if_all_requirements_valid ()
-		account_number = self.account_store[path][0]
-		account_name = self.account_store[path][1]
-		if str(account_number)[0:1] == '1':
-			treeviewcolumn.set_title('%s+'% account_name)
-		else:
-			treeviewcolumn.set_title('%s-'% account_name)
 
-	def credit_row_activate (self, treeview, path, treeviewcolumn):
+	def delete_debit_row_clicked (self, button):
+		selection = self.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		model.remove(model.get_iter(path))
 		self.check_if_all_requirements_valid ()
-		account_number = self.account_store[path][0]
-		account_name = self.account_store[path][1]
-		if str(account_number)[0:1] == '1':
-			treeviewcolumn.set_title('%s-'% account_name)
-		else:
-			treeviewcolumn.set_title('%s+'% account_name)
+
+	def debit_combo_changed (self, cellrenderercombo, path, treeiter):
+		account_number = self.account_store[treeiter][0]
+		account_name = self.account_store[treeiter][1]
+		account_path = self.account_store[treeiter][2]
+		account_string = str(account_number)
+		if account_string.startswith('1'):
+			operand = ' +'
+		elif account_string.startswith('2'):
+			operand = ' +'
+		elif account_string.startswith('3'):
+			operand = ' +'
+		elif account_string.startswith('4'):
+			operand = ' -'
+		elif account_string.startswith('5'):
+			operand = ' -'
+		store = self.get_object('debit_store')
+		store[path][1] = account_number
+		store[path][2] = account_name + operand
+		store[path][3] = account_path
+		self.check_if_all_requirements_valid ()
+
+	def debit_amount_edited (self, cellrenderertext, path, text):
+		store = self.get_object('debit_store')
+		store[path][0] = str(Decimal(text).quantize(TWO_PLACES))
+		amount = Decimal()
+		for row in store:
+			amount += Decimal(row[0])
+		self.get_object('debit_total_label').set_label('${:,.2f}'.format(amount))
+		self.check_if_all_requirements_valid ()
+
+	def debit_amount_editing_started (self, cellrenderer, spinbutton, path):
+		spinbutton.set_numeric(True)
+
+	def credit_amount_editing_started (self, cellrenderer, spinbutton, path):
+		spinbutton.set_numeric(True)
+
+	def add_credit_row_clicked (self, button):
+		store = self.get_object('credit_store')
+		iter_ = store.append(['0.00', 0, 'Select account', 'No account'])
+		self.get_object('treeview-selection3').select_iter(iter_)
+		self.check_if_all_requirements_valid ()
+
+	def delete_credit_row_clicked (self, button):
+		selection = self.get_object('treeview-selection3')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		model.remove(model.get_iter(path))
+		self.check_if_all_requirements_valid ()
+
+	def credit_combo_changed (self, cellrenderercombo, path, treeiter):
+		account_number = self.account_store[treeiter][0]
+		account_name = self.account_store[treeiter][1]
+		account_path = self.account_store[treeiter][2]
+		account_string = str(account_number)
+		if account_string.startswith('1'):
+			operand = ' -'
+		elif account_string.startswith('2'):
+			operand = ' -'
+		elif account_string.startswith('3'):
+			operand = ' -'
+		elif account_string.startswith('4'):
+			operand = ' +'
+		elif account_string.startswith('5'):
+			operand = ' +'
+		store = self.get_object('credit_store')
+		store[path][1] = account_number
+		store[path][2] = account_name + operand
+		store[path][3] = account_path
+		self.check_if_all_requirements_valid ()
+
+	def credit_amount_edited (self, cellrenderertext, path, text):
+		store = self.get_object('credit_store')
+		store[path][0] = str(Decimal(text).quantize(TWO_PLACES))
+		amount = Decimal()
+		for row in store:
+			amount += Decimal(row[0])
+		self.get_object('credit_total_label').set_label('${:,.2f}'.format(amount))
+		self.check_if_all_requirements_valid ()
 
 	def description_changed (self, entry):
 		self.check_if_all_requirements_valid ()
 
-	def amount_value_changed (self, entry):
-		self.check_if_all_requirements_valid ()
-
 	def post_transaction_clicked (self, button):
-		description = self.builder.get_object('entry2').get_text()
-		amount = self.builder.get_object('spinbutton1').get_value()
+		description = self.get_object('entry2').get_text()
+		det = DoubleEntryTransaction (self.date, description)
 		#### debit
-		debit_selection = self.builder.get_object('treeview-selection2')
-		model, path = debit_selection.get_selected_rows()
-		debit_account = model[path][0]
+		debit_store = self.get_object('debit_store')
+		for row in debit_store:
+			amount = row[0]
+			account_number = row[1]
+			det.post_debit_entry(amount, account_number)
 		#### credit
-		credit_selection = self.builder.get_object('treeview-selection3')
-		model, path = credit_selection.get_selected_rows()
-		credit_account = model[path][0]
-		double_entry_transaction (self.db, self.date, debit_account,
-									credit_account, amount, description)
-		self.db.commit()
+		credit_store = self.get_object('credit_store')
+		for row in credit_store:
+			amount = row[0]
+			account_number = row[1]
+			det.post_credit_entry(amount, account_number)
+		db.commit()
 		self.window.destroy()
 
 	def refresh_accounts_clicked (self, button):
 		self.populate_stores ()
 		self.check_if_all_requirements_valid ()
-		debit_title = 'Debit    |    Assets+  Liabilities-'
-		self.builder.get_object('treeviewcolumn1').set_title (debit_title)
-		credit_title = 'Credit    |    Assets-  Liabilities+'
-		self.builder.get_object('treeviewcolumn2').set_title (credit_title)
 
 	def calendar_day_selected(self, calendar):
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
-		self.builder.get_object('entry1').set_text(day_text)
+		self.get_object('entry1').set_text(day_text)
 		self.check_if_all_requirements_valid ()
 
 	def calendar_entry_icon_released(self, entry, icon, event):
@@ -162,4 +231,4 @@ class DoubleEntryTransactionGUI:
 
 
 
-		
+

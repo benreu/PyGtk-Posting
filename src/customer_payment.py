@@ -50,13 +50,11 @@ class GUI:
 		self.invoice_store = self.builder.get_object ('unpaid_invoice_store')
 		self.customer_store = self.builder.get_object ('customer_store')
 		self.cash_account_store = self.builder.get_object ('cash_account_store')
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 								"WHERE (is_parent, cash_account) = "
 								"(False, True)")
 		for row in self.cursor.fetchall():
-			number = row[0]
-			name = row[1]
-			self.cash_account_store.append([str(number), name])
+			self.cash_account_store.append(row)
 		self.populate_contacts ()
 
 		total_column = self.builder.get_object ('treeviewcolumn3')
@@ -102,10 +100,10 @@ class GUI:
 		cellrenderer.set_property("text" , str(amount))
 
 	def populate_contacts (self):
-		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE customer = True ORDER BY name")
 		for row in self.cursor.fetchall():
-			self.customer_store.append([str(row[0]), row[1], row[2]])
+			self.customer_store.append(row)
 
 	def view_invoice_clicked (self, widget):
 		invoice_combo = self.builder.get_object('comboboxtext1')
@@ -360,18 +358,24 @@ class GUI:
 					"= (False, True, False, %s)"
 					") i "
 					"WHERE invoice_totals <= "
-						"(SELECT  payment_total - invoice_total FROM "
-							"(SELECT COALESCE(SUM(amount_due), 0.0)  "
+						"(SELECT payment_total - invoice_total FROM "
+							"(SELECT COALESCE(SUM(amount_due), 0.0) "
 							"AS invoice_total FROM invoices "
-							"WHERE (paid, customer_id) = (True, %s)"
+							"WHERE (paid, canceled, customer_id) = "
+								"(True, False, %s)"
 							") it, "
 							"(SELECT amount + amount_owed AS payment_total FROM "
-									"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
+									"(SELECT COALESCE(SUM(amount), 0.0) "
+										"AS amount "
 									"FROM payments_incoming "
-									"WHERE (customer_id, misc_income) = (%s, False)"
+									"WHERE (customer_id, misc_income) = "
+										"(%s, False)"
 									") pi, "
-									"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
-									"FROM credit_memos WHERE (customer_id, posted) = (%s, True)"
+									"(SELECT COALESCE(SUM(amount_owed), 0.0) "
+										"AS amount_owed "
+									"FROM credit_memos "
+										"WHERE (customer_id, posted) = "
+											"(%s, True)"
 									") cm "
 							") pt "
 						")"
@@ -501,9 +505,6 @@ class GUI:
 		label = self.builder.get_object('label20')
 		label.set_visible (True)
 		payment = self.builder.get_object('spinbutton1').get_value()
-		if payment == 0.00:
-			button.set_label ("Amount is 0.00")
-			return
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		invoice_amount_due_totals = Decimal()

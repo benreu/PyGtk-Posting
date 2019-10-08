@@ -1,4 +1,4 @@
-# invoice_history.py
+# document_history.py
 #
 # Copyright (C) 2016 - reuben
 #
@@ -16,14 +16,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
 from constants import ui_directory, db, broadcaster, is_admin
 
-UI_FILE = ui_directory + "/reports/invoice_history.ui"
+UI_FILE = ui_directory + "/reports/document_history.ui"
 
-class InvoiceHistoryGUI(Gtk.Builder):
+class DocumentHistoryGUI(Gtk.Builder):
 	exists = True
 	def __init__(self):
 
@@ -34,7 +34,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.search_store = Gtk.ListStore(str)
-		self.invoice_store = self.get_object('invoice_store')
+		self.document_store = self.get_object('document_store')
 		customer_completion = self.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
@@ -45,14 +45,17 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		treeview.connect('drag_data_get', self.on_drag_data_get)
 		treeview.drag_source_set_target_list([dnd])
 
-		self.customer_id = 0
+		self.contact_id = 0
 		self.db = db
 		self.cursor = self.db.cursor()
 
 		self.customer_store = self.get_object('customer_store')
-		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
+		self.cursor.execute("SELECT "
+								"c.id::text, "
+								"c.name, "
+								"c.ext_name "
 							"FROM contacts AS c "
-							"JOIN invoices ON invoices.customer_id = c.id "
+							"JOIN documents ON documents.contact_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
 							"GROUP BY c.id, c.name ORDER BY name")
 		for row in self.cursor.fetchall():
@@ -65,7 +68,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		self.product_ext_name = ''
 		self.remark = ''
 		
-		self.filter = self.get_object ('invoice_items_filter')
+		self.filter = self.get_object ('document_items_filter')
 		self.filter.set_visible_func(self.filter_func)
 		
 		self.window = self.get_object('window1')
@@ -74,7 +77,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 	def present(self):
 		self.window.present()
 
-	def select_all_invoices_toggled (self, checkbutton):
+	def select_all_documents_toggled (self, checkbutton):
 		if checkbutton.get_active():
 			self.get_object('treeview-selection1').select_all()
 		else:
@@ -83,15 +86,15 @@ class InvoiceHistoryGUI(Gtk.Builder):
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		treeiter = model.get_iter(path)
-		if self.invoice_store.iter_has_child(treeiter) == True:
+		if self.document_store.iter_has_child(treeiter) == True:
 			return # not an individual line item
-		qty = model.get_value(treeiter, 1)
 		product_id = model.get_value(treeiter, 3)
+		qty = model.get_value(treeiter, 5)
 		data.set_text(str(qty) + ' ' + str(product_id), -1)
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
-		file_id = self.invoice_store[path][0]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+		file_id = self.document_store[path][0]
+		self.cursor.execute("SELECT name FROM documents "
 							"WHERE id = %s", (file_id,))
 		for row in self.cursor.fetchall():
 			file_name = row[0]
@@ -107,34 +110,34 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		self.exists = False
 		self.cursor.close()
 		
-	def invoice_treeview_button_release_event (self, treeview, event):
+	def document_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		if event.button == 3:
-			menu = self.get_object('invoice_menu')
+			menu = self.get_object('document_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 			
-	def invoice_item_treeview_button_release_event (self, treeview, event):
+	def document_item_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		if event.button == 3:
-			menu = self.get_object('invoice_item_menu')
+			menu = self.get_object('document_item_menu')
 			menu.popup(None, None, None, None, event.button, event.time)
 			menu.show_all()
 
-	def view_invoice_activated (self, menuitem):
+	def view_document_activated (self, menuitem):
 		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		invoice_id = model[path][8]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices "
-							"WHERE id = %s", (invoice_id,))
+		document_id = model[path][8]
+		self.cursor.execute("SELECT name FROM documents "
+							"WHERE id = %s", (document_id,))
 		for row in self.cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
@@ -150,7 +153,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		product_id = model[path][3]
+		product_id = model[path][2]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
 
@@ -163,110 +166,107 @@ class InvoiceHistoryGUI(Gtk.Builder):
 
 	def customer_view_all_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.load_customer_invoices ()
+		self.load_customer_documents ()
 		if active == True:
 			self.get_object('checkbutton1').set_active(False)
-			self.get_object('select_all_checkbutton').set_active(False)
+			self.get_object('all_invoice_checkbutton').set_active(False)
 		
 	def customer_changed(self, combo):
-		customer_id = combo.get_active_id ()
-		if customer_id == None:
+		contact_id = combo.get_active_id ()
+		if contact_id == None:
 			return
-		self.customer_id = customer_id
+		self.contact_id = contact_id
 		self.get_object('checkbutton1').set_active(False)
-		self.get_object('checkbutton3').set_active(False)
-		self.get_object('select_all_checkbutton').set_active(False)
-		self.load_customer_invoices ()
+		self.get_object('all_customer_checkbutton').set_active(False)
+		self.get_object('all_invoice_checkbutton').set_active(False)
+		self.load_customer_documents ()
 
 	def customer_match_selected (self, completion, model, iter):
-		self.customer_id = model[iter][0]
+		self.contact_id = model[iter][0]
 		self.get_object('checkbutton1').set_active(False)
-		self.get_object('checkbutton3').set_active(False)
-		self.get_object('select_all_checkbutton').set_active(False)
-		self.load_customer_invoices ()
+		self.get_object('all_customer_checkbutton').set_active(False)
+		self.get_object('all_invoice_checkbutton').set_active(False)
+		self.load_customer_documents ()
 
-	def load_customer_invoices (self):
-		invoice_treeview = self.get_object('treeview1')
-		model = invoice_treeview.get_model()
-		invoice_treeview.set_model(None)
+	def load_customer_documents (self):
+		document_treeview = self.get_object('treeview1')
+		model = document_treeview.get_model()
+		document_treeview.set_model(None)
 		model.clear()
 		total = Decimal()
-		if self.get_object('checkbutton3').get_active() == True:
+		if self.get_object('all_customer_checkbutton').get_active() == True:
 			self.cursor.execute("SELECT "
-									"i.id, "
+									"d.id, "
 									"dated_for::text, "
 									"format_date(dated_for), "
-									"i.name, "
+									"d.name, "
 									"c.name, "
 									"'Comments: ' || comments, "
 									"COALESCE(total, 0.00), "
-									"COALESCE(total, 0.00)::text, "
 									"date_printed::text, "
-									"format_date(date_printed)"
-								"FROM invoices AS i "
-								"JOIN contacts AS c ON c.id = i.customer_id "
+									"format_date(date_printed), "
+									"pending_invoice "
+								"FROM documents AS d "
+								"JOIN contacts AS c ON c.id = d.contact_id "
 								"WHERE canceled =  false "
 								"ORDER BY dated_for")
 		else:
 			self.cursor.execute("SELECT "
-									"i.id, "
+									"d.id, "
 									"dated_for::text, "
 									"format_date(dated_for), "
-									"i.name, "
+									"d.name, "
 									"c.name, "
 									"'Comments: ' || comments, "
 									"COALESCE(total, 0.00), "
-									"COALESCE(total, 0.00)::text, "
 									"date_printed::text, "
-									"format_date(date_printed)"
-								"FROM invoices AS i "
-								"JOIN contacts AS c ON c.id = i.customer_id "
-								"WHERE (customer_id, canceled) = "
+									"format_date(date_printed), "
+									"pending_invoice "
+								"FROM documents AS d "
+								"JOIN contacts AS c ON c.id = d.contact_id "
+								"WHERE (contact_id, canceled) = "
 								"(%s, False) ORDER BY dated_for", 
-								(self.customer_id,))
+								(self.contact_id,))
 		for row in self.cursor.fetchall():
 			total += row[6]
 			model.append(row)
-		invoice_treeview.set_model(model)
+		document_treeview.set_model(model)
 		self.get_object('label3').set_label(str(total))
 
-	def invoice_row_changed (self, selection):
+	def document_row_changed (self, selection):
 		self.get_object('checkbutton1').set_active(False)
-		self.load_invoice_items ()
+		self.load_document_items ()
 
 	def all_products_togglebutton_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.load_invoice_items (load_all = active)
+		self.load_document_items (load_all = active)
 		if active == True:
-			self.get_object('checkbutton3').set_active(False)
+			self.get_object('all_customer_checkbutton').set_active(False)
 
 	def select_all_activated (self, menuitem):
 		self.get_object('treeview-selection1').select_all()
 
-	def load_invoice_items (self, load_all = False):
-		store = self.get_object('invoice_items_store')
+	def load_document_items (self, load_all = False):
+		store = self.get_object('document_items_store')
 		store.clear()
 		if load_all == True:
 			self.cursor.execute("SELECT "
 									"ili.id, "
-									"ili.qty,  "
-									"ili.qty::text,  "
+									"ili.qty::float,  "
 									"ili.product_id, "
 									"p.name, "
 									"p.ext_name, "
 									"ili.remark, "
 									"ili.price, "
-									"ili.price::text, "
 									"ili.ext_price, "
-									"ili.ext_price::text, "
-									"ili.invoice_id, "
-									"i.dated_for::text, "
-									"format_date(i.dated_for), "
+									"ili.document_id, "
+									"d.dated_for::text, "
+									"format_date(d.dated_for), "
 									"c.name "
-								"FROM invoice_items AS ili "
+								"FROM document_items AS ili "
 								"JOIN products AS p ON p.id = ili.product_id "
-								"JOIN invoices AS i ON i.id = ili.invoice_id "
-								"JOIN contacts AS c ON c.id = i.customer_id "
+								"JOIN documents AS d ON d.id = ili.document_id "
+								"JOIN contacts AS c ON c.id = d.contact_id "
 								"ORDER BY p.name ")
 		else:
 			selection = self.get_object('treeview-selection1')
@@ -283,25 +283,22 @@ class InvoiceHistoryGUI(Gtk.Builder):
 				args = "(%s)" % id_list[0] 
 			self.cursor.execute("SELECT "
 									"ili.id, "
-									"ili.qty,  "
-									"ili.qty::text,  "
+									"ili.qty::float,  "
 									"ili.product_id, "
 									"p.name, "
 									"p.ext_name, "
 									"ili.remark, "
 									"ili.price, "
-									"ili.price::text, "
 									"ili.ext_price, "
-									"ili.ext_price::text, "
-									"ili.invoice_id, "
-									"i.dated_for::text, "
-									"format_date(i.dated_for), "
+									"ili.document_id, "
+									"d.dated_for::text, "
+									"format_date(d.dated_for), "
 									"c.name "
-								"FROM invoice_items AS ili "
+								"FROM document_items AS ili "
 								"JOIN products AS p ON p.id = ili.product_id "
-								"JOIN invoices AS i ON i.id = ili.invoice_id "
-								"JOIN contacts AS c ON c.id = i.customer_id "
-								"WHERE invoice_id IN " + args)
+								"JOIN documents AS d ON d.id = ili.document_id "
+								"JOIN contacts AS c ON c.id = d.contact_id "
+								"WHERE document_id IN " + args)
 		for row in self.cursor.fetchall():
 			store.append(row)
 
@@ -313,13 +310,13 @@ class InvoiceHistoryGUI(Gtk.Builder):
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.product_name.split():
-			if text not in model[tree_iter][4].lower():
+			if text not in model[tree_iter][3].lower():
 				return False
 		for text in self.product_ext_name.split():
-			if text not in model[tree_iter][5].lower():
+			if text not in model[tree_iter][4].lower():
 				return False
 		for text in self.remark.split():
-			if text not in model[tree_iter][6].lower():
+			if text not in model[tree_iter][5].lower():
 				return False
 		return True
 

@@ -22,7 +22,6 @@ import constants
 UI_FILE = constants.ui_directory + "/unpaid_invoices.ui"
 
 class GUI (Gtk.Builder):
-	figure = None
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
@@ -69,25 +68,29 @@ class GUI (Gtk.Builder):
 		contact_hub.ContactHubGUI(customer_id)
 
 	def invoice_chart_clicked (self, button):
-		if self.figure == None:
-			from matplotlib.figure import Figure
-			from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
-			self.figure = Figure(figsize=(4, 4), dpi=100)
-			canvas = FigureCanvas(self.figure)  # a Gtk.DrawingArea
-			canvas.set_size_request(900, 600)
-			overlay = self.get_object('overlay1')
-			overlay.add (canvas)
-			overlay.add_overlay (self.get_object('print_button'))
-			self.plot = self.figure.add_subplot(111)
+		window = Gtk.Window()
+		box = Gtk.VBox()
+		window.add (box)
+		from matplotlib.figure import Figure
+		from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+		from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
+		figure = Figure(figsize=(4, 4), dpi=100)
+		canvas = FigureCanvas(figure)  # a Gtk.DrawingArea
+		canvas.set_size_request(900, 600)
+		box.pack_start(canvas, True, True, 0)
+		toolbar = NavigationToolbar(canvas, window)
+		box.pack_start(toolbar, False, False, 0)
+		plot = figure.add_subplot(111)
 		labels = list()
 		fractions = list()
 		unpaid = 0
-		self.cursor.execute("SELECT SUM(amount_due), c.name FROM invoices "
+		cursor = self.db.cursor()
+		cursor.execute("SELECT SUM(amount_due), c.name FROM invoices "
 							"JOIN contacts AS c ON c.id = invoices.customer_id "
 							"WHERE (canceled, paid, posted) = "
 							"(False, False, True) GROUP BY customer_id, c.name "
 							"ORDER BY c.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			customer_total = row[0]
 			customer_name = row[1]
 			fractions.append(customer_total)
@@ -96,19 +99,11 @@ class GUI (Gtk.Builder):
 		if unpaid == 0:
 			labels.append("None")
 			fractions.append(1.00)
-		self.plot.pie(fractions, labels=labels, autopct='%1.f%%', radius=0.9)
-		window = self.get_object('matplot_window')
+		cursor.close()
+		plot.pie (fractions, labels=labels, autopct='%1.f%%', radius=0.9)
+		window.set_title ('Unpaid invoices pie chart')
+		window.set_icon_name ('pygtk-posting')
 		window.show_all()
-		window.present()
-
-	def save_to_file_clicked (self, button):
-		file_chooser = self.get_object('plot_file_chooser')
-		file_chooser.set_current_name('matplot.pdf')
-		response = file_chooser.run()
-		file_chooser.hide()
-		if response == Gtk.ResponseType.ACCEPT:
-			file_name = file_chooser.get_filename()
-			self.figure.savefig(file_name)
 
 	def unpaid_chart_window_delete_event (self, window, event):
 		window.hide()

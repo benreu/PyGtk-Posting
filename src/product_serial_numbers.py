@@ -24,33 +24,32 @@ import constants
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
 
-class ProductSerialNumbersGUI:
+class ProductSerialNumbersGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.db = db
 		self.cursor = self.db.cursor()
-		self.product_store = self.builder.get_object('product_store')
-		self.contact_store = self.builder.get_object('contact_store')
-		self.serial_number_store = self.builder.get_object('serial_number_treeview_store')
+		self.product_store = self.get_object('product_store')
+		self.contact_store = self.get_object('contact_store')
 		self.handler_ids = list()
 		for connection in (("products_changed", self.populate_product_store ),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		product_completion = self.builder.get_object('add_product_completion')
+		product_completion = self.get_object('add_product_completion')
 		product_completion.set_match_func(self.product_match_func)
-		product_completion = self.builder.get_object('event_product_completion')
+		product_completion = self.get_object('event_product_completion')
 		product_completion.set_match_func(self.product_match_func)
-		contact_completion = self.builder.get_object('contact_completion')
+		contact_completion = self.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
 		self.product_name = ''
 		self.contact_name = ''
 		self.serial_number = ''
-		self.filtered_serial_store = self.builder.get_object('serial_number_treeview_filter')
-		self.filtered_serial_store.set_visible_func(self.filter_func)
+		self.filtered_store = self.get_object('serial_number_treeview_filter')
+		self.filtered_store.set_visible_func(self.filter_func)
 		self.product_id = 0
 		self.populate_product_store()
 		self.populate_contact_store()
@@ -59,7 +58,7 @@ class ProductSerialNumbersGUI:
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, window):
@@ -69,10 +68,10 @@ class ProductSerialNumbersGUI:
 
 	def search_changed (self, entry):
 		'''This signal is hooked up to all search entries'''
-		self.product_name = self.builder.get_object('searchentry2').get_text().lower()
-		self.contact_name = self.builder.get_object('searchentry3').get_text().lower()
-		self.serial_number = self.builder.get_object('searchentry4').get_text().lower()
-		self.filtered_serial_store.refilter()
+		self.product_name = self.get_object('searchentry2').get_text().lower()
+		self.contact_name = self.get_object('searchentry3').get_text().lower()
+		self.serial_number = self.get_object('searchentry4').get_text().lower()
+		self.filtered_store.refilter()
 
 	def filter_func (self, model, tree_iter, r):
 		for i in self.product_name.split():
@@ -86,8 +85,8 @@ class ProductSerialNumbersGUI:
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
-		self.builder.get_object('entry3').set_text(day_text)
-		self.builder.get_object('entry4').set_text(day_text)
+		self.get_object('entry3').set_text(day_text)
+		self.get_object('entry4').set_text(day_text)
 		
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -105,28 +104,23 @@ class ProductSerialNumbersGUI:
 		
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id, name, invoice_serial_numbers "
+		self.cursor.execute("SELECT id::text, name, invoice_serial_numbers "
 							"FROM products "
 							"WHERE (deleted, stock, sellable) = "
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			name = row[1]
-			serial = row[2]
-			self.product_store.append([str(product_id), name, serial])
+			self.product_store.append(row)
 		
 	def populate_contact_store (self, m=None, i=None):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
-							"WHERE (deleted) = (False) ORDER BY name")
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			name = row[1]
-			ext_name = row[2]
-			self.contact_store.append([str(contact_id), name, ext_name])
+			self.contact_store.append(row)
 
 	def populate_serial_number_history (self):
-		self.serial_number_store.clear()
+		store = self.get_object('serial_number_treeview_store')
+		store.clear()
 		self.cursor.execute("SELECT "
 								"sn.id, "
 								"p.name, "
@@ -150,7 +144,7 @@ class ProductSerialNumbersGUI:
 								"manufacturing_id "
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
-			self.serial_number_store.append(row)
+			store.append(row)
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -158,7 +152,7 @@ class ProductSerialNumbersGUI:
 		self.populate_serial_event_store(serial_id)
 
 	def populate_serial_event_store (self, serial_id):
-		store = self.builder.get_object('events_store')
+		store = self.get_object('events_store')
 		store.clear()
 		self.cursor.execute("SELECT "
 								"snh.id, "
@@ -173,11 +167,11 @@ class ProductSerialNumbersGUI:
 			store.append(row)
 
 	def add_serial_event_clicked (self, button):
-		dialog = self.builder.get_object('event_dialog')
+		dialog = self.get_object('event_dialog')
 		response = dialog.run ()
 		if response == Gtk.ResponseType.ACCEPT:
-			serial_number = self.builder.get_object('entry2').get_text()
-			buf = self.builder.get_object('textbuffer1')
+			serial_number = self.get_object('entry2').get_text()
+			buf = self.get_object('textbuffer1')
 			start_iter = buf.get_start_iter()
 			end_iter = buf.get_end_iter()
 			description = buf.get_text(start_iter, end_iter, True)
@@ -189,26 +183,26 @@ class ProductSerialNumbersGUI:
 								description, self.serial_id))
 			self.db.commit()
 			self.populate_serial_number_history ()
-			self.builder.get_object('combobox2').set_sensitive(False)
-			self.builder.get_object('combobox3').set_sensitive(False)
-			self.builder.get_object('textview1').set_sensitive(False)
-			self.builder.get_object('button4').set_sensitive(False)
-			self.builder.get_object('combobox-entry2').set_text('')
-			self.builder.get_object('combobox-entry4').set_text('')
-			self.builder.get_object('combobox-entry5').set_text('')
-			self.builder.get_object('textbuffer1').set_text('')
+			self.get_object('combobox2').set_sensitive(False)
+			self.get_object('combobox3').set_sensitive(False)
+			self.get_object('textview1').set_sensitive(False)
+			self.get_object('button4').set_sensitive(False)
+			self.get_object('combobox-entry2').set_text('')
+			self.get_object('combobox-entry4').set_text('')
+			self.get_object('combobox-entry5').set_text('')
+			self.get_object('textbuffer1').set_text('')
 		dialog.hide()
 
 	def add_serial_number_dialog_clicked (self, button):
-		dialog = self.builder.get_object('add_serial_number_dialog')
+		dialog = self.get_object('add_serial_number_dialog')
 		response = dialog.run ()
 		if response == Gtk.ResponseType.ACCEPT:
 			self.populate_serial_number_history ()
 		dialog.hide()
-		self.builder.get_object('label10').set_text('')
+		self.get_object('label10').set_text('')
 
 	def add_serial_number_clicked (self, button):
-		serial_number = self.builder.get_object('entry2').get_text()
+		serial_number = self.get_object('entry2').get_text()
 		try:
 			self.cursor.execute("INSERT INTO serial_numbers "
 								"(product_id, serial_number, "
@@ -216,11 +210,14 @@ class ProductSerialNumbersGUI:
 								"VALUES (%s, %s, %s)", 
 								(self.product_id, serial_number, self.date))
 			self.db.commit()
-			dialog = self.builder.get_object('add_serial_number_dialog')
+			dialog = self.get_object('add_serial_number_dialog')
 			dialog.response(Gtk.ResponseType.ACCEPT)
 		except psycopg2.IntegrityError as e:
-			self.builder.get_object('label10').set_text(str(e))
+			self.get_object('label10').set_text(str(e))
 			self.db.rollback()
+
+	def refresh_clicked (self, button):
+		self.populate_serial_number_history ()
 
 	def date_entry_icon_released (self, entry, icon, event):
 		self.calendar.set_relative_to (entry)
@@ -228,59 +225,60 @@ class ProductSerialNumbersGUI:
 
 	def event_product_match_selected(self, completion, model, iter_):
 		product_id = model[iter_][0]
-		self.builder.get_object('combobox1').set_active_id(product_id)
-		self.builder.get_object('combobox4').set_active_id(product_id)
+		self.get_object('combobox1').set_active_id(product_id)
+		self.get_object('combobox4').set_active_id(product_id)
 
 	def add_product_match_selected(self, completion, model, iter_):
 		product_id = model[iter_][0]
-		self.builder.get_object('combobox1').set_active_id(product_id)
-		self.builder.get_object('combobox4').set_active_id(product_id)
-			
+		self.get_object('combobox1').set_active_id(product_id)
+		self.get_object('combobox4').set_active_id(product_id)
+
 	def event_product_combo_changed (self, combo):
 		product_id = combo.get_active_id()
 		if product_id != None:
 			self.product_id = product_id
-			self.builder.get_object('combobox2').set_sensitive(True)
-			store = self.builder.get_object('serial_number_store')
+			self.get_object('combobox2').set_sensitive(True)
+			store = self.get_object('serial_number_store')
 			store.clear()
-			self.cursor.execute("SELECT id, serial_number FROM serial_numbers "
+			self.cursor.execute("SELECT id::text, serial_number "
+								"FROM serial_numbers "
 								"WHERE product_id = %s", (product_id,))
 			for row in self.cursor.fetchall():
-				store.append([str(row[0]), row[1]])
-			
+				store.append(row)
+
 	def add_product_combo_changed (self, combo):
 		product_id = combo.get_active_id()
 		if product_id != None:
 			self.product_id = product_id
-			self.builder.get_object('entry2').set_sensitive(True)
+			self.get_object('entry2').set_sensitive(True)
 
 	def contact_match_selected (self, completion, model, iter_):
 		contact_id = model[iter_][0]
 		if contact_id != None:
 			self.contact_id = contact_id
-			self.builder.get_object('textview1').set_sensitive(True)
+			self.get_object('textview1').set_sensitive(True)
 
 	def contact_combo_changed (self, combo):
 		contact_id = combo.get_active_id()
 		if contact_id != None:
 			self.contact_id = contact_id
-			self.builder.get_object('textview1').set_sensitive(True)
+			self.get_object('textview1').set_sensitive(True)
 
 	def add_serial_number_changed (self, entry):
-		self.builder.get_object('button2').set_sensitive(True)
+		self.get_object('button2').set_sensitive(True)
 
 	def serial_number_match_selected (self, completion, model, iter_):
 		serial_number = model[iter_][0]
-		self.builder.get_object('combobox2').set_active_id(serial_number)
+		self.get_object('combobox2').set_active_id(serial_number)
 
 	def event_serial_number_changed (self, combobox):
 		serial_id = combobox.get_active_id()
 		if serial_id != None:
 			self.serial_id = serial_id
-			self.builder.get_object('combobox3').set_sensitive(True)
+			self.get_object('combobox3').set_sensitive(True)
 
 	def event_description_changed (self, entry):
-		self.builder.get_object('button4').set_sensitive(True)
+		self.get_object('button4').set_sensitive(True)
 
 
 

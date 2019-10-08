@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="contact_store">
@@ -150,6 +150,9 @@
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -199,12 +202,27 @@
                 <property name="primary_icon_name">edit-find-symbolic</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">False</property>
+                <property name="placeholder_text" translatable="yes">Contact</property>
                 <signal name="search-changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -458,6 +476,9 @@
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
@@ -632,6 +653,9 @@
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window1</property>
+    <child>
+      <placeholder/>
+    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox2">
         <property name="can_focus">False</property>
@@ -708,6 +732,7 @@
                 <property name="hexpand">True</property>
                 <property name="editable">False</property>
                 <property name="primary_icon_stock">gtk-find</property>
+                <signal name="icon-release" handler="date_entry_icon_released" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>

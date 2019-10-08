@@ -21,13 +21,13 @@ import constants
 
 UI_FILE = constants.ui_directory + "/reports/job_sheet_history.ui"
 
-class JobSheetHistoryGUI:
+class JobSheetHistoryGUI(Gtk.Builder):
 	def __init__(self):
 
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.db = constants.db
 		self.cursor = self.db.cursor()
@@ -36,26 +36,18 @@ class JobSheetHistoryGUI:
 		self.job_text = ''
 		self.description_text = ''
 		
-		self.job_sheet_store = self.builder.get_object('job_store')
-		self.job_sort_store = self.builder.get_object('job_sort')
-		self.job_sheet_line_item_store = self.builder.get_object('job_line_item_store')
-		self.job_filter = self.builder.get_object('job_filter')
+		self.job_sheet_store = self.get_object('job_store')
+		self.job_sort_store = self.get_object('job_sort')
+		self.job_sheet_line_item_store = self.get_object('job_line_item_store')
+		self.job_filter = self.get_object('job_filter')
 		self.job_filter.set_visible_func(self.filter_func)
-
-		qty_column = self.builder.get_object ('treeviewcolumn5')
-		qty_renderer = self.builder.get_object ('cellrenderertext5')
-		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 
 		self.populate_job_sheet_treeview ()
 		if constants.is_admin == True:
-			self.builder.get_object ('treeview1').set_tooltip_column(0)
-			self.builder.get_object ('treeview2').set_tooltip_column(0)
-		self.window = self.builder.get_object('window1')
+			self.get_object ('treeview1').set_tooltip_column(0)
+			self.get_object ('treeview2').set_tooltip_column(0)
+		self.window = self.get_object('window1')
 		self.window.show_all()
-
-	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
-		qty = model.get_value(iter1, 1)
-		cellrenderer.set_property("text" , '{:,.1f}'.format(qty))
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.customer_text.split():
@@ -74,10 +66,10 @@ class JobSheetHistoryGUI:
 
 	def search_changed (self, entry):
 		"activated by any of the search entries changing"
-		self.customer_text = self.builder.get_object("searchentry1").get_text()
-		self.ext_name = self.builder.get_object("searchentry4").get_text()
-		self.job_text = self.builder.get_object("searchentry2").get_text()
-		self.description_text = self.builder.get_object("searchentry3").get_text()
+		self.customer_text = self.get_object("searchentry1").get_text()
+		self.ext_name = self.get_object("searchentry4").get_text()
+		self.job_text = self.get_object("searchentry2").get_text()
+		self.description_text = self.get_object("searchentry3").get_text()
 		self.job_filter.refilter()
 
 	def remark_edited(self, widget, path, text):
@@ -86,18 +78,6 @@ class JobSheetHistoryGUI:
 		self.cursor.execute("UPDATE job_sheet_line_items "
 							"SET remark = %s WHERE id = %s", (text, _id_))
 		self.db.commit()
-
-	def focus (self, window, event):
-		return
-		tree_selection = self.builder.get_object('treeview-selection1')
-		model, path = tree_selection.get_selected_rows()
-		self.populate_job_sheet_treeview()
-		if path == []:
-			return
-		self.builder.get_object('treeview1').scroll_to_cell(path)
-		tree_selection.select_path(path)
-		job_sheet_id = model[path][0]
-		self.populate_job_sheet_line_item_treeview(job_sheet_id)
 
 	def populate_job_sheet_treeview (self):
 		self.job_sheet_store.clear()
@@ -115,8 +95,6 @@ class JobSheetHistoryGUI:
 							"JOIN job_types AS jt ON jt.id = job_type_id")
 		for row in self.cursor.fetchall():
 			self.job_sheet_store.append(row)
-			while Gtk.events_pending():
-				Gtk.main_iteration()
 
 	def job_sheet_treeview_activate(self, treeview, path, treeviewcolumn):
 		job_sheet_id = self.job_sort_store[path][0]
@@ -124,22 +102,17 @@ class JobSheetHistoryGUI:
 
 	def populate_job_sheet_line_item_treeview (self, job_sheet_id):
 		self.job_sheet_line_item_store.clear()
-		self.cursor.execute("SELECT jsli.id, qty, p.name, remark "
+		self.cursor.execute("SELECT jsli.id, qty, qty::text, p.name, remark "
 							"FROM job_sheet_line_items AS jsli "
 							"JOIN products AS p ON p.id = "
 							"jsli.product_id "
 							"WHERE job_sheet_id = %s ORDER BY id",
 							(job_sheet_id,))
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			qty = row[1]
-			product_name = row[2]
-			remark = row[3]
-			self.job_sheet_line_item_store.append([row_id, qty, 
-													product_name, 
-													remark])
+			self.job_sheet_line_item_store.append(row)
 
-
+	def refresh_clicked (self, button):
+		self.populate_job_sheet_treeview()
 
 
 

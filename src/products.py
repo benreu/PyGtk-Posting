@@ -415,7 +415,7 @@ class ProductsGUI (Gtk.Builder):
 
 	def search_changed(self, search_entry):
 		self.populating = True
-		filter_text = search_entry.get_text()
+		filter_text = search_entry.get_text().lower()
 		self.filter_list = filter_text.split(" ")
 		self.filtered_product_store.refilter()
 		self.populating = False

@@ -85,9 +85,7 @@ $BODY$
 --version 0.5.1
 ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERENCES gl_entries ON UPDATE RESTRICT ON DELETE RESTRICT; 
 --version 0.5.2
-CREATE TABLE IF NOT EXISTS public.shipping_info (id serial PRIMARY KEY, tracking_number varchar NOT NULL, reason varchar, invoice_id bigint REFERENCES invoices ON DELETE RESTRICT ON UPDATE RESTRICT, CONSTRAINT shipment_reason_not_null CHECK (reason IS NOT NULL OR invoice_id IS NOT NULL));
-ALTER TABLE public.shipping_info ADD UNIQUE (invoice_id); 
-ALTER TABLE public.shipping_info ADD UNIQUE (tracking_number); 
+CREATE TABLE IF NOT EXISTS public.shipping_info (id serial PRIMARY KEY, tracking_number varchar NOT NULL UNIQUE, reason varchar, invoice_id bigint UNIQUE REFERENCES invoices ON DELETE RESTRICT ON UPDATE RESTRICT, CONSTRAINT shipment_reason_not_null CHECK (reason IS NOT NULL OR invoice_id IS NOT NULL));
 --version 0.5.3
 ALTER TABLE files ALTER COLUMN date_inserted SET DEFAULT CURRENT_DATE;
 --version 0.5.4
@@ -150,6 +148,103 @@ ALTER TABLE settings ALTER COLUMN finance_rate SET NOT NULL;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS finance_charge boolean DEFAULT FALSE;
 UPDATE invoices SET finance_charge = False WHERE finance_charge IS NULL;
 ALTER TABLE invoices ALTER COLUMN finance_charge SET NOT NULL;
+--version 0.5.11
+ALTER TABLE IF EXISTS public.document_lines RENAME TO document_items;
+ALTER TABLE public.document_items ALTER COLUMN document_id SET NOT NULL;
+ALTER TABLE public.document_items ALTER COLUMN product_id SET NOT NULL;
+ALTER TABLE public.document_items ALTER COLUMN min SET DEFAULT 0.00;
+ALTER TABLE public.document_items ALTER COLUMN max SET DEFAULT 100.00;
+ALTER TABLE public.document_items ALTER COLUMN qty SET DEFAULT 1.00;
+--version 0.5.12
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS incoming_invoice_id bigint REFERENCES incoming_invoices ON DELETE RESTRICT;
+--version 0.5.13
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS date_shipped date DEFAULT now();
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS contact_id bigint REFERENCES contacts ON DELETE RESTRICT;
+UPDATE shipping_info SET contact_id = c_join.contact_id FROM (SELECT co.id AS contact_id, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
+UPDATE shipping_info SET date_shipped = c_join.dated_for FROM (SELECT co.id AS contact_id, i.dated_for AS dated_for, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
+ALTER TABLE shipping_info ALTER COLUMN contact_id SET NOT NULL;
+--version 0.5.14
+ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS batch_notes varchar DEFAULT '';
+UPDATE manufacturing_projects SET batch_notes = '' WHERE batch_notes IS NULL;
+ALTER TABLE manufacturing_projects ALTER COLUMN batch_notes SET NOT NULL;
+--version 0.5.15
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_withholding_exempt boolean DEFAULT False;
+UPDATE payroll.employee_info SET state_withholding_exempt = False WHERE state_withholding_exempt IS NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_withholding_exempt SET NOT NULL;
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS fed_withholding_exempt boolean DEFAULT False;
+UPDATE payroll.employee_info SET fed_withholding_exempt = False WHERE fed_withholding_exempt IS NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_withholding_exempt SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN date_created SET DEFAULT now();
+ALTER TABLE payroll.employee_info ALTER COLUMN date_created SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN born SET DEFAULT '1970-1-1';
+ALTER TABLE payroll.employee_info ALTER COLUMN born SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security SET DEFAULT '';
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN wage SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN wage SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET DEFAULT 24;
+ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN married SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN married SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET DEFAULT now();
+ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_income_status SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_income_status SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_credits SET DEFAULT 0;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_credits SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_extra_withholding SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN state_extra_withholding SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_income_status SET DEFAULT False;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_income_status SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_credits SET DEFAULT 0;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_credits SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_extra_withholding SET DEFAULT 0.00;
+ALTER TABLE payroll.employee_info ALTER COLUMN fed_extra_withholding SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN on_payroll_since SET DEFAULT now();
+UPDATE payroll.employee_info SET on_payroll_since = '1970-1-1' WHERE on_payroll_since IS NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN on_payroll_since SET NOT NULL;
+--version 0.5.16
+ALTER TABLE IF EXISTS payroll.employee_payments RENAME TO emp_payments;
+ALTER TABLE IF EXISTS payroll.employee_pdf_archive RENAME TO emp_pdf_archive;
+
+CREATE OR REPLACE FUNCTION payroll.pay_stubs_employee_info_update_func ()
+  RETURNS trigger AS
+$func$
+BEGIN
+	UPDATE payroll.employee_info SET current = False 
+		WHERE (id, current) = (SELECT NEW.employee_info_id, True);
+	RETURN NEW;
+END
+$func$  LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS pay_stubs_employee_info_update_trigger ON payroll.pay_stubs;
+CREATE TRIGGER pay_stubs_employee_info_update_trigger
+AFTER INSERT OR UPDATE ON payroll.pay_stubs
+FOR EACH ROW EXECUTE PROCEDURE payroll.pay_stubs_employee_info_update_func() ;
+
+CREATE OR REPLACE FUNCTION payroll.employee_info_update_non_current_error_func ()
+	RETURNS trigger AS
+$func$
+BEGIN
+	IF OLD.current = False THEN 
+		RAISE EXCEPTION 'Non-current entries in employee_info are not editable';
+	END IF;
+	RETURN NEW;
+END
+$func$  LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS employee_info_update_non_current_error_trigger ON payroll.employee_info;
+CREATE TRIGGER employee_info_update_non_current_error_trigger
+BEFORE UPDATE ON payroll.employee_info
+FOR EACH ROW EXECUTE PROCEDURE payroll.employee_info_update_non_current_error_func() ;
+
+CREATE UNIQUE INDEX IF NOT EXISTS employee_info_employee_current_unique
+ON payroll.employee_info (employee_id, current)
+WHERE current = True;
+--version 0.5.17
+UPDATE purchase_order_line_items SET order_number = '' WHERE order_number IS NULL;
+ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET DEFAULT '';
+ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET NOT NULL;
 
 
 

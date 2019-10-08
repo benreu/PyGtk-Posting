@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import main
+import constants
 
-UI_FILE = main.ui_directory + "/reports/product_markup.ui"
+UI_FILE = constants.ui_directory + "/reports/product_markup.ui"
 
 
 class ProductMarkupGUI (Gtk.Builder):
@@ -34,13 +34,14 @@ class ProductMarkupGUI (Gtk.Builder):
 		window.show_all()
 
 	def populate_markup_store (self):
-		c = main.db.cursor()
+		c = constants.db.cursor()
 		c.execute("SELECT *, markup::text FROM "
 					"(SELECT "
 						"p.id, "
 						"p.name, "
 						"p.ext_name, "
-						"(((pmp.price / p.cost) -1) * 100)::numeric(12, 2) "
+						"(((GREATEST(pmp.price, 0.01) / GREATEST(p.cost, 0.01))"
+							"-1) * 100)::numeric(12, 2) "
 							"AS markup " 
 						"FROM products AS p "
 					"JOIN products_markup_prices AS pmp "
@@ -52,5 +53,6 @@ class ProductMarkupGUI (Gtk.Builder):
 					"ORDER BY markup DESC ) AS m")
 		for row in c.fetchall():
 			self.store.append(row)
+		c.close()
 
 

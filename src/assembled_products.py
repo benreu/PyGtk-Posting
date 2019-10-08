@@ -324,7 +324,6 @@ class AssembledProductsGUI:
 		if self.timeout_id:
 			GLib.source_remove(self.timeout_id)
 		self.timeout_id = GLib.timeout_add_seconds(10, self.save_notes)
-		self.db.commit()
 
 	def save_notes (self ):
 		if self.timeout_id:

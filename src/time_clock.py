@@ -73,23 +73,6 @@ class TimeClockGUI :
 		self.db.commit()
 		return True
 
-	def focus_in (self, widget, event):
-		self.stack.set_visible_child_name('employee_page')
-		self.populate_employees ()
-		self.timeout_id = GLib.timeout_add_seconds(1, self.commit_routine)
-
-	def focus_out (self, widget, event):
-		"we need to disable db polling when not on "
-		"a time clock window for row locking to work "
-		if self.timeout_id:
-			GLib.source_remove(self.timeout_id)
-
-	def commit_routine (self):
-		"we need to commit on a regular basis so that db polling works; "
-		"the db polling feature will then broadcast all revelant changes "
-		self.db.commit()
-		return True
-
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
 		self.cursor.execute("SELECT "

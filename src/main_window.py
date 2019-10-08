@@ -148,6 +148,10 @@ class MainGUI :
 	def blank_clicked (self, button):
 		pass
 
+	def shipping_history_activated (self, menuitem):
+		from reports import shipping_history
+		shipping_history.ShippingHistoryGUI()
+
 	def deposits_report (self, menuitem):
 		from reports import deposits
 		deposits.DepositsGUI()
@@ -218,8 +222,9 @@ class MainGUI :
 		from reports import product_markup
 		product_markup.ProductMarkupGUI()
 
-	def document_reports_window (self, widget):
-		print ("not done yet")
+	def document_history_window (self, widget):
+		from reports import document_history
+		document_history.DocumentHistoryGUI()
 
 	def mailing_list_activated (self, widget):
 		import mailing_lists
@@ -310,10 +315,14 @@ class MainGUI :
 	def statements_to_print_window(self, widget):
 		import statements_to_print
 		statements_to_print.GUI()
-				
-	def jobs_to_invoice_window(self, widget):
-		import jobs_to_invoice
-		jobs_to_invoice.GUI()
+
+	def open_job_sheets_clicked (self, button):
+		import open_job_sheets
+		open_job_sheets.OpenJobSheetsGUI()
+
+	def charts_activated (self, menuitem):
+		from reports import charts
+		charts.ChartsGUI()
 
 	def double_entry_transaction_clicked (self, menuitem):
 		import double_entry_transaction
@@ -487,11 +496,11 @@ class MainGUI :
 		for row in self.cursor.fetchall():
 			unpaid_po = row[0]
 		self.builder.get_object('button5').set_label("Unprocessed Orders\n               (%s)" % unpaid_po)
-		self.cursor.execute("SELECT COUNT(id) FROM job_sheets WHERE (invoiced, completed) = (False, True)")	
+		self.cursor.execute("SELECT COUNT(id) FROM job_sheets WHERE (invoiced, completed) = (False, False)")	
 		jobs = 0
 		for row in self.cursor.fetchall():
 			jobs = row[0]
-		self.builder.get_object('button10').set_label("Jobs To Invoice\n           (%s)" % jobs)
+		self.builder.get_object('button10').set_label("Open Job Sheets\n           (%s)" % jobs)
 		self.cursor.execute("SELECT COUNT(id) FROM documents WHERE (canceled, invoiced, pending_invoice) = (False, False, True)")	
 		documents = 0
 		for row in self.cursor.fetchall():
@@ -530,6 +539,8 @@ class MainGUI :
 			self.time_clock_object = time_clock.TimeClockGUI()
 		else:
 			self.time_clock_object.window.present()
+			self.time_clock_object.populate_employees ()
+			self.time_clock_object.populate_job_store ()
 
 	def kit_products_activated (self, db):
 		import kit_products

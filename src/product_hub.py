@@ -63,7 +63,7 @@ class ProductHubGUI:
 	def product_history_clicked (self, button):
 		from reports import product_history
 		p = product_history.ProductHistoryGUI()
-		p.builder.get_object('combobox1').set_active_id (str(self.product_id))
+		p.get_object('combobox1').set_active_id (str(self.product_id))
 		self.window.destroy()
 		
 

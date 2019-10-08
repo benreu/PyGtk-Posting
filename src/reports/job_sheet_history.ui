@@ -16,8 +16,10 @@
     <columns>
       <!-- column-name id -->
       <column type="gint"/>
-      <!-- column-name qty -->
+      <!-- column-name qty_sort -->
       <column type="gfloat"/>
+      <!-- column-name qty_formatted -->
+      <column type="gchararray"/>
       <!-- column-name product -->
       <column type="gchararray"/>
       <!-- column-name remark -->
@@ -55,7 +57,6 @@
     <property name="default_width">500</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
-    <signal name="focus-in-event" handler="focus" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -135,6 +136,20 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -262,7 +277,7 @@
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5"/>
                       <attributes>
-                        <attribute name="text">1</attribute>
+                        <attribute name="text">2</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -272,11 +287,11 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Product</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">2</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6"/>
                       <attributes>
-                        <attribute name="text">2</attribute>
+                        <attribute name="text">3</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -286,14 +301,14 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Remark</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">3</property>
+                    <property name="sort_column_id">4</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext7">
                         <property name="editable">True</property>
                         <signal name="edited" handler="remark_edited" swapped="no"/>
                       </object>
                       <attributes>
-                        <attribute name="text">3</attribute>
+                        <attribute name="text">4</attribute>
                       </attributes>
                     </child>
                   </object>

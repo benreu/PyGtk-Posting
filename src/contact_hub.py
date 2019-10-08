@@ -77,7 +77,7 @@ class ContactHubGUI:
 	def customer_invoices_clicked (self, button):
 		from reports import invoice_history
 		i = invoice_history.InvoiceHistoryGUI()
-		i.builder.get_object('combobox1').set_active_id(str(self.contact_id))
+		i.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 	def vendor_po_clicked (self, button):

@@ -90,10 +90,14 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 			return False
 		return True
 
-	def report_hub_clicked (self, button):
+	def export_to_pdf_clicked (self, button):
 		treeview = self.get_object('manufacturing_treeview')
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
+
+	def reports_clicked (self, button):
+		from reports import manufacturing_reports
+		manufacturing_reports.ManufacturingReportsGUI()
 
 
 

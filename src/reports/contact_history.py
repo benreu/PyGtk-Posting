@@ -190,6 +190,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		self.populate_contact_statements ()
 		self.populate_warranty_store ()
 		self.populate_incoming_invoice_store ()
+		self.populate_contact_shipping()
 
 	def populate_incoming_invoice_store (self):
 		incoming_invoice_store = self.get_object('incoming_invoice_store')
@@ -278,8 +279,8 @@ class ContactHistoryGUI (Gtk.Builder):
 					"remark, "
 					"'Documents' "
 					"FROM products AS p "
-					"JOIN document_lines AS dl ON dl.product_id = p.id "
-					"JOIN documents AS d ON d.id = dl.document_id "
+					"JOIN document_items AS di ON di.product_id = p.id "
+					"JOIN documents AS d ON d.id = di.document_id "
 					"WHERE contact_id = %s "
 					"GROUP BY p.id, p.name, remark) "
 				"UNION "
@@ -424,8 +425,32 @@ class ContactHistoryGUI (Gtk.Builder):
 			label = "<span weight='bold'>Invoices (%s)</span>" % count
 			self.get_object('label2').set_markup(label)
 
+	def populate_contact_shipping (self):
+		shipping_store = self.get_object('shipping_store')
+		shipping_store.clear()
+		count = 0
+		c = self.db.cursor()
+		c.execute("SELECT "
+						"si.id, "
+						"si.tracking_number, "
+						"i.id, "
+						"COALESCE(ii.amount, 0.00), "
+						"COALESCE(ii.amount::text, 'N/A') "
+					"FROM shipping_info AS si "
+					"JOIN invoices AS i ON i.id = si.invoice_id "
+					"LEFT JOIN incoming_invoices AS ii "
+						"ON ii.id = si.incoming_invoice_id "
+					"WHERE customer_id = %s"
+					"ORDER BY dated_for", 
+					(self.contact_id,))
+		for row in c.fetchall():
+			count += 1
+			shipping_store.append(row)
+		if count == 0:
+			self.get_object('label11').set_label('Invoices')
+		else:
+			label = "<span weight='bold'>Shipping (%s)</span>" % count
+			self.get_object('label11').set_markup(label)
+		c.close()
 
 
-
-
-			
