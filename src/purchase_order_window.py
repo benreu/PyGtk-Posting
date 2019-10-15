@@ -499,11 +499,13 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.get_object('menuitem2').set_sensitive(True)
 			self.cursor.execute("SELECT * FROM "
 								"(SELECT "
-									"id, "
-									"date_created, "
-									"format_date(date_created), "
-									"pg_try_advisory_lock_shared(id) AS lock "
-								"FROM purchase_orders "
+									"po.id, "
+									"po.date_created, "
+									"format_date(po.date_created), "
+									"c.phone, "
+									"pg_try_advisory_lock_shared(po.id) AS lock "
+								"FROM purchase_orders AS po "
+								"JOIN contacts AS c ON c.id = po.vendor_id "
 								"WHERE vendor_id = %s "
 								"AND (paid, closed, canceled) = "
 								"(False, False, False)) s "
@@ -512,16 +514,21 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.purchase_order_id = row[0]
 				self.datetime = row[1]
 				self.get_object('entry1').set_text(row[2])
+				self.get_object('entry8').set_text(row[3])
 				self.products_from_existing_po ()
 				break
 			else:
 				self.cursor.execute("SELECT "
 									"CURRENT_DATE, "
-									"format_date(CURRENT_DATE) ")
+									"format_date(CURRENT_DATE), "
+									"phone "
+									"FROM contacts WHERE id = %s", 
+									(vendor_id,))
 				for row in self.cursor.fetchall() : 
 					self.purchase_order_id = None
 					self.datetime = row[0]
 					self.get_object('entry1').set_text(row[1])
+					self.get_object('entry8').set_text(row[2])
 			self.calculate_totals ()
 
 	def editing_canceled (self, cellrenderer):
