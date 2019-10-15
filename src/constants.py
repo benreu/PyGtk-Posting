@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GObject
-import os
+import os, shutil
 
 dev_mode = False
 db = None
