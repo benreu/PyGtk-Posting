@@ -819,6 +819,7 @@ class GUI(Gtk.Builder):
 		name = self.name_widget.get_text()
 		if name == "":  #no text! so we exit
 			return
+		c = self.db.cursor()
 		ext_name = self.ext_name_widget.get_text()
 		address = self.address_widget.get_text()
 		city = self.city_widget.get_text()
@@ -882,6 +883,14 @@ class GUI(Gtk.Builder):
 								service_provider, checks_payable_to, 
 								markup_id))
 			self.contact_id = self.cursor.fetchone()[0]
+		c.execute("WITH cte AS "
+						"(SELECT %s AS contact_id, id FROM mailing_lists "
+						"WHERE auto_add = True) "
+					"INSERT INTO mailing_list_register "
+					"(contact_id, mailing_list_id) "
+					"SELECT contact_id, id FROM cte "
+					"ON CONFLICT (contact_id, mailing_list_id) "
+					"DO NOTHING", (self.contact_id,))
 		# all the individual contact info
 		individual_id = self.get_object('combobox3').get_active_id()
 		name = self.get_object('combobox-entry').get_text() 
@@ -911,6 +920,7 @@ class GUI(Gtk.Builder):
 								"WHERE id = %s", 
 								(name, address, city, state, zip_code, 
 								phone, fax, email, extension, role, individual_id))
+		c.close()
 		self.populate_individual_store ()
 		self.get_object('combobox3').set_active_id(str(individual_id))
 		self.db.commit()

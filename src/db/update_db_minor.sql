@@ -245,6 +245,15 @@ WHERE current = True;
 UPDATE purchase_order_line_items SET order_number = '' WHERE order_number IS NULL;
 ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET DEFAULT '';
 ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET NOT NULL;
+--version 0.5.18
+ALTER TABLE mailing_lists ADD COLUMN IF NOT EXISTS auto_add boolean DEFAULT False;
+UPDATE mailing_lists SET auto_add = False WHERE auto_add IS NULL;
+ALTER TABLE mailing_lists ALTER COLUMN auto_add SET NOT NULL;
+COMMENT ON COLUMN mailing_lists.auto_add IS 'automatically add these mailing lists when updating or inserting contacts';
+CREATE UNIQUE INDEX IF NOT EXISTS mailing_list_register_contact_mailing_list_unique
+ON public.mailing_list_register (mailing_list_id, contact_id);
+
+
 
 
 

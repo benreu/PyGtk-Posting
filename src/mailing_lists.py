@@ -18,46 +18,48 @@
 
 
 from gi.repository import Gtk
-import constants
+from constants import db, ui_directory
 
-UI_FILE = constants.ui_directory + "/mailing_lists.ui"
+UI_FILE = ui_directory + "/mailing_lists.ui"
 
 
-class MailingListsGUI:
+class MailingListsGUI(Gtk.Builder):
 	
 	def __init__(self):
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = db.cursor()
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_mailing_store ()
 
 	def populate_mailing_store (self):
-		model = self.builder.get_object('liststore1')
+		model = self.get_object('liststore1')
 		model.clear()
-		self.cursor.execute("SELECT id, name, active FROM mailing_lists")
+		self.cursor.execute("SELECT "
+								"id, "
+								"name, "
+								"active, "
+								"auto_add "
+							"FROM mailing_lists")
 		for row in self.cursor.fetchall():
-			row_id = row[0]
-			name = row[1]
-			active = row[2]
-			model.append([row_id, name, active])
+			model.append(row)
+		db.rollback()
 
 	def name_edited (self, renderer, path, text):
-		model = self.builder.get_object('liststore1')
+		model = self.get_object('liststore1')
 		row_id = model[path][0]
 		self.cursor.execute("UPDATE mailing_lists SET name = %s WHERE id = %s",
 							(text, row_id))
-		self.db.commit()
+		db.commit()
 		model[path][1] = text
 
 	def add_clicked (self, button):
-		model = self.builder.get_object('liststore1')
+		model = self.get_object('liststore1')
 		self.cursor.execute("INSERT INTO mailing_lists "
 							"(name, active, date_inserted) "
 							"VALUES ('New mailing list', True, now()) "
@@ -66,11 +68,11 @@ class MailingListsGUI:
 		self.populate_mailing_store ()
 		for row in model:
 			if row[0] == row_id:
-				self.builder.get_object('treeview-selection1').select_path(row.path)
-		self.db.commit()
+				self.get_object('treeview-selection1').select_path(row.path)
+		db.commit()
 
 	def deactivate_clicked (self, button):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -78,8 +80,21 @@ class MailingListsGUI:
 		self.cursor.execute("UPDATE mailing_lists SET "
 							"active = False WHERE id = %s",
 							(row_id,))
-		self.db.commit()
+		db.commit()
 		self.populate_mailing_store ()
+
+	def auto_add_toggled (self, cellrenderertoggle, path):
+		model = self.get_object('liststore1')
+		row_id = model[path][0]
+		self.cursor.execute("UPDATE mailing_lists "
+							"SET auto_add = NOT auto_add "
+							"WHERE id = %s;"
+							"SELECT auto_add "
+							"FROM mailing_lists "
+							"WHERE id = %s",
+							(row_id, row_id))
+		db.commit()
+		model[path][3] = self.cursor.fetchone()[0]
 
 
 
