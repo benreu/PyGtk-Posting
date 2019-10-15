@@ -21,7 +21,8 @@ from constants import 	broadcaster, \
 						db, ui_directory, \
 						is_admin, \
 						help_dir, \
-						template_dir
+						template_dir, \
+						sqlite_cursor
 from accounts import 	product_revenue_account, \
 						product_expense_account, \
 						product_inventory_account
@@ -120,29 +121,41 @@ class ProductsGUI (Gtk.Builder):
 		self.set_window_layout_from_settings ()
 
 	def set_window_layout_from_settings (self):
-		settings = Gio.Settings.new("pygtk-posting.window.layout.size")
-		width = settings.get_int("product-window-width")
-		height = settings.get_int("product-window-height")
+		c = sqlite_cursor
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'product_window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'product_window_height'")
+		height = c.fetchone()[0]
 		self.window.resize(width, height)
-		pane = self.get_object('paned1')
-		pane.set_position(settings.get_int("product-pane-width"))
-		pane = self.get_object('paned2')
-		width = settings.get_int("product-ordering-financial-pane-width")
-		pane.set_position(width)
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'product_pane_width'")
+		self.get_object('paned1').set_position(c.fetchone()[0])
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'product_ordering_financial_pane_width'")
+		self.get_object('paned2').set_position(c.fetchone()[0])
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'product_name_column_width'")
 		column = self.get_object('name_column')
-		column.set_fixed_width(settings.get_int("product-name-column-width"))
+		column.set_fixed_width(c.fetchone()[0])
 
 	def save_window_layout_clicked (self, button):
-		settings = Gio.Settings.new("pygtk-posting.window.layout.size")
+		c = sqlite_cursor
 		width, height = self.window.get_size()
-		settings.set_int("product-window-width", width)
-		settings.set_int("product-window-height", height)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('product_window_width', ?)", (width,))
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('product_window_height', ?)", (height,))
 		width = self.get_object('paned1').get_position()
-		settings.set_int("product-pane-width", width)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('product_pane_width', ?)", (width,))
 		width = self.get_object('paned2').get_position()
-		settings.set_int("product-ordering-financial-pane-width", width)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('product_ordering_financial_pane_width', ?)", (width,))
 		width = self.get_object('name_column').get_fixed_width()
-		settings.set_int("product-name-column-width", width)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('product_name_column_width', ?)", (width,))
 
 	def destroy(self, window):
 		for handler in self.handler_ids:

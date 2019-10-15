@@ -25,6 +25,7 @@ broadcaster = None
 ACCOUNTS = None
 is_admin = False
 log_file = None
+sqlite_cursor = None
 
 def start_broadcaster ():
 	global broadcaster, ACCOUNTS

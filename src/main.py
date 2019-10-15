@@ -33,17 +33,38 @@ def get_apsw_cursor ():
 	if not os.path.exists(pref_file):
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()
-		cursor.execute("CREATE TABLE connection "
-												"(user text, password text, "
-												"host text, port text, "
-												"db_name text)")
-		cursor.execute("INSERT INTO connection VALUES "
-												"('postgres', 'None', "
-												"'localhost', '5432', 'None')")
+		create_apsw_tables(cursor)
 	else:
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()
+	update_apsw_tables(cursor)
+	constants.sqlite_cursor = cursor
 	return cursor
+
+def create_apsw_tables(cursor):
+	cursor.execute("CREATE TABLE connection "
+											"(user text, password text, "
+											"host text, port text, "
+											"db_name text)")
+	cursor.execute("INSERT INTO connection VALUES "
+											"('postgres', 'None', "
+											"'localhost', '5432', 'None')")
+
+def update_apsw_tables(cursor):
+	cursor.execute("CREATE TABLE IF NOT EXISTS widget_size "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('product_window_width', 850)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('product_window_height', 500)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('product_pane_width', 325)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('product_ordering_financial_pane_width', 125)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('product_name_column_width', 175)")
+
 
 def connect_to_db (name):
 	cursor_sqlite = get_apsw_cursor ()
