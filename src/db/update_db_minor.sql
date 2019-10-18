@@ -168,6 +168,12 @@ ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS batch_notes varchar 
 UPDATE manufacturing_projects SET batch_notes = '' WHERE batch_notes IS NULL;
 ALTER TABLE manufacturing_projects ALTER COLUMN batch_notes SET NOT NULL;
 --version 0.5.15
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_income_status boolean DEFAULT False;
+UPDATE payroll.employee_info SET state_income_status = False WHERE state_income_status IS NULL;
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_credits integer DEFAULT 0;
+UPDATE payroll.employee_info SET state_credits = 0 WHERE state_credits IS NULL;
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS fed_income_status boolean DEFAULT False;
+UPDATE payroll.employee_info SET fed_income_status = False WHERE fed_income_status IS NULL;
 ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_withholding_exempt boolean DEFAULT False;
 UPDATE payroll.employee_info SET state_withholding_exempt = False WHERE state_withholding_exempt IS NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN state_withholding_exempt SET NOT NULL;
