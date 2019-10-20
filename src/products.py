@@ -114,11 +114,12 @@ class ProductsGUI (Gtk.Builder):
 		if is_admin == True:
 			self.get_object('treeview2').set_tooltip_column(0)
 		
-		self.window = self.get_object('window')
-		self.window.show_all()
 		if product_id != None:
 			self.select_product(product_id)
 		self.set_window_layout_from_settings ()
+		self.window = self.get_object('window')
+		self.window.show_all()
+		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
 
 	def set_window_layout_from_settings (self):
 		c = sqlite_cursor
@@ -128,7 +129,7 @@ class ProductsGUI (Gtk.Builder):
 		c.execute("SELECT size FROM widget_size "
 					"WHERE widget_id = 'product_window_height'")
 		height = c.fetchone()[0]
-		self.window.resize(width, height)
+		self.get_object('window').resize(width, height)
 		c.execute("SELECT size FROM widget_size "
 					"WHERE widget_id = 'product_pane_width'")
 		self.get_object('paned1').set_position(c.fetchone()[0])
