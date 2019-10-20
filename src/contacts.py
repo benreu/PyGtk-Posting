@@ -728,9 +728,6 @@ class GUI(Gtk.Builder):
 		self.name_widget.select_region(0,-1)
 		self.name_widget.grab_focus()
 		self.address_widget.set_text("New address")
-		self.employee_widget.set_active(False)
-		self.customer_widget.set_active(True)#set default to customer to avoid database errors
-		self.service_provider_widget.set_active(False)
 		self.ext_name_widget.set_text("")
 		self.city_widget.set_text("")
 		self.state_widget.set_text("")
