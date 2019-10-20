@@ -141,6 +141,7 @@ class GUI(Gtk.Builder):
 		state = store[_iter][2]
 		self.get_object("entry4").set_text(city)
 		self.get_object("entry5").set_text(state)
+		self.get_object('entry7').grab_focus()
 
 	def zip_activated (self, entry):
 		zip_code = entry.get_text()
@@ -152,6 +153,7 @@ class GUI(Gtk.Builder):
 			state = row[1]
 			self.get_object("entry4").set_text(city)
 			self.get_object("entry5").set_text(state)
+			self.get_object('entry7').grab_focus()
 
 	def populate_scanners(self):
 		try:
