@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gio
+from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re, sane
 from multiprocessing import Queue, Process
 from queue import Empty
-from constants import ui_directory, db, broadcaster, is_admin, help_dir, template_dir
+from constants import ui_directory, db, broadcaster, \
+						is_admin, help_dir, template_dir, sqlite_cursor
 
 UI_FILE = ui_directory + "/contacts.ui"
 
@@ -81,8 +82,6 @@ class GUI(Gtk.Builder):
 
 		self.initiate_mailing_info()
 		
-		self.window = self.get_object('window1')
-		self.window.show_all()
 
 		self.data_queue = Queue()
 		self.scanner_store = self.get_object("scanner_store")
@@ -90,27 +89,41 @@ class GUI(Gtk.Builder):
 		thread.start()
 		
 		GLib.timeout_add(100, self.populate_scanners)
+		self.window = self.get_object('window1')
 		self.set_window_layout_from_settings ()
+		self.window.show_all()
+		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
 
 	def set_window_layout_from_settings (self):
-		settings = Gio.Settings.new("pygtk-posting.window.layout.size")
-		width = settings.get_int("contact-window-width")
-		height = settings.get_int("contact-window-height")
+		c = sqlite_cursor
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'contact_window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'contact_window_height'")
+		height = c.fetchone()[0]
 		self.window.resize(width, height)
-		pane = self.get_object('paned1')
-		pane.set_position(settings.get_int("contact-pane-width"))
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'contact_pane_width'")
+		self.get_object('paned1').set_position(c.fetchone()[0])
+		c.execute("SELECT size FROM widget_size "
+					"WHERE widget_id = 'contact_name_column_width'")
 		column = self.get_object('name_column')
-		column.set_fixed_width(settings.get_int("contact-name-column-width"))
+		column.set_fixed_width(c.fetchone()[0])
 
 	def save_window_layout_clicked (self, button):
-		settings = Gio.Settings.new("pygtk-posting.window.layout.size")
+		c = sqlite_cursor
 		width, height = self.window.get_size()
-		settings.set_int("contact-window-width", width)
-		settings.set_int("contact-window-height", height)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('contact_window_width', ?)", (width,))
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('contact_window_height', ?)", (height,))
 		width = self.get_object('paned1').get_position()
-		settings.set_int("contact-pane-width", width)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('contact_pane_width', ?)", (width,))
 		width = self.get_object('name_column').get_fixed_width()
-		settings.set_int("contact-name-column-width", width)
+		c.execute("REPLACE INTO widget_size (widget_id, size) "
+					"VALUES ('contact_name_column_width', ?)", (width,))
 
 	def mailing_list_clicked (self, button):
 		import mailing_lists

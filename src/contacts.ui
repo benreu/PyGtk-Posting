@@ -185,7 +185,7 @@
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Contacts</property>
-    <property name="window_position">center</property>
+    <property name="window_position">center-always</property>
     <property name="default_width">825</property>
     <property name="default_height">625</property>
     <property name="icon_name">pygtk-posting</property>

@@ -54,6 +54,7 @@ def update_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE IF NOT EXISTS widget_size "
 											"(widget_id text UNIQUE NOT NULL, "
 											"size integer NOT NULL)")
+	# product window layout
 	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
 					"('product_window_width', 850)")
 	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
@@ -64,6 +65,15 @@ def update_apsw_tables(cursor):
 					"('product_ordering_financial_pane_width', 125)")
 	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
 					"('product_name_column_width', 175)")
+	# contact window layout
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('contact_window_width', 900)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('contact_window_height', 600)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('contact_pane_width', 300)")
+	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
+					"('contact_name_column_width', 175)")
 
 
 def connect_to_db (name):
