@@ -131,10 +131,7 @@ class GUI(Gtk.Builder):
 							"GROUP BY zip, city, state "
 							"ORDER BY zip, city")
 		for row in self.cursor.fetchall():
-			zip_code = row[0]
-			city = row[1]
-			state = row[2]
-			zip_code_store.append([zip_code, city, state])
+			zip_code_store.append(row)
 
 	def zip_code_match_selected (self, completion, store, _iter):
 		city = store[_iter][1]
@@ -467,12 +464,7 @@ class GUI(Gtk.Builder):
 		self.cursor.execute("SELECT id, name, ext_name, address, deleted "
 							"FROM contacts WHERE LOWER(name) = %s", (name,))
 		for row in self.cursor.fetchall():
-			c_id = row[0]
-			name = row[1]
-			ext_name = row[2]
-			address = row[3]
-			deleted = row[4]
-			store.append([c_id, name, ext_name, address, deleted])
+			store.append(row)
 		if len(store) > 0 and self.contact_id == 0:
 			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
 		else:
@@ -548,21 +540,17 @@ class GUI(Gtk.Builder):
 	def populate_terms_combo (self):
 		active_term_id = self.get_object('combobox1').get_active_id()
 		self.terms_store.clear()
-		self.cursor.execute("SELECT id, name FROM terms_and_discounts "
+		self.cursor.execute("SELECT id::text, name FROM terms_and_discounts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			term_id = row[0]
-			term_name = row[1]
-			self.terms_store.append([str(term_id), term_name])
+			self.terms_store.append(row)
 		self.get_object('combobox1').set_active_id(active_term_id)
 		active_markup_id = self.get_object('combobox4').get_active_id()
 		self.markup_percent_store.clear()
-		self.cursor.execute("SELECT id, name FROM customer_markup_percent "
+		self.cursor.execute("SELECT id::text, name FROM customer_markup_percent "
 									"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			markup_id = row[0]
-			markup_name = row[1]
-			self.markup_percent_store.append([str(markup_id), markup_name])
+			self.markup_percent_store.append(row)
 		self.get_object('combobox4').set_active_id(active_markup_id)
 
 	def contact_filter_func(self, model, tree_iter, r):
@@ -597,11 +585,8 @@ class GUI(Gtk.Builder):
 		else:
 			self.cursor.execute("SELECT id, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
-		for i in self.cursor.fetchall():
-			serial_number = i[0]
-			name = i[1]
-			ext_name = i[2]
-			self.contact_store.append([serial_number, name, ext_name])
+		for row in self.cursor.fetchall():
+			self.contact_store.append(row)
 		for row in self.contact_store:
 			if row[0] == self.contact_id: # select the contact we had selected before repopulating
 				treeview_selection = self.get_object('treeview-selection')
@@ -765,13 +750,11 @@ class GUI(Gtk.Builder):
 
 	def populate_individual_store (self):
 		self.individual_contact_store.clear()
-		self.cursor.execute("SELECT id, name FROM contact_individuals "
+		self.cursor.execute("SELECT id::text, name FROM contact_individuals "
 							"WHERE contact_id = %s ORDER BY name", 
 							(self.contact_id,))
 		for row in self.cursor.fetchall():
-			individual_id = str(row[0])
-			individual_name = row[1]
-			self.individual_contact_store.append([individual_id, individual_name])
+			self.individual_contact_store.append(row)
 
 	def contact_individual_combo_button_release_event (self, combo, event):
 		if event.button == 3:
@@ -959,10 +942,7 @@ class GUI(Gtk.Builder):
 							"AND mlr.contact_id = %s AND mlr.active = True",
 							(self.contact_id,))
 		for item in self.cursor.fetchall():
-			list_id = item[0]
-			list_name = item[1]
-			active = item[2]
-			self.mailing_list_store.append([list_id, list_name, active])
+			self.mailing_list_store.append(row)
 		self.get_object('mailing_popover').set_relative_to(entry14)
 		self.get_object('mailing_popover').show_all ()
 
