@@ -176,7 +176,8 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="hexpand">True</property>
-                        <property name="placeholder_text" translatable="yes">Company name or transaction description</property>
+                        <property name="placeholder_text" translatable="yes">Company name or PO description</property>
+                        <signal name="changed" handler="po_description_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>

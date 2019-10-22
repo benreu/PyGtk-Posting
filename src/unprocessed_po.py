@@ -286,20 +286,24 @@ class GUI(Gtk.Builder):
 		self.calculate_totals ()
 		c.close()
 
-	def check_expense_accounts (self):
+	def po_description_changed (self, editable):
+		self.check_all_entries_completed()
+
+	def check_all_entries_completed (self):
+		button = self.get_object('button5')
+		button.set_sensitive(False)
+		if self.get_object('entry6').get_text() == '':
+			button.set_label("PO description is blank")
+			return
 		for row in self.purchase_order_items_store:
 			if row[7] == 0:
-				button = self.get_object('button5')
 				button.set_label("Missing expense account")
-				button.set_sensitive(False)
 				self.get_object('button2').set_sensitive(False)
 				return
 			continue
-		else:
-			button = self.get_object('button5')
-			button.set_label("Save as invoice")
-			button.set_sensitive(True)
-			self.get_object('button2').set_sensitive(True)
+		button.set_sensitive(True)
+		button.set_label("Save as invoice")
+		self.get_object('button2').set_sensitive(True)
 
 	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
 		qty = model.get_value(iter1, 1)
@@ -400,7 +404,7 @@ class GUI(Gtk.Builder):
 			self.total += item[6]
 		total = '${:,.2f}'.format(self.total)
 		self.get_object('entry4').set_text(total)
-		self.check_expense_accounts ()
+		self.check_all_entries_completed ()
 
 	def populate_terms_listbox (self):
 		listbox = self.get_object('listbox2')
