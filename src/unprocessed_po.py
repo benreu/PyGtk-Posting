@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gio
+from gi.repository import Gtk, GLib
 from decimal import Decimal, ROUND_HALF_UP
 from subprocess import Popen
 from datetime import datetime
@@ -43,7 +43,6 @@ class GUI(Gtk.Builder):
 		self.purchase_order_items_store = self.get_object('purchase_order_items_store')
 		self.expense_account_store = self.get_object('expense_account_store')
 		self.po_store = self.get_object('po_store')
-		self.expense_products_store = self.get_object('expense_products_store')
 		self.populate_expense_account_store ()
 		if po_id == None:
 			self.populate_po_combobox ()
@@ -79,7 +78,7 @@ class GUI(Gtk.Builder):
 
 		self.populate_terms_listbox()
 		self.populate_expense_account_store ()
-		self.populate_expense_product_combo ()
+		self.populate_expense_products ()
 		self.window = self.get_object('unprocessed')
 		self.window.show_all()
 
@@ -126,7 +125,7 @@ class GUI(Gtk.Builder):
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI(self.purchase_order_id)
 
-	def populate_expense_product_combo (self):
+	def populate_expense_products (self):
 		combo = self.get_object ('comboboxtext1')
 		combo.remove_all()
 		self.cursor.execute ("SELECT id, name FROM products "
@@ -548,101 +547,10 @@ class GUI(Gtk.Builder):
 		return False
 
 	def expense_products_clicked (self, button):
-		self.populate_expense_products_store ()
-		dialog = self.get_object("expense_products_dialog")
-		dialog.run()
-		dialog.hide()
-		self.populate_expense_product_combo()
+		import expense_products
+		ep = expense_products.GUI()
+		ep.connect('expense-products-changed', self.ep_callback)
 
-	def populate_expense_products_store (self):
-		self.expense_products_store.clear()
-		self.cursor.execute("SELECT p.id, p.name, cost, "
-							"default_expense_account, a.name "
-							"FROM products AS p LEFT JOIN gl_accounts "
-							"AS a ON a.number = p.default_expense_account "
-							"WHERE (deleted, expense) = (False, True)")
-		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name  = row[1]
-			cost = row[2]
-			expense_account = row[3]
-			expense_account_name = row[4]
-			self.expense_products_store.append([product_id, product_name, 
-												cost, expense_account, 
-												expense_account_name])
-		self.check_expense_accounts ()
-
-	def product_expense_account_combo_changed (self, combo, path, iter_):
-		expense_account = self.expense_account_store[iter_][0]
-		expense_account_name = self.expense_account_store[iter_][1]
-		self.expense_products_store[path][3] = int(expense_account)
-		self.expense_products_store[path][4] = expense_account_name
-		self.save_expense_product (path)
-
-	def product_expense_name_renderer_edited (self, entry, path, text):
-		self.expense_products_store[path][1] = text
-		self.save_expense_product (path)
-
-	def product_expense_spin_value_edited (self, spin, path, value):
-		self.expense_products_store[path][2] = float(value)
-		self.save_expense_product (path)
-
-	def save_expense_product (self, path):
-		product_id = self.expense_products_store[path][0]
-		product_name = self.expense_products_store[path][1]
-		product_cost = self.expense_products_store[path][2]
-		expense_account = self.expense_products_store[path][3]
-		if expense_account == 0:
-			expense_account = None
-		self.cursor.execute("UPDATE products SET "
-							"(name, cost, default_expense_account) = "
-							"(%s, %s, %s) WHERE id = %s", 
-							(product_name, product_cost, 
-							expense_account, product_id))
-		self.db.commit()
-
-	def new_expense_product_clicked (self, button):
-		self.cursor.execute("INSERT INTO products "
-								"(name, "
-								"unit, "
-								"cost, "
-								"expense, "
-								"tax_rate_id, "
-								"revenue_account, "
-								"default_expense_account) "
-							"VALUES "
-								"('New expense product', "
-								"1, "
-								"0.00, "
-								"True, "
-								"(SELECT id FROM tax_rates "
-									"WHERE standard = True "
-									"), "
-								"(SELECT number FROM gl_accounts "
-									"WHERE revenue_account = True LIMIT 1 "
-									"), "
-								"(SELECT number FROM gl_accounts "
-									"WHERE expense_account = True LIMIT 1 "
-									"))")
-		self.db.commit()
-		self.populate_expense_products_store ()
-
-	def delete_expense_product_clicked (self, button):
-		model, path = self.get_object("treeview-selection2").get_selected_rows()
-		if path == []:
-			return
-		product_id = model[path][0]
-		try:
-			self.cursor.execute("DELETE FROM products WHERE id = %s ", 
-								(product_id,))
-		except psycopg2.IntegrityError as e:
-			print (e)
-			self.db.rollback()
-			self.cursor.execute("UPDATE products SET deleted = TRUE "
-								"WHERE id = %s ", (product_id,))
-		self.db.commit()
-		self.populate_expense_products_store ()
-
-
-
+	def ep_callback (self, expense_product_gui):
+		self.populate_expense_products()
 
