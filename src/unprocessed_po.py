@@ -51,7 +51,8 @@ class GUI(Gtk.Builder):
 			self.populate_purchase_order_items_store ()
 			self.get_object("button7").set_sensitive(True)
 
-		self.cursor.execute("SELECT qty_prec, price_prec FROM settings.purchase_order")
+		self.cursor.execute("SELECT qty_prec, price_prec "
+							"FROM settings.purchase_order")
 		for row in self.cursor.fetchall():
 			qty_prec = row[0]
 			price_prec = row[1]
@@ -79,26 +80,21 @@ class GUI(Gtk.Builder):
 		self.populate_terms_listbox()
 		self.populate_expense_account_store ()
 		self.populate_expense_products ()
-		self.window = self.get_object('unprocessed')
+		self.window = self.get_object('window')
 		self.window.show_all()
 
 	def spinbutton_focus_in_event (self, entry, event):
-		GLib.idle_add(self.highlight, entry)
+		GLib.idle_add(entry.select_region, 0, -1)
 
 	def view_attachment_clicked (self, button):
 		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
 							"WHERE id = %s AND attached_pdf IS NOT NULL", 
 							(self.purchase_order_id,))
 		for row in self.cursor.fetchall():
-			file_name = "/tmp/Attachment.pdf"
-			file_data = row[0]
-			f = open(file_name,'wb')
-			f.write(file_data)
+			file_name = "/tmp/PO %s Attachment.pdf" % self.purchase_order_id
+			with open(file_name,'wb') as f:
+				f.write(row[0])
 			Popen(["xdg-open", file_name])
-			f.close()
-
-	def highlight (self, entry):
-		entry.select_region(0, -1)
 
 	def destroy(self, window):
 		self.window.destroy()
@@ -106,11 +102,7 @@ class GUI(Gtk.Builder):
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
-			self.menu_visible = True
-		else:
-			self.menu_visible = False
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.get_object("treeview-selection")
@@ -126,17 +118,15 @@ class GUI(Gtk.Builder):
 		purchase_order_window.PurchaseOrderGUI(self.purchase_order_id)
 
 	def populate_expense_products (self):
-		combo = self.get_object ('comboboxtext1')
-		combo.remove_all()
-		self.cursor.execute ("SELECT id, name FROM products "
-							"WHERE expense = True")
+		store = self.get_object ('expense_products_store')
+		store.clear()
+		self.cursor.execute ("SELECT id::text, name FROM products "
+							"WHERE expense = True ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			combo.append(str(product_id), product_name)
+			store.append(row)
 
 	def expense_spinbutton_value_changed (self, spinbutton):
-		product = self.get_object('comboboxtext1').get_active_id()
+		product = self.get_object('expense_product_combo').get_active_id()
 		button = self.get_object('button6')
 		if product == None:
 			button.set_label("No product selected")
@@ -145,7 +135,7 @@ class GUI(Gtk.Builder):
 		button.set_label("Add to Invoice")
 		button.set_sensitive(True)
 
-	def expense_reason_combo_changed (self, combo):
+	def expense_product_combo_changed (self, combo):
 		value = self.get_object('spinbutton2').get_value()
 		button = self.get_object('button6')
 		if value == 0.00:
@@ -157,11 +147,11 @@ class GUI(Gtk.Builder):
 
 	def add_expense_to_invoice_clicked (self, button):
 		from purchase_order_window import add_expense_to_po
-		product_id = self.get_object('comboboxtext1').get_active_id()
+		product_id = self.get_object('expense_product_combo').get_active_id()
 		amount = self.get_object('spinbutton2').get_value()
 		add_expense_to_po (self.purchase_order_id, product_id, amount)
 		self.populate_purchase_order_items_store ()
-		self.get_object('comboboxtext1').set_active(-1)
+		self.get_object('expense_product_combo').set_active(-1)
 		self.get_object('spinbutton2').set_value(0.00)
 
 	def calculate_cost_clicked (self, button):
