@@ -58,7 +58,7 @@ class ContactHubGUI:
 
 	def edit_contact_clicked (self, button):
 		import contacts
-		c = contacts.GUI (self.contact_id)
+		c = contacts.GUI (int(self.contact_id))
 		c.select_contact ()
 		self.window.destroy()
 
