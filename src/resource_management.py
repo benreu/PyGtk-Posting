@@ -72,9 +72,6 @@ class ResourceManagementGUI:
 			for row in self.cursor.fetchall():
 				text = row[0]
 				self.builder.get_object('textbuffer1').set_text(text)
-				break
-			else:
-				self.builder.get_object('textbuffer1').set_text('')
 		self.editing_buffer = False
 		
 		self.window = self.builder.get_object('window1')
@@ -99,8 +96,7 @@ class ResourceManagementGUI:
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def delete_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
@@ -177,10 +173,8 @@ class ResourceManagementGUI:
 		self.cursor.execute("UPDATE resources "
 							"SET (contact_id, phone_number) = "
 							"(%s, (SELECT phone FROM contacts WHERE id = %s)) "
-							"WHERE id = %s RETURNING phone_number ",
+							"WHERE id = %s",
 							(contact_id, contact_id, id_))
-		phone = self.cursor.fetchone()[0]
-		self.resource_store[path][0]
 		self.db.commit()
 		self.editing = False
 		self.populate_resource_store(id_)
@@ -193,14 +187,15 @@ class ResourceManagementGUI:
 
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id::text, name, ext_name, phone FROM contacts "
+		self.cursor.execute("SELECT "
+								"id::text, "
+								"name, "
+								"ext_name, "
+								"phone "
+							"FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			ext_name = row[2]
-			contact_phone = row[3]
-			self.contact_store.append([contact_id, contact_name, ext_name, contact_phone])
+			self.contact_store.append(row)
 		self.tag_store.clear()
 		self.cursor.execute("SELECT id, tag, red, green, blue, alpha "
 							"FROM resource_tags "
