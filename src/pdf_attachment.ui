@@ -294,12 +294,7 @@ or you can attach the pdf without optimization.</property>
                         <property name="margin_top">10</property>
                         <property name="shadow_type">in</property>
                         <child>
-                          <object class="GtkTextView" id="textview1">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="editable">False</property>
-                            <property name="buffer">pdf_opt_result_buffer</property>
-                          </object>
+                          <placeholder/>
                         </child>
                       </object>
                       <packing>
@@ -310,6 +305,9 @@ or you can attach the pdf without optimization.</property>
                       <object class="GtkSpinner" id="spinner1">
                         <property name="can_focus">False</property>
                       </object>
+                      <packing>
+                        <property name="pass_through">True</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
