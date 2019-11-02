@@ -20,19 +20,18 @@
 from gi.repository import Gtk, Gdk
 from datetime import datetime, date, timedelta 
 from dateutils import seconds_to_user_format, seconds_to_compact_string
-import constants
+from constants import db, ui_directory
 
-UI_FILE = constants.ui_directory + "/admin/time_clock_tool.ui"
+UI_FILE = ui_directory + "/admin/time_clock_tool.ui"
 
 
 class TimeClockToolGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db  = db
 		self.cursor = db.cursor()
 
 		style_provider = Gtk.CssProvider()
@@ -275,7 +274,7 @@ class TimeClockToolGUI:
 		elif response == -5: #Delete the entry
 			self.cursor.execute("DELETE FROM time_clock_entries "
 								"WHERE id = %s", (entry_id,))
-		self.db.commit()
+		db.commit()
 		self.populate_employee_project_store ()
 
 	def start_time_spinbutton_changed (self, spinbutton):
@@ -368,7 +367,7 @@ class TimeClockToolGUI:
 							"WHERE (project_id, employee_id) = "
 							"(%s, %s)", 
 							(efficiency, self.project_id, self.employee_id))
-		self.db.commit()
+		db.commit()
 		self.builder.get_object('button1').set_sensitive(False)
 
 
