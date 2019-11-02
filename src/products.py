@@ -120,6 +120,8 @@ class ProductsGUI (Gtk.Builder):
 		self.window = self.get_object('window')
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
+		box = self.get_object('paned2').get_child1()
+		GLib.idle_add(box.set_property('resize', True))
 
 	def set_window_layout_from_settings (self):
 		c = sqlite_cursor
