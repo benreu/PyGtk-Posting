@@ -336,7 +336,7 @@ class ResourceManagementGUI:
 							"LEFT JOIN contacts "
 							"ON rm.contact_id = contacts.id "
 							"WHERE date_created <= %s "
-							"AND finished != %s OR finished IS NULL "
+							"AND (finished != %s OR finished = False) "
 							"AND diary != True ORDER BY rm.id "
 							"LIMIT %s", (self.older_than_date, finished, 
 							row_limit))
