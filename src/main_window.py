@@ -468,7 +468,7 @@ class MainGUI :
 							"JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
 							"WHERE finished != True "
-							"AND diary IS NULL "
+							"AND diary != True "
 							"AND to_do = True")
 		for row in self.cursor.fetchall():
 			id_ = row[0]
