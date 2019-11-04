@@ -527,27 +527,25 @@ class CreditMemoGUI:
 		if self.credit_memo_id == None:
 			self.cursor.execute("INSERT INTO credit_memos "
 								"(name, customer_id, date_created, total) "
-								"VALUES ('', %s, now(), 0.00) RETURNING id",
-								(self.customer_id,))
+								"VALUES ('Credit Memo', %s, now(), 0.00) "
+								"RETURNING id", (self.customer_id,))
 			self.credit_memo_id = self.cursor.fetchone()[0]
 
 	def post_credit_memo_clicked (self, button):
-		c = self.db.cursor()
 		import credit_memo_template as cmt
-		self.credit_memo_template = cmt.Setup(self.db, 
+		self.credit_memo_template = cmt.Setup(
 												self.credit_items_store,
 												self.credit_memo_id,
 												self.customer_id)
 		self.credit_memo_template.print_pdf(self.window)
 		self.credit_memo_template.post()
-		c.close()
 		self.db.commit()
 		self.window.destroy()
 
 	def view_document_activated (self, button):
 		if not self.credit_memo_template:
 			import credit_memo_template as cmt
-			self.credit_memo_template = cmt.Setup(self.db, 
+			self.credit_memo_template = cmt.Setup(
 													self.credit_items_store,
 													self.credit_memo_id,
 													self.customer_id)

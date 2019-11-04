@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 import re, subprocess
 from db import transactor
-import printing, constants
+import printing
+from constants import db, template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -26,7 +27,6 @@ class Item(object):#this is used by py3o library see their example for more info
 class Setup :
 	def __init__ (self, credit_items_store, credit_memo_id, customer_id):
 
-		self.db = constants.db
 		self.cursor = db.cursor()
 		self.credit_items_store = credit_items_store
 		self.credit_memo_id = credit_memo_id
@@ -116,7 +116,7 @@ class Setup :
 		self.data = dict(items = items, document = document, contact = customer, company = company)
 		from py3o.template import Template
 		self.credit_memo_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/credit_memo_template.odt", self.credit_memo_file , True)
+		t = Template(template_dir+"/credit_memo_template.odt", self.credit_memo_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 
 	def view_odt (self):
@@ -127,7 +127,7 @@ class Setup :
 		p = printing.Operation(settings_file = "credit_memo")
 		p.set_parent(window)
 		p.set_file_to_print ("/tmp/" + self.document_pdf)
-		result = p.print_dialog(window)
+		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
 			self.cursor.execute("UPDATE credit_memos SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
@@ -135,7 +135,7 @@ class Setup :
 		return result
 
 	def post (self):
-		transactor.post_credit_memo (self.db, self.credit_memo_id)
+		transactor.post_credit_memo (db, self.credit_memo_id)
 		with open("/tmp/" + self.document_pdf, 'rb') as fp:
 			data = fp.read()
 		self.cursor.execute("UPDATE credit_memos "
