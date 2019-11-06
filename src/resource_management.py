@@ -25,6 +25,7 @@ UI_FILE = ui_directory + "/resource_management.ui"
 
 class ResourceManagementGUI:
 	timeout_id = None
+	time_clock = None
 	def __init__(self, id_ = None):
 
 		self.builder = Gtk.Builder()
@@ -400,7 +401,7 @@ class ResourceManagementGUI:
 								"VALUES (%s, now(), True, False, %s)"
 								"ON CONFLICT (resource_id) "
 								"DO UPDATE SET name = %s "
-								"WHERE time_clock_projects.resource_id = %s", 
+				  				"WHERE time_clock_projects.resource_id = %s", 
 								(subject, resource_id, subject, resource_id))
 		except Exception as e:
 			self.show_message (e)
