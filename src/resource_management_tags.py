@@ -1,4 +1,4 @@
-# resource_management.py
+# resource_management_tags.py
 #
 # Copyright (C) 2017 - reuben
 #
@@ -21,20 +21,21 @@ import constants
 
 UI_FILE = constants.ui_directory + "/resource_management_tags.ui"
 
-class ResourceManagementTagsGUI:
+class ResourceManagementTagsGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		self.db = constants.db
 		self.cursor = self.db.cursor()
 		
-		self.tag_edit_store = self.builder.get_object('tag_edit_store')
+		self.tag_edit_store = self.get_object('tag_edit_store')
 		self.populate_edit_tag_store()
+		self.create_new_tag ()
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all() 
 
 	def populate_edit_tag_store (self):
@@ -54,8 +55,8 @@ class ResourceManagementTagsGUI:
 			self.tag_edit_store.append([tag_id, tag_name, rgba, finished])
 
 	def save_tag_clicked (self, button):
-		tag_name = self.builder.get_object('entry2').get_text()
-		rgba = self.builder.get_object('colorbutton1').get_rgba()
+		tag_name = self.get_object('entry2').get_text()
+		rgba = self.get_object('colorbutton1').get_rgba()
 		red = rgba.red
 		green = rgba.green
 		blue = rgba.blue
@@ -63,8 +64,9 @@ class ResourceManagementTagsGUI:
 		if self.tag_id == 0:
 			self.cursor.execute ("INSERT INTO resource_tags "
 								"(tag, red, green, blue, alpha, finished) VALUES "
-								"(%s, %s, %s, %s, %s, False)", 
+								"(%s, %s, %s, %s, %s, False) RETURNING id", 
 								(tag_name, red, green, blue, alpha))
+			self.tag_id = self.cursor.fetchone()[0]
 		else:
 			self.cursor.execute ("UPDATE resource_tags SET "
 								"(tag, red, green, blue, alpha) = "
@@ -75,10 +77,14 @@ class ResourceManagementTagsGUI:
 		self.populate_edit_tag_store ()
 
 	def new_tag_clicked (self, button):
+		self.create_new_tag()
+
+	def create_new_tag(self):
 		rgba = Gdk.RGBA(0, 0, 0, 1)
 		self.tag_id = 0 
-		self.builder.get_object('entry2').set_text('New tag')
-		self.builder.get_object('colorbutton1').set_rgba(rgba)
+		self.get_object('entry2').set_text('New tag')
+		self.get_object('entry2').select_region(0, -1)
+		self.get_object('colorbutton1').set_rgba(rgba)
 
 	def row_activated (self, treeview, path, treeviewcolumn):
 		self.tag_id = self.tag_edit_store[path][0]
@@ -92,8 +98,8 @@ class ResourceManagementTagsGUI:
 			blue = row[3]
 			alpha = row[4]
 			rgba = Gdk.RGBA(red, green, blue, alpha)
-			self.builder.get_object('entry2').set_text(tag_name)
-			self.builder.get_object('colorbutton1').set_rgba(rgba)
+			self.get_object('entry2').set_text(tag_name)
+			self.get_object('colorbutton1').set_rgba(rgba)
 
 	def finished_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
@@ -103,20 +109,6 @@ class ResourceManagementTagsGUI:
 									"SET finished = %s "
 									"WHERE id = %s",(active, row_id))
 		self.db.commit()
-		return
-		selected_path = Gtk.TreePath(path)
-		for row in self.tag_edit_store:
-			#print row[2]
-			if row.path == selected_path:
-				row[3] = True
-				self.cursor.execute("UPDATE resource_tags "
-									"SET finished = True "
-									"WHERE id = (%s)",[row[0]])
-			else:
-				row[3] = False
-				self.cursor.execute("UPDATE resource_tags "
-									"SET finished = False "
-									"WHERE id = %s",[row[0]])
 
 
 
