@@ -130,7 +130,8 @@ class GUI(Gtk.Builder):
 		mailing_lists.MailingListsGUI()
 
 	def customer_markup_percent_clicked (self, button):
-		if is_admin == False:
+		import constants
+		if constants.is_admin == False:
 			return
 		self.window.present()
 		import customer_markup_percent
@@ -237,7 +238,8 @@ class GUI(Gtk.Builder):
 		self.populate_tax_exemptions ()
 
 	def terms_clicked (self, button):
-		if is_admin == False:
+		import constants
+		if constants.is_admin == False:
 			return
 		self.window.present()
 		import customer_terms
@@ -294,7 +296,8 @@ class GUI(Gtk.Builder):
 	def delete_file_clicked (self, widget):
 		dialog = self.get_object('dialog1')
 		combo = self.get_object('comboboxtext3')
-		if is_admin == False:
+		import constants
+		if constants.is_admin == False:
 			self.get_object('button17').set_sensitive(False)
 			self.get_object('label17').set_label("You are not admin !")
 		else:
