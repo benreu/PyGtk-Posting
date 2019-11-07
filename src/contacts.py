@@ -294,18 +294,20 @@ class GUI(Gtk.Builder):
 																files[3])
 
 	def delete_file_clicked (self, widget):
-		dialog = self.get_object('dialog1')
+		dialog = Gtk.Dialog("", self.window, 0)
+		dialog.add_button("Go back", Gtk.ResponseType.REJECT)
+		box = dialog.get_content_area()
 		combo = self.get_object('comboboxtext3')
 		import constants
 		if constants.is_admin == False:
-			self.get_object('button17').set_sensitive(False)
-			self.get_object('label17').set_label("You are not admin !")
+			label = Gtk.Label("You are not admin !")
 		else:
 			file_name = combo.get_active_text()
-			self.get_object('button17').set_sensitive(True)
-			self.get_object('label17').set_label("Are you sure you "
-														"want to delete '%s' ?"
+			dialog.add_button("Delete file", Gtk.ResponseType.ACCEPT)
+			label = Gtk.Label("Are you sure you want to delete \n'%s' ?"
 														%file_name)
+		box.add(label)
+		box.show_all()
 		result = dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
 			file_id = combo.get_active_id ()
@@ -315,7 +317,10 @@ class GUI(Gtk.Builder):
 		dialog.hide()
 
 	def select_file_clicked (self, widget):
-		dialog = self.get_object('filechooserdialog1')
+		dialog = Gtk.FileChooserDialog("Choose a file", self.window,
+									Gtk.FileChooserAction.OPEN,
+									(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+									Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT))
 		result = dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
 			self.add_file_to_contact (dialog)
