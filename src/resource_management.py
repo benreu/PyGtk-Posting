@@ -127,6 +127,17 @@ class ResourceManagementGUI:
 				self.show_message (e)
 				self.db.rollback()
 
+	def contact_hub_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path != []:
+			contact_id = model[path][2]
+			if contact_id == 0:
+				self.show_message ("No contact selected for this row!")
+				return
+			import contact_hub
+			contact_hub.ContactHubGUI(contact_id)
+
 	def row_activated (self, treeview, path, treeview_column):
 		if self.timeout_id:
 			self.save_notes()
