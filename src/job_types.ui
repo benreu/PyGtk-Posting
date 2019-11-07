@@ -8,6 +8,8 @@
       <column type="gint"/>
       <!-- column-name job_type_name -->
       <column type="gchararray"/>
+      <!-- column-name current_serial_number -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -45,12 +47,29 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Job type</property>
+                    <property name="expand">True</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">1</property>
                     <child>
                       <object class="GtkCellRendererText"/>
                       <attributes>
                         <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Current serial number</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">2</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">2</attribute>
                       </attributes>
                     </child>
                   </object>

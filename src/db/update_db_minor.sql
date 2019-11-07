@@ -258,7 +258,10 @@ ALTER TABLE mailing_lists ALTER COLUMN auto_add SET NOT NULL;
 COMMENT ON COLUMN mailing_lists.auto_add IS 'automatically add these mailing lists when updating or inserting contacts';
 CREATE UNIQUE INDEX IF NOT EXISTS mailing_list_register_contact_mailing_list_unique
 ON public.mailing_list_register (mailing_list_id, contact_id);
-
+--version 0.5.19
+ALTER TABLE job_types ADD COLUMN IF NOT EXISTS current_serial_number int DEFAULT 0;
+UPDATE job_types SET current_serial_number = 0 WHERE current_serial_number IS NULL;
+ALTER TABLE job_types ALTER COLUMN current_serial_number SET NOT NULL;
 
 
 
