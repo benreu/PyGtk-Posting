@@ -15,9 +15,7 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import psycopg2, subprocess, re, sane
-from multiprocessing import Queue, Process
-from queue import Empty
+import psycopg2, subprocess, re
 from constants import ui_directory, db, broadcaster, \
 						is_admin, help_dir, template_dir, sqlite_cursor
 
@@ -27,7 +25,6 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class GUI(Gtk.Builder):
-	scanner = None
 	def __init__(self, contact_id = 0):
 
 		Gtk.Builder.__init__(self)
@@ -50,7 +47,6 @@ class GUI(Gtk.Builder):
 		self.terms_store = self.get_object('terms_store')
 		self.markup_percent_store = self.get_object('markup_percent_store')
 		
-		#self.tax_exempt_widget = self.get_object('checkbutton1')
 		self.tax_exempt_number_widget = self.get_object('entry10')
 		self.misc_widget = self.get_object('entry11')
 		self.vendor_widget = self.get_object('checkbutton2')
@@ -82,13 +78,6 @@ class GUI(Gtk.Builder):
 
 		self.initiate_mailing_info()
 		
-
-		self.data_queue = Queue()
-		self.scanner_store = self.get_object("scanner_store")
-		thread = Process(target=self.get_scanners)
-		thread.start()
-		
-		GLib.timeout_add(100, self.populate_scanners)
 		self.window = self.get_object('window1')
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
@@ -165,75 +154,32 @@ class GUI(Gtk.Builder):
 			self.get_object("entry4").set_text(city)
 			self.get_object("entry5").set_text(state)
 			self.get_object('entry7').grab_focus()
-
-	def populate_scanners(self):
-		try:
-			devices = self.data_queue.get_nowait()
-			for scanner in devices:
-				device_id = scanner[0]
-				device_manufacturer = scanner[1]
-				name = scanner[2]
-				given_name = scanner[3]
-				self.scanner_store.append([str(device_id), device_manufacturer,
-											name, given_name])
-		except Empty:
-			return True
-		
-	def get_scanners(self):
-		sane.init()
-		devices = sane.get_devices()
-		self.data_queue.put(devices)
-
-	def scanner_combo_changed (self, combo):
-		tree_iter = combo.get_active_iter()
-		scanner_manufacturer = self.scanner_store.get_value(tree_iter, 1)
-		scanner_name = self.scanner_store.get_value(tree_iter, 2)
-		scanner_string = "%s %s" % (scanner_manufacturer, scanner_name)
-		self.get_object("label39").set_text(scanner_string)
-		self.check_scan_button_validity ()
 				
-	def scan_file_clicked (self, widget):
-		if self.scanner == None:
-			device_address = self.get_object("combobox2").get_active_id()
-			self.scanner = sane.open(device_address)
-		document = self.scanner.scan()
-		misc_file_radiobutton = self.get_object("radiobutton6")
-		if misc_file_radiobutton.get_active() == True: #scan misc. file
-			file_name = self.get_object("entry16").get_text()
-			path = "/tmp/" + file_name + ".pdf"
-			document.save(path)
-			f = open(path,'rb')
-			data = f.read()
-			binary = psycopg2.Binary(data)
-			split_filename = path.split("/")
-			name = split_filename[-1]
-			name = re.sub(" ", "_", name)
-			self.cursor.execute("INSERT INTO files(file_data, contact_id, name) "
-								"VALUES (%s, %s, %s)", 
-								(binary, self.contact_id, name))
-		else:					#scan tax exemption
-			exemption_selection = self.get_object('treeview-selection2')
-			model, path = exemption_selection.get_selected_rows ()
-			customer_exemption_id = model[path][4]
-			exemption_id = model[path][0]
-			path = "/tmp/exemption.pdf"
-			document.save(path)
-			f = open(path,'rb')
-			data = f.read()
-			binary = psycopg2.Binary(data)
-			if customer_exemption_id == 0:
-				self.cursor.execute("INSERT INTO customer_tax_exemptions "
-									"(pdf_data, customer_id, tax_rate_id, "
-									"pdf_available) "
-									"VALUES (%s, %s, %s, True) ",
-									(binary, self.contact_id, exemption_id))
-			else:
-				self.cursor.execute("UPDATE customer_tax_exemptions "
-									"SET (pdf_data, pdf_available) = "
-									"(%s, True) "
-									"WHERE id = %s", 
-									(binary, customer_exemption_id))
-		f.close()
+	def add_exemption_clicked (self, widget):
+		selection = self.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		import pdf_attachment
+		dialog = pdf_attachment.Dialog(self.window)
+		result = dialog.run()
+		if result != Gtk.ResponseType.ACCEPT:
+			return
+		binary = dialog.get_pdf ()
+		exemption_id = model[path][0]
+		if model[path][3] == False:
+			self.cursor.execute("INSERT INTO customer_tax_exemptions "
+								"(pdf_data, customer_id, tax_rate_id, "
+								"pdf_available) "
+								"VALUES (%s, %s, %s, True) ",
+								(binary, self.contact_id, exemption_id))
+		else:
+			self.cursor.execute("UPDATE customer_tax_exemptions "
+								"SET (pdf_data, pdf_available) = "
+								"(%s, True) "
+								"WHERE (customer_id, tax_rate_id) = "
+								"(%s, %s)", 
+								(binary, self.contact_id, exemption_id))
 		self.db.commit()
 		self.populate_tax_exemptions ()
 
@@ -245,64 +191,48 @@ class GUI(Gtk.Builder):
 		import customer_terms
 		customer_terms.CustomerTermsGUI()
 
-	def file_name_changed(self, widget):
-		self.check_scan_button_validity ()
+	def populate_file_store (self):
+		store = self.get_object('files_store')
+		store.clear()
+		self.cursor.execute("SELECT "
+								"id, "
+								"name, "
+								"(octet_length(file_data)/1000)::text || ' Kb' "
+							"FROM files "
+							"WHERE contact_id = %s ORDER BY name", 
+							(self.contact_id,))
+		for row in self.cursor.fetchall():
+			#print (row)
+			store.append(row)
 
-	def check_scan_button_validity (self):
-		scan_button = self.get_object("button2")
-		scan_button.set_sensitive(False)
-		if self.contact_id == 0:
-			scan_button.set_label("No contact selected")
+	def view_file_clicked (self, button):
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
 			return
-		if self.get_object("combobox2").get_active() == -1:
-			scan_button.set_label("No scanner selected")
+		file_id = model[path][0]
+		self.cursor.execute("SELECT file_data, name FROM files "
+							"WHERE id = %s", (file_id,))
+		for row in self.cursor.fetchall():
+			pdf_data = row[0]
+			pdf_path = "/tmp/%s" % row[1]
+			with open(pdf_path,'wb') as f:
+				f.write(pdf_data)
+			subprocess.call(["xdg-open", pdf_path])
+
+	def delete_file_clicked (self, button):
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
 			return
-		misc_file_radiobutton = self.get_object("radiobutton6")
-		if misc_file_radiobutton.get_active() == True: #misc. files
-			scan_filename_entry = self.get_object("entry29")
-			if scan_filename_entry.get_text() == "" :
-				scan_button.set_label("No filename")
-				return
-		else:										#tax exemption files
-			exemption_selection = self.get_object('treeview-selection2')
-			model, path = exemption_selection.get_selected_rows ()
-			if path == []:
-				scan_button.set_label("No exemption selected")
-				return
-		scan_button.set_sensitive(True)
-		scan_button.set_label("Scan file")
-
-	def misc_files_toggled (self, togglebutton):
-		active = togglebutton.get_active()
-		self.get_object('box13').set_sensitive(active)
-		self.check_scan_button_validity ()
-
-	def tax_exemptions_toggled (self, togglebutton):
-		active = togglebutton.get_active()
-		self.get_object('scrolledwindow1').set_sensitive(active)
-		self.check_scan_button_validity ()
-
-	def exemption_row_activated (self, treeview, path, treeviewcolumn):
-		self.check_scan_button_validity ()
-
-	def file_combobox_populate(self):
-		self.get_object('comboboxtext3').remove_all()
-		self.cursor.execute("SELECT * FROM files WHERE contact_id = %s", 
-							[str(self.contact_id)])
-		for files in self.cursor.fetchall():
-			self.get_object('comboboxtext3').append(str(files[0]), 
-																files[3])
-
-	def delete_file_clicked (self, widget):
 		dialog = Gtk.Dialog("", self.window, 0)
 		dialog.add_button("Go back", Gtk.ResponseType.REJECT)
 		box = dialog.get_content_area()
-		combo = self.get_object('comboboxtext3')
 		import constants
 		if constants.is_admin == False:
 			label = Gtk.Label("You are not admin !")
 		else:
-			file_name = combo.get_active_text()
+			file_name = model[path][1]
 			dialog.add_button("Delete file", Gtk.ResponseType.ACCEPT)
 			label = Gtk.Label("Are you sure you want to delete \n'%s' ?"
 														%file_name)
@@ -310,54 +240,50 @@ class GUI(Gtk.Builder):
 		box.show_all()
 		result = dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
-			file_id = combo.get_active_id ()
-			self.cursor.execute("DELETE FROM files WHERE id = (%s)", (file_id,))
+			file_id = model[path][0]
+			self.cursor.execute("DELETE FROM files WHERE id = %s", (file_id,))
 			self.db.commit ()
-			self.file_combobox_populate ()
+			self.populate_file_store ()
 		dialog.hide()
 
-	def select_file_clicked (self, widget):
+	def add_file_clicked (self, widget):
 		dialog = Gtk.FileChooserDialog("Choose a file", self.window,
 									Gtk.FileChooserAction.OPEN,
 									(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
 									Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT))
 		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			self.add_file_to_contact (dialog)
 		dialog.hide()
-
-	def add_file_to_contact (self, dialog):
-		path = dialog.get_filename()
-		f = open(path,'rb')
-		dat = f.read()
-		f.close()
-		binary = psycopg2.Binary(dat)
-		misc_file_radiobutton = self.get_object("radiobutton6")
-		if misc_file_radiobutton.get_active() == True: #insert misc. file
+		if result == Gtk.ResponseType.ACCEPT:
+			path = dialog.get_filename()
+			with open(path,'rb') as f:
+				dat = f.read()
 			split_filename = path.split("/")
 			name = split_filename[-1]
 			name = re.sub(" ", "_", name)
 			self.cursor.execute("INSERT INTO files(file_data, contact_id, name) "
 								"VALUES (%s, %s, %s)", 
-								(binary, self.contact_id, name))
-		else:					# insert tax exemption
-			exemption_selection = self.get_object('treeview-selection2')
-			model, path = exemption_selection.get_selected_rows ()
-			customer_exemption_id = model[path][4]
-			exemption_id = model[path][0]
-			if customer_exemption_id == 0:
-				self.cursor.execute("INSERT INTO customer_tax_exemptions "
-									"(pdf_data, customer_id, tax_rate_id, "
-									"pdf_available) "
-									"VALUES (%s, %s, %s, True) ",
-									(binary, self.contact_id, exemption_id))
-			else:
-				self.cursor.execute("UPDATE customer_tax_exemptions "
-									"SET (pdf_data, pdf_available) = "
-									"(%s, True) "
-									"WHERE id = %s", 
-									(binary, customer_exemption_id))
-			self.populate_tax_exemptions ()
+								(dat, self.contact_id, name))
+			self.db.commit()
+			self.populate_file_store()
+		
+	def add_exemption_to_contact (self):
+		exemption_selection = self.get_object('treeview-selection2')
+		model, path = exemption_selection.get_selected_rows ()
+		customer_exemption_id = model[path][4]
+		exemption_id = model[path][0]
+		if customer_exemption_id == 0:
+			self.cursor.execute("INSERT INTO customer_tax_exemptions "
+								"(pdf_data, customer_id, tax_rate_id, "
+								"pdf_available) "
+								"VALUES (%s, %s, %s, True) ",
+								(binary, self.contact_id, exemption_id))
+		else:
+			self.cursor.execute("UPDATE customer_tax_exemptions "
+								"SET (pdf_data, pdf_available) = "
+								"(%s, True) "
+								"WHERE id = %s", 
+								(binary, customer_exemption_id))
+		self.populate_tax_exemptions ()
 		self.db.commit()
 
 	def contact_help_clicked (self, widget):
@@ -508,43 +434,26 @@ class GUI(Gtk.Builder):
 		self.get_object('button11').set_sensitive(active)
 		self.get_object('button9').set_sensitive(active)
 		self.get_object('combobox1').set_sensitive(active)
-		self.get_object('frame5').set_sensitive(active)
 		if active == False:
 			self.get_object('radiobutton6').set_active(True)
 		
-	def focus_window(self, window, e):
-		# keep the active entry when we refocus the window (which usually happens when we add a file and come back) 
-		active = self.get_object('comboboxtext3').get_active_id()
+	def focus_window(self, window, event):
 		self.populate_terms_combo ()
-		self.file_combobox_populate() # repopulate
-		self.get_object('comboboxtext3').set_active_id(active)
+		self.populate_file_store()
 
-	def view_file_clicked (self, button):
-		misc_file_radiobutton = self.get_object("radiobutton6")
-		if misc_file_radiobutton.get_active() == True: #view misc. file
-			file_id = self.get_object('comboboxtext3').get_active_id()
-			self.cursor.execute("SELECT * FROM files WHERE id = %s", (file_id,))
-			for row in self.cursor.fetchall():
-				file_name = row[3]
-				file_data = row[1]
-				view_file = open("/tmp/" + file_name,'wb')
-				view_file.write(file_data)
-				subprocess.call(["xdg-open", "/tmp/" + str(file_name)])
-				view_file.close()
-		else:											#view exemption file
-			exemption_selection = self.get_object('treeview-selection2')
-			model, path = exemption_selection.get_selected_rows ()
-			if model[path][3] == False:
-				return # no exemption file available
-			customer_exemption_id = model[path][4]
-			self.cursor.execute("SELECT pdf_data FROM customer_tax_exemptions "
-								"WHERE id = %s", (customer_exemption_id,))
-			for row in self.cursor.fetchall():
-				pdf_data = row[0]
-				view_file = open("/tmp/exemption.pdf",'wb')
-				view_file.write(pdf_data)
-				subprocess.call(["xdg-open", "/tmp/exemption.pdf"])
-				view_file.close()
+	def view_exemption_clicked (self, button):
+		exemption_selection = self.get_object('treeview-selection2')
+		model, path = exemption_selection.get_selected_rows ()
+		if model[path][3] == False:
+			return # no exemption file available
+		customer_exemption_id = model[path][4]
+		self.cursor.execute("SELECT pdf_data FROM customer_tax_exemptions "
+							"WHERE id = %s", (customer_exemption_id,))
+		for row in self.cursor.fetchall():
+			pdf_data = row[0]
+			with open("/tmp/exemption.pdf",'wb') as f:
+				f.write(pdf_data)
+			subprocess.call(["xdg-open", "/tmp/exemption.pdf"])
 
 	def tax_exemption_window(self, widget):
 		if self.contact_id != 0:
@@ -617,8 +526,6 @@ class GUI(Gtk.Builder):
 		self.populating = False
 		
 	def destroy(self, window):
-		if self.scanner != None:
-			self.scanner.close()
 		self.cursor.close()
 
 	def tax_exempt_clicked(self, widget):
@@ -687,12 +594,11 @@ class GUI(Gtk.Builder):
 		self.get_object('entry25').set_text("")
 		self.get_object('entry12').set_text("")
 			
+		self.get_object('box13').set_sensitive(True)
 		self.get_object('entry23').set_sensitive(True)
-		self.get_object('entry29').set_sensitive(True)
-		self.get_object('entry29').set_text("")
 		self.get_object('button6').set_sensitive(True)
-		self.get_object("button1").set_sensitive(True)
-		self.file_combobox_populate()
+		self.get_object("box5").set_sensitive(True)
+		self.populate_file_store()
 		self.populate_tax_exemptions ()
 		self.populate_individual_store ()
 
@@ -720,16 +626,11 @@ class GUI(Gtk.Builder):
 										exemption_available, 
 										exemption_pdf_scanned, 
 										customer_exemption_id])
-		self.check_scan_button_validity ()
 		
 	def new_contact (self, widget):
-		self.get_object('entry29').set_sensitive(False)
-		self.get_object('entry29').set_text("Select customer "
-													"before scanning")
-		self.get_object('button2').set_sensitive(False)
-		self.get_object('button1').set_sensitive(False)		
+		self.get_object('box5').set_sensitive(False)
 		self.contact_id = 0		#this tells the rest of the program we have a new contact
-		
+		self.get_object('box13').set_sensitive(False)
 		self.name_widget.set_text("New Contact")
 		self.name_widget.select_region(0,-1)
 		self.name_widget.grab_focus()
