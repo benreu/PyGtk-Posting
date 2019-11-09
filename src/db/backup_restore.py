@@ -20,9 +20,9 @@ gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
 import time
 from db.database_tools import get_apsw_cursor
-import constants
+from constants import ui_directory, db_name, sqlite_cursor
 
-UI_FILE = constants.ui_directory + "/db/backup_restore.ui"
+UI_FILE = ui_directory + "/db/backup_restore.ui"
 
 class Utilities:
 	def __init__(self, parent):
@@ -37,7 +37,7 @@ class Utilities:
 		self.terminal.set_scroll_on_output(True)
 
 	def backup_gui (self):
-		self.database = constants.db_name
+		self.database = db_name
 		self.result = False
 		self.builder.get_object('backup_scrolled_window').add(self.terminal)
 		backup_window = self.builder.get_object('backupdialog')
@@ -54,8 +54,7 @@ class Utilities:
 
 	def backup_database (self):
 		self.error = False
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		for row in sqlite_cursor.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -114,8 +113,7 @@ class Utilities:
 		db_file = restore_window.get_filename()
 		if response != Gtk.ResponseType.ACCEPT:
 			return
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		for row in sqlite_cursor.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			self.sql_password = row[1]
 			sql_host = row[2]
@@ -148,8 +146,7 @@ class Utilities:
 			self.builder.get_object('button7').set_label('Create failed!')
 			return
 		self.parent.status_update("Created database %s" % db_name)
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		for row in sqlite_cursor.execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			self.sql_password = row[1]
 			sql_host = row[2]
