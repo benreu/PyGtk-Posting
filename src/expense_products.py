@@ -22,7 +22,7 @@ UI_FILE = ui_directory + "/expense_products.ui"
 
 class GUI(Gtk.Builder):
 	__gsignals__ = { 
-	'expense-products-changed': (GObject.SIGNAL_RUN_FIRST, 
+	'expense-products-changed': (GObject.SignalFlags.RUN_FIRST, 
 								GObject.TYPE_NONE, ())
 														}
 	"""the expense-products-changed signal is used to send a message to the 

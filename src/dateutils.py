@@ -144,16 +144,16 @@ def seconds_to_compact_string (start_seconds):
 
 class DateTimeCalendar (Gtk.Popover):
 	'''A Gtk Calendar within a Gtk Popover that recognizes Python datetimes'''
-	__gsignals__ = { 'day_selected': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())}
+	__gsignals__ = { 'day_selected': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())}
 	
 	__gtype_name__ = 'DateTimeCalendar'
 	
 	def __init__(self, override = False):
 		Gtk.Popover.__init__(self)
 		self.calendar = Gtk.Calendar()
-		date_label = Gtk.Label('No date')
+		date_label = Gtk.Label(label = 'No date')
 		s = "<span foreground='#d40000'>No fiscal range applicable</span>"
-		fiscal_label = Gtk.Label(s, use_markup = True)
+		fiscal_label = Gtk.Label(label = s, use_markup = True)
 		fiscal_label.set_no_show_all(True)
 		self.box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
 		self.box.pack_start (self.calendar, False, False, 0 )

@@ -182,7 +182,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		dialog = Gtk.Dialog("", self.window, 0)
 		dialog.add_button("Cancel", 1)
 		dialog.add_button("Append items", 2)
-		label = Gtk.Label(message)
+		label = Gtk.Label(label = message)
 		box = dialog.get_content_area()
 		box.add(label)
 		label.show()

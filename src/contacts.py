@@ -230,11 +230,11 @@ class GUI(Gtk.Builder):
 		box = dialog.get_content_area()
 		import constants
 		if constants.is_admin == False:
-			label = Gtk.Label("You are not admin !")
+			label = Gtk.Label(label = "You are not admin !")
 		else:
 			file_name = model[path][1]
 			dialog.add_button("Delete file", Gtk.ResponseType.ACCEPT)
-			label = Gtk.Label("Are you sure you want to delete \n'%s' ?"
+			label = Gtk.Label(label = "Are you sure you want to delete \n'%s' ?"
 														%file_name)
 		box.add(label)
 		box.show_all()

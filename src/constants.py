@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GLib, GObject
 import os, shutil
 
 dev_mode = False
@@ -34,15 +34,15 @@ def start_broadcaster ():
 
 class Broadcast (GObject.GObject):
 	__gsignals__ = { 
-	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	'products_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'contacts_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'shutdown': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	global db, cursor, ACCOUNTS
 	def __init__ (self):
 		GObject.GObject.__init__(self)
-		GObject.timeout_add_seconds(1, self.poll_connection)
+		GLib.timeout_add_seconds(1, self.poll_connection)
 		cursor.execute("LISTEN products")
 		cursor.execute("LISTEN contacts")
 		cursor.execute("LISTEN accounts")

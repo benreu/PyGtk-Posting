@@ -463,10 +463,10 @@ class ProductsGUI (Gtk.Builder):
 			terms_id = row[0]
 			terms_name = row[1]
 			terms_markup = row[2]
-			terms_id_label = Gtk.Label(str(terms_id), xalign=0)
+			terms_id_label = Gtk.Label(label = str(terms_id), xalign=0)
 			terms_id_label.set_visible(False)
 			terms_id_label.set_no_show_all(True)
-			terms_name_label = Gtk.Label(terms_name, xalign=1)
+			terms_name_label = Gtk.Label(label = terms_name, xalign=1)
 			markup_spinbutton = Gtk.SpinButton.new_with_range(0.00, 5000.00, 1.00)
 			markup_spinbutton.set_digits(2)
 			markup_spinbutton.set_value(terms_markup)

@@ -28,7 +28,7 @@ UI_FILE = ui_directory + "/incoming_invoice.ui"
 
 class IncomingInvoiceGUI(Gtk.Builder):
 	__gsignals__ = { 
-	'invoice_applied': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	'invoice_applied': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	"""the invoice_applied signal is used to send a message to the parent 
 		window that the incoming invoice is now finished"""
