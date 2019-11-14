@@ -90,17 +90,15 @@ class ProductHistoryGUI (Gtk.Builder):
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices WHERE id = %s", 
-																	(file_id ,))
+		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+							"WHERE id = %s AND pdf_data IS NOT NULL", 
+							(file_id ,))
 		for row in self.cursor.fetchall():
 			file_name = "/tmp/" + row[0]
-			if file_name == None:
-				return
 			file_data = row[1]
-			f = open(file_name,'wb')
-			f.write(file_data)
-			subprocess.call(["xdg-open", file_name])
-			f.close()
+			with open(file_name,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_name])
 
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection4')
@@ -109,8 +107,7 @@ class ProductHistoryGUI (Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('invoice_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def invoice_history_activated (self, menuitem):
 		selection = self.get_object('treeview-selection4')
@@ -120,16 +117,42 @@ class ProductHistoryGUI (Gtk.Builder):
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
 			self.invoice_history = ih.InvoiceHistoryGUI()
-		combo = self.invoice_history.builder.get_object('combobox1')
+		combo = self.invoice_history.get_object('combobox1')
 		combo.set_active_id(contact_id)
-		store = self.invoice_history.builder.get_object('invoice_store')
-		selection = self.invoice_history.builder.get_object('treeview-selection1')
+		store = self.invoice_history.get_object('invoice_store')
+		selection = self.invoice_history.get_object('treeview-selection1')
 		selection.unselect_all()
 		for row in store:
 			if row[0] == invoice_id:
 				selection.select_iter(row.iter)
 				break
 		self.invoice_history.present()
+
+	def p_o_treeview_button_release_event (self, treeview, event):
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		if event.button == 3:
+			menu = self.get_object('p_o_menu')
+			menu.popup_at_pointer()
+
+	def view_p_o_attachment_activated (self, menuitem):
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		p_o_id = model[path][0]
+		self.cursor.execute("SELECT name, attached_pdf FROM purchase_orders "
+							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+							(p_o_id,))
+		for row in self.cursor.fetchall():
+			file_name = "/tmp/" + row[0]
+			file_data = row[1]
+			with open(file_name,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_name])
+			break
+		else:
+			self.show_message("No attachment for this Purchase Order")
 
 	def product_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -272,7 +295,14 @@ class ProductHistoryGUI (Gtk.Builder):
 		else:
 			label = "<span weight='bold'>Manufacturing (%s)</span>" % count
 			self.get_object('label3').set_markup(label)
-
+		
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 
