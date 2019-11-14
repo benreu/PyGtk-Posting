@@ -43,6 +43,31 @@ class OpenPurchaseOrderGUI:
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI()
 
+	def p_o_name_edited (self, cellrenderertext, path, text):
+		po_id = self.open_po_store[path][0]
+		self.cursor.execute("UPDATE purchase_orders SET name = %s "
+							"WHERE id = %s", (text, po_id))
+		self.db.commit()
+		self.open_po_store[path][1] = text
+
+	def p_o_name_editing_canceled (self, cellrenderer):
+		self.cursor.execute("SELECT pg_advisory_unlock(id) "
+							"FROM purchase_orders "
+							"WHERE id = %s ",
+							(self.po_id,))
+
+	def p_o_name_editing_started (self, cellrenderer, celleditable, path):
+		self.po_id = self.open_po_store[path][0]
+		self.cursor.execute("SELECT name FROM purchase_orders "
+							"WHERE (id, closed, pg_try_advisory_lock(id)) = "
+							"(%s, False, False)",
+							(self.po_id,))
+		for row in self.cursor.fetchall():
+			celleditable.set_text(row[0])
+			break
+		else:
+			cellrenderer.stop_editing(False)
+
 	def focus_in_event (self, window, event):
 		self.populate_store()
 
