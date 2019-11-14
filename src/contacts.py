@@ -830,6 +830,37 @@ class GUI(Gtk.Builder):
 		self.db.commit()
 		self.populate_contacts ()
 		self.populate_zip_codes ()
+
+	def notebook_create_window (self, notebook, widget, x, y):
+		window = Gtk.Window()
+		new_notebook = Gtk.Notebook()
+		window.add(new_notebook)
+		new_notebook.set_group_name('posting')
+		new_notebook.connect('page-removed', self.notebook_page_removed, window)
+		window.connect('destroy', self.sub_window_destroyed, new_notebook, notebook)
+		window.set_transient_for(self.window)
+		window.set_destroy_with_parent(True)
+		window.set_size_request(400, 400)
+		window.set_title('Contacts')
+		window.set_icon_name('pygtk-posting')
+		window.move(x, y)
+		window.show_all()
+		return new_notebook
+
+	def notebook_page_removed (self, notebook, child, page, window):
+		#destroy the window after the notebook is empty
+		if notebook.get_n_pages() == 0:
+			window.destroy()
+
+	def sub_window_destroyed (self, window, notebook, dest_notebook):
+		# detach the notebook pages in reverse sequence to avoid index errors
+		for page_num in reversed(range(notebook.get_n_pages())):
+			widget = notebook.get_nth_page(page_num)
+			tab_label = notebook.get_tab_label(widget)
+			notebook.detach_tab(widget)
+			dest_notebook.append_page(widget, tab_label)
+			dest_notebook.set_tab_detachable(widget, True)
+			dest_notebook.set_tab_reorderable(widget, True)
 		
 #*******************************************************************************
 	#mailing list code

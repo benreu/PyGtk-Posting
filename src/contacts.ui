@@ -396,6 +396,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="border_width">0</property>
+                    <signal name="create-window" handler="notebook_create_window" swapped="no"/>
                     <child>
                       <object class="GtkBox" id="box15">
                         <property name="visible">True</property>
@@ -1080,6 +1081,10 @@
                           </packing>
                         </child>
                       </object>
+                      <packing>
+                        <property name="reorderable">True</property>
+                        <property name="detachable">True</property>
+                      </packing>
                     </child>
                     <child type="tab">
                       <object class="GtkLabel" id="label1">
@@ -1225,6 +1230,8 @@
                       </object>
                       <packing>
                         <property name="position">1</property>
+                        <property name="reorderable">True</property>
+                        <property name="detachable">True</property>
                       </packing>
                     </child>
                     <child type="tab">
@@ -1349,6 +1356,8 @@
                       </object>
                       <packing>
                         <property name="position">2</property>
+                        <property name="reorderable">True</property>
+                        <property name="detachable">True</property>
                       </packing>
                     </child>
                     <child type="tab">
@@ -1613,6 +1622,8 @@
                       </object>
                       <packing>
                         <property name="position">3</property>
+                        <property name="reorderable">True</property>
+                        <property name="detachable">True</property>
                       </packing>
                     </child>
                     <child type="tab">
