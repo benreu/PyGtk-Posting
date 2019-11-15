@@ -230,6 +230,7 @@
                     <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Create a job with this description</property>
                     <signal name="clicked" handler="create_job_clicked" swapped="no"/>
                   </object>
                   <packing>
@@ -251,7 +252,7 @@
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Generate a serial number and insert it into the description entry</property>
+                <property name="tooltip_text" translatable="yes">Generate a serial number and insert it into the description entry with the option of printing it</property>
                 <signal name="clicked" handler="generate_serial_number_clicked" swapped="no"/>
               </object>
               <packing>

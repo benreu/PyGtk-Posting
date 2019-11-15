@@ -18,11 +18,16 @@
 import psycopg2
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
+import subprocess
 from invoice_window import create_new_invoice 
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, db, broadcaster, template_dir
+import printing
 
 UI_FILE = ui_directory + "/job_sheet.ui"
 
+class Item(object):#this is used by py3o library see their example for more info
+	pass
+	
 class JobSheetGUI(Gtk.Builder):
 	def __init__(self):
 
@@ -142,9 +147,21 @@ class JobSheetGUI(Gtk.Builder):
 					"SET current_serial_number = (current_serial_number + 1) "
 					"WHERE id = %s RETURNING current_serial_number::text",
 					(self.job_type_id,))
-		self.get_object('entry1').set_text(c.fetchone()[0])
+		serial_number = c.fetchone()[0]
+		self.get_object('entry1').set_text(serial_number)
 		db.commit()
 		button.set_sensitive(False)
+		self.print_serial_number(serial_number)
+
+	def print_serial_number(self, serial_number):
+		document = Item()
+		document.serial_number = serial_number
+		data = dict(label = document)
+		from py3o.template import Template
+		sn_file = "/tmp/job_serial.odt"
+		t = Template(template_dir+"/job_serial_template.odt", sn_file, True)
+		t.render(data)
+		subprocess.Popen(["soffice", sn_file])
 
 	def populate_product_store (self, m=None):
 		self.product_store.clear()
