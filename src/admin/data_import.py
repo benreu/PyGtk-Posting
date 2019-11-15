@@ -58,11 +58,10 @@ class DataImportUI:
 			self.show_message ("File type not recognized")
 
 	def show_message (self, error):
-		dialog = Gtk.MessageDialog( self.window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									error)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (error)
 		dialog.run()
 		dialog.destroy()
 

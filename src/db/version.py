@@ -143,11 +143,10 @@ class CheckVersion :
 		self.db.commit()
 		
 	def show_message (self, message):
-		dialog = Gtk.MessageDialog( self.window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									message)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
 

@@ -107,11 +107,10 @@ class KeybinderInit (Gtk.Builder):
 
 	def show_message (self, message):
 		window = self.get_object('window')
-		dialog = Gtk.MessageDialog( window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									str(message))
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(window)
+		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
 

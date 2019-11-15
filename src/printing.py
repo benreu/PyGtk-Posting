@@ -119,11 +119,10 @@ class Operation (Gtk.PrintOperation):
 		return result
 
 	def show_error_message (self, message):
-		dialog = Gtk.MessageDialog(self.parent,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									message)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.parent)
+		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
 

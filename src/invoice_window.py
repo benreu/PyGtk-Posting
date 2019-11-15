@@ -900,11 +900,10 @@ class InvoiceGUI:
 		entry.grab_focus()
 
 	def show_error_dialog (self, error):
-		dialog = Gtk.MessageDialog( self.window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									error)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (error)
 		dialog.run()
 		dialog.destroy()
 

@@ -287,11 +287,10 @@ class CatalogCreatorGUI(Gtk.Builder):
 			t.render(product_list) #the product_list holds all the catalog info
 		except Exception as e:
 			print (e)
-			dialog = Gtk.MessageDialog(self.window,
-										0,
-										Gtk.MessageType.ERROR,
-										Gtk.ButtonsType.CLOSE,
-										e)
+			dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+										buttons = Gtk.ButtonsType.CLOSE)
+			dialog.set_transient_for(self.window)
+			dialog.set_markup (message)
 			dialog.run()
 			dialog.destroy()
 			return
