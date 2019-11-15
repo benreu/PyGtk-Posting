@@ -124,6 +124,7 @@ class AssembledProductsGUI:
 							"products.name, "
 							"COALESCE(vpn.vendor_sku, 'No order number'), "
 							"products.manufacturer_sku, "
+							"pai.remark, "
 							"products.cost "
 						"FROM product_assembly_items AS pai "
 						"JOIN products ON pai.assembly_product_id = products.id "
