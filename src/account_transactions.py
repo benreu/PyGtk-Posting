@@ -76,15 +76,13 @@ class GUI:
 	def treeview_button_release_event (self, widget, event):
 		if event.button == 3:
 			menu = self.builder.get_object('transaction_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 		
 	def selection_changed (self, selection):
 		model, paths = selection.get_selected_rows()
 		if len(paths) > 1:
 			menu = self.builder.get_object('transaction_menu')
-			menu.popup(None, None, None, None, 0, Gtk.get_current_event_time())
-			menu.show_all()
+			menu.popup_at_pointer()
 	
 	def gl_entry_lookup_activated (self, menuitem):
 		selection = self.builder.get_object('treeview1').get_selection()

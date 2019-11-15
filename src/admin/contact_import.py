@@ -134,8 +134,7 @@ class ContactsImportGUI:
 	def treeview_button_release_event (self, widget, event):
 		if event.button == 3:
 			menu = self.builder.get_object('right click menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def delete_contact_activated (self, menu):
 		selection = self.builder.get_object('xls_import_selection')

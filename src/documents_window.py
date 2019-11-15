@@ -128,8 +128,7 @@ class DocumentGUI:
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('right_click_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def focus (self, window, event):
 		document_type_combo = self.builder.get_object('comboboxtext2')

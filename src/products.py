@@ -360,8 +360,7 @@ class ProductsGUI (Gtk.Builder):
 	def vendor_order_treeview_button_release (self, treeview, event): 
 		if event.button == 3:
 			menu = self.get_object('vendor_order_number_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def calculate_piece_cost (self):
 		qty = self.get_object('spinbutton2').get_value()
@@ -641,8 +640,7 @@ class ProductsGUI (Gtk.Builder):
 	def product_treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
 		import product_hub

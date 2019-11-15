@@ -190,8 +190,7 @@ class CatalogCreatorGUI(Gtk.Builder):
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.get_object("treeview-selection1")

@@ -394,8 +394,7 @@ class GUI(Gtk.Builder):
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.get_object('menu2')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def contact_hub_activated (self, menuitem):
 		import contact_hub
@@ -681,8 +680,7 @@ class GUI(Gtk.Builder):
 	def contact_individual_combo_button_release_event (self, combo, event):
 		if event.button == 3:
 			menu = self.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def delete_individual_activated (self, menuitem):
 		individual_id = self.get_object('combobox3').get_active_id()

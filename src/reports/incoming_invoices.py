@@ -46,8 +46,7 @@ class IncomingInvoiceGUI:
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')

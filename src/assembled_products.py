@@ -86,8 +86,7 @@ class AssembledProductsGUI:
 				return
 			self.product_hub_id = model[path][0]
 			menu = self.builder.get_object('assembled_popup_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def products_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -97,8 +96,7 @@ class AssembledProductsGUI:
 				return
 			self.product_hub_id = model[path][2]
 			menu = self.builder.get_object('assembled_popup_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 		
 	def export_csv_activated (self, menuitem):
 		self.populate_vendor_store () 

@@ -100,8 +100,7 @@ class VendorHistoryGUI:
 			return
 		if event.button == 3:
 			menu = self.builder.get_object('po_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 			
 	def po_item_treeview_button_release_event (self, treeview, event):
 		selection = self.builder.get_object('treeview-selection2')
@@ -110,8 +109,7 @@ class VendorHistoryGUI:
 			return
 		if event.button == 3:
 			menu = self.builder.get_object('po_item_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection2')

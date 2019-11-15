@@ -118,8 +118,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('invoice_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def invoice_history_activated (self, menuitem):
 		selection = self.get_object('treeview-selection4')

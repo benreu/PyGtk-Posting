@@ -114,8 +114,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('invoice_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 			
 	def invoice_item_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection2')
@@ -124,8 +123,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('invoice_item_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def view_invoice_activated (self, menuitem):
 		selection = self.get_object('treeview-selection2')

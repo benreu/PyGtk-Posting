@@ -117,8 +117,7 @@ class DocumentHistoryGUI(Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('document_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 			
 	def document_item_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection2')
@@ -127,8 +126,7 @@ class DocumentHistoryGUI(Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('document_item_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def view_document_activated (self, menuitem):
 		selection = self.get_object('treeview-selection2')

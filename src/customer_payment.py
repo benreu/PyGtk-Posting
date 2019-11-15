@@ -238,8 +238,7 @@ class GUI:
 	def invoice_treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			#menu.popup(None, None, None, None, event.button, event.time)
-			#menu.show_all()
+			menu.popup_at_pointer()
 
 	def amount_due_edited (self, renderer, path, amount):
 		invoice_id = self.invoice_store[path][0]
