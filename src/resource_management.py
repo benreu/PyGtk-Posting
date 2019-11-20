@@ -52,8 +52,8 @@ class ResourceManagementGUI:
 		self.dated_for_calendar = DateTimeCalendar()
 		no_date_button = self.builder.get_object('button5')
 		self.dated_for_calendar.pack_start(no_date_button)
-		date_label = self.builder.get_object('treeviewcolumn5').get_widget()
-		self.dated_for_calendar.set_relative_to(date_label)
+		treeview = self.builder.get_object('treeview1')
+		self.dated_for_calendar.set_relative_to(treeview)
 		self.dated_for_calendar.connect('day-selected', self.dated_for_calendar_day_selected )
 		
 		self.older_than_calendar = DateTimeCalendar()
@@ -261,17 +261,20 @@ class ResourceManagementGUI:
 		self.populate_resource_store(id_)
 
 	def dated_for_editing_started (self, widget, entry, text):
+		event = Gtk.get_current_event()
+		rect = Gdk.Rectangle()
+		rect.x = event.x
+		rect.y = event.y + 30
+		rect.width = rect.height = 1
+		self.dated_for_calendar.set_pointing_to(rect)
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		row_id = model[path][0]
-		self.cursor.execute("SELECT dated_for FROM resources "
-							"WHERE id = %s AND dated_for IS NOT NULL", (row_id,))
+		self.cursor.execute("SELECT COALESCE(dated_for, CURRENT_DATE) "
+							"FROM resources WHERE id = %s", (row_id,))
 		for row in self.cursor.fetchall():
 			self.dated_for_calendar.set_datetime(row[0])
-			break
-		else:
-			self.dated_for_calendar.set_today()
-		GLib.idle_add(self.dated_for_calendar.show)
+		GLib.idle_add(self.dated_for_calendar.show) # this hides the entry
 
 	def tag_editing_started (self, renderer_combo, combobox, path):
 		self.editing = True
