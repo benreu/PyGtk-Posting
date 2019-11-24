@@ -890,7 +890,7 @@ class GUI(Gtk.Builder):
 							"ON ml.id = mlr.mailing_list_id "
 							"AND mlr.contact_id = %s AND mlr.active = True",
 							(self.contact_id,))
-		for item in self.cursor.fetchall():
+		for row in self.cursor.fetchall():
 			self.mailing_list_store.append(row)
 		self.get_object('mailing_popover').set_relative_to(entry14)
 		self.get_object('mailing_popover').show_all ()
