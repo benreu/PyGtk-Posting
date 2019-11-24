@@ -320,6 +320,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Mailing list printing</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="mailing_list_printing_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem43">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>

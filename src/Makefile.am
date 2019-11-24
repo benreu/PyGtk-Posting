@@ -154,7 +154,9 @@ pygtk_posting_PYTHON = \
 	open_job_sheets.py \
 	open_job_sheets.ui \
 	expense_products.py \
-	expense_products.ui
+	expense_products.ui \
+	mailing_list_printing.py \
+	mailing_list_printing.ui
 
 
 EXTRA_DIST = $(ui_DATA)

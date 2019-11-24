@@ -172,6 +172,10 @@ class MainGUI :
 		from reports import incoming_invoices
 		incoming_invoices.IncomingInvoiceGUI()
 
+	def mailing_list_printing_activated (self, menuitem):
+		import mailing_list_printing
+		mailing_list_printing.MailingListPrintingGUI()
+
 	def duplicate_contact_finder_activated (self, menuitem):
 		from admin import duplicate_contact
 		duplicate_contact.DuplicateContactGUI()
