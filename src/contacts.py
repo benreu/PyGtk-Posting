@@ -433,8 +433,6 @@ class GUI(Gtk.Builder):
 		self.get_object('button11').set_sensitive(active)
 		self.get_object('button9').set_sensitive(active)
 		self.get_object('combobox1').set_sensitive(active)
-		if active == False:
-			self.get_object('radiobutton6').set_active(True)
 		
 	def focus_window(self, window, event):
 		self.populate_terms_combo ()
