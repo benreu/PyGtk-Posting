@@ -519,7 +519,7 @@ class GUI(Gtk.Builder):
 				treeview_selection = self.get_object('treeview-selection')
 				path = row.path
 				treeview_selection.select_path(path)
-				self.treeview.scroll_to_cell(path)
+				self.treeview.scroll_to_cell(path, None, True, 0.5)
 		self.populating = False
 		
 	def destroy(self, window):
