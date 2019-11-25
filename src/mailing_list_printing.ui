@@ -20,6 +20,8 @@
       <column type="gchararray"/>
       <!-- column-name contact_phone -->
       <column type="gchararray"/>
+      <!-- column-name print_this_row -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkListStore" id="mailing_list_store">
@@ -173,13 +175,29 @@
                     </child>
                   </object>
                 </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Print</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">8</property>
+                    <child>
+                      <object class="GtkCellRendererToggle">
+                        <signal name="toggled" handler="to_print_toggled" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="active">8</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">1</property>
-            <property name="width">3</property>
+            <property name="width">4</property>
           </packing>
         </child>
         <child>
@@ -242,6 +260,33 @@
           </packing>
         </child>
         <child>
+          <object class="GtkProgressBar" id="progressbar">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="show_text">True</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">3</property>
+            <property name="width">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="to_print_checkbutton">
+            <property name="label" translatable="yes">Print default</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="tooltip_text" translatable="yes">Load the contacts with the 'Print' checkbutton set to this setting</property>
+            <property name="active">True</property>
+            <property name="draw_indicator">True</property>
+          </object>
+          <packing>
+            <property name="left_attach">3</property>
+            <property name="top_attach">0</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkButton" id="print_mailing_button">
             <property name="label" translatable="yes">Print mailing list</property>
             <property name="visible">True</property>
@@ -251,21 +296,12 @@
             <signal name="clicked" handler="print_mailing_list_clicked" swapped="no"/>
           </object>
           <packing>
-            <property name="left_attach">2</property>
+            <property name="left_attach">3</property>
             <property name="top_attach">2</property>
           </packing>
         </child>
         <child>
-          <object class="GtkProgressBar" id="progressbar">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="show_text">True</property>
-          </object>
-          <packing>
-            <property name="left_attach">0</property>
-            <property name="top_attach">3</property>
-            <property name="width">3</property>
-          </packing>
+          <placeholder/>
         </child>
       </object>
     </child>

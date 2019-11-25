@@ -68,6 +68,10 @@ class MailingListPrintingGUI(Gtk.Builder):
 			menu = self.get_object('menu')
 			menu.popup_at_pointer()
 
+	def to_print_toggled (self, cellrenderertoggle, path):
+		store = self.get_object('contact_mailing_list_store')
+		store[path][8] = not store[path][8]
+
 	def contact_hub_activated (self, menuitem):
 		selection = self.get_object('tree-selection')
 		model, path = selection.get_selected_rows()
@@ -118,6 +122,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 
 	def populate_contact_mailing_store (self):
 		store = self.get_object('contact_mailing_list_store')
+		to_print = self.get_object('to_print_checkbutton').get_active()
 		store.clear()
 		c = db.cursor()
 		c.execute("SELECT c.id, "
@@ -127,14 +132,15 @@ class MailingListPrintingGUI(Gtk.Builder):
 							"city, "
 							"state, "
 							"zip, "
-							"phone "
+							"phone, "
+							"%s "
 					"FROM contacts AS c "
 					"JOIN mailing_list_register AS mlr "
 						"ON mlr.contact_id = c.id "
 					"JOIN mailing_lists AS ml ON ml.id = mlr.mailing_list_id "
 					"WHERE (ml.id, mlr.active) = (%s, True) "
 					"ORDER BY c.name, c.ext_name", 
-					(self.mailing_list_id,) )
+					(to_print, self.mailing_list_id))
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
@@ -164,6 +170,8 @@ class MailingListPrintingGUI(Gtk.Builder):
 		if not os.path.exists(temperary_folder):
 			os.mkdir(temperary_folder)
 		for row in contact_mailing_store:
+			if row[8] == False:
+				continue
 			count += 1
 			contact_id = row[0]
 			contact = Item()
