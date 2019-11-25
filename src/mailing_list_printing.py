@@ -132,7 +132,8 @@ class MailingListPrintingGUI(Gtk.Builder):
 					"JOIN mailing_list_register AS mlr "
 						"ON mlr.contact_id = c.id "
 					"JOIN mailing_lists AS ml ON ml.id = mlr.mailing_list_id "
-					"WHERE ml.id = %s ORDER BY c.name, c.ext_name", 
+					"WHERE (ml.id, mlr.active) = (%s, True) "
+					"ORDER BY c.name, c.ext_name", 
 					(self.mailing_list_id,) )
 		for row in c.fetchall():
 			store.append(row)
