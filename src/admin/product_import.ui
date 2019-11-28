@@ -37,6 +37,7 @@
     <property name="window_position">center</property>
     <property name="default_width">600</property>
     <property name="default_height">500</property>
+    <property name="icon_name">pygtk-posting</property>
     <child>
       <placeholder/>
     </child>
@@ -555,9 +556,9 @@ you should be all set.</property>
       <object class="GtkMenuItem" id="delete contact">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Delete contact</property>
+        <property name="label" translatable="yes">Delete product</property>
         <property name="use_underline">True</property>
-        <signal name="activate" handler="delete_contact_activated" swapped="no"/>
+        <signal name="activate" handler="delete_product_activated" swapped="no"/>
       </object>
     </child>
   </object>
