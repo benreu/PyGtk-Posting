@@ -16,55 +16,46 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import xlrd
-from xlrd.biffh import XLRDError
-import constants
+from constants import ui_directory
 
-UI_FILE = constants.ui_directory + "/admin/data_import.ui"
+UI_FILE = ui_directory + "/admin/data_import.ui"
 
 
 class DataImportUI:
-	def __init__(self, db):
+	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		builder = Gtk.Builder()
+		builder.add_from_file(UI_FILE)
+		builder.connect_signals(self)
 
-		self.db = db
-
-		self.window = self.builder.get_object('window1')
+		self.window = builder.get_object('window1')
 		self.window.show_all()
 
 	def import_contacts_file_set (self, filechooser):
 		from admin import contact_import
 		filename = filechooser.get_filename()
-		if filename.endswith('.xls') :
-			c = contact_import.ContactsImportGUI(self.db)
-			if not c.load_xls(filename):
-				c.destroy()
-				self.show_message (c.error)
-		else:
-			self.show_message ("File type not recognized")
+		c = contact_import.ContactsImportGUI()
+		if not c.load_xls(filename):
+			c.destroy()
+			self.show_message (c.error)
+			return
+		self.window.destroy()
 
 	def import_products_file_set (self, filechooser):
 		from admin import product_import
 		filename = filechooser.get_filename()
-		if filename.endswith('.xls') :
-			p = product_import.ProductsImportGUI(self.db)
-			if not p.load_xls(filename):
-				p.destroy()
-				self.show_message (p.error)
-		else:
-			self.show_message ("File type not recognized")
+		p = product_import.ProductsImportGUI()
+		if not p.load_xls(filename):
+			p.destroy()
+			self.show_message (p.error)
+			return
+		self.window.destroy()
 
 	def show_message (self, error):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
 									buttons = Gtk.ButtonsType.CLOSE)
 		dialog.set_transient_for(self.window)
-		dialog.set_markup (error)
+		dialog.format_secondary_text(str(error))
 		dialog.run()
 		dialog.destroy()
-
-	def destroy (self, window = None):
-		pass
 
