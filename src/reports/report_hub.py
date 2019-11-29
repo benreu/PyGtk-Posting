@@ -1,6 +1,6 @@
 # report_hub.py
 #
-# Copyright (C) 2019 - house
+# Copyright (C) 2019 - Reuben Rissler
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import constants
 UI_FILE = constants.ui_directory + "/reports/report_hub.ui"
 
 class ReportHubGUI (Gtk.Builder):
+	border_width = 25
 	def __init__(self, treeview):
 
 		Gtk.Builder.__init__ (self)
@@ -31,18 +32,33 @@ class ReportHubGUI (Gtk.Builder):
 		self.window = self.get_object("window")
 		self.window.show_all()
 		self.treeview = treeview
+		self.calculate_pdf_layout()
 
 	def pdf_export_clicked (self, button):
 		border_width = self.get_object('border_spinbutton').get_value_as_int()
+		font_desc = self.get_object('font_chooser').get_font()
 		from reports import export_to_pdf
-		export_to_pdf.ExportToPdfGUI(self.treeview)
-		export_to_pdf.border_width = border_width
+		etp = export_to_pdf.ExportToPdfGUI(self.treeview)
+		etp.border_width = border_width
+		etp.font_desc = font_desc
+		etp.generate_pdf()
 		self.window.destroy()
 
 	def border_spinbutton_changed (self, spinbutton):
-		border_width = spinbutton.get_value_as_int()
-		if self.treeview.get_allocated_width() + border_width > 792:
+		self.border_width = spinbutton.get_value_as_int()
+		self.calculate_pdf_layout ()
+
+	def calculate_pdf_layout(self):
+		pdf_width = self.treeview.get_allocated_width() + self.border_width
+		if pdf_width > 792:
 			self.get_object("error_label").set_visible(True)
+			self.get_object("layout_label").set_label("Landscape")
+		elif pdf_width > 612: # greater than 8.5 inches
+			self.get_object("error_label").set_visible(False)
+			self.get_object("layout_label").set_label("Landscape")
+		else: # less than 8.5 inches
+			self.get_object("error_label").set_visible(False)
+			self.get_object("layout_label").set_label("Portrait")
 
 	def xls_export_clicked (self, button):
 		from reports import export_to_xls

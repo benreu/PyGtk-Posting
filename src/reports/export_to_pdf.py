@@ -1,6 +1,6 @@
 # export_to_pdf.py
 #
-# Copyright (C) 2019 - house
+# Copyright (C) 2019 - Reuben Rissler
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ UI_FILE = constants.ui_directory + "/reports/export_to_pdf.ui"
 class ExportToPdfGUI(Gtk.Builder):
 	landscape = False
 	border_width = 25
+	font_desc = "Sans 6"
 	def __init__ (self, treeview):
 
 		Gtk.Builder.__init__(self)
@@ -41,7 +42,6 @@ class ExportToPdfGUI(Gtk.Builder):
 		self.get_object('pdf_view_scrolled_window').add(self.view)
 		self.window = self.get_object('window')
 		self.window.show_all()
-		self.generate_pdf ()
 
 	def delete_event (self, window, event):
 		window.hide()
@@ -147,7 +147,7 @@ class ExportToPdfGUI(Gtk.Builder):
 		x = self.border_width
 		for specs in self.column_titles:
 			layout = PangoCairo.create_layout(self.cr)
-			desc = Pango.font_description_from_string("Sans 1 Bold")
+			desc = Pango.font_description_from_string(self.font_desc)
 			layout.set_font_description(desc)
 			text = str(specs[0])
 			layout.set_text(text, len(text))
@@ -156,7 +156,7 @@ class ExportToPdfGUI(Gtk.Builder):
 			self.cr.move_to(x, self.y)
 			PangoCairo.show_layout(self.cr, layout)
 			x += specs[1] + 10 # move right by the column width; plus 10 extra?
-		self.y += self.row_height
+		self.y += (self.row_height* 2) # add some spacing to the title
 			
 	def show_row (self, treeiter, indent):
 		row = self.store[treeiter] # the row we are displaying
@@ -170,7 +170,7 @@ class ExportToPdfGUI(Gtk.Builder):
 		x += 10
 		for specs in self.columns:
 			layout = PangoCairo.create_layout(self.cr)
-			desc = Pango.font_description_from_string("Sans 8")
+			desc = Pango.font_description_from_string(self.font_desc)
 			layout.set_font_description(desc)
 			text = str(row[specs[0]])
 			layout.set_text(text, len(text))
@@ -205,7 +205,7 @@ class ExportToPdfGUI(Gtk.Builder):
 			x = self.border_width
 			for specs in self.columns:
 				layout = PangoCairo.create_layout(self.cr)
-				desc = Pango.font_description_from_string("Sans 9")
+				desc = Pango.font_description_from_string(self.font_desc)
 				layout.set_font_description(desc)
 				text = str(row[specs[0]])
 				length = len(text)
