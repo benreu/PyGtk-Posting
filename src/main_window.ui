@@ -1601,7 +1601,7 @@
     <property name="transient_for">main_window</property>
     <property name="has_resize_grip">True</property>
     <property name="program_name">PyGtk Posting</property>
-    <property name="version">0.5.19 (alpha)</property>
+    <property name="version">0.5.20 (alpha)</property>
     <property name="copyright" translatable="yes">Copyleft Reuben Rissler 2015-2018</property>
     <property name="comments" translatable="yes">Accounting and business management for Linux</property>
     <property name="authors">Reuben Rissler &lt;pygtk.posting@gmail.com&gt;

@@ -262,6 +262,10 @@ ON public.mailing_list_register (mailing_list_id, contact_id);
 ALTER TABLE job_types ADD COLUMN IF NOT EXISTS current_serial_number int DEFAULT 0;
 UPDATE job_types SET current_serial_number = 0 WHERE current_serial_number IS NULL;
 ALTER TABLE job_types ALTER COLUMN current_serial_number SET NOT NULL;
+--version 0.5.20
+ALTER TABLE mailing_list_register ADD COLUMN IF NOT EXISTS printed boolean DEFAULT False;
+UPDATE mailing_list_register SET printed = False WHERE printed IS NULL;
+ALTER TABLE mailing_list_register ALTER COLUMN printed SET NOT NULL;
 
 
 
