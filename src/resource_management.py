@@ -138,6 +138,11 @@ class ResourceManagementGUI:
 			import contact_hub
 			contact_hub.ContactHubGUI(contact_id)
 
+	def report_hub_activated (self, button):
+		treeview = self.builder.get_object('treeview1')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
+
 	def row_activated (self, treeview, path, treeview_column):
 		if self.timeout_id:
 			self.save_notes()
@@ -451,7 +456,7 @@ class ResourceManagementGUI:
 		self.older_than_date = calendar.get_date()
 		self.populate_resource_store ()
 
-	def tags_clicked (self, button):
+	def tags_activated (self, button):
 		import resource_management_tags
 		resource_management_tags.ResourceManagementTagsGUI ()
 
