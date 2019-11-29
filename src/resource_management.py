@@ -224,6 +224,7 @@ class ResourceManagementGUI:
 			for row in self.resource_store:
 				if row[8] == tag_id:
 					row[10] = rgba
+		self.db.rollback()
 
 	def new_entry_clicked (self, button):
 		self.cursor.execute("INSERT INTO resources "
@@ -232,6 +233,7 @@ class ResourceManagementGUI:
 									"WHERE finished = False LIMIT 1 "
 								"RETURNING id")
 		new_id = self.cursor.fetchone()[0]
+		self.db.commit()
 		self.populate_resource_store(new_id, new = True)
 		
 	def subject_editing_started (self, renderer_entry, entry, path):
@@ -295,6 +297,12 @@ class ResourceManagementGUI:
 		self.db.commit()
 		self.populate_resource_store(id_)
 
+	def sort_by_combo_changed (self, combobox):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		id_ = model[path][0]
+		self.populate_resource_store(id_)
+
 	def tag_editing_canceled (self, renderer):
 		self.editing = False
 
@@ -326,36 +334,38 @@ class ResourceManagementGUI:
 		self.resource_store.clear()
 		row_limit = self.builder.get_object('spinbutton1').get_value()
 		finished = self.builder.get_object('checkbutton3').get_active()
-		self.cursor.execute("SELECT "
-								"rm.id, "
-								"subject, "
-								"COALESCE(contact_id, 0), "
-								"COALESCE(name, ''), "
-								"COALESCE(ext_name, ''), "
-								"to_char(timed_seconds, 'HH24:MI:SS')::text, "
-								"dated_for, "
-								"format_date(dated_for), "
-								"rmt.id, "
-								"tag, "
-								"red, "
-								"green, "
-								"blue, "
-								"alpha, "
-								"phone_number, "
-								"call_received_time, "
-								"format_timestamp(call_received_time), "
-								"to_do "
-							"FROM resources AS rm "
-							"LEFT JOIN resource_tags AS rmt "
-							"ON rmt.id = rm.tag_id "
-							"LEFT JOIN contacts "
-							"ON rm.contact_id = contacts.id "
-							"WHERE date_created <= %s "
-							"AND (finished != %s OR finished = False) "
-							"AND diary != True ORDER BY rm.id "
-							"LIMIT %s", (self.older_than_date, finished, 
-							row_limit))
-		for row in self.cursor.fetchall():
+		sort = self.builder.get_object('sort_by_combo').get_active_id()
+		c = self.db.cursor()
+		c.execute("SELECT "
+					"rm.id, "
+					"subject, "
+					"COALESCE(contact_id, 0), "
+					"COALESCE(name, ''), "
+					"COALESCE(ext_name, ''), "
+					"to_char(timed_seconds, 'HH24:MI:SS')::text AS time, "
+					"dated_for, "
+					"format_date(dated_for), "
+					"rmt.id, "
+					"tag, "
+					"red, "
+					"green, "
+					"blue, "
+					"alpha, "
+					"phone_number, "
+					"call_received_time, "
+					"format_timestamp(call_received_time), "
+					"to_do "
+				"FROM resources AS rm "
+				"LEFT JOIN resource_tags AS rmt "
+				"ON rmt.id = rm.tag_id "
+				"LEFT JOIN contacts "
+				"ON rm.contact_id = contacts.id "
+				"WHERE date_created <= '%s' "
+				"AND (finished != %s OR finished = False) "
+				"AND diary != True ORDER BY %s, rm.id "
+				"LIMIT %s" % (self.older_than_date, finished, 
+				sort, row_limit))
+		for row in c.fetchall():
 			rgba = Gdk.RGBA(1, 1, 1, 1)
 			row_id = row[0]
 			subject = row[1]
@@ -392,6 +402,8 @@ class ResourceManagementGUI:
 			c = treeview.get_column(0)
 			path = self.resource_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
+		c.close()
+		self.db.rollback()
 		
 	def time_clock_project_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -442,6 +454,36 @@ class ResourceManagementGUI:
 	def tags_clicked (self, button):
 		import resource_management_tags
 		resource_management_tags.ResourceManagementTagsGUI ()
+
+	def down_clicked (self, button):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_next = model.iter_next(iter_)
+		model.move_after(iter_, iter_next)
+		self.save_row_ordering()
+		self.builder.get_object('sort_by_combo').set_active_id('sort')
+
+	def up_clicked (self, button):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_prev = model.iter_previous(iter_)
+		model.move_before(iter_, iter_prev)
+		self.save_row_ordering()
+		self.builder.get_object('sort_by_combo').set_active_id('sort')
+
+	def save_row_ordering (self):
+		for row_count, row in enumerate (self.resource_store):
+			row_id = row[0]
+			self.cursor.execute("UPDATE resources "
+								"SET sort = %s WHERE id = %s", 
+								(row_count, row_id))
+		self.db.commit()
 
 	def no_date_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')

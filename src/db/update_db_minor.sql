@@ -266,6 +266,10 @@ ALTER TABLE job_types ALTER COLUMN current_serial_number SET NOT NULL;
 ALTER TABLE mailing_list_register ADD COLUMN IF NOT EXISTS printed boolean DEFAULT False;
 UPDATE mailing_list_register SET printed = False WHERE printed IS NULL;
 ALTER TABLE mailing_list_register ALTER COLUMN printed SET NOT NULL;
+--version 0.5.21
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS sort int DEFAULT 0;
+UPDATE resources SET sort = 0 WHERE sort IS NULL;
+ALTER TABLE resources ALTER COLUMN sort SET NOT NULL;
 
 
 

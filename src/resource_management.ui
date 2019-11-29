@@ -165,6 +165,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="adjustment">adjustment1</property>
+                <property name="numeric">True</property>
                 <signal name="value-changed" handler="row_limit_value_changed" swapped="no"/>
               </object>
               <packing>
@@ -189,6 +190,7 @@
               <object class="GtkEntry" id="entry1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="editable">False</property>
                 <property name="primary_icon_stock">gtk-find</property>
                 <signal name="icon-release" handler="older_than_entry_icon_released" swapped="no"/>
               </object>
@@ -196,6 +198,41 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes"> Sort by </property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="sort_by_combo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="active_id">sort</property>
+                <items>
+                  <item id="sort" translatable="yes">Manually</item>
+                  <item id="subject" translatable="yes">Subject</item>
+                  <item id="name" translatable="yes">Name</item>
+                  <item id="time" translatable="yes">Time</item>
+                  <item id="dated_for" translatable="yes">Dated for</item>
+                  <item id="tag" translatable="yes">Tag</item>
+                  <item id="phone_number" translatable="yes">Phone number</item>
+                  <item id="to_do" translatable="yes">To Do</item>
+                </items>
+                <signal name="changed" handler="sort_by_combo_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
               </packing>
             </child>
             <child>
@@ -212,7 +249,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">6</property>
               </packing>
             </child>
           </object>
@@ -259,7 +296,6 @@
                             <property name="title" translatable="yes">Subject</property>
                             <property name="expand">True</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext1">
                                 <property name="editable">True</property>
@@ -279,7 +315,6 @@
                             <property name="title" translatable="yes">Contact</property>
                             <property name="expand">True</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">3</property>
                             <child>
                               <object class="GtkCellRendererCombo" id="cellrenderercombo2">
                                 <property name="editable">True</property>
@@ -301,7 +336,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Ext name</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">4</property>
                             <child>
                               <object class="GtkCellRendererText"/>
                               <attributes>
@@ -315,7 +349,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Time</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">6</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext3"/>
                               <attributes>
@@ -330,7 +363,6 @@
                             <property name="title" translatable="yes">Dated for</property>
                             <property name="widget">label4</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">7</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext4">
                                 <property name="editable">True</property>
@@ -347,7 +379,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Tag</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">8</property>
                             <child>
                               <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                                 <property name="editable">True</property>
@@ -370,7 +401,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Phone number</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">11</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext5">
                                 <property name="editable">True</property>
@@ -387,7 +417,6 @@
                             <property name="sizing">autosize</property>
                             <property name="title" translatable="yes">CID Date</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">12</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext10"/>
                               <attributes>
@@ -401,7 +430,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">To Do</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">14</property>
                             <child>
                               <object class="GtkCellRendererToggle" id="cellrenderertoggle2">
                                 <signal name="toggled" handler="to_do_toggled" swapped="no"/>
@@ -481,6 +509,50 @@
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="label">gtk-go-down</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_stock">True</property>
+                            <property name="always_show_image">True</property>
+                            <signal name="clicked" handler="down_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="label">gtk-go-up</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="use_stock">True</property>
+                            <property name="always_show_image">True</property>
+                            <signal name="clicked" handler="up_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
