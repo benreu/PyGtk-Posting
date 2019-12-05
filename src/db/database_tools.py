@@ -36,16 +36,14 @@ class GUI:
 		self.statusbar = self.builder.get_object("statusbar2")
 		self.progressbar = self.builder.get_object("progressbar1")
 		database_utils.PROGRESSBAR = self.progressbar
-		if error == False: 
+		if error == False:
 			self.db = db
 			self.cursor = self.db.cursor()
 			self.retrieve_dbs ()
 			self.statusbar.push(1,"Ready to edit databases")
 			self.set_active_database ()
-			self.builder.get_object("button3").set_sensitive(True)
-			self.builder.get_object("button2").set_sensitive(True)
-			self.builder.get_object("button1").set_sensitive(True)
-			self.builder.get_object("button10").set_sensitive(True)
+			self.builder.get_object("box2").set_sensitive(True)
+			self.builder.get_object("grid2").set_sensitive(True)
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
 			self.statusbar.push(1,"Please setup PostgreSQL in the Connection tab")
 			self.builder.get_object('window').set_modal(True)
@@ -119,6 +117,7 @@ class GUI:
 				db_name_store.append([version, db_name])
 			except Exception as e:
 				pass
+		cursor.close()
 
 	def db_combo_changed (self, combo):
 		model = combo.get_model()
@@ -211,7 +210,7 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		cursor_sqlite.execute("UPDATE connection SET db_name = ('%s')" % (db_name))
+		cursor_sqlite.execute("UPDATE connection SET db_name = ?", (db_name))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
@@ -321,26 +320,22 @@ class GUI:
 										password = sql_password, 
 										port = sql_port)
 			self.db = pysql # connection successful
-			cursor_sqlite = get_apsw_cursor ()
-			cursor_sqlite.execute("UPDATE connection SET user = ('%s')" % (sql_user))
-			cursor_sqlite.execute("UPDATE connection SET password = ('%s')" % (sql_password))
-			cursor_sqlite.execute("UPDATE connection SET host = ('%s')" % (sql_host))
-			cursor_sqlite.execute("UPDATE connection SET port = ('%s')" % (sql_port))
+			sqlite = get_apsw_cursor ()
+			sqlite.execute("UPDATE connection SET "
+							"(user, password, host, port) = "
+							"(?, ?, ?, ?)", 
+							(sql_user, sql_password, sql_host, sql_port))
 			self.message_success()
 			self.retrieve_dbs ()
 			self.builder.get_object("textbuffer1").set_text('')
-			self.builder.get_object("button3").set_sensitive(True)
-			self.builder.get_object("button2").set_sensitive(True)
-			self.builder.get_object("button1").set_sensitive(True)
-			self.builder.get_object("button10").set_sensitive(True)
+			self.builder.get_object("box2").set_sensitive(True)
+			self.builder.get_object("grid2").set_sensitive(True)
 		except Exception as e:
 			print (e)
 			self.message_error()
 			self.builder.get_object("textbuffer1").set_text(str(e))
-			self.builder.get_object("button3").set_sensitive(False)
-			self.builder.get_object("button2").set_sensitive(False)
-			self.builder.get_object("button1").set_sensitive(False)
-			self.builder.get_object("button10").set_sensitive(False)
+			self.builder.get_object("box2").set_sensitive(False)
+			self.builder.get_object("grid2").set_sensitive(False)
 
 	def message_success(self):
 		self.status_update("Success!")
