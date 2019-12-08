@@ -24,7 +24,7 @@ import psycopg2, apsw, os, shutil, sys, re
 
 
 
-def get_apsw_cursor ():
+def get_apsw_connection ():
 	import constants
 	if constants.dev_mode == True:
 		pref_file = os.path.join(os.getcwd(), 'local_settings')
@@ -36,10 +36,7 @@ def get_apsw_cursor ():
 		create_apsw_tables(cursor)
 	else:
 		con = apsw.Connection(pref_file)
-		cursor = con.cursor()
-	update_apsw_tables(cursor)
-	constants.sqlite_cursor = cursor
-	return cursor
+	return con
 
 def create_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE connection "
@@ -50,7 +47,8 @@ def create_apsw_tables(cursor):
 											"('postgres', 'None', "
 											"'localhost', '5432', 'None')")
 
-def update_apsw_tables(cursor):
+def update_apsw_tables(connection):
+	cursor = connection.cursor()
 	cursor.execute("CREATE TABLE IF NOT EXISTS widget_size "
 											"(widget_id text UNIQUE NOT NULL, "
 											"size integer NOT NULL)")
@@ -77,18 +75,24 @@ def update_apsw_tables(cursor):
 
 
 def connect_to_db (name):
-	cursor_sqlite = get_apsw_cursor ()
+	import constants
+	sqlite = get_apsw_connection()
+	update_apsw_tables(sqlite)
+	sqlite.close() # release database lock from updating tables
+	sqlite = get_apsw_connection()
+	constants.sqlite_connection = sqlite
+	cursor = sqlite.cursor()
 	if name == None:
-		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
+		for row in cursor.execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
 	else:
 		sql_database = name
-	for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+	for row in cursor.execute("SELECT * FROM connection;"):
 		sql_user = row[0]
 		sql_password = row[1]
 		sql_host = row[2]
 		sql_port = row[3]
-	import constants
+	cursor.close()
 	try:
 		constants.db = psycopg2.connect ( dbname = sql_database, 
 								host = sql_host, 

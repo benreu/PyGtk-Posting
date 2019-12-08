@@ -19,8 +19,8 @@ import gi
 gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
 import time
-from db.database_tools import get_apsw_cursor
-from constants import ui_directory, db_name, sqlite_cursor
+from db.database_tools import get_apsw_connection
+from constants import ui_directory, db_name
 
 UI_FILE = ui_directory + "/db/backup_restore.ui"
 
@@ -54,11 +54,13 @@ class Utilities:
 
 	def backup_database (self):
 		self.error = False
-		for row in sqlite_cursor.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
+		sqlite.close()
 		backup_window = self.builder.get_object('backupdialog')
 		db_name = backup_window.get_current_name()
 		path = backup_window.get_current_folder()
@@ -113,11 +115,13 @@ class Utilities:
 		db_file = restore_window.get_filename()
 		if response != Gtk.ResponseType.ACCEPT:
 			return
-		for row in sqlite_cursor.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			self.sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
+		sqlite.close()
 		create_command = ["/usr/lib/postgresql/10/bin/createdb", 
 							"-e",
 							"-U", sql_user, 
@@ -146,11 +150,13 @@ class Utilities:
 			self.builder.get_object('button7').set_label('Create failed!')
 			return
 		self.parent.status_update("Created database %s" % db_name)
-		for row in sqlite_cursor.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			self.sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
+		sqlite.close()
 		restore_command = ["/usr/lib/postgresql/10/bin/pg_restore", 
 							"-v",
 							"-U", sql_user, 

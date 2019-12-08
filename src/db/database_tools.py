@@ -19,9 +19,9 @@ from gi.repository import Gtk, GLib
 import subprocess, psycopg2, re, os
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
-from main import get_apsw_cursor
 from constants import db, ui_directory, sql_dir
 from constants import log_file as LOG_FILE
+from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -87,22 +87,24 @@ class GUI:
 			self.status_update("Ready to restore database")
 		
 	def set_active_database (self ):
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
 		self.builder.get_object('combobox1').set_active_id(sql_database)
 		self.builder.get_object('label10').set_text("Current database : " + sql_database)
 		self.builder.get_object('label14').set_text(sql_database)
+		sqlite.close()
 	
 	def retrieve_dbs(self):
+		sqlite = get_apsw_connection()
 		db_name_store = self.builder.get_object('db_name_store')
 		db_name_store.clear()
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
+		sqlite.close()
 		cursor = self.db.cursor()
 		cursor.execute("SELECT b.datname FROM pg_catalog.pg_database b ORDER BY 1;")
 		for db_tuple in cursor.fetchall():
@@ -115,6 +117,7 @@ class GUI:
 				cursor.execute("SELECT version FROM settings") # valid pygtk posting database
 				version = cursor.fetchone()[0]
 				db_name_store.append([version, db_name])
+				db.close()
 			except Exception as e:
 				pass
 		cursor.close()
@@ -144,8 +147,8 @@ class GUI:
 		self.db.close()
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
-			cursor_sqlite = get_apsw_cursor ()
-			cursor_sqlite.execute("UPDATE connection SET db_name = '%s'" % (selected))
+			sqlite = get_apsw_connection()
+			sqlite.cursor().execute("UPDATE connection SET db_name = '%s'" % (selected))
 			self.error = False
 			self.window.close()
 			subprocess.Popen(["./src/main.py", 
@@ -173,8 +176,8 @@ class GUI:
 			print ("No database name!")
 			self.status_update("No database name!")
 			return
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -210,7 +213,7 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		cursor_sqlite.execute("UPDATE connection SET db_name = ?", (db_name))
+		sqlite.cursor().execute("UPDATE connection SET db_name = ?", (db_name))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
@@ -303,12 +306,13 @@ class GUI:
 		self.warning_dialog.hide()
 
 	def get_postgre_settings(self, widget):
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			self.builder.get_object("entry2").set_text(row[0])
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
 			self.builder.get_object("entry5").set_text(row[3])
+		sqlite.close()
 
 	def test_connection_clicked (self, widget):
 		sql_user= self.builder.get_object("entry2").get_text()
@@ -320,11 +324,12 @@ class GUI:
 										password = sql_password, 
 										port = sql_port)
 			self.db = pysql # connection successful
-			sqlite = get_apsw_cursor ()
-			sqlite.execute("UPDATE connection SET "
+			sqlite = get_apsw_connection()
+			sqlite.cursor().execute("UPDATE connection SET "
 							"(user, password, host, port) = "
 							"(?, ?, ?, ?)", 
 							(sql_user, sql_password, sql_host, sql_port))
+			sqlite.close()
 			self.message_success()
 			self.retrieve_dbs ()
 			self.builder.get_object("textbuffer1").set_text('')
