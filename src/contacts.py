@@ -17,7 +17,8 @@
 from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re
 from constants import ui_directory, db, broadcaster, \
-						is_admin, help_dir, template_dir, sqlite_cursor
+						is_admin, help_dir, template_dir
+from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/contacts.ui"
 
@@ -84,7 +85,8 @@ class GUI(Gtk.Builder):
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
 
 	def set_window_layout_from_settings (self):
-		c = sqlite_cursor
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
 		c.execute("SELECT size FROM widget_size "
 					"WHERE widget_id = 'contact_window_width'")
 		width = c.fetchone()[0]
@@ -99,9 +101,11 @@ class GUI(Gtk.Builder):
 					"WHERE widget_id = 'contact_name_column_width'")
 		column = self.get_object('name_column')
 		column.set_fixed_width(c.fetchone()[0])
+		sqlite.close()
 
 	def save_window_layout_clicked (self, button):
-		c = sqlite_cursor
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
 		width, height = self.window.get_size()
 		c.execute("REPLACE INTO widget_size (widget_id, size) "
 					"VALUES ('contact_window_width', ?)", (width,))
@@ -113,6 +117,7 @@ class GUI(Gtk.Builder):
 		width = self.get_object('name_column').get_fixed_width()
 		c.execute("REPLACE INTO widget_size (widget_id, size) "
 					"VALUES ('contact_name_column_width', ?)", (width,))
+		sqlite.close()
 
 	def mailing_list_clicked (self, button):
 		import mailing_lists
