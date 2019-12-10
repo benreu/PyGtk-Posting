@@ -11,7 +11,6 @@ pygtk_posting_PYTHON = \
 	bank_statement.py \
 	contacts.py \
 	deposits.py \
-	products.py \
 	settings.py \
 	unpaid_invoices.py \
 	accounts_configuration.py \
@@ -46,7 +45,6 @@ pygtk_posting_PYTHON = \
 	loan_payment.py \
 	loan_payment.ui\
 	contacts.ui \
-	products.ui \
 	account_transactions.ui \
 	bank_statement.ui \
 	deposits.ui \
@@ -156,7 +154,15 @@ pygtk_posting_PYTHON = \
 	expense_products.py \
 	expense_products.ui \
 	mailing_list_printing.py \
-	mailing_list_printing.ui
+	mailing_list_printing.ui \
+	products_overview.py \
+	products_overview.ui \
+	product_edit_location.py \
+	product_edit_location.ui \
+	product_edit_main.py \
+	product_edit_main.ui \
+	product_edit_order_numbers.py \
+	product_edit_order_numbers.ui
 
 
 EXTRA_DIST = $(ui_DATA)

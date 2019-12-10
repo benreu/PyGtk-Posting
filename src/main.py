@@ -53,16 +53,45 @@ def update_apsw_tables(connection):
 											"(widget_id text UNIQUE NOT NULL, "
 											"size integer NOT NULL)")
 	# product window layout
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('product_window_width', 850)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('product_window_height', 500)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('product_pane_width', 325)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('product_ordering_financial_pane_width', 125)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('product_name_column_width', 175)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS product_overview "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('window_width', 850)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('window_height', 500)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('ext_name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('description_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('barcode_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('unit_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('weight_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('tare_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('manufacturer_sku_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('expense_account_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('inventory_account_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('revenue_account_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('sellable_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('purchasable_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('manufactured_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('job_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('stocked_column', 25)")
 	# contact window layout
 	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
 					"('contact_window_width', 900)")
