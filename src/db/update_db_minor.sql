@@ -348,6 +348,23 @@ ALTER TABLE mailing_list_register ALTER COLUMN printed SET NOT NULL;
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS sort int DEFAULT 0;
 UPDATE resources SET sort = 0 WHERE sort IS NULL;
 ALTER TABLE resources ALTER COLUMN sort SET NOT NULL;
+--version 0.5.22
+CREATE TABLE IF NOT EXISTS public.units (id serial PRIMARY KEY, name varchar UNIQUE NOT NULL);
+INSERT INTO units (name) VALUES ('Piece'), ('Hour'), ('Minute'), ('Foot'), ('Inch'), ('Ounce'), ('Pound'), ('Ton'), ('Acre') ON CONFLICT (name) DO NOTHING;
+ALTER TABLE products ALTER COLUMN unit TYPE int using unit::integer;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'products_units_fkey' )
+	THEN
+		ALTER TABLE public.products
+		ADD CONSTRAINT products_units_fkey FOREIGN KEY (unit)
+		REFERENCES public.units (id) MATCH SIMPLE
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
+	END IF;
+END$$; 
 
 
 
