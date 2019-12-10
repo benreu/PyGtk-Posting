@@ -402,12 +402,12 @@ class ResourceManagementGUI:
 										c_r_time_formatted, to_do])
 			if row_id == id_:
 				self.builder.get_object('treeview-selection1').select_iter(iter_)
+		c.close()
 		if new == True:
 			treeview = self.builder.get_object('treeview1')
 			c = treeview.get_column(0)
 			path = self.resource_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
-		c.close()
 		self.db.rollback()
 		
 	def time_clock_project_clicked (self, button):
