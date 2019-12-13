@@ -607,8 +607,8 @@ class MainGUI :
 		customer_payment.GUI()
 
 	def products_window(self, widget):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def deposit_window(self, widget):
 		import deposits
