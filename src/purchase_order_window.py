@@ -382,8 +382,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		db.commit()
 		
 	def products_activated (self, column):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def populate_vendor_store (self, m=None, i=None):
 		self.populating = True

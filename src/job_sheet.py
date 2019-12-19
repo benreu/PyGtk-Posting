@@ -138,8 +138,8 @@ class JobSheetGUI(Gtk.Builder):
 		contacts.GUI()
 
 	def product_window(self, column):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def generate_serial_number_clicked (self, button):
 		c = db.cursor()

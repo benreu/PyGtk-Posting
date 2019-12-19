@@ -331,8 +331,8 @@ class InvoiceGUI:
 		self.populate_tax_exemption_combo ()
 
 	def product_clicked (self, menuitem):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def document_list_clicked (self, menuitem):
 		self.show_document_list_window ()

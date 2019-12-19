@@ -24,11 +24,13 @@ UI_FILE = ui_directory + "/products_overview.ui"
 class ProductsOverviewGUI (Gtk.Builder):
 	product_id = 0
 	filter_list = ''
-	def __init__(self):
+	def __init__(self, product_id = None):
 		
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		if product_id != None:
+			self.product_id = product_id
 		self.exists = True
 		self.treeview = self.get_object('treeview2')
 		self.product_store = self.get_object('product_store')
@@ -177,15 +179,17 @@ class ProductsOverviewGUI (Gtk.Builder):
 		for row in c.fetchall():
 			self.product_store.append(row)
 		self.treeview.set_model(model)
-		for row in model:
-			# select the product we had selected before repopulating
+		self.select_product()
+		c.close()
+		db.rollback()
+
+	def select_product (self):
+		for row in self.treeview.get_model(): 
 			if row[0] == self.product_id: 
 				treeview_selection = self.get_object('treeview-selection')
 				treeview_selection.select_path(row.path)
 				self.treeview.scroll_to_cell(row.path, None, True, 0.5)
 				break
-		c.close()
-		db.rollback()
 			
 	def window_key_press_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

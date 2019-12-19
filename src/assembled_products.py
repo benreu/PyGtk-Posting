@@ -200,8 +200,8 @@ class AssembledProductsGUI:
 			self.assembled_product_store.append(row)
 
 	def products_activated (self, button):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def qty_edited(self, widget, path, text):
 		self.assembly_store[path][1] = int(text) # update all values related to the price and quantity
@@ -285,7 +285,9 @@ class AssembledProductsGUI:
 		self.db.commit()
 
 	def add_product(self, widget):
-		products.ProductsGUI(self.db, manufactured = True)
+		import products_overview
+		po = products_overview.ProductsOverviewGUI()
+		po.get_object('radiobutton3').set_active(True)
 
 	def manufactured_row_activate(self, treeview, path, treeviewcolumn):
 		self.manufactured_product_id = self.assembled_product_store[path][0]

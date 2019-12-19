@@ -296,8 +296,8 @@ class ManufacturingGUI(Gtk.Builder):
 		self.get_object('entry2').set_text(project_name)
 
 	def product_window(self, column):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def main_shutdown (self, main):
 		if self.timeout_id:

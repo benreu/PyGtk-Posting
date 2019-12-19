@@ -142,8 +142,8 @@ class DocumentGUI:
 		document_type_combo.set_active_id(str(active_type_id))
 
 	def product_window(self, column):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def contacts_window(self, widget):
 		import contacts

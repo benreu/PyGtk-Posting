@@ -204,8 +204,8 @@ class ProductLocationGUI:
 	def row_activate(self, treeview, path, treeviewcolumn):
 		treeiter = self.product_location_store.get_iter(path)
 		product_id = self.product_location_store.get_value(treeiter, 9)
-		import products
-		products.ProductsGUI(self.db, product_id, product_location_tab = True)
+		import products_overview
+		po = products_overview.ProductsOverviewGUI(product_id)
 
 	def product_treeview_button_release (self, treeview, event):
 		if event.button == 3:

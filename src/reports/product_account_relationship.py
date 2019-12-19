@@ -30,7 +30,7 @@ class ProductAccountRelationshipGUI:
 		self.expense_text = ''
 		self.revenue_text = ''
 		self.inventory_text = ''
-		self.product_window = None
+		self.p_o = None
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -49,12 +49,11 @@ class ProductAccountRelationshipGUI:
 
 	def show_external_product_window (self, model, path):
 		product_id = model[path][0]
-		if self.product_window == None or not self.product_window.exists:
-			import products
-			self.product_window = products.ProductsGUI()
-			self.product_window.builder.get_object('paned1').set_position(0)
-			self.product_window.builder.get_object('window').resize(600, 600)
-		self.product_window.select_product(product_id)
+		if self.p_o == None or not self.p_o.window:
+			import products_overview
+			self.p_o = products_overview.ProductsOverviewGUI(product_id)
+		self.p_o.product_id = product_id
+		self.p_o.select_product()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
