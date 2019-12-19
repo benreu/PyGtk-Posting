@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/shipping_info.ui"
+UI_FILE = ui_directory + "/shipping_info.ui"
 
 class ShippingInfoGUI(Gtk.Builder):
 	shipping_description = None
@@ -30,9 +30,7 @@ class ShippingInfoGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -49,11 +47,15 @@ class ShippingInfoGUI(Gtk.Builder):
 							"ORDER BY c.name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
+		DB.rollback()
 		customer_completion = self.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 		
 		self.window = self.get_object('window')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def help_clicked (self, button):
 		print ('please add help to shipping info')
@@ -101,6 +103,7 @@ class ShippingInfoGUI(Gtk.Builder):
 							, (self.customer_id,))
 		for row in self.cursor.fetchall():
 			self.invoice_store.append(row)
+		DB.rollback()
 
 	def tracking_number_changed (self, entry):
 		self.get_object('incoming_invoice_button').set_sensitive(True)
@@ -126,7 +129,7 @@ class ShippingInfoGUI(Gtk.Builder):
 		self.get_object('tracking_number_button').set_sensitive(True)
 
 	def add_tracking_number_clicked (self, button):
-		c = self.db.cursor()
+		c = DB.cursor()
 		tracking_number = self.get_object('tracking_number_entry').get_text()
 		try:
 			c.execute("INSERT INTO shipping_info "
@@ -136,9 +139,9 @@ class ShippingInfoGUI(Gtk.Builder):
 						(self.date, tracking_number, self.shipping_description,
 						self.customer_id, self.invoice_id, 
 						self.incoming_invoice_id))
-			self.db.commit()
+			DB.commit()
 		except Exception as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message(str(e))
 		self.get_object('tracking_number_button').set_sensitive(False)
 		c.close()
@@ -159,6 +162,7 @@ class ShippingInfoGUI(Gtk.Builder):
 							(self.customer_id,))
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()

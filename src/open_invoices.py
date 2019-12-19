@@ -15,23 +15,19 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/open_invoices.ui"
+UI_FILE = ui_directory + "/open_invoices.ui"
 
 class OpenInvoicesGUI:
 	def __init__(self):
 
-		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.open_invoice_store = self.builder.get_object('open_invoice_store')
 		self.populate_store ()
-		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
@@ -91,7 +87,7 @@ class OpenInvoicesGUI:
 			self.open_invoice_store.append(row)
 		if path != []:
 			selection.select_path(path)
-
+		DB.rollback()
 
 	def open_invoice_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')

@@ -17,9 +17,9 @@
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from dateutils import calendar_to_datetime, set_calendar_from_datetime 
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/resource_calendar.ui"
+UI_FILE = ui_directory + "/resource_calendar.ui"
 
 
 class ResourceCalendarGUI:
@@ -28,25 +28,19 @@ class ResourceCalendarGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.date_time = datetime.today ()
-		
 		self.day_detail_store = self.builder.get_object('day_detail_store')
 		self.tag_store = self.builder.get_object('tag_store')
 		self.contact_store = self.builder.get_object('contact_store')
 		self.contact_completion = self.builder.get_object('contact_completion')
 		self.contact_completion.set_match_func(self.contact_match_func)
 
-		
 		box = self.builder.get_object('box2')
 		self.popover = Gtk.Popover()
 		self.popover.add(box)
-		
 		self.populate_stores ()
-				
 		calendar = self.builder.get_object('calendar1')
 		calendar.set_detail_func(self.calendar_func)
 		today = datetime.today()
@@ -56,16 +50,17 @@ class ResourceCalendarGUI:
 		window.show_all()
 		window.maximize()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			self.contact_store.append([str(contact_id), contact_name])
+			self.contact_store.append(row)
 		self.tag_store.clear()
-		self.cursor.execute("SELECT id, tag, red, green, blue, alpha "
+		self.cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"ORDER BY tag")
 		for row in self.cursor.fetchall():
@@ -76,7 +71,8 @@ class ResourceCalendarGUI:
 			rgba.green = row[3]
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
-			self.tag_store.append([str(tag_id), tag_name])
+			self.tag_store.append([tag_id, tag_name])
+		DB.rollback()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -115,7 +111,7 @@ class ResourceCalendarGUI:
 								"WHERE id = %s", 
 								(new_diary_id,))
 		self.populate_day_detail_store ()
-		self.db.commit()
+		DB.commit()
 
 	def merge_existing_and_new_diary (self, new_id, existing_id):
 		existing_buffer = self.builder.get_object('textbuffer2')
@@ -182,6 +178,7 @@ class ResourceCalendarGUI:
 			self.resource_edit_store.append([row_id, subject, contact_id, 
 											contact_name, tag_id, tag_name, 
 											rgba])
+		DB.rollback()
 
 	def save_resource_edit_store_path (self, path):
 		date = self.builder.get_object('calendar1').get_date()
@@ -207,7 +204,7 @@ class ResourceCalendarGUI:
 								"SET (subject, contact_id, tag_id) = "
 								"(%s, %s, %s) WHERE id = %s", 
 								(subject, contact_id, tag_id, resource_id))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('calendar1').emit('day-selected')
 
 	def subject_edited (self, renderer, path, text):
@@ -247,7 +244,7 @@ class ResourceCalendarGUI:
 		notes = notes_buffer.get_text(start,end,True)
 		self.cursor.execute("UPDATE resources SET notes = %s"
 							"WHERE id = %s", (notes, resource_id))
-		self.db.commit()
+		DB.commit()
 
 	def edit_calendar_day_selected (self, calendar):
 		selection = self.builder.get_object('treeview-selection')
@@ -258,7 +255,7 @@ class ResourceCalendarGUI:
 		resource_id = model[path][0]
 		self.cursor.execute ("UPDATE resources SET dated_for = %s "
 							"WHERE id = %s", (date, resource_id))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('calendar1').emit('day-selected')
 
 	def contact_match_func(self, completion, key, iter):
@@ -305,7 +302,7 @@ class ResourceCalendarGUI:
 			resource_id = model[path][0]
 			self.cursor.execute("DELETE FROM resources "
 								"WHERE id = %s", (resource_id,))
-			self.db.commit ()
+			DB.commit ()
 		self.builder.get_object('calendar1').emit('day-selected')
 		
 	def day_selected (self, calendar):
@@ -343,6 +340,7 @@ class ResourceCalendarGUI:
 			self.day_detail_store.append([row_id, subject, contact_id, 
 											contact_name, tag_id, tag_name, 
 											rgba])
+		DB.rollback()
 		
 	def day_detail_activated (self, treeview, path, treeviewcolumn):
 		self.resource_id = self.day_detail_store[path][0]
@@ -378,6 +376,7 @@ class ResourceCalendarGUI:
 												int(alpha*255))
 			string += "<span foreground='%s' weight='bold'>%s%s</span>\n" % (
 											hex_color, subject, contact_name)
+		DB.rollback()
 		return string
 
 	def resource_management_clicked (self,button):

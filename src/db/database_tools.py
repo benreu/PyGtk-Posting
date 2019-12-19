@@ -19,7 +19,7 @@ from gi.repository import Gtk, GLib
 import subprocess, psycopg2, re, os
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
-from constants import db, ui_directory, sql_dir
+from constants import DB, ui_directory, sql_dir
 from constants import log_file as LOG_FILE
 from main import get_apsw_connection
 
@@ -37,8 +37,6 @@ class GUI:
 		self.progressbar = self.builder.get_object("progressbar1")
 		database_utils.PROGRESSBAR = self.progressbar
 		if error == False:
-			self.db = db
-			self.cursor = self.db.cursor()
 			self.retrieve_dbs ()
 			self.statusbar.push(1,"Ready to edit databases")
 			self.set_active_database ()
@@ -105,7 +103,7 @@ class GUI:
 			sql_host = row[2]
 			sql_port = row[3]
 		sqlite.close()
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT b.datname FROM pg_catalog.pg_database b ORDER BY 1;")
 		for db_tuple in cursor.fetchall():
 			try:
@@ -133,7 +131,7 @@ class GUI:
 		self.builder.get_object('label14').set_label(db_name)
 
 	def upgrade_old_version (self):
-		database_utils.check_and_update_version (self.db, self.statusbar)
+		database_utils.check_and_update_version (self.statusbar)
 
 	def login_multiple_clicked(self, widget):
 		selected = self.builder.get_object('combobox-entry').get_text()
@@ -144,7 +142,7 @@ class GUI:
 								"database %s" % selected, str(LOG_FILE)])
 
 	def login_single_clicked(self, widget):
-		self.db.close()
+		DB.close()
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			sqlite = get_apsw_connection()

@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk
 import psycopg2
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/product_edit_location.ui"
 
@@ -30,17 +30,17 @@ class ProductEditLocationGUI (Gtk.Builder):
 		self.window = self.get_object('window')
 		self.window.show_all()
 		store = self.get_object('location_store')
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT id::text, name FROM locations ORDER BY name")
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
-		db.rollback()
+		DB.rollback()
 		self.product_id = product_id
 		self.get_object('location_combo').set_active(0)
 	
 	def window_destroy (self, widget):
-		db.rollback()
+		DB.rollback()
 
 	def cancel_clicked (self, button):
 		self.window.destroy()
@@ -54,7 +54,7 @@ class ProductEditLocationGUI (Gtk.Builder):
 		drawer = self.get_object('entry10').get_text()
 		_bin_ = self.get_object('entry11').get_text()
 		location_id = self.get_object('location_combo').get_active_id()
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("INSERT INTO product_location "
 					"(product_id, location_id, aisle, rack, cart, "
 					"shelf, cabinet, drawer, bin) "
@@ -70,13 +70,13 @@ class ProductEditLocationGUI (Gtk.Builder):
 					cart, shelf, cabinet, drawer, _bin_, 
 					aisle, rack, cart, shelf, cabinet, drawer, _bin_, 
 					self.product_id, location_id))
-		db.commit()
+		DB.commit()
 		c.close()
 		self.window.destroy()
 		
 	def location_combo_changed (self, combobox):
 		location_id = combobox.get_active_id()
-		c = db.cursor()
+		c = DB.cursor()
 		try:
 			c.execute("SELECT aisle, rack, cart, shelf, cabinet, drawer, bin "
 						"FROM product_location "
@@ -84,7 +84,7 @@ class ProductEditLocationGUI (Gtk.Builder):
 						"FOR UPDATE NOWAIT", 
 						(self.product_id, location_id))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			c.close()
 			error = str(e) + "Hint: somebody else is editing this product location"
 			self.show_message (error)

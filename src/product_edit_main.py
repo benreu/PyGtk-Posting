@@ -18,7 +18,8 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess, psycopg2
 from constants import 	broadcaster, \
-						db, ui_directory, \
+						DB, \
+						ui_directory, \
 						is_admin, \
 						help_dir, \
 						template_dir
@@ -34,7 +35,7 @@ UI_FILE = ui_directory + "/product_edit_main.ui"
 def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 							expense_account, revenue_account):
 	
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	cursor.execute("SELECT id FROM tax_rates WHERE standard = True")
 	default_tax_rate = cursor.fetchone()[0]
 	cursor.execute("INSERT INTO products (name, description, unit, cost, "
@@ -54,7 +55,7 @@ def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 					"(vendor_sku, vendor_id, product_id, vendor_barcode) "
 					"VALUES (%s, %s, %s, '')", 
 					(product_number, vendor_id, product_id))
-	db.commit()
+	DB.commit()
 	cursor.close()
 	return product_id
 
@@ -107,7 +108,7 @@ class ProductEditMainGUI (Gtk.Builder):
 
 	def destroy(self, window):
 		self.window = None
-		db.rollback() # unlock the row, in case the user didn't save
+		DB.rollback() # unlock the row, in case the user didn't save
 
 	def help_button_activated (self, menuitem):
 		subprocess.Popen(["yelp", help_dir + "/products.page"])
@@ -115,7 +116,7 @@ class ProductEditMainGUI (Gtk.Builder):
 	def print_label(self, widget):
 		location_id = self.get_object('comboboxtext6').get_active_id()
 		label = Item()
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT aisle, cart, rack, shelf, cabinet, drawer, "
 							"bin FROM product_location "
 							"WHERE (product_id, location_id) = (%s, %s)", 
@@ -162,7 +163,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			margin = (markup / 100) * cost
 			label.price = '${:,.2f}'.format(margin + cost)
 		c.close()
-		db.rollback()
+		DB.rollback()
 		data = dict(label = label)
 		from py3o.template import Template
 		label_file = "/tmp/product_label.odt"
@@ -171,7 +172,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		subprocess.Popen(["soffice", label_file])
 
 	def populate_account_combos(self):
-		c = db.cursor()
+		c = DB.cursor()
 		tax_combobox = self.get_object('comboboxtext4')
 		current_tax = tax_combobox.get_active_id()
 		tax_combobox.remove_all()
@@ -182,7 +183,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		if current_tax != None:
 			tax_combobox.set_active_id(current_tax)
 		c.close()
-		db.rollback()
+		DB.rollback()
 
 	def tax_window(self, widget):
 		import tax_rates
@@ -200,7 +201,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		listbox = self.get_object('listbox2')
 		cost_spinbutton = self.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT id, name, markup_percent "
 							"FROM customer_markup_percent ORDER BY name")
 		for row in c.fetchall():
@@ -231,7 +232,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			list_box_row.add(hbox)
 			listbox.add(list_box_row)
 		c.close()
-		db.rollback()
+		DB.rollback()
 
 	def cost_changed (self, cost_spin, markup_spin, sell_spin, terms_id):
 		cost = self.get_object('spinbutton1').get_value()
@@ -258,7 +259,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		sell_spin.set_value(sell_price)
 
 	def set_price_listbox_to_default (self):
-		c = db.cursor()
+		c = DB.cursor()
 		cost = self.get_object('spinbutton1').get_value()
 		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
@@ -281,10 +282,10 @@ class ProductEditMainGUI (Gtk.Builder):
 			sell_price = margin + cost
 			sell_spin.set_value(sell_price)
 		c.close()
-		db.rollback()
+		DB.rollback()
 
 	def load_product_terms_prices (self):
-		c = db.cursor()
+		c = DB.cursor()
 		cost = self.get_object('spinbutton1').get_value()
 		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
@@ -335,7 +336,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		
 	def select_product (self, product_id):
 		self.product_id = product_id
-		c = db.cursor()
+		c = DB.cursor()
 		try:
 			c.execute("SELECT name, description, barcode, unit, "
 						"cost, tax_rate_id, sellable, purchasable, "
@@ -354,7 +355,7 @@ class ProductEditMainGUI (Gtk.Builder):
 						"FROM products AS p "
 						"WHERE id = %s FOR UPDATE NOWAIT", (self.product_id,))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			c.close()
 			error = str(e) + "Hint: somebody else is editing this product"
 			self.show_message (error)
@@ -434,7 +435,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		tare = self.get_object('spinbutton14').get_text()
 		manufacturer_number = self.get_object('entry13').get_text()
 		stock = self.get_object('stock_checkbutton').get_active()
-		c = db.cursor()
+		c = DB.cursor()
 		if self.product_id == 0:  #new product
 			try:
 				c.execute("INSERT INTO products (name, description, "
@@ -464,10 +465,10 @@ class ProductEditMainGUI (Gtk.Builder):
 					c.execute("UPDATE products SET barcode = %s WHERE id = %s",
 														(barcode, product_id))
 			except Exception as e:
-				db.rollback()
+				DB.rollback()
 				self.show_message(str(e))
 				return
-			db.commit()
+			DB.commit()
 			if self.product_overview != None:
 				self.product_overview.product_id = product_id
 				self.product_overview.populate_product_store()
@@ -496,14 +497,14 @@ class ProductEditMainGUI (Gtk.Builder):
 							self.revenue_account,
 							invoice_serial, self.product_id))
 			except Exception as e:
-				db.rollback()
+				DB.rollback()
 				self.show_message(str(e))
-		db.commit()
+		DB.commit()
 		c.close()
 		self.window.destroy()
 
 	def new_product (self):
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT number, name FROM gl_accounts "
 							"WHERE revenue_account = True "
 							"ORDER BY number LIMIT 1")
@@ -529,7 +530,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		default_id = c.fetchone()[0]
 		self.get_object('comboboxtext4').set_active_id(str(default_id))
 		c.close()
-		db.rollback()
+		DB.rollback()
 		
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

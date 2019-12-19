@@ -19,11 +19,9 @@
 from gi.repository import Gtk
 import dateutils
 from decimal import Decimal
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/payments_received.ui"
-
-
+UI_FILE = ui_directory + "/reports/payments_received.ui"
 
 class PaymentsReceivedGUI:
 	def __init__(self):
@@ -31,8 +29,7 @@ class PaymentsReceivedGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.treeview = self.builder.get_object('treeview1')
 		self.payment_store = self.builder.get_object('payments_received_store')
@@ -45,6 +42,9 @@ class PaymentsReceivedGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -79,6 +79,7 @@ class PaymentsReceivedGUI:
 		for row in self.cursor.fetchall():
 			store.append(row)
 		self.builder.get_object('combobox2').set_active(0)
+		DB.rollback()
 
 	def customer_combo_changed (self, combo):
 		customer_id = combo.get_active_id()
@@ -143,6 +144,7 @@ class PaymentsReceivedGUI:
 			self.payment_store.append(row)
 		amount_received = '${:,.2f}'.format(total_amount)
 		self.builder.get_object('label2').set_label(amount_received)
+		DB.rollback()
 
 	def populate_payment_by_customer (self):
 		if self.customer_id == None:
@@ -190,6 +192,7 @@ class PaymentsReceivedGUI:
 			self.payment_store.append(row)
 		amount_received = '${:,.2f}'.format(total_amount)
 		self.builder.get_object('label2').set_label(amount_received)
+		DB.rollback()
 
 	def report_hub_activated (self, menuitem):
 		from reports import report_hub

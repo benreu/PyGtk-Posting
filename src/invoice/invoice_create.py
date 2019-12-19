@@ -25,7 +25,8 @@ from time import strftime
 from datetime import datetime, timedelta
 from multiprocessing import Process
 from db import transactor
-import printing, constants
+import printing
+from constants import DB, template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -40,15 +41,15 @@ class Setup(XCloseListener, unohelper.Base):
 		self.date = date
 		self.invoice_id = invoice_id
 		self.doc_type = doc_type
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+
 		self.parent = parent
 		self.invoice_doc = None
 		self.get_office_socket_connection()
 		self.create_odt ()
 
 	def create_odt (self):
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"c.name, "
 								"c.ext_name, "
 								"c.address, "
@@ -65,7 +66,7 @@ class Setup(XCloseListener, unohelper.Base):
 								"JOIN invoices AS i ON i.customer_id = c.id "
 							"WHERE i.id = (%s)",[self.invoice_id])
 		customer = Item()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			customer.name = row[0]
 			customer.ext_name = row[1]
 			customer.street = row[2]
@@ -79,8 +80,8 @@ class Setup(XCloseListener, unohelper.Base):
 			customer.tax_exempt_number = row[10]
 			invoice_name = row[11]
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -111,13 +112,13 @@ class Setup(XCloseListener, unohelper.Base):
 			items.append(item)
 	
 		terms = Item()
-		self.cursor.execute("SELECT plus_date, text1, text2, text3, text4 "
+		cursor.execute("SELECT plus_date, text1, text2, text3, text4 "
 							"FROM contacts "
 							"JOIN terms_and_discounts "
 							"ON contacts.terms_and_discounts_id = "
 							"terms_and_discounts.id WHERE contacts.id = %s", 
 							(self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			plus_date = row[0]
 			terms.plus_date = plus_date
 			terms.text1 = row[1]
@@ -126,7 +127,7 @@ class Setup(XCloseListener, unohelper.Base):
 			terms.text4 = row[4]
 			
 		document = Item()
-		self.cursor.execute("WITH _subtotal AS "
+		cursor.execute("WITH _subtotal AS "
 									"(SELECT SUM(ext_price) AS ep FROM invoice_items "
 									"WHERE invoice_id = %s "
 									"), "
@@ -143,7 +144,7 @@ class Setup(XCloseListener, unohelper.Base):
 											"tax::money, "
 											"total::money", 
 								(self.invoice_id, self.invoice_id, self.invoice_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			subtotal = row[0]
 			tax = row[1]
 			total = row[2]
@@ -154,9 +155,9 @@ class Setup(XCloseListener, unohelper.Base):
 		document.document_status = ''
 		
 		date_plus_thirty = self.date + timedelta(days=plus_date)
-		self.cursor.execute("SELECT format_date(%s), format_date(%s)", 
+		cursor.execute("SELECT format_date(%s), format_date(%s)", 
 							(date_plus_thirty, self.date))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			payment_due_text = row[0]
 			date_text = row[1]
 		if self.doc_type == "Invoice":
@@ -180,8 +181,9 @@ class Setup(XCloseListener, unohelper.Base):
 		self.data = dict(items = items, document = document, contact = customer, terms = terms, company = company)
 		from py3o.template import Template #import for every invoice or there is an error about invalid magic header numbers
 		self.invoice_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/invoice_template.odt", self.invoice_file , True)
+		t = Template(template_dir+"/invoice_template.odt", self.invoice_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
+		cursor.close()
 
 	def save (self):
 		try:
@@ -234,9 +236,11 @@ class Setup(XCloseListener, unohelper.Base):
 		p.set_file_to_print("/tmp/" + self.document_pdf)
 		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
-			self.cursor.execute("UPDATE invoices SET date_printed = "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE invoices SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.invoice_id,))
+			cursor.close()
 		return result
 				
 	def print_directly(self, window):
@@ -245,10 +249,12 @@ class Setup(XCloseListener, unohelper.Base):
 		p.set_parent(window)
 		p.set_file_to_print("/tmp/" + self.document_pdf)
 		result = p.print_directly()
+		cursor = DB.cursor()
 		if result == Gtk.PrintOperationResult.APPLY:
-			self.cursor.execute("UPDATE invoices SET date_printed = "
+			cursor.execute("UPDATE invoices SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.invoice_id,))
+		cursor.close()
 
 	def email (self, email):
 		document = "/tmp/" + self.document_pdf
@@ -260,20 +266,22 @@ class Setup(XCloseListener, unohelper.Base):
 		dat = f.read()
 		binary = psycopg2.Binary(dat)
 		f.close()
-		self.cursor.execute("UPDATE invoices SET(name, "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET(name, "
 							"pdf_data, posted, amount_due, dated_for) "
 							"= (%s, %s, %s, total, %s) "
 							"WHERE id = %s RETURNING gl_entries_id, total", 
 							(self.document_name, binary, True, self.date, 
 							self.invoice_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			gl_entries_id = row[0]
 			total = row[1]
-		transactor.post_invoice_receivables(self.db, total, self.date, 
+		transactor.post_invoice_receivables(total, self.date, 
 											self.invoice_id, gl_entries_id)
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		if self.cursor.fetchone()[0] == True:
-			transactor.post_invoice_accounts (self.db, self.date, self.invoice_id)
+		cursor.execute("SELECT accrual_based FROM settings")
+		if cursor.fetchone()[0] == True:
+			transactor.post_invoice_accounts (self.date, self.invoice_id)
+		cursor.close()
 		
 		
 

@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -19,10 +19,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject, Pango
 from datetime import datetime
 import time, ssl
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/time_clock_history.ui"
-
+UI_FILE = ui_directory + "/reports/time_clock_history.ui"
 
 class TimeClockHistoryGUI:
 	def __init__(self):
@@ -30,9 +29,7 @@ class TimeClockHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.sunday_store = self.builder.get_object('liststore1')
 		self.monday_store = self.builder.get_object('liststore2')
@@ -51,9 +48,13 @@ class TimeClockHistoryGUI:
 		self.previous_week_time = self.last_second_of_target_week - 604800
 		self.first_day = True
 		self.add_day_headers ()
+		DB.rollback()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def add_day_headers (self):
 		current_time = self.last_second_of_target_week
@@ -163,6 +164,7 @@ class TimeClockHistoryGUI:
 								self.previous_week_time))
 		self.populate_day_stores ()
 		self.add_day_headers ()
+		DB.rollback()
 
 	def employee_view_toggled (self, widget):
 		self.load_time_data ()
@@ -284,22 +286,21 @@ class TimeClockHistoryGUI:
 
 	def populate_employee_combobox (self):
 		employee_combo = self.builder.get_object('comboboxtext1')
-		self.cursor.execute("SELECT id, name FROM contacts WHERE employee = True")
+		self.cursor.execute("SELECT id::text, name "
+							"FROM contacts WHERE employee = True")
 		for row in self.cursor.fetchall():
-			employee_id = row[0]
-			employee_name = row[1]
-			employee_combo.append (str(employee_id), employee_name)
+			employee_combo.append (row[0], row[1])
 
 	def populate_project_combobox (self):
 		project_combo = self.builder.get_object('comboboxtext2')
-		self.cursor.execute ("SELECT id, name FROM time_clock_projects WHERE active = True")
+		self.cursor.execute("SELECT id::text, name "
+							"FROM time_clock_projects "
+							"WHERE active = True")
 		for row in self.cursor.fetchall():
-			project_id = row[0]
-			project_name = row[1]
-			project_combo.append(str(project_id), project_name)
+			project_combo.append(row[0], row[1])
 
 
 
 
-			
-		
+
+

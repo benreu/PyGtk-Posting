@@ -123,12 +123,12 @@ def connect_to_db (name):
 		sql_port = row[3]
 	cursor.close()
 	try:
-		constants.db = psycopg2.connect ( dbname = sql_database, 
+		constants.DB = psycopg2.connect ( dbname = sql_database, 
 								host = sql_host, 
 								user = sql_user, 
 								password = sql_password, 
 								port = sql_port)
-		constants.cursor = constants.db.cursor()
+		#constants.cursor = constants.DB.cursor()
 		constants.db_name = sql_database
 		constants.start_broadcaster()
 		import accounts

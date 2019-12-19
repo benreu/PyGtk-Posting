@@ -20,7 +20,7 @@ gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
 import time
 from db.database_tools import get_apsw_connection
-from constants import ui_directory, db_name
+from constants import DB, ui_directory, db_name
 
 UI_FILE = ui_directory + "/db/backup_restore.ui"
 
@@ -32,7 +32,6 @@ class Utilities:
 		self.builder.connect_signals(self)
 		self.parent_window = parent.window
 		self.parent = parent
-		self.db = parent.db
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 
@@ -98,9 +97,9 @@ class Utilities:
 		self.builder.get_object('button2').set_visible(False)
 			
 	def done_clicked (self, dialog):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("UPDATE settings SET last_backup = CURRENT_DATE")
-		self.db.commit()
+		DB.commit()
 		c.close()
 		dialog.destroy()
 

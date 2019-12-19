@@ -20,7 +20,7 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess
 from invoice_window import create_new_invoice 
-from constants import ui_directory, db, broadcaster, template_dir
+from constants import ui_directory, DB, broadcaster, template_dir
 import printing
 
 UI_FILE = ui_directory + "/job_sheet.ui"
@@ -34,8 +34,8 @@ class JobSheetGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.cursor = db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store ), 
 						   ("products_changed", self.populate_product_store )):
@@ -131,7 +131,7 @@ class JobSheetGUI(Gtk.Builder):
 								"SET (job_sheet_id, qty, product_id, remark) "
 								"= (%s, %s, %s, %s) WHERE id = %s", 
 								(self.job_id, qty, product_id, remark, row_id))
-		db.commit()
+		DB.commit()
 
 	def contacts_window(self, widget):
 		import contacts
@@ -142,16 +142,16 @@ class JobSheetGUI(Gtk.Builder):
 		products_overview.ProductsOverviewGUI()
 
 	def generate_serial_number_clicked (self, button):
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("UPDATE job_types "
 					"SET current_serial_number = (current_serial_number + 1) "
 					"WHERE id = %s RETURNING current_serial_number::text",
 					(self.job_type_id,))
 		serial_number = c.fetchone()[0]
 		self.get_object('entry1').set_text(serial_number)
-		db.commit()
 		button.set_sensitive(False)
 		self.print_serial_number(serial_number)
+		DB.commit()
 
 	def print_serial_number(self, serial_number):
 		document = Item()
@@ -170,6 +170,7 @@ class JobSheetGUI(Gtk.Builder):
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.product_store.append(row)
+		DB.rollback()
 
 	def focus(self, window, void):
 		if self.get_object("entry1").get_text() == "":
@@ -190,6 +191,7 @@ class JobSheetGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			model.append(row)
 		job_combo.set_active_id(job)
+		DB.rollback()
 
 	def populate_existing_job_combobox (self):
 		existing_job_combo = self.get_object('comboboxtext2')
@@ -204,6 +206,7 @@ class JobSheetGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			existing_job_combo.append(row[0], row[1])
 		existing_job_combo.set_active_id(existing_job)
+		DB.rollback()
 
 	def delete_existing_job	(self, widget):
 		job_id = widget.get_active_id()
@@ -211,10 +214,10 @@ class JobSheetGUI(Gtk.Builder):
 			self.cursor.execute("DELETE FROM job_sheets WHERE id = %s", 
 															(job_id,))
 		except psycopg2.IntegrityError as e:
-			db.rollback()
+			DB.rollback()
 			self.show_message(str(e))
 			return
-		db.commit()
+		DB.commit()
 		self.populate_existing_job_combobox ()
 		self.job_store.clear()
 
@@ -239,7 +242,7 @@ class JobSheetGUI(Gtk.Builder):
 								"SET (active, stop_date) = (%s, %s) "
 								"WHERE job_sheet_id = %s", 
 								(available, datetime.today(), self.job_id))
-		db.commit()
+		DB.commit()
 
 	def new_job_combo_changed(self, combo):
 		id_ = combo.get_active_id()
@@ -278,6 +281,7 @@ class JobSheetGUI(Gtk.Builder):
 			self.get_object('button7').set_sensitive(False)
 			self.get_object('button5').set_sensitive(False)
 			self.get_object('button3').set_sensitive(False)
+		DB.rollback()
 
 	def customer_combo_changed(self, widget):
 		id_ = widget.get_active_id()
@@ -334,7 +338,7 @@ class JobSheetGUI(Gtk.Builder):
 								"VALUES (%s, %s, True, False, %s)", 
 								(self.project_name, datetime.today(), 
 								self.job_id))
-		db.commit()
+		DB.commit()
 		self.populate_existing_job_combobox ()
 		self.get_object('comboboxtext2').set_active_id(str(self.job_id))
 		self.get_object('button7').set_sensitive(False)
@@ -346,25 +350,24 @@ class JobSheetGUI(Gtk.Builder):
 			job_line_id = store[path][0]
 			self.cursor.execute("DELETE FROM job_sheet_line_items "
 								"WHERE id = %s", (job_line_id,))
-			db.commit()
+			DB.commit()
 			self.populate_job_treeview ()
 			
 	def new_line (self, widget = None):
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT 0, 1, id, name, '' FROM products "
 							"WHERE deleted = False LIMIT 1")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			iter_ = self.job_store.append([0, 1, product_id, product_name, ""])
+			iter_ = self.job_store.append(row)
 		line = self.job_store[iter_]
 		self.save_line(line)
 		path = self.job_store.get_path(iter_)
 		treeview = self.get_object('treeview1')
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, True)
+		DB.rollback()
 
 	def post_job_to_invoice_clicked (self, widget):
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT i.id, i.name, c.name FROM invoices AS i "
 					"JOIN contacts AS c ON c.id = i.customer_id "
 					"WHERE (i.posted, i.canceled, i.active, i.customer_id) = "
@@ -383,7 +386,7 @@ class JobSheetGUI(Gtk.Builder):
 			else:
 				return # cancel posting to invoice altogether
 		else: # create new invoice
-			invoice_id = create_new_invoice (datetime.today(), customer_id)
+			invoice_id = create_new_invoice (datetime.today(), self.customer_id)
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
 					"SELECT qty, product_id, remark, %s "
@@ -403,7 +406,7 @@ class JobSheetGUI(Gtk.Builder):
 		self.job_id = 0
 		self.populate_customer_store ()
 		self.populate_existing_job_combobox ()
-		db.commit()
+		DB.commit()
 
 	def populate_job_treeview(self):
 		treeselection = self.get_object('treeview-selection1')
@@ -418,6 +421,7 @@ class JobSheetGUI(Gtk.Builder):
 		if path != [] : # a row is selected
 			tree_iter = model.get_iter(path)
 			treeselection.select_iter(tree_iter)
+		DB.rollback()
 
 	def customer_match_func (self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -433,6 +437,7 @@ class JobSheetGUI(Gtk.Builder):
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
+		DB.rollback()
 
 	def window_key_release_event_ (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

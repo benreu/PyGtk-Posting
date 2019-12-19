@@ -19,7 +19,7 @@ from gi.repository import Gtk
 import re, subprocess
 from db import transactor
 import printing
-from constants import db, template_dir
+from constants import DB, template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -27,17 +27,17 @@ class Item(object):#this is used by py3o library see their example for more info
 class Setup :
 	def __init__ (self, credit_items_store, credit_memo_id, customer_id):
 
-		self.cursor = db.cursor()
 		self.credit_items_store = credit_items_store
 		self.credit_memo_id = credit_memo_id
 		self.customer_id = customer_id
 		self.create_odt ()
 		
 	def create_odt(self ):
-		self.cursor.execute("SELECT * FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM contacts "
 							"WHERE id = (%s)", (self.customer_id,))
 		customer = Item()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_id = row[0]
 			customer.name = row[1]
 			name = row[1]
@@ -53,8 +53,8 @@ class Setup :
 			customer.tax_exempt = row[11]
 			customer.tax_exempt_number = row[12]
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -81,14 +81,14 @@ class Setup :
 			items.append(item)
 
 		document = Item()
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 								"format_date(dated_for), "
 								"(-total)::money, "
 								"(-tax)::money, "
 								"(-amount_owed)::money "
 							"FROM credit_memos WHERE id = %s ", 
 							(self.credit_memo_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			date_text = row[0]
 			subtotal = row[1]
 			tax = row[2]
@@ -118,31 +118,36 @@ class Setup :
 		self.credit_memo_file = "/tmp/" + self.document_odt
 		t = Template(template_dir+"/credit_memo_template.odt", self.credit_memo_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
+		cursor.close()
 
 	def view_odt (self):
 		subprocess.Popen(["soffice", self.credit_memo_file])
 
 	def print_pdf (self, window):
+		cursor = DB.cursor()
 		subprocess.call(["odt2pdf", self.credit_memo_file])
 		p = printing.Operation(settings_file = "credit_memo")
 		p.set_parent(window)
 		p.set_file_to_print ("/tmp/" + self.document_pdf)
 		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
-			self.cursor.execute("UPDATE credit_memos SET date_printed = "
+			cursor.execute("UPDATE credit_memos SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.credit_memo_id,))
+		cursor.close()
 		return result
 
 	def post (self):
-		transactor.post_credit_memo (db, self.credit_memo_id)
+		cursor = DB.cursor()
+		transactor.post_credit_memo (self.credit_memo_id)
 		with open("/tmp/" + self.document_pdf, 'rb') as fp:
 			data = fp.read()
-		self.cursor.execute("UPDATE credit_memos "
+		cursor.execute("UPDATE credit_memos "
 							"SET (pdf_data, posted) = "
 							"(%s, True) "
 							"WHERE id = %s", 
 							(data, self.credit_memo_id))
+		cursor.close()
 
 
 

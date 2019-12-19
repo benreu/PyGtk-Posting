@@ -19,7 +19,7 @@ from gi.repository import Gtk
 import xlrd
 from xlrd.biffh import XLRDError
 from psycopg2 import IntegrityError
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/admin/product_import.ui"
 
@@ -38,7 +38,7 @@ class ProductsImportGUI(Gtk.Builder):
 
 	def populate_combos (self):
 		revenue_combo = self.get_object('revenue_combo')
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT number::text, name "
 					"FROM gl_accounts "
 					"WHERE revenue_account = True ORDER BY name")
@@ -60,6 +60,7 @@ class ProductsImportGUI(Gtk.Builder):
 			tax_rate_combo.append(row[0], row[1])
 		tax_rate_combo.set_active(0)
 		c.close()
+		DB.rollback()
 
 ####### start import to treeview
 
@@ -148,7 +149,7 @@ class ProductsImportGUI(Gtk.Builder):
 		tax_rate_id = self.get_object('tax_rate_combo').get_active_id()
 		progressbar = self.get_object('progressbar1')
 		model = self.get_object('product_import_store')
-		c = db.cursor()
+		c = DB.cursor()
 		total = len(model)
 		for row_count, row in enumerate(model):
 			c.execute ("INSERT INTO products ("
@@ -176,7 +177,7 @@ class ProductsImportGUI(Gtk.Builder):
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 		c.close()
-		db.commit()
+		DB.commit()
 
 	def import_with_barcodes (self):
 		revenue_account = self.get_object('revenue_combo').get_active_id()
@@ -184,7 +185,7 @@ class ProductsImportGUI(Gtk.Builder):
 		tax_rate_id = self.get_object('tax_rate_combo').get_active_id()
 		progressbar = self.get_object('progressbar1')
 		model = self.get_object('product_import_store')
-		c = db.cursor()
+		c = DB.cursor()
 		total = len(model)
 		for row_count, row in enumerate(model):
 			try:
@@ -217,10 +218,10 @@ class ProductsImportGUI(Gtk.Builder):
 				print (e)
 				self.show_message (str(e))
 				c.close()
-				db.rollback()
+				DB.rollback()
 				return
 		c.close()
-		db.commit()
+		DB.commit()
 
 	def show_message (self, error):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

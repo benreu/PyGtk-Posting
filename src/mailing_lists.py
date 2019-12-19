@@ -15,27 +15,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
-
 from gi.repository import Gtk
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/mailing_lists.ui"
 
 
 class MailingListsGUI(Gtk.Builder):
-	
 	def __init__(self):
 		
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.cursor = db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_mailing_store ()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_mailing_store (self):
 		model = self.get_object('liststore1')
@@ -48,14 +47,14 @@ class MailingListsGUI(Gtk.Builder):
 							"FROM mailing_lists")
 		for row in self.cursor.fetchall():
 			model.append(row)
-		db.rollback()
+		DB.rollback()
 
 	def name_edited (self, renderer, path, text):
 		model = self.get_object('liststore1')
 		row_id = model[path][0]
 		self.cursor.execute("UPDATE mailing_lists SET name = %s WHERE id = %s",
 							(text, row_id))
-		db.commit()
+		DB.commit()
 		model[path][1] = text
 
 	def add_clicked (self, button):
@@ -69,7 +68,7 @@ class MailingListsGUI(Gtk.Builder):
 		for row in model:
 			if row[0] == row_id:
 				self.get_object('treeview-selection1').select_path(row.path)
-		db.commit()
+		DB.commit()
 
 	def deactivate_clicked (self, button):
 		selection = self.get_object('treeview-selection1')
@@ -80,7 +79,7 @@ class MailingListsGUI(Gtk.Builder):
 		self.cursor.execute("UPDATE mailing_lists SET "
 							"active = False WHERE id = %s",
 							(row_id,))
-		db.commit()
+		DB.commit()
 		self.populate_mailing_store ()
 
 	def auto_add_toggled (self, cellrenderertoggle, path):
@@ -93,9 +92,9 @@ class MailingListsGUI(Gtk.Builder):
 							"FROM mailing_lists "
 							"WHERE id = %s",
 							(row_id, row_id))
-		db.commit()
 		model[path][3] = self.cursor.fetchone()[0]
+		DB.commit()
 
 
 
-		
+

@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/contact_hub.ui"
+UI_FILE = ui_directory + "/contact_hub.ui"
 
 class ContactHubGUI:
 	def __init__(self, contact_id):
@@ -26,10 +26,9 @@ class ContactHubGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
 		self.contact_id = contact_id
-		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT name, vendor, customer, service_provider "
 							"FROM contacts WHERE id = %s", (contact_id,))
 		for row in self.cursor.fetchall():
@@ -40,6 +39,7 @@ class ContactHubGUI:
 			break
 		else:
 			raise Exception ("Contact not found")
+		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()

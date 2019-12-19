@@ -22,7 +22,7 @@ import subprocess, re, psycopg2
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
-from constants import ui_directory, db, broadcaster 
+from constants import ui_directory, DB, broadcaster, help_dir
 
 UI_FILE = ui_directory + "/documents_window.ui"
 
@@ -35,11 +35,9 @@ class DocumentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
-
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store ), 
 						   ("products_changed", self.populate_product_store )):
@@ -55,11 +53,8 @@ class DocumentGUI:
 		enforce_target = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
 		self.treeview = self.builder.get_object('treeview2')
 		self.treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.COPY)
-		#self.treeview.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
 		self.treeview.connect("drag-data-received", self.on_drag_data_received)
 		self.treeview.drag_dest_set_target_list([enforce_target])
-		#self.treeview.drag_dest_set_target_list(None)
-		#self.treeview.drag_dest_add_text_targets()
 		
 		self.existing_store = self.builder.get_object('existing_store')
 		self.customer_store = self.builder.get_object('customer_store')
@@ -94,6 +89,7 @@ class DocumentGUI:
 		print_direct, email = self.cursor.fetchone()
 		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
 		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
+		DB.rollback()
 
 	def drag_finish(self, wid, context, x, y, time):
 		print (wid, context, x, y, time)
@@ -134,7 +130,7 @@ class DocumentGUI:
 		document_type_combo = self.builder.get_object('comboboxtext2')
 		active_type_id = document_type_combo.get_active_id()
 		document_type_combo.remove_all()
-		self.cursor.execute("SELECT id, name FROM document_types")
+		self.cursor.execute("SELECT id::text, name FROM document_types")
 		for row in self.cursor.fetchall():
 			type_id = row[0]
 			type_name = row[1]
@@ -151,14 +147,14 @@ class DocumentGUI:
 
 	def view_document_clicked(self, widget):
 		comment = self.builder.get_object('entry3').get_text()
-		d = documenting.Setup(self.db, self.documents_store, self.contact_id, 
+		d = documenting.Setup(self.documents_store, self.contact_id, 
 								comment, self.date, self.document_type_id, 
 								self.document_name) 
 		d.view()
 
 	def post_document_clicked(self, widget):
 		comment = self.builder.get_object('entry3').get_text()
-		d = documenting.Setup(self.db, self.documents_store,  self.contact_id, 
+		d = documenting.Setup( self.documents_store,  self.contact_id, 
 								comment, self.date, self.document_type_id, 
 								self.document_name )
 		if self.builder.get_object('menuitem1').get_active() == True:
@@ -175,7 +171,7 @@ class DocumentGUI:
 				if email != "":
 					email = "%s '< %s >'" % (name, email)
 					d.email(email)
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	################## start customer
@@ -186,6 +182,7 @@ class DocumentGUI:
 							"(False, True) ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
+		DB.rollback()
 		
 	def customer_match_selected(self, completion, model, iter):
 		self.contact_id = model[iter][0]
@@ -243,10 +240,10 @@ class DocumentGUI:
 				self.documents_store[path][1] = row[0]
 				self.documents_store[path][14] = row[1]
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message (e)
 			return False
-		self.db.commit()
+		DB.commit()
 		self.calculate_totals ()
 
 	################## start minimum
@@ -257,12 +254,12 @@ class DocumentGUI:
 			self.cursor.execute("UPDATE document_items SET min = %s "
 									"WHERE id = %s "
 									"RETURNING min::text", (text, row_id))
-			self.db.commit()
+			DB.commit()
 			for row in self.cursor.fetchall():
 				minimum = row[0]
 				self.documents_store[path][5] = minimum
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message (e)
 			return False
 
@@ -274,12 +271,12 @@ class DocumentGUI:
 			self.cursor.execute("UPDATE document_items SET max = %s "
 									"WHERE id = %s "
 									"RETURNING max::text", (text, row_id))
-			self.db.commit()
+			DB.commit()
 			for row in self.cursor.fetchall():
 				maximum = row[0]
 				self.documents_store[path][6] = maximum
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message (e)
 			return False
 
@@ -292,7 +289,7 @@ class DocumentGUI:
 									"WHERE id = %s) "
 								"WHERE id = %s "
 								"RETURNING type_1", (row_id, row_id))
-		self.db.commit()
+		DB.commit()
 		for row in self.cursor.fetchall():
 			freeze = row[0]
 			self.documents_store[path][9] = freeze
@@ -304,7 +301,7 @@ class DocumentGUI:
 		self.cursor.execute("UPDATE document_items SET remark = %s "
 								"WHERE id = %s "
 								"RETURNING remark", (text, row_id))
-		self.db.commit()
+		DB.commit()
 		for row in self.cursor.fetchall():
 			remark = row[0]
 			self.documents_store[path][10] = remark
@@ -316,7 +313,7 @@ class DocumentGUI:
 		self.cursor.execute("UPDATE document_items SET priority = %s "
 								"WHERE id = %s "
 								"RETURNING priority", (text, row_id))
-		self.db.commit()
+		DB.commit()
 		for row in self.cursor.fetchall():
 			priority = row[0]
 			self.documents_store[path][11] = priority
@@ -362,10 +359,10 @@ class DocumentGUI:
 			for row in self.cursor.fetchall():
 				self.documents_store[path][13] = row[0]
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message (e)
 			return False
-		self.db.commit()
+		DB.commit()
 		
 	def price_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
@@ -380,10 +377,10 @@ class DocumentGUI:
 				self.documents_store[path][12] = row[0]
 				self.documents_store[path][14] = row[1]
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message (e)
 			return False
-		self.db.commit()
+		DB.commit()
 		self.calculate_totals ()
 		
 	################## start product
@@ -420,12 +417,12 @@ class DocumentGUI:
 							"SELECT name, ext_name FROM products "
 							"WHERE id = %s", (product_id, row_id, product_id))
 		tupl = self.cursor.fetchone()
-		self.db.commit()
+		DB.commit()
 		product_name, product_ext_name = tupl[0], tupl[1]
 		self.documents_store[iter_][2] = int(product_id)
 		self.documents_store[iter_][3] = product_name
 		self.documents_store[iter_][4] = product_ext_name
-		price = get_customer_product_price(self.db, self.contact_id, product_id)
+		price = get_customer_product_price(self.contact_id, product_id)
 		self.documents_store[iter_][12] = str(price)
 		self.calculate_totals()
 		
@@ -438,6 +435,7 @@ class DocumentGUI:
 							"(False, True, True) ORDER BY name ")
 		for row in self.cursor.fetchall():
 			self.product_store.append(row)
+		DB.rollback()
 
 	################## end product
 	
@@ -449,9 +447,10 @@ class DocumentGUI:
 		for row in self.cursor.fetchall():
 			self.total = row[0]
 		self.builder.get_object('entry8').set_text(self.total)
+		DB.rollback()
 
 	def add_entry (self, widget):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("INSERT INTO document_items " 
 						"(document_id, product_id, retailer_id) "
 					"VALUES "
@@ -486,7 +485,7 @@ class DocumentGUI:
 					"WHERE di.id = %s",
 					(row_id,))
 		self.builder.get_object('button15').set_sensitive(True)
-		self.db.commit()
+		DB.commit()
 		for row in c.fetchall():
 			iter_ = self.documents_store.append(row)
 			treeview = self.builder.get_object('treeview2')
@@ -497,7 +496,7 @@ class DocumentGUI:
 			row_id = row[0]
 			product_id = row[1]
 			product_name = i[1]
-			price = get_customer_product_price (self.db, self.contact_id, product_id)
+			price = get_customer_product_price (self.contact_id, product_id)
 			self.documents_store.append([0, 1.0, product_id, product_name, "", 
 										0.0, 100.00, int(self.contact_id), 
 										self.customer_name_default_label, 
@@ -518,7 +517,7 @@ class DocumentGUI:
 		document_line_item_id = self.documents_store[path][0]
 		self.cursor.execute("DELETE FROM document_items WHERE id = %s",
 							(document_line_item_id,))
-		self.db.commit()
+		DB.commit()
 		self.populate_document_store ()
 
 	def key_tree_tab (self, treeview, event):
@@ -552,11 +551,11 @@ class DocumentGUI:
 			return
 		self.cursor.execute("UPDATE documents SET name = %s "
 							"WHERE id = %s", (document_name, self.document_id))
-		self.db.commit()
+		DB.commit()
 
 	def delete_document_clicked (self, widget):
 		self.cursor.execute("DELETE FROM documents WHERE id = %s", (self.document_id,))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('entry3').set_text('')
 		self.populate_existing_store ()
 
@@ -596,7 +595,7 @@ class DocumentGUI:
 							(self.contact_id, False, False, False, datetime.today(), self.date, self.document_type_id, False))
 		self.document_id = self.cursor.fetchone()[0]
 		self.set_document_name ()
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('button13').set_sensitive(True)
 		self.builder.get_object('button14').set_sensitive(True)
 		self.builder.get_object('import_from_history').set_sensitive(True)
@@ -614,7 +613,7 @@ class DocumentGUI:
 		date = re.sub (" ", "_", date)
 		self.document_name = type_text + "_" + str(self.document_id) + "_" + name + "_" + date
 		self.cursor.execute("UPDATE documents SET name = %s WHERE id = %s", (self.document_name, self.document_id))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('entry5').set_text(self.document_name)
 		
 	def populate_existing_store (self):
@@ -635,6 +634,7 @@ class DocumentGUI:
 																	% doc_count)
 		if path != []:
 			self.builder.get_object('treeview-selection5').select_path(path)
+		DB.rollback()
 
 	def existing_documents_clicked (self, widget):
 		existing_dialog = self.builder.get_object('existing_dialog')
@@ -693,6 +693,7 @@ class DocumentGUI:
 		for row in self.cursor.fetchall():
 			self.documents_store.append(row)
 		self.calculate_totals ()
+		DB.rollback()
 
 	def import_items_from_history_activated (self, menuitem):
 		button = Gtk.Button(label = 'Import items from document history')
@@ -742,11 +743,11 @@ class DocumentGUI:
 							"FROM document_items WHERE document_id = %s)", 
 							(self.document_id, self.contact_id, old_id))
 		self.populate_document_store ()
-		self.db.commit()
+		DB.commit()
 		dh.window.destroy()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/document.page"])
+		subprocess.Popen(["yelp", help_dir + "/document.page"])
 
 	def window_key_event (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -764,7 +765,7 @@ class DocumentGUI:
 		self.cursor.execute("UPDATE documents SET dated_for = %s "
 							"WHERE id = %s", (self.date, self.document_id))
 		self.set_document_name ()
-		self.db.commit()
+		DB.commit()
 
 	def calendar_entry_icon_release (self, widget, icon, void):
 		self.calendar.set_relative_to(widget)
@@ -778,7 +779,7 @@ class DocumentGUI:
 		line_id = self.documents_store[path][0]
 		self.cursor.execute("UPDATE document_items SET retailer_id = NULL "
 							"WHERE id = %s", (line_id, ))
-		self.db.commit()
+		DB.commit()
 
 	 #barcode entry support code *******
 
@@ -807,6 +808,7 @@ class DocumentGUI:
 			return
 		else:
 			raise Exception ("please make a window to alert the user that the barcode does not exist!")
+		DB.rollback()
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

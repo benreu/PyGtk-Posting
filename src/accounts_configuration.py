@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk, GLib
-import constants
+import from constants import DB, ui_directory
 
-UI_FILE = constants.ui_directory + "/accounts_configuration.ui"
+UI_FILE = ui_directory + "/accounts_configuration.ui"
 
 
 class GUI():
@@ -28,8 +28,6 @@ class GUI():
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		
 		self.account_treestore = self.builder.get_object('account_treestore')
 		self.parent_account_store = self.builder.get_object('parent_account_store')
@@ -44,10 +42,7 @@ class GUI():
 		GLib.timeout_add(5, self.select_account_path, 0)
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
-		GLib.idle_add(self.highlight, spinbutton)
-
-	def highlight (self, spinbutton):
-		spinbutton.select_region(0, -1)
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def report_hub_activated (self, menuitem):
 		treeview = self.builder.get_object('treeview1')
@@ -98,7 +93,8 @@ class GUI():
 		selection = self.builder.get_object ('treeview-selection')
 		model, path = selection.get_selected_rows ()
 		account_type = model[path][2]
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		c = DB.cursor()
+		c.execute("SELECT number, name FROM gl_accounts "
 					"WHERE number NOT IN "
 					"(SELECT gl_accounts.number FROM public.gl_accounts, "
 					"public.gl_entries, "
@@ -113,15 +109,18 @@ class GUI():
 				"expense_account, revenue_account, cash_account, type) = "
 				"(False, False, False, False, False, %s) "
 				"ORDER BY name;", (account_type,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			self.parent_account_store.append([str(account_number), account_name])
+		c.close()
+		DB.rollback()
 
 	def edit_account_clicked (self, menuitem):
-		self.cursor.execute("SELECT number, parent_number FROM gl_accounts "
+		c = DB.cursor()
+		c.execute("SELECT number, parent_number FROM gl_accounts "
 							"WHERE number = %s", (self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			if row[1] == None:
 				return #do not allow changing top level accounts
 			account_number = row[0]
@@ -135,11 +134,14 @@ class GUI():
 		if result == Gtk.ResponseType.ACCEPT:
 			new_number = self.builder.get_object('spinbutton3').get_value()
 			parent_number = self.builder.get_object('combobox1').get_active_id()
-			self.cursor.execute("UPDATE gl_accounts SET (number, parent_number) "
+			c.execute("UPDATE gl_accounts SET (number, parent_number) "
 								"= (%s, %s) WHERE number = %s", 
 								(new_number, parent_number, account_number))
-			self.db.commit()
+			DB.commit()
 			self.populate_account_treestore ()
+		else:
+			DB.rollback()
+		c.close()
 		
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -147,10 +149,11 @@ class GUI():
 			menu.popup_at_pointer()
 
 	def populate_account_treestore (self):
+		c = DB.cursor()
 		self.account_treestore.clear()
-		self.cursor.execute("SELECT name, number, type FROM gl_accounts "
+		c.execute("SELECT name, number, type FROM gl_accounts "
 							"WHERE parent_number IS NULL ORDER BY number")
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			account_name = row[0]
 			account_number = row[1]
 			account_type = row[2]
@@ -159,12 +162,15 @@ class GUI():
 														account_number, 
 														account_type])
 			self.get_child_accounts (parent, account_number)
+		DB.rollback()
+		c.close()
 
 	def get_child_accounts (self, parent_tree, parent_number):
-		self.cursor.execute("SELECT name, number, type FROM gl_accounts "
+		c = DB.cursor()
+		c.execute("SELECT name, number, type FROM gl_accounts "
 							"WHERE parent_number = %s ORDER BY number", 
 							(parent_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			account_name = row[0]
 			account_number = row[1]
 			account_type = row[2]
@@ -173,39 +179,46 @@ class GUI():
 														account_number, 
 														account_type])
 			self.get_child_accounts (parent, account_number)
+		c.close()
 
 	def account_name_edited (self, cellrenderer_text, path, account_text):
+		c = DB.cursor()
 		account_number = self.account_treestore[path][1]
-		self.cursor.execute("UPDATE gl_accounts SET name = %s WHERE number = %s", 
+		c.execute("UPDATE gl_accounts SET name = %s WHERE number = %s", 
 													(account_text, account_number))
-		self.db.commit()
+		DB.commit()
 		self.account_treestore[path][0] = account_text
+		c.close()
 
 	def customer_discount_combo_changed (self, combo):
+		c = DB.cursor()
 		if self.populating is True:
 			return
 		credit_account = combo.get_active_id()
-		self.cursor.execute("UPDATE gl_account_flow SET account = %s "
+		c.execute("UPDATE gl_account_flow SET account = %s "
 							"WHERE function = 'customer_discount'", 
 							( credit_account,))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	################ from here on is account deletion / creation / types
 
 	def save_new_account(self, widget):
+		c = DB.cursor()
 		name = self.builder.get_object('entry1').get_text()
 		number = self.builder.get_object('spinbutton1').get_value_as_int()
 		acc_type = str(number)[0:1]
 		try:
-			self.cursor.execute("INSERT INTO gl_accounts "
+			c.execute("INSERT INTO gl_accounts "
 								"(name, type, number, parent_number) "
 								"VALUES (%s, %s, %s, %s)", 
 								(name, acc_type, number, self.parent_number))
 		except Exception as e:
-			self.db.rollback()
+			DB.rollback()
 			self.show_message(str(e))
 			return
-		self.db.commit()
+		DB.commit()
+		c.close()
 		self.builder.get_object('spinbutton1').set_value(0)
 		self.builder.get_object('entry1').set_text("")
 		selection = self.builder.get_object('treeview-selection')
@@ -215,9 +228,10 @@ class GUI():
 		self.select_account_path (path[0])
 
 	def account_error_dialog (self, num_accounts):
-		self.cursor.execute("SELECT name FROM gl_accounts WHERE number = %s", 
+		c = DB.cursor()
+		c.execute("SELECT name FROM gl_accounts WHERE number = %s", 
 												(self.active_account_number,))
-		account_name = self.cursor.fetchone()[0]
+		account_name = c.fetchone()[0]
 		error = ("You are trying to set '%s' as a selectable account.\n" 
 				"'%s' has %s child accounts, therefore it is not allowed." 
 				) % (account_name, account_name, num_accounts)
@@ -225,158 +239,176 @@ class GUI():
 		error_dialog = self.builder.get_object('dialog1')
 		result = error_dialog.run()
 		error_dialog.hide()
+		DB.rollback()
+		c.close()
 
 	def revenue_account_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		revenue_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = %s", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if revenue_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET revenue_account = %s "
+		c.execute("UPDATE gl_accounts SET revenue_account = %s "
 							"WHERE number = %s", 
 							(revenue_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def expense_account_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		expense_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = %s", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if expense_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET expense_account = %s "
+		c.execute("UPDATE gl_accounts SET expense_account = %s "
 							"WHERE number = %s", 
 							(expense_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def check_writing_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		bank_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = "
 							"(SELECT number FROM gl_accounts "
 							"WHERE parent_number = %s LIMIT 1)", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if bank_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET check_writing = %s "
+		c.execute("UPDATE gl_accounts SET check_writing = %s "
 							"WHERE number = %s", 
 							(bank_account_boolean, self.active_account_number))
-		self.db.commit()
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def deposit_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		bank_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = "
 							"(SELECT number FROM gl_accounts "
 							"WHERE parent_number = %s LIMIT 1)", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if bank_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET deposits = %s "
+		c.execute("UPDATE gl_accounts SET deposits = %s "
 							"WHERE number = %s", 
 							(bank_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def bank_statement_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		bank_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = "
 							"(SELECT number FROM gl_accounts "
 							"WHERE parent_number = %s LIMIT 1)", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if bank_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET bank_account = %s "
+		c.execute("UPDATE gl_accounts SET bank_account = %s "
 							"WHERE number = %s", 
 							(bank_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def credit_card_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		credit_card_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = %s", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if credit_card_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET credit_card_account = %s "
+		c.execute("UPDATE gl_accounts SET credit_card_account = %s "
 							"WHERE number = %s", 
 							(credit_card_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def cash_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		cash_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = %s", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if cash_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET cash_account = %s "
+		c.execute("UPDATE gl_accounts SET cash_account = %s "
 							"WHERE number = %s", 
 							(cash_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def inventory_checkbutton_toggled (self, checkbutton):
+		c = DB.cursor()
 		cash_account_boolean = checkbutton.get_active()
-		self.cursor.execute("SELECT COUNT(name) FROM gl_accounts "
+		c.execute("SELECT COUNT(name) FROM gl_accounts "
 							"WHERE parent_number = %s", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			num_accounts = row[0]
 			if cash_account_boolean == False or num_accounts == 0:
 				break #block popping an error on unsetting an account
 			checkbutton.set_active(False)
 			self.account_error_dialog(num_accounts)
 			return # account has child accounts
-		self.cursor.execute("UPDATE gl_accounts SET inventory_account = %s "
+		c.execute("UPDATE gl_accounts SET inventory_account = %s "
 							"WHERE number = %s", 
 							(cash_account_boolean, self.active_account_number))
-		self.db.commit()
+		DB.commit()
+		c.close()
 
 	def check_if_used_account (self):
-		self.cursor.execute("SELECT expense_account, bank_account, "
+		c = DB.cursor()
+		c.execute("SELECT expense_account, bank_account, "
 							"credit_card_account, revenue_account, "
 							"number, name, cash_account, inventory_account, "
 							"deposits, check_writing "
 							"FROM gl_accounts WHERE number = %s", 
 							(self.active_account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			expense_account_bool = row[0]
 			bank_account_bool = row[1]
 			c_c_account_bool = row[2]
@@ -395,19 +427,23 @@ class GUI():
 		self.builder.get_object('checkbutton6').set_active(inventory_account_bool)
 		self.builder.get_object('checkbutton7').set_active(deposits_bool)
 		self.builder.get_object('checkbutton2').set_active(check_writing_bool)
-		self.cursor.execute("SELECT function FROM gl_account_flow "
+		c.execute("SELECT function FROM gl_account_flow "
 							"WHERE account = %s", (account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
+			DB.rollback()
 			return
 		# no active account, maybe we can add an account: continue ->
-		self.cursor.execute("SELECT id FROM gl_entries "
+		c.execute("SELECT id FROM gl_entries "
 							"WHERE debit_account = %s OR credit_account = %s", 
 							(account_number, account_number))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
+			DB.rollback()
 			return
 		#no transactions for this account, we can add a child
 		self.parent_number = account_number
 		self.builder.get_object('label9').set_text(account_name)
+		DB.rollback()
+		c.close()
 
 	def new_account_number_changed (self, spinbutton):
 		self.check_if_new_account_valid ()
@@ -416,6 +452,7 @@ class GUI():
 		self.check_if_new_account_valid ()
 
 	def check_if_new_account_valid (self):
+		c = DB.cursor()
 		button = self.builder.get_object('button5')
 		button.set_sensitive(False)
 		name_entry = self.builder.get_object('entry1')
@@ -427,18 +464,23 @@ class GUI():
 		if len(str(new_account_number)) < 4: #enforce at least 4 character account numbers
 			button.set_label("Number too short")
 			return
-		self.cursor.execute("SELECT number FROM gl_accounts WHERE number = %s", 
+		c.execute("SELECT number FROM gl_accounts WHERE number = %s", 
 													(new_account_number, ))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			button.set_label("Number in use")
+			DB.rollback()
 			return
 		button.set_sensitive(True)
 		button.set_label("Save")
+		DB.rollback()
+		c.close()
 
 	def delete_account(self, widget):
-		self.cursor.execute("DELETE FROM gl_accounts WHERE number = %s", 
+		c = DB.cursor()
+		c.execute("DELETE FROM gl_accounts WHERE number = %s", 
 							(self.active_account_number, ))
-		self.db.commit()
+		DB.commit()
+		c.close()
 		selection = self.builder.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()
 		self.account_treestore.clear()
@@ -446,39 +488,46 @@ class GUI():
 		self.select_account_path (path)
 
 	def check_if_deleteable_account(self):
+		c = DB.cursor()
 		delete_button = self.builder.get_object('button6')
 		delete_button.set_sensitive(False)
-		self.cursor.execute("SELECT number, parent_number "
+		c.execute("SELECT number, parent_number "
 							"FROM gl_accounts WHERE number = %s", 
 							(self.active_account_number, ))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			account_number = row[0]
 			parent_number = row[1]
 			if parent_number == None: #block deleting top level accounts as there is no way to add them (yet)
 				delete_button.set_label("Top level account")
+				DB.rollback()
 				return
-		self.cursor.execute("SELECT number FROM gl_accounts "
+		c.execute("SELECT number FROM gl_accounts "
 							"WHERE parent_number = %s", (account_number, ))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			delete_button.set_label("Has child account")
+			DB.rollback()
 			return
 		# no dependants, maybe we can delete this account: continue ->
-		self.cursor.execute("SELECT function FROM gl_account_flow "
+		c.execute("SELECT function FROM gl_account_flow "
 							"WHERE account = %s", (account_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			delete_button.set_label("Account used in configuration")
+			DB.rollback()
 			return
 		# no active account, maybe we can delete this account: continue ->
-		self.cursor.execute("SELECT id FROM gl_entries "
+		c.execute("SELECT id FROM gl_entries "
 							"WHERE debit_account = %s "
 							"OR credit_account = %s", 
 							(account_number, account_number))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			delete_button.set_label("Account has transactions")
+			DB.rollback()
 			return
 		# no transaction lines, we can delete this account
 		delete_button.set_label("Delete")
 		delete_button.set_sensitive(True) #set the delete button active
+		DB.rollback()
+		c.close()
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

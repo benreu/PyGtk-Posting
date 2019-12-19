@@ -18,7 +18,7 @@
 
 from gi.repository import Gtk
 import subprocess, os
-from constants import db, ui_directory, template_dir
+from constants import DB, ui_directory, template_dir
 
 UI_FILE = ui_directory + "/mailing_list_printing.ui"
 
@@ -27,18 +27,19 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class MailingListPrintingGUI(Gtk.Builder):
-	
 	def __init__(self):
 		
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.cursor = db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_mailing_list_store ()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_mailing_list_store (self):
 		model = self.get_object('mailing_list_store')
@@ -49,7 +50,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 							"FROM mailing_lists ORDER BY name")
 		for row in self.cursor.fetchall():
 			model.append(row)
-		db.rollback()
+		DB.rollback()
 
 	def mailing_list_combo_changed (self, combobox):
 		list_id = combobox.get_active_id()
@@ -73,7 +74,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 							"SET printed = False "
 							"WHERE mailing_list_id = %s", 
 							(self.mailing_list_id,))
-		db.commit()
+		DB.commit()
 		self.populate_contact_mailing_store()
 
 	def set_all_printed_clicked (self, button):
@@ -81,7 +82,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 							"SET printed = True "
 							"WHERE mailing_list_id = %s", 
 							(self.mailing_list_id,))
-		db.commit()
+		DB.commit()
 		self.populate_contact_mailing_store()
 
 	def treeview_button_release_event (self, widget, event):
@@ -97,7 +98,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 							"WHERE id = %s RETURNING printed", 
 							(row_id,))
 		model[path][9] = self.cursor.fetchone()[0]
-		db.commit()
+		DB.commit()
 		self.count_addresses_to_print()
 
 	def contact_hub_activated (self, menuitem):
@@ -160,7 +161,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 		store = treeview.get_model()
 		treeview.set_model(None)
 		store.clear()
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT mlr.id, "
 							"c.id, "
 							"c.name, "
@@ -181,7 +182,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
-		db.rollback()
+		DB.rollback()
 		treeview.set_model(store)
 		self.get_object('contacts_amount_label').set_text(str(len(store)))
 		self.count_addresses_to_print()
@@ -235,7 +236,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 								"WHERE id = %s", (row_id,))
 			row[9] = True
 			self.count_addresses_to_print()
-			db.commit()
+		DB.commit()
 		self.get_object('tool_grid').set_sensitive(True)
 		self.get_object('print_grid').set_sensitive(True)
 

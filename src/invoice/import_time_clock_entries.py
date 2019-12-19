@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 from datetime import datetime
 from pricing import get_customer_product_price
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/invoice/import_time_clock_entries.ui"
+UI_FILE = ui_directory + "/invoice/import_time_clock_entries.ui"
 
 class ImportGUI():
 	def __init__(self, contact_id, invoice_id):
@@ -29,11 +29,10 @@ class ImportGUI():
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.contact_id = contact_id
 		self.invoice_id = invoice_id
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 
 		self.import_store = self.builder.get_object('import_store')
 		self.product_store = self.builder.get_object('product_store')
@@ -46,6 +45,9 @@ class ImportGUI():
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def product_match_string(self, completion, key, iter):
 		split_search_text = key.split()
 		for text in split_search_text:
@@ -54,7 +56,7 @@ class ImportGUI():
 		return True
 
 	def populate_time_clock_import_store (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 						"entry.id, "
 						"project.name, "
@@ -77,6 +79,7 @@ class ImportGUI():
 		for row in c.fetchall():
 			self.import_store.append(row)
 		c.close()
+		DB.rollback()
 
 	def product_combo_changed (self, combo):
 		self.product_id = combo.get_active_id()
@@ -95,7 +98,7 @@ class ImportGUI():
 			row[6] = True
 
 	def post_to_invoice_clicked (self, button):
-		price = get_customer_product_price (self.db, self.contact_id, self.product_id)
+		price = get_customer_product_price (self.contact_id, self.product_id)
 		ext_price = round(float(self.invoicing_time ) * float(price), 2)
 		description = self.builder.get_object('entry1').get_text()
 		self.cursor.execute("INSERT INTO invoice_items "
@@ -114,18 +117,17 @@ class ImportGUI():
 									"SET (invoiced, invoice_line_id) = "
 									"(True, %s) WHERE id = %s", 
 									(line_item_id, row_id))
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 					
 	def populate_product_store (self):
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (sellable, purchasable, manufactured, "
 							"deleted) = (True, False, False, False) "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
+			self.product_store.append(row)
+		DB.rollback()
 
 	def import_renderer_toggled(self, cell_renderer, path):
 		is_active = cell_renderer.get_active()
@@ -161,4 +163,4 @@ class ImportGUI():
 		return time_string, hours, int(minutes), int(seconds)
 
 
-		
+

@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk, GLib
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/contact_product_view.ui"
+UI_FILE = ui_directory + "/contact_product_view.ui"
 
 class ContactProductViewGUI :
 	def __init__ (self):
@@ -27,9 +27,7 @@ class ContactProductViewGUI :
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.window = self.builder.get_object('window')
 		self.window.maximize()
@@ -41,7 +39,7 @@ class ContactProductViewGUI :
 
 	def populate_contacts (self):
 		self.contacts_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 								"id::text, "
 								"name, "
@@ -54,7 +52,7 @@ class ContactProductViewGUI :
 
 	def populate_products (self):
 		self.products_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 					"id::text, "
 					"name, "
@@ -120,7 +118,7 @@ class ContactProductViewGUI :
 		text = textbuffer.get_text(start, end, True)
 		self.cursor.execute("UPDATE contacts SET notes = %s "
 							"WHERE id = %s", (text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def description_changed (self, textbuffer):
 		if self.populating == True:
@@ -130,7 +128,7 @@ class ContactProductViewGUI :
 		text = textbuffer.get_text(start, end, True)
 		self.cursor.execute("UPDATE products SET description = %s "
 							"WHERE id = %s", (text, self.product_id))
-		self.db.commit()
+		DB.commit()
 
 	def contact_name_changed (self, entry):
 		if self.populating == True:
@@ -138,7 +136,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET name = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def contact_ext_changed (self, entry):
 		if self.populating == True:
@@ -146,7 +144,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET ext_name = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def address_changed (self, entry):
 		if self.populating == True:
@@ -154,7 +152,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET address = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def city_changed (self, entry):
 		if self.populating == True:
@@ -162,7 +160,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET city = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def state_changed (self, entry):
 		if self.populating == True:
@@ -170,7 +168,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET state = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def zip_changed (self, entry):
 		if self.populating == True:
@@ -178,7 +176,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET zip = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def phone_changed (self, entry):
 		if self.populating == True:
@@ -186,7 +184,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE contacts SET phone = %s WHERE id = %s", 
 							(text, self.contact_id))
-		self.db.commit()
+		DB.commit()
 
 	def product_name_changed (self, entry):
 		if self.populating == True:
@@ -194,7 +192,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE products SET name = %s WHERE id = %s", 
 							(text, self.product_id))
-		self.db.commit()
+		DB.commit()
 
 	def product_ext_name_changed (self, entry):
 		if self.populating == True:
@@ -202,7 +200,7 @@ class ContactProductViewGUI :
 		text = entry.get_text()
 		self.cursor.execute("UPDATE products SET ext_name = %s WHERE id = %s", 
 							(text, self.product_id))
-		self.db.commit()
+		DB.commit()
 		
 
 		

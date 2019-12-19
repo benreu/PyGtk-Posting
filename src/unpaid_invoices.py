@@ -17,9 +17,9 @@ from gi.repository import Gtk
 from db import transactor
 from dateutils import DateTimeCalendar
 import subprocess
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/unpaid_invoices.ui"
+UI_FILE = ui_directory + "/unpaid_invoices.ui"
 
 class GUI (Gtk.Builder):
 	def __init__(self):
@@ -27,9 +27,7 @@ class GUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.store = self.get_object('unpaid_invoice_store')
 		self.window = self.get_object('window')
@@ -84,7 +82,7 @@ class GUI (Gtk.Builder):
 		labels = list()
 		fractions = list()
 		unpaid = 0
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT SUM(amount_due), c.name FROM invoices "
 							"JOIN contacts AS c ON c.id = invoices.customer_id "
 							"WHERE (canceled, paid, posted) = "
@@ -104,6 +102,7 @@ class GUI (Gtk.Builder):
 		window.set_title ('Unpaid invoices pie chart')
 		window.set_icon_name ('pygtk-posting')
 		window.show_all()
+		DB.rollback()
 
 	def unpaid_chart_window_delete_event (self, window, event):
 		window.hide()
@@ -131,7 +130,7 @@ class GUI (Gtk.Builder):
 		response = cancel_dialog.run()
 		cancel_dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
-			transactor.cancel_invoice(self.db, self.date, self.invoice_id)
+			transactor.cancel_invoice(self.date, self.invoice_id)
 			self.cursor.execute("UPDATE invoices SET canceled = True "
 								"WHERE id = %s"
 								"; "
@@ -141,7 +140,7 @@ class GUI (Gtk.Builder):
 								"(SELECT id FROM invoice_items "
 								"WHERE invoice_id = %s)", 
 								(self.invoice_id, self.invoice_id))
-			self.db.commit()
+			DB.commit()
 			self.treeview_populate ()
 		
 		
@@ -160,6 +159,7 @@ class GUI (Gtk.Builder):
 				f.write(file_data)		
 				subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 				f.close()
+			DB.rollback()
 
 	def focus(self, window, event):
 		self.treeview_populate()
@@ -168,7 +168,7 @@ class GUI (Gtk.Builder):
 		treeview_selection = self.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
 		model.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 						"i.id, "
 						"i.name, "
@@ -196,6 +196,7 @@ class GUI (Gtk.Builder):
 		unpaid = c.fetchone()[0]
 		self.get_object('label3').set_label(unpaid)
 		c.close()
+		DB.rollback()
 
 	def row_activated(self, treeview, path, treeviewcolumn):
 		treeiter = self.store.get_iter(path)

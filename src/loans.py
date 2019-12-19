@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GLib
 from dateutils import DateTimeCalendar
 from db import transactor
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/loans.ui"
+UI_FILE = ui_directory + "/loans.ui"
 
 class LoanGUI :
 	def __init__(self):
@@ -28,9 +28,7 @@ class LoanGUI :
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.loan_store = self.builder.get_object('loan_store')
 
@@ -58,11 +56,8 @@ class LoanGUI :
 	def window_destroy (self, window):
 		self.cursor.close()
 
-	def spinbutton_focus_in_event (self, entry, event):
-		GLib.idle_add(self.highlight, entry)
-
-	def highlight (self, entry):
-		entry.select_region(0, -1)
+	def spinbutton_focus_in_event(self, spinbutton, event):
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def amount_cell_func (self, column, cellrenderer, model, iter1, data):
 		amount = "{:,.2f}".format(model[iter1][5])
@@ -73,6 +68,7 @@ class LoanGUI :
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
+		DB.rollback()
 
 	def populate_accounts (self):
 		accounts_store = self.builder.get_object('liability_account_store')
@@ -81,15 +77,16 @@ class LoanGUI :
 						"FROM gl_accounts WHERE type = 5 "
 						"AND parent_number IS NULL")
 		for row in self.cursor.fetchall():
-			parent = accounts_store.append(None,row)
+			parent = accounts_store.append(None, row)
 			number = row[0]
 			self.populate_child_accounts(number, parent, accounts_store)
+		DB.rollback()
 
 	def populate_child_accounts (self, number, parent, accounts_store):
 		self.cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
 							"parent_number = %s", (number,))
 		for row in self.cursor.fetchall():
-			p = accounts_store.append(parent,row)
+			p = accounts_store.append(parent, row)
 			number = row[0]
 			self.populate_child_accounts (number, p, accounts_store)
 
@@ -109,12 +106,13 @@ class LoanGUI :
 							"WHERE finished = False")
 		for row in self.cursor.fetchall():
 			self.loan_store.append(row)
+		DB.rollback()
 
 	def description_edited (self, cellrenderertext, path, text):
 		row_id = self.loan_store[path][0]
 		self.cursor.execute("UPDATE loans SET description = %s WHERE id = %s",
 							(text, row_id))
-		self.db.commit()
+		DB.commit()
 		self.loan_store[path][4] = text
 
 	def contact_combo_changed (self, combobox):
@@ -164,7 +162,7 @@ class LoanGUI :
 			self.builder.get_object('button1').set_sensitive(True)
 
 	def save_clicked (self, button):
-		gl_entries_id = transactor.create_loan(self.db, self.date, 
+		gl_entries_id = transactor.create_loan(self.date, 
 												self.amount, self.account)
 		period_amount = self.builder.get_object('period_amount_spin').get_text()
 		self.cursor.execute("INSERT INTO loans "
@@ -184,7 +182,7 @@ class LoanGUI :
 							self.payment_period,
 							period_amount, 
 							gl_entries_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_loans ()
 		button.set_sensitive(False)
 		self.window.destroy()

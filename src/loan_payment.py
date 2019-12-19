@@ -19,9 +19,9 @@ from gi.repository import Gtk, Gdk, GLib, GObject
 from check_writing import get_written_check_amount_text, get_check_number
 from dateutils import DateTimeCalendar
 from db import transactor 
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/loan_payment.ui"
+UI_FILE = ui_directory + "/loan_payment.ui"
 
 class LoanPaymentGUI:
 	def __init__(self, loan_id = None):
@@ -29,9 +29,8 @@ class LoanPaymentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
@@ -50,10 +49,10 @@ class LoanPaymentGUI:
 			self.builder.get_object('combobox1').set_active_id(str(loan_id))
 
 	def spinbutton_focus_in_event (self, entry, event):
-		GLib.idle_add(self.highlight, entry)
+		GLib.idle_add(entry.select_region, 0, -1)
 
-	def highlight (self, entry):
-		entry.select_region(0, -1)
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_stores (self):
 		self.cursor.execute("SELECT l.id::text, l.description, c.id::text, c.name "
@@ -80,6 +79,7 @@ class LoanPaymentGUI:
 		for row in self.cursor.fetchall():
 			parent_tree = self.loan_account_store.append(None, row)
 			self.get_child_accounts (self.loan_account_store, row[0], parent_tree)
+		DB.rollback()
 
 	def get_child_accounts (self, store, parent_number, parent_tree):
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
@@ -103,7 +103,7 @@ class LoanPaymentGUI:
 		bank_account = combo.get_active_id()
 		if bank_account != None:
 			self.builder.get_object('entry3').set_sensitive(True)
-			check_number = get_check_number(self.db, bank_account)
+			check_number = get_check_number(bank_account)
 			self.builder.get_object('entry7').set_text(str(check_number))
 		self.check_if_all_requirements_valid ()
 
@@ -175,7 +175,7 @@ class LoanPaymentGUI:
 		cash_account = self.builder.get_object('combobox3').get_active_id()
 		self.total_id = self.loan_payment.cash (cash_account)
 		self.update_loan_payment_ids ()
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def transfer_payment_clicked (self, button):
@@ -184,7 +184,7 @@ class LoanPaymentGUI:
 		bank_account = self.builder.get_object('combobox4').get_active_id()
 		self.total_id = self.loan_payment.bank_transfer(bank_account, transaction_number)
 		self.update_loan_payment_ids ()
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def check_payment_clicked (self, button):
@@ -195,11 +195,11 @@ class LoanPaymentGUI:
 		contact_name = self.loan_store[active][2]
 		self.total_id = self.loan_payment.bank_check (bank_account, check_number, contact_name)
 		self.update_loan_payment_ids ()
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def principal_and_interest_payment (self):
-		self.loan_payment = transactor.LoanPayment(self.db, self.date, 
+		self.loan_payment = transactor.LoanPayment(self.date, 
 													self.total, self.loan_id)
 		#### interest
 		interest = self.builder.get_object('spinbutton2').get_value()
@@ -272,4 +272,4 @@ class LoanPaymentGUI:
 
 
 
-		
+

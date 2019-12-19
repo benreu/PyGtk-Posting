@@ -16,14 +16,13 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/main_reports_window.ui"
+UI_FILE = ui_directory + "/reports/main_reports_window.ui"
 
 class MainReportsGUI:
 	def __init__(self):
-
-		self.db = constants.db
+		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)

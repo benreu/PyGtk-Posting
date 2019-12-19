@@ -16,7 +16,7 @@
 
 from gi.repository import Gtk, GLib
 import psycopg2, subprocess, re
-from constants import ui_directory, db, broadcaster, \
+from constants import ui_directory, DB, broadcaster, \
 						is_admin, help_dir, template_dir
 from main import get_apsw_connection
 
@@ -31,9 +31,7 @@ class GUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = db
-		self.cursor = db.cursor()
+		self.cursor = DB.cursor()
 		self.contact_id = contact_id
 		
 		self.name_widget = self.get_object('entry1')
@@ -125,7 +123,7 @@ class GUI(Gtk.Builder):
 
 	def customer_markup_percent_clicked (self, button):
 		import constants
-		if constants.is_admin == False:
+		if is_admin == False:
 			return
 		self.window.present()
 		import customer_markup_percent
@@ -185,12 +183,12 @@ class GUI(Gtk.Builder):
 								"WHERE (customer_id, tax_rate_id) = "
 								"(%s, %s)", 
 								(binary, self.contact_id, exemption_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_tax_exemptions ()
 
 	def terms_clicked (self, button):
 		import constants
-		if constants.is_admin == False:
+		if is_admin == False:
 			return
 		self.window.present()
 		import customer_terms
@@ -207,7 +205,6 @@ class GUI(Gtk.Builder):
 							"WHERE contact_id = %s ORDER BY name", 
 							(self.contact_id,))
 		for row in self.cursor.fetchall():
-			#print (row)
 			store.append(row)
 
 	def view_file_clicked (self, button):
@@ -234,7 +231,7 @@ class GUI(Gtk.Builder):
 		dialog.add_button("Go back", Gtk.ResponseType.REJECT)
 		box = dialog.get_content_area()
 		import constants
-		if constants.is_admin == False:
+		if is_admin == False:
 			label = Gtk.Label(label = "You are not admin !")
 		else:
 			file_name = model[path][1]
@@ -247,7 +244,7 @@ class GUI(Gtk.Builder):
 		if result == Gtk.ResponseType.ACCEPT:
 			file_id = model[path][0]
 			self.cursor.execute("DELETE FROM files WHERE id = %s", (file_id,))
-			self.db.commit ()
+			DB.commit ()
 			self.populate_file_store ()
 		dialog.hide()
 
@@ -268,7 +265,7 @@ class GUI(Gtk.Builder):
 			self.cursor.execute("INSERT INTO files(file_data, contact_id, name) "
 								"VALUES (%s, %s, %s)", 
 								(dat, self.contact_id, name))
-			self.db.commit()
+			DB.commit()
 			self.populate_file_store()
 		
 	def add_exemption_to_contact (self):
@@ -289,7 +286,7 @@ class GUI(Gtk.Builder):
 								"WHERE id = %s", 
 								(binary, customer_exemption_id))
 		self.populate_tax_exemptions ()
-		self.db.commit()
+		DB.commit()
 
 	def contact_help_clicked (self, widget):
 		subprocess.Popen(["yelp", help_dir + "/contacts.page"])
@@ -533,7 +530,7 @@ class GUI(Gtk.Builder):
 	def tax_exempt_clicked(self, widget):
 		sense = widget.get_active() 
 		self.tax_exempt_number_widget.set_sensitive(sense)	
-		if (sense == True):
+		if sense == True:
 			self.tax_exempt_number_widget.set_placeholder_text("Tax Exempt "
 																	"Number")
 		else:
@@ -543,7 +540,7 @@ class GUI(Gtk.Builder):
 		#just set the deleted boolean to true in the database and then we ignore it
 		self.cursor.execute("UPDATE contacts SET deleted = True "
 							"WHERE id = %s ", [self.contact_id])
-		self.db.commit()
+		DB.commit()
 		self.populate_contacts ()
 
 	def exit(self, widget):
@@ -699,7 +696,7 @@ class GUI(Gtk.Builder):
 		self.get_object('entry12').set_text("")
 		self.cursor.execute("DELETE FROM contact_individuals WHERE id = %s", 
 							(individual_id,))
-		self.db.commit ()
+		DB.commit ()
 		self.populate_individual_store ()
 
 	def contact_individual_combo_changed (self, combo):
@@ -724,7 +721,7 @@ class GUI(Gtk.Builder):
 		name = self.name_widget.get_text()
 		if name == "":  #no text! so we exit
 			return
-		c = self.db.cursor()
+		c = DB.cursor()
 		ext_name = self.ext_name_widget.get_text()
 		address = self.address_widget.get_text()
 		city = self.city_widget.get_text()
@@ -828,7 +825,7 @@ class GUI(Gtk.Builder):
 		c.close()
 		self.populate_individual_store ()
 		self.get_object('combobox3').set_active_id(str(individual_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_contacts ()
 		self.populate_zip_codes ()
 
@@ -912,7 +909,7 @@ class GUI(Gtk.Builder):
 			self.cursor.execute("UPDATE mailing_list_register SET active = False "
 								"WHERE (mailing_list_id,contact_id) = (%s,%s) ",
 								(row_id, self.contact_id))
-		self.db.commit()
+		DB.commit()
 		self.mailing_list_store[path][2] = set_state
 
 		

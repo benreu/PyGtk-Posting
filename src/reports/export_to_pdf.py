@@ -21,9 +21,9 @@ gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, GLib, Gio
 from gi.repository import EvinceView, EvinceDocument, PangoCairo, Pango
 import cairo
-import constants
+from constants import ui_directory
 
-UI_FILE = constants.ui_directory + "/reports/export_to_pdf.ui"
+UI_FILE = ui_directory + "/reports/export_to_pdf.ui"
 
 class ExportToPdfGUI(Gtk.Builder):
 	landscape = False

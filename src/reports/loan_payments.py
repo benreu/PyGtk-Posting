@@ -16,19 +16,17 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/loan_payments.ui"
+UI_FILE = ui_directory + "/reports/loan_payments.ui"
 
 class LoanPaymentsGUI:
 	def __init__(self):
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
-
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.loan_payment_store = self.builder.get_object('loan_payments_store')
 		self.loan_store = self.builder.get_object('loan_store')
@@ -49,6 +47,9 @@ class LoanPaymentsGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def cell_func (self, column, cellrenderer, model, iter1, index):
 		amount = "{:,.2f}".format(model[iter1][index])
 		cellrenderer.set_property("text", amount)
@@ -59,6 +60,7 @@ class LoanPaymentsGUI:
 							"ORDER BY description")
 		for row in self.cursor.fetchall():
 			self.loan_store.append(row)
+		DB.rollback()
 
 	def loan_combo_changed (self, combo):
 		loan_id = combo.get_active_id ()
@@ -88,8 +90,9 @@ class LoanPaymentsGUI:
 							(self.loan_id,))
 		for row in self.cursor.fetchall():
 			self.loan_payment_store.append(row)
+		DB.rollback()
 
 
-			
 
-		
+
+

@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GObject
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/expense_products.ui"
 
@@ -39,18 +39,18 @@ class GUI(Gtk.Builder):
 		self.window.show_all()
 
 	def populate_expense_account_store (self):
-		c = db.cursor()
+		c = DB.cursor()
 		self.expense_account_store.clear()
 		c.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE expense_account = True")
 		for row in c.fetchall():
 			self.expense_account_store.append(row)
-		db.rollback()
+		DB.rollback()
 		c.close()
 
 	def populate_expense_products_store (self):
 		self.expense_products_store.clear()
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT p.id, p.name, cost, "
 							"default_expense_account, a.name "
 							"FROM products AS p LEFT JOIN gl_accounts "
@@ -58,7 +58,7 @@ class GUI(Gtk.Builder):
 							"WHERE (deleted, expense) = (False, True)")
 		for row in c.fetchall():
 			self.expense_products_store.append(row)
-		db.rollback()
+		DB.rollback()
 		c.close()
 
 	def product_expense_account_combo_changed (self, combo, path, iter_):
@@ -77,7 +77,7 @@ class GUI(Gtk.Builder):
 		self.save_expense_product (path)
 
 	def save_expense_product (self, path):
-		c = db.cursor()
+		c = DB.cursor()
 		product_id = self.expense_products_store[path][0]
 		product_name = self.expense_products_store[path][1]
 		product_cost = self.expense_products_store[path][2]
@@ -89,12 +89,12 @@ class GUI(Gtk.Builder):
 					"(%s, %s, %s) WHERE id = %s", 
 					(product_name, product_cost, 
 					expense_account, product_id))
-		db.commit()
+		DB.commit()
 		c.close()
 		self.emit('expense-products-changed')
 
 	def new_expense_product_clicked (self, button):
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("INSERT INTO products "
 								"(name, "
 								"unit, "
@@ -117,12 +117,12 @@ class GUI(Gtk.Builder):
 								"(SELECT number FROM gl_accounts "
 									"WHERE expense_account = True LIMIT 1 "
 									"))")
-		db.commit()
+		DB.commit()
 		c.close()
 		self.emit('expense-products-changed')
 
 	def delete_expense_product_clicked (self, button):
-		c = db.cursor()
+		c = DB.cursor()
 		model, path = self.get_object("treeview-selection2").get_selected_rows()
 		if path == []:
 			return
@@ -132,10 +132,10 @@ class GUI(Gtk.Builder):
 								(product_id,))
 		except psycopg2.IntegrityError as e:
 			print (e)
-			db.rollback()
+			DB.rollback()
 			c.execute("UPDATE products SET deleted = TRUE "
 								"WHERE id = %s ", (product_id,))
-		db.commit()
+		DB.commit()
 		c.close()
 		self.populate_expense_products_store ()
 		self.emit('expense-products-changed')

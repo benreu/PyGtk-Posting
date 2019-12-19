@@ -18,7 +18,7 @@
 from gi.repository import Gtk, Gdk
 import xlrd
 from xlrd.biffh import XLRDError
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/admin/contact_import.ui"
 
@@ -37,7 +37,7 @@ class ContactsImportGUI:
 
 	def populate_combos (self):
 		markup_combo = self.builder.get_object('markup_combo')
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT id::text, name "
 					"FROM customer_markup_percent "
 					"WHERE deleted = False ORDER BY name")
@@ -52,6 +52,7 @@ class ContactsImportGUI:
 			terms_combo.append(row[0], row[1])
 		terms_combo.set_active(0)
 		c.close()
+		DB.rollback()
 
 ####### start import to treeview
 
@@ -147,7 +148,7 @@ class ContactsImportGUI:
 		term_id = self.builder.get_object('terms_combo').get_active_id()
 		markup_id = self.builder.get_object('markup_combo').get_active_id()
 		model = self.builder.get_object('xls_import_store')
-		c = db.cursor()
+		c = DB.cursor()
 		for row in model:
 			c.execute ("INSERT INTO contacts ("
 												"name, "
@@ -189,7 +190,7 @@ class ContactsImportGUI:
 						"ON CONFLICT (contact_id, mailing_list_id) "
 						"DO NOTHING", (contact_id,))
 		c.close()
-		db.commit()
+		DB.commit()
 		
 	def text_renderer_edited (self, text_renderer, path, new_text):
 		treeview = self.builder.get_object('xls_treeview')

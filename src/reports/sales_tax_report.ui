@@ -33,6 +33,7 @@
     <property name="title" translatable="yes">Sales Tax Report</property>
     <property name="window_position">center</property>
     <property name="default_height">300</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

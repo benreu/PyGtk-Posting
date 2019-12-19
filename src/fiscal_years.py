@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 from datetime import datetime, timedelta
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/fiscal_years.ui"
+UI_FILE = ui_directory + "/fiscal_years.ui"
 
 class FiscalYearGUI:
 	def __init__(self):
@@ -28,9 +28,7 @@ class FiscalYearGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.start_calendar = DateTimeCalendar(True)
 		self.start_calendar.connect('day-selected', self.start_day_selected)
@@ -43,8 +41,10 @@ class FiscalYearGUI:
 		self.fiscal_year_store = self.builder.get_object('fiscal_year_store')
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
-		
 		self.populate_fiscal_years()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_fiscal_years (self):
 		self.fiscal_year_store.clear()
@@ -59,20 +59,21 @@ class FiscalYearGUI:
 							"FROM fiscal_years ORDER BY start_date")
 		for row in self.cursor.fetchall():
 			self.fiscal_year_store.append(row)
+		DB.rollback()
 
 	def active_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
 		id_ = self.fiscal_year_store[path][0]
 		self.cursor.execute("UPDATE fiscal_years SET active = %s "
 							"WHERE id = %s", (active, id_))
-		self.db.commit()
+		DB.commit()
 		self.populate_fiscal_years ()
 
 	def fiscal_years_name_edited (self, textrenderer, path, text):
 		id_ = self.fiscal_year_store[path][0]
 		self.cursor.execute("UPDATE fiscal_years SET name = %s "
 							"WHERE id = %s", (text, id_))
-		self.db.commit()
+		DB.commit()
 		self.populate_fiscal_years ()
 
 	def create_fiscal_year_clicked (self, button):
@@ -85,7 +86,7 @@ class FiscalYearGUI:
 								"(name, start_date, end_date, active) "
 								"VALUES (%s, %s, %s, True)", 
 								(fiscal_name, self.start_date, self.end_date))
-			self.db.commit()
+			DB.commit()
 			self.builder.get_object('entry1').set_text('')
 			self.populate_fiscal_years()
 			
@@ -117,4 +118,4 @@ class FiscalYearGUI:
 
 
 
-		
+

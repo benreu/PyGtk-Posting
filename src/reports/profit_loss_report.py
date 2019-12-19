@@ -16,10 +16,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 from decimal import Decimal
 
-UI_FILE = constants.ui_directory + "/reports/profit_loss_report.ui"
+UI_FILE = ui_directory + "/reports/profit_loss_report.ui"
 
 class ProfitLossReportGUI(Gtk.Builder):
 	def __init__(self):
@@ -27,14 +27,15 @@ class ProfitLossReportGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.populate_fiscals ()
 
 		self.account_treestore = self.get_object("profit_loss_store")
 		self.window = self.get_object("window")
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_fiscals (self):
 		fiscal_store = self.get_object('fiscal_store')
@@ -42,6 +43,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 							"ORDER BY name ")
 		for account in self.cursor.fetchall():
 			fiscal_store.append(account)
+		DB.rollback()
 
 	def fiscal_year_combo_changed (self, combobox):
 		fiscal_id = combobox.get_active_id()
@@ -79,9 +81,10 @@ class ProfitLossReportGUI(Gtk.Builder):
 			self.account_treestore.set_value(tree_parent, 2, str(expenses))
 		income = revenue - expenses
 		self.get_object("income_amount_label").set_label(str(income))
+		DB.rollback()
 
 	def get_child_accounts (self, is_parent, parent_account, parent_tree):
-		c = self.db.cursor()
+		c = DB.cursor()
 		if is_parent == True:
 			c.execute("SELECT is_parent, number::text, name, 0.00::text "
 						"FROM gl_accounts "

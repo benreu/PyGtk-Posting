@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GObject, GLib
 from datetime import datetime, date, timedelta
-from constants import cursor
+from constants import DB
 import time
 
 PARSE_STRING = "%b %d %Y"
@@ -200,12 +200,15 @@ class DateTimeCalendar (Gtk.Popover):
 		return date_time
 
 	def get_text(self):
-		global cursor
+		cursor = DB.cursor()
 		if self.error == True:
 			return ''
 		date = self.get_datetime().date()
 		cursor.execute("SELECT format_date(%s)", (date,))
-		return cursor.fetchone()[0]
+		value = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		return value
 
 	def set_datetime (self, date_time):
 		date_time = str(date_time)
@@ -242,7 +245,7 @@ class DateTimeCalendar (Gtk.Popover):
 		self.set_datetime (date_time)
 
 	def day_selected (self, calendar, date_label, fiscal_label, override):
-		global cursor
+		cursor = DB.cursor()
 		date_time = self.get_datetime ()
 		cursor.execute("SELECT id FROM fiscal_years "
 							"WHERE active = True AND %s >= start_date "
@@ -264,6 +267,8 @@ class DateTimeCalendar (Gtk.Popover):
 				self.timeout = None		
 		date_label.set_label(str(date_string))
 		self.emit('day-selected')
+		cursor.close()
+		DB.rollback()
 
 	def force_show (self):
 		self.show()

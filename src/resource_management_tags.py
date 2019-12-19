@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/resource_management_tags.ui"
+UI_FILE = ui_directory + "/resource_management_tags.ui"
 
 class ResourceManagementTagsGUI(Gtk.Builder):
 	def __init__(self):
@@ -27,9 +27,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.tag_edit_store = self.get_object('tag_edit_store')
 		self.populate_edit_tag_store()
@@ -37,6 +35,9 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 		
 		self.window = self.get_object('window1')
 		self.window.show_all() 
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_edit_tag_store (self):
 		self.tag_edit_store.clear()
@@ -53,6 +54,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 			finished = row[6]
 			rgba = Gdk.RGBA(red, green, blue, alpha)
 			self.tag_edit_store.append([tag_id, tag_name, rgba, finished])
+		DB.rollback()
 
 	def save_tag_clicked (self, button):
 		tag_name = self.get_object('entry2').get_text()
@@ -73,7 +75,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 								"(%s, %s, %s, %s, %s) WHERE id = %s", 
 								(tag_name, red, green, blue, alpha, 
 								self.tag_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_edit_tag_store ()
 
 	def new_tag_clicked (self, button):
@@ -100,6 +102,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 			rgba = Gdk.RGBA(red, green, blue, alpha)
 			self.get_object('entry2').set_text(tag_name)
 			self.get_object('colorbutton1').set_rgba(rgba)
+		DB.rollback()
 
 	def finished_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
@@ -108,11 +111,9 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 		self.cursor.execute("UPDATE resource_tags "
 									"SET finished = %s "
 									"WHERE id = %s",(active, row_id))
-		self.db.commit()
+		DB.commit()
 
 
 
-		
 
 
-		

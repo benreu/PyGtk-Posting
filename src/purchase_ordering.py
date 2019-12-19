@@ -19,8 +19,8 @@ from gi.repository import Gtk
 import subprocess, re
 from datetime import timedelta
 from decimal import Decimal
-from db import transactor
-import printing, constants
+import printing
+from constants import DB, template_dir
 
 
 items = list()
@@ -28,15 +28,15 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, db, contact, comment, datetime, purchase_order_id):
+	def __init__(self, contact, comment, datetime, purchase_order_id):
 		self.vendor_id = contact
 		self.comment = comment
 		self.datetime = datetime
 		self.total = Decimal()
 		self.purchase_order_id = purchase_order_id
-		self.db = db
-		self.cursor = db.cursor()
-		self.cursor.execute("SELECT "
+		
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"name, "
 								"ext_name, "
 								"address, "
@@ -52,7 +52,7 @@ class Setup():
 							(contact, ))
 		vendor = Item()
 		items = list()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			vendor.name = (row[0])
 			name = (row[0])
 			vendor.ext_name = (row[1])
@@ -66,7 +66,7 @@ class Setup():
 			vendor.label = (row[9])
 			vendor.tax_exempt_number = (row[10])
 		company = Item()
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 							"name, "
 							"street, "
 							"city, "
@@ -79,7 +79,7 @@ class Setup():
 							"website, "
 							"tax_number "
 							"FROM company_info")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			company.name = row[0]
 			company.street = row[1]
 			company.city = row[2]
@@ -91,7 +91,7 @@ class Setup():
 			company.email = row[8]
 			company.website = row[9]
 			company.tax_number = row[10]
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 								"poi.qty, "
 								"poi.remark, "
 								"poi.price::money, "
@@ -110,7 +110,7 @@ class Setup():
 							"WHERE (purchase_order_id, hold) = (%s, False) "
 							"ORDER BY poi.id", 
 							(self.purchase_order_id, ) )
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			item = Item()
 			item.qty = row[0]
 			if row[1] != '':
@@ -129,9 +129,9 @@ class Setup():
 		document.date = self.datetime
 
 		date_thirty = datetime + timedelta(days=30)
-		self.cursor.execute("SELECT format_date(%s), format_date(%s)", 
+		cursor.execute("SELECT format_date(%s), format_date(%s)", 
 											(date_thirty, datetime))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			payment_due_text = row[0]
 			date_text = row[1]
 		document.payment_due = payment_due_text
@@ -150,18 +150,20 @@ class Setup():
 		self.document_pdf = document.number + ".pdf"
 		self.data = dict(items=items, document=document,
 							contact=vendor, company=company)
+		cursor.close()
 
 	def view(self):
 		from py3o.template import Template 
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
+		t = Template(template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data) #the self.data holds all the info of the purchase_order
 		subprocess.Popen("libreoffice " + purchase_order_file, shell = True)
 
 	def print_dialog(self, window):
+		cursor = DB.cursor()
 		from py3o.template import Template
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
+		t = Template(template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = 'purchase_order')
@@ -169,15 +171,17 @@ class Setup():
 		p.set_file_to_print("/tmp/" + self.document_pdf)
 		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
-			self.cursor.execute("UPDATE purchase_orders SET date_printed = "
+			cursor.execute("UPDATE purchase_orders SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.purchase_order_id,))
+		cursor.close()
 		return result
 		
 	def print_directly(self):
+		cursor = DB.cursor()
 		from py3o.template import Template
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/purchase_order_template.odt", purchase_order_file , True)
+		t = Template(template_dir+"/purchase_order_template.odt", purchase_order_file , True)
 		t.render(self.data)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = 'purchase_order')
@@ -185,9 +189,10 @@ class Setup():
 		p.set_file_to_print("/tmp/" + self.document_pdf)
 		result = p.print_direct()
 		if result == Gtk.PrintOperationResult.APPLY:
-			self.cursor.execute("UPDATE purchase_orders SET date_printed = "
+			cursor.execute("UPDATE purchase_orders SET date_printed = "
 								"CURRENT_DATE WHERE id = %s", 
 								(self.purchase_order_id,))
+		cursor.close()
 		return result
 
 	def post(self, purchase_order_id, vendor_id, datetime):
@@ -195,7 +200,8 @@ class Setup():
 		f = open(document,'rb')
 		dat = f.read()
 		f.close()
-		self.cursor.execute("UPDATE purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders "
 								"SET (pdf_data, "
 									"closed, "
 									"invoiced, "
@@ -214,7 +220,8 @@ class Setup():
 							datetime,
 							self.comment, 
 							purchase_order_id))
-		self.db.commit()
+		DB.commit()
+		cursor.close()
 
 
 

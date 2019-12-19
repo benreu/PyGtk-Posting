@@ -23,9 +23,9 @@ from datetime import datetime
 import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/unprocessed_po.ui"
+UI_FILE = ui_directory + "/unprocessed_po.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -34,11 +34,10 @@ class GUI(Gtk.Builder):
 	purchase_order_id = None
 	def __init__(self, po_id = None):
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		
 		self.purchase_order_items_store = self.get_object('purchase_order_items_store')
 		self.expense_account_store = self.get_object('expense_account_store')
@@ -95,9 +94,10 @@ class GUI(Gtk.Builder):
 			with open(file_name,'wb') as f:
 				f.write(row[0])
 			Popen(["xdg-open", file_name])
+		DB.rollback()
 
 	def destroy(self, window):
-		self.window.destroy()
+		self.cursor.close()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -124,6 +124,7 @@ class GUI(Gtk.Builder):
 							"WHERE expense = True ORDER BY name")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def expense_spinbutton_value_changed (self, spinbutton):
 		product = self.get_object('expense_product_combo').get_active_id()
@@ -178,6 +179,7 @@ class GUI(Gtk.Builder):
 			calculated_cost = Decimal(row[5]) + expense_adder
 			row[9] = float(calculated_cost)
 			self.check_current_cost (index)
+		DB.rollback()
 
 	def save_invoice_button_clicked (self, button):
 		if self.request_po_attachment and not self.attachment:
@@ -196,15 +198,13 @@ class GUI(Gtk.Builder):
 							"(%s, True, %s, %s) WHERE id = %s", 
 							(self.total, self.total, invoice_number, 
 							self.purchase_order_id))
-		self.populate_po_combobox ()
-		post_purchase_order (self.db, self.total, 
-														self.purchase_order_id)
+		post_purchase_order (self.total, self.purchase_order_id)
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		if self.cursor.fetchone()[0] == True:
-			post_purchase_order_accounts (self.db, self.purchase_order_id, 
+			post_purchase_order_accounts (self.purchase_order_id, 
 											datetime.today())
-		self.window.hide()
-		self.db.commit()
+		DB.commit()
+		self.window.destroy()
 
 	def save_and_pay_invoice(self, widget):
 		self.save_invoice()
@@ -220,6 +220,7 @@ class GUI(Gtk.Builder):
 							"WHERE expense_account = True")
 		for row in self.cursor.fetchall():
 			self.expense_account_store.append(row)
+		DB.rollback()
 
 	def populate_po_combobox (self):
 		name_combo = self.get_object('combobox1') 
@@ -235,6 +236,7 @@ class GUI(Gtk.Builder):
 							"(False, False, True) ORDER by po.id" )
 		for row in self.cursor.fetchall():
 			self.po_store.append(row)
+		DB.rollback()
 		
 	def po_combobox_changed (self, combo): 
 		po_id = combo.get_active_id()
@@ -251,7 +253,7 @@ class GUI(Gtk.Builder):
 
 	def populate_purchase_order_items_store (self):
 		self.purchase_order_items_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 						"poli.id, "
 						"qty, "
@@ -275,6 +277,7 @@ class GUI(Gtk.Builder):
 			self.purchase_order_items_store.append(row)
 		self.calculate_totals ()
 		c.close()
+		DB.rollback()
 
 	def po_description_changed (self, editable):
 		self.check_all_entries_completed()
@@ -350,7 +353,7 @@ class GUI(Gtk.Builder):
 							"SET (qty, remark, price, ext_price) = "
 							"(%s, %s, %s, %s) WHERE id = %s", 
 							(qty, remarks, price, ext_price, row_id))
-		self.db.commit()
+		DB.commit()
 		
 	def check_current_cost(self, path):
 		self.product_id = self.purchase_order_items_store[path][2]
@@ -385,7 +388,7 @@ class GUI(Gtk.Builder):
 		self.cursor.execute("UPDATE purchase_order_line_items "
 							"SET expense_account = %s WHERE id = %s", 
 							(account_number, row_id))
-		self.db.commit()
+		DB.commit()
 		self.calculate_totals ()
 
 	def calculate_totals(self):
@@ -429,6 +432,7 @@ class GUI(Gtk.Builder):
 			list_box_row.add(hbox)
 			listbox.add(list_box_row)
 		listbox.show_all()
+		DB.rollback()
 
 	def cost_changed (self, cost_spin, markup_spin, sell_spin, terms_id):
 		cost = self.get_object('spinbutton1').get_text()
@@ -490,6 +494,7 @@ class GUI(Gtk.Builder):
 				margin = (markup / 100) * cost
 				sell_price = margin + cost
 				sell_spin.set_value(sell_price)
+		DB.rollback()
 
 	def save_product_terms_prices (self):
 		cost = self.get_object('spinbutton1').get_value()
@@ -519,7 +524,7 @@ class GUI(Gtk.Builder):
 									"(product_id, markup_id, price) "
 									"VALUES (%s, %s, %s)", 
 									(self.product_id, terms_id, sell_price))
-		self.db.commit()
+		DB.commit()
 
 	def attach_button_clicked (self, button = None):
 		import pdf_attachment
@@ -531,7 +536,7 @@ class GUI(Gtk.Builder):
 								"SET attached_pdf = %s "
 								"WHERE id = %s", 
 								(pdf_data, self.purchase_order_id))
-			self.db.commit()
+			DB.commit()
 			# update the attachment status for this po
 			active = self.get_object("combobox1").get_active()
 			self.po_store[active][3] = True

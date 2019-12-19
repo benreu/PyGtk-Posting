@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/product_hub.ui"
+UI_FILE = ui_directory + "/product_hub.ui"
 
 class ProductHubGUI:
 	def __init__(self, product_id):
@@ -26,12 +26,13 @@ class ProductHubGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
 		self.product_id = product_id
-		self.cursor = self.db.cursor()
-		self.cursor.execute ("SELECT name FROM products WHERE id = %s", (product_id,))
+		self.cursor.execute ("SELECT name FROM products WHERE id = %s", 
+														(product_id,))
 		self.name = self.cursor.fetchone()[0]
+		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()

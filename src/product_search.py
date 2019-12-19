@@ -19,10 +19,9 @@
 
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/product_search.ui"
-
 
 class ProductSearchGUI:
 	def __init__(self):
@@ -30,9 +29,7 @@ class ProductSearchGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db  = db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.product_name = ''
 		self.ext_name = ''
@@ -166,6 +163,7 @@ class ProductSearchGUI:
 											vendor_barcode, deleted, stock, 
 											sellable, purchasable, 
 											manufactured])
+		DB.rollback()
 
 	def set_all_column_indicators_false(self):
 		for column in self.treeview.get_columns():

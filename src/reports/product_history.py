@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/product_history.ui"
+UI_FILE = ui_directory + "/reports/product_history.ui"
 
 class ProductHistoryGUI (Gtk.Builder):
 	def __init__(self):
@@ -31,12 +31,10 @@ class ProductHistoryGUI (Gtk.Builder):
 		Gtk.Builder.__init__ (self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 
 		self.invoice_history = None
 
@@ -44,13 +42,13 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.cursor.execute("SELECT id::text, name, ext_name FROM products "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			name = row[1]
-			ext_name = row[2]
-			self.product_store.append([id_ , name, ext_name])
-		
+			self.product_store.append(row)
+		DB.rollback()
 		self.window = self.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, window):
+		self.cursor.close()
 
 	def notebook_create_window (self, notebook, widget, x, y):
 		window = Gtk.Window()
@@ -83,9 +81,6 @@ class ProductHistoryGUI (Gtk.Builder):
 			dest_notebook.set_tab_detachable(widget, True)
 			dest_notebook.set_tab_reorderable(widget, True)
 			dest_notebook.child_set_property(widget, 'tab-expand', True)
-
-	def close_transaction_window (self, window, event):
-		self.cursor.close()
 		
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
@@ -99,6 +94,7 @@ class ProductHistoryGUI (Gtk.Builder):
 			with open(file_name,'wb') as f:
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_name])
+		DB.rollback()
 
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection4')
@@ -153,6 +149,7 @@ class ProductHistoryGUI (Gtk.Builder):
 			break
 		else:
 			self.show_message("No attachment for this Purchase Order")
+		DB.rollback()
 
 	def product_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -181,6 +178,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.populate_purchase_orders ()
 		self.populate_warranty_store ()
 		self.populate_manufacturing_store ()
+		DB.rollback()
 
 	def populate_warranty_store (self):
 		warranty_store = self.get_object('warranty_store')

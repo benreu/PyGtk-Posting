@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk
 import xlsxwriter, subprocess
-import constants
+from constants import ui_directory
 
-UI_FILE = constants.ui_directory + "/reports/export_to_xls.ui"
+UI_FILE = ui_directory + "/reports/export_to_xls.ui"
 
 class ExportToXlsGUI (Gtk.Builder):
 	def __init__(self, parent_window, treeview):

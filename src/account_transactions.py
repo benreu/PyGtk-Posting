@@ -17,9 +17,9 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
-import constants
+from constants import DB, ui_directory
 
-UI_FILE = constants.ui_directory + "/account_transactions.ui"
+UI_FILE = ui_directory + "/account_transactions.ui"
 
 class GUI:
 	def __init__(self):
@@ -27,29 +27,29 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.account_number = None
 
 		self.account_store = self.builder.get_object('account_store')
 		self.account_treestore = self.builder.get_object('account_transaction_store')
 		self.treeview = self.builder.get_object('treeview1')
 		self.is_parent_account = None
-		self.db = constants.db
-		self.cursor = self.db.cursor()
-		self.cursor.execute("SELECT number, name, is_parent FROM gl_accounts "
+		c = DB.cursor()
+		c.execute("SELECT number, name, is_parent FROM gl_accounts "
 							"ORDER BY number")
-		for account in self.cursor.fetchall():
+		for account in c.fetchall():
 			number = str(account[0])
 			name = account[1]
 			is_parent_account = account[2]
 			self.account_store.append([number, number + " " + name, 
 										is_parent_account])
 		fiscal_store = self.builder.get_object('fiscal_store')
-		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+		c.execute("SELECT id::text, name FROM fiscal_years "
 							"WHERE active = True ORDER BY name ")
-		for account in self.cursor.fetchall():
-			number = account[0]
-			name = account[1]
-			fiscal_store.append([number, name])
+		for row in c.fetchall():
+			fiscal_store.append(row)
+		c.close()
+		DB.rollback()
 		self.builder.get_object('combobox2').set_active(0)
 		account_completion = self.builder.get_object('account_completion')
 		account_completion.set_match_func(self.completion_match_func)
@@ -199,9 +199,10 @@ class GUI:
 			self.builder.get_object('treeviewcolumn1').set_title("Debit")
 			self.builder.get_object('treeviewcolumn5').set_visible(True)
 			#self.builder.get_object('radiobutton3').set_active(True) #set the individually radiobutton True
-			GLib.idle_add (self.update_treeview) 
+			self.update_treeview() 
 		self.builder.get_object('window1').set_title(self.account_name + " (transactions)")
 		GLib.timeout_add(10, self.scroll_window_to_bottom )
+		DB.rollback()
 		
 	def completion_match_func (self, completion, key, iter):
 		split_search_text = key.split()
@@ -240,7 +241,7 @@ class GUI:
 		self.account_treestore.set_value(tree_parent, 4, account_amount)
 
 	def get_child_accounts (self, is_parent, parent_account, parent_tree):
-		c = self.db.cursor()
+		c = DB.cursor()
 		if is_parent == True:
 			c.execute("SELECT is_parent, number, name FROM gl_accounts "
 						"WHERE parent_number = %s ORDER BY number", 
@@ -315,7 +316,7 @@ class GUI:
 		progressbar.show()
 		self.account_treestore.clear()
 		balance = 0.00
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT gtl.id, gtl.date_inserted::text, "
 					"format_date(gtl.date_inserted), ge.amount, "
 					"debit_account, debits.name, credit_account, "
@@ -449,7 +450,7 @@ class GUI:
 		self.treeview.set_model(None)
 		store.clear()
 		amount = Decimal()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT date_group::text, "
 					"format_date(date_group), "
 					"COALESCE(d.debits,0.00) - COALESCE(c.credits,0.00) "
@@ -519,7 +520,7 @@ class GUI:
 		self.treeview.set_model(None)
 		store.clear()
 		amount = Decimal()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT date_group::text, "
 					"format_date(date_group), "
 					"COALESCE(d.debits,0.00) - COALESCE(c.credits,0.00) "

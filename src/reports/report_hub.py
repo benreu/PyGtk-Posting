@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory
 
-UI_FILE = constants.ui_directory + "/reports/report_hub.ui"
+UI_FILE = ui_directory + "/reports/report_hub.ui"
 
 class ReportHubGUI (Gtk.Builder):
 	border_width = 25

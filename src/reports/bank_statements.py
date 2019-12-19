@@ -17,7 +17,7 @@
 
 
 from gi.repository import Gtk
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/reports/bank_statements.ui"
 
@@ -27,21 +27,23 @@ class BankStatementsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.bank_account_store = self.builder.get_object('bank_account_store')
 		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE deposits = True")
 		for row in self.cursor.fetchall():
 			self.bank_account_store.append(row)
+		DB.rollback()
 		self.statement_store = self.builder.get_object('statement_store')
 		self.account_number = None
 
 		window = self.builder.get_object('window1')
 		window.show_all()
 		
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def grouped_checkbutton_toggled (self, checkbutton):
 		if self.account_number != None:
 			self.populate_bank_statement_store ()
@@ -78,6 +80,7 @@ class BankStatementsGUI:
 			self.populate_statement_threaded ()
 		else:
 			self.populate_statement ()
+		DB.rollback()
 
 	def populate_statement (self):
 		self.cursor.execute("SELECT ge.id, "
@@ -155,8 +158,4 @@ class BankStatementsGUI:
 
 
 
-		
 
-
-
-		

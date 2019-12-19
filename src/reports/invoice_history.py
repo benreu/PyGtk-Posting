@@ -19,7 +19,7 @@
 from gi.repository import Gtk, Gdk
 from decimal import Decimal
 import subprocess
-from constants import ui_directory, db, broadcaster, is_admin
+from constants import ui_directory, DB, broadcaster, is_admin
 
 UI_FILE = ui_directory + "/reports/invoice_history.ui"
 
@@ -32,6 +32,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.search_store = Gtk.ListStore(str)
 		self.invoice_store = self.get_object('invoice_store')
@@ -46,8 +47,6 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		treeview.drag_source_set_target_list([dnd])
 
 		self.customer_id = 0
-		self.db = db
-		self.cursor = self.db.cursor()
 
 		self.customer_store = self.get_object('customer_store')
 		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
@@ -57,7 +56,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 							"GROUP BY c.id, c.name ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
-		
+		DB.rollback()
 		if is_admin == True:
 			self.get_object('treeview2').set_tooltip_column(0)
 		
@@ -70,6 +69,10 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		
 		self.window = self.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, window):
+		self.exists = False
+		self.cursor.close()
 
 	def present(self):
 		self.window.present()
@@ -102,10 +105,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 			f.write(file_data)
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
-
-	def close_transaction_window(self, window, event):
-		self.exists = False
-		self.cursor.close()
+		DB.rollback()
 		
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection1')
@@ -142,6 +142,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 			f.write(file_data)
 			subprocess.call(["xdg-open", "/tmp/%s" % file_name])
 			f.close()
+		DB.rollback()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.get_object('treeview-selection2')
@@ -227,6 +228,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 			model.append(row)
 		invoice_treeview.set_model(model)
 		self.get_object('label3').set_label(str(total))
+		DB.rollback()
 
 	def invoice_row_changed (self, selection):
 		self.get_object('checkbutton1').set_active(False)
@@ -302,6 +304,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 								"WHERE invoice_id IN " + args)
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def search_entry_search_changed (self, entry):
 		self.product_name = self.get_object('searchentry1').get_text().lower()
@@ -322,6 +325,6 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		return True
 
 
-		
+
 
 

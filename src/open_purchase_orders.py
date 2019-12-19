@@ -15,20 +15,17 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/open_purchase_orders.ui"
+UI_FILE = ui_directory + "/open_purchase_orders.ui"
 
 class OpenPurchaseOrderGUI:
 	def __init__(self):
-
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.open_po_store = self.builder.get_object('open_po_store')
 		self.populate_store ()
 		
@@ -37,7 +34,6 @@ class OpenPurchaseOrderGUI:
 
 	def delete_event (self, window, event):
 		self.cursor.close()
-		return
 
 	def new_po_clicked (self, button):
 		import purchase_order_window
@@ -47,7 +43,7 @@ class OpenPurchaseOrderGUI:
 		po_id = self.open_po_store[path][0]
 		self.cursor.execute("UPDATE purchase_orders SET name = %s "
 							"WHERE id = %s", (text, po_id))
-		self.db.commit()
+		DB.commit()
 		self.open_po_store[path][1] = text
 
 	def p_o_name_editing_canceled (self, cellrenderer):
@@ -55,6 +51,7 @@ class OpenPurchaseOrderGUI:
 							"FROM purchase_orders "
 							"WHERE id = %s ",
 							(self.po_id,))
+		DB.commit()
 
 	def p_o_name_editing_started (self, cellrenderer, celleditable, path):
 		self.po_id = self.open_po_store[path][0]
@@ -98,7 +95,7 @@ class OpenPurchaseOrderGUI:
 			self.open_po_store.append(row)
 		if path != []:
 			selection.select_path(path)
-
+		DB.rollback()
 
 	def open_po_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')

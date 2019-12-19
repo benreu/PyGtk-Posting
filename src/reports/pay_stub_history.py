@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/pay_stub_history.ui"
+UI_FILE = ui_directory + "/reports/pay_stub_history.ui"
 
 class PayStubHistoryGUI:
 	def __init__(self):
@@ -27,8 +27,7 @@ class PayStubHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.employee_id = None
 
 		self.employee_store= self.builder.get_object('employee_store')
@@ -38,20 +37,22 @@ class PayStubHistoryGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def focus_in_event (self, window, event):
 		self.populate_employee_store ()
 
 	def populate_employee_store (self):
 		self.employee_store.clear()
-		self.cursor.execute("SELECT employee_id, name "
+		self.cursor.execute("SELECT employee_id::text, name "
 							"FROM payroll.pay_stubs "
 							"JOIN contacts "
 							"ON contacts.id = pay_stubs.employee_id "
 							"GROUP BY employee_id, name ORDER BY name")
 		for row in self.cursor.fetchall():
-			employee_id = row[0]
-			employee_name = row[1]
-			self.employee_store.append([str(employee_id), employee_name])
+			self.employee_store.append(row)
+		DB.rollback()
 
 	def employee_combo_changed (self, combo):
 		employee_id = combo.get_active_id()
@@ -95,6 +96,7 @@ class PayStubHistoryGUI:
 			return # select all off and no employee selected
 		for row in self.cursor.fetchall():
 			self.history_store.append(row)
+		DB.rollback()
 
 
 

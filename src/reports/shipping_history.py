@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/shipping_history.ui"
+UI_FILE = ui_directory + "/reports/shipping_history.ui"
 
 class ShippingHistoryGUI (Gtk.Builder):
 	def __init__(self):
@@ -26,12 +26,10 @@ class ShippingHistoryGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = constants.db
 		
 		shipping_store = self.get_object('shipping_store')
 		shipping_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 						"si.id, "
 						"si.tracking_number, "
@@ -50,6 +48,7 @@ class ShippingHistoryGUI (Gtk.Builder):
 		c.close()
 		self.window = self.get_object('window')
 		self.window.show_all()
+		DB.rollback()
 		
 
 

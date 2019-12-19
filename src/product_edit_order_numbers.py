@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk
 import psycopg2
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/product_edit_order_numbers.ui"
 
@@ -28,7 +28,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		c = db.cursor()
+		c = DB.cursor()
 		vendor_store = self.get_object('vendor_store')
 		vendor_store.clear()
 		c.execute("SELECT id::text, name FROM contacts "	
@@ -41,7 +41,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		self.window.show_all()
 
 	def populate_product_order_numbers(self):
-		c = db.cursor()
+		c = DB.cursor()
 		store = self.get_object('order_number_store')
 		store.clear()
 		try:
@@ -54,7 +54,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 						"ORDER BY c.name FOR UPDATE NOWAIT", 
 						(self.product_id,))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			c.close()
 			hint = "Hint: somebody else is editing this product's order numbers"
 			error = str(e) + hint
@@ -66,14 +66,14 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 		
 	def window_destroy (self, widget):
-		db.rollback()
+		DB.rollback()
 	
 	def delete_row_clicked (self, button):
 		selection = self.get_object('tree-selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		c = db.cursor()
+		c = DB.cursor()
 		row_id = model[path][0]
 		c.execute("DELETE FROM vendor_product_numbers "
 							"WHERE id = %s", (row_id,))
@@ -81,7 +81,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 
 	def new_row_clicked (self, button):
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("WITH vendor AS "
 					"(SELECT id FROM contacts WHERE vendor = True "
 						"AND id NOT IN "
@@ -111,13 +111,13 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		vendor_id = vendor_store[tree_iter][0]
 		store = self.get_object('order_number_store')
 		row_id = store[path][0]
-		c = db.cursor()
+		c = DB.cursor()
 		try:
 			c.execute("UPDATE vendor_product_numbers "
 						"SET vendor_id = %s WHERE id = %s", 
 						(vendor_id, row_id))
 		except psycopg2.IntegrityError as e:
-			db.rollback()
+			DB.rollback()
 			hint = "\nHint: you have an order number for this vendor already"
 			self.show_message(str(e) + hint)
 		c.close()
@@ -125,7 +125,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		self.select_row (row_id)
 
 	def buy_qty_edited (self, cellrenderertext, path, text):
-		c = db.cursor()
+		c = DB.cursor()
 		store = self.get_object('order_number_store')
 		row_id = store[path][0]
 		c.execute("UPDATE vendor_product_numbers "
@@ -136,7 +136,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 
 	def qty_price_edited (self, cellrenderertext, path, text):
-		c = db.cursor()
+		c = DB.cursor()
 		store = self.get_object('order_number_store')
 		row_id = store[path][0]
 		c.execute("UPDATE vendor_product_numbers "
@@ -147,7 +147,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 
 	def barcode_edited (self, cellrenderertext, path, text):
-		c = db.cursor()
+		c = DB.cursor()
 		store = self.get_object('order_number_store')
 		row_id = store[path][0]
 		c.execute("UPDATE vendor_product_numbers "
@@ -158,7 +158,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 
 	def order_number_edited (self, cellrenderertext, path, text):
-		c = db.cursor()
+		c = DB.cursor()
 		store = self.get_object('order_number_store')
 		row_id = store[path][0]
 		c.execute("UPDATE vendor_product_numbers "
@@ -169,7 +169,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 
 	def save_clicked (self, button):
-		db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def cancel_clicked (self, button):

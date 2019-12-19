@@ -18,9 +18,9 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import subprocess
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/customer_statements.ui"
+UI_FILE = ui_directory + "/reports/customer_statements.ui"
 
 class StatementsGUI:
 	def __init__(self):
@@ -28,9 +28,7 @@ class StatementsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.customer_id = None
 		self.customer_store = self.builder.get_object('customer_store')
@@ -56,6 +54,7 @@ class StatementsGUI:
 							"ORDER BY contacts.name ")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
+		DB.rollback()
 
 	def price_cell_func(self, column, cellrenderer, model, iter1, data):
 		price = model.get_value(iter1, 6)
@@ -157,6 +156,7 @@ class StatementsGUI:
 								(customer_id, row_id, customer_id, row_id))
 			for row in self.cursor.fetchall():
 				self.statement_store.append(parent, row)
+		DB.rollback()
 
 
 

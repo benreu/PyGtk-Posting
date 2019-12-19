@@ -1,6 +1,6 @@
 # quick_command.py
 #
-# Copyright (C) 2019 - house
+# Copyright (C) 2019 - Reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
 
 import gi
 from gi.repository import Gtk, Gdk, GObject
-import constants
+from constants import ui_directory
 
-UI_FILE = constants.ui_directory + "/quick_command.ui"
+UI_FILE = ui_directory + "/quick_command.ui"
 
 class QuickCommandGUI(Gtk.Builder):
 	command_text = ''

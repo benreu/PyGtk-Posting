@@ -18,9 +18,9 @@
 import gi
 gi.require_version('Keybinder', '3.0')
 from gi.repository import Gtk, Gdk, Keybinder, Gio
-import constants
+from constants import ui_directory
 
-UI_FILE = constants.ui_directory + "/keybindings.ui"
+UI_FILE = ui_directory + "/keybindings.ui"
 
 parent = None
 

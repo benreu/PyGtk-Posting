@@ -103,6 +103,7 @@
     <property name="window_position">center</property>
     <property name="default_width">1100</property>
     <property name="default_height">700</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

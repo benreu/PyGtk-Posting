@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 import os, sys
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/assembled_products.ui"
 
@@ -44,10 +44,6 @@ class AssembledProductsGUI:
 		self.assembly_treeview.drag_source_set( Gdk.ModifierType.BUTTON1_MASK ,[dnd], Gdk.DragAction.COPY)
 		self.assembly_treeview.connect('drag_data_get', self.on_drag_data_get)
 		self.assembly_treeview.drag_source_set_target_list([dnd])
-
-		self.db = db
-		self.cursor = self.db.cursor()
-		
 		self.product_store = self.builder.get_object('product_store')
 		self.assembly_store = self.builder.get_object('assembly_store')
 		product_completion = self.builder.get_object('product_completion')
@@ -65,11 +61,14 @@ class AssembledProductsGUI:
 		if len(_list_) != 2:
 			return
 		table, _id_ = _list_[0], _list_[1]
-		self.cursor.execute("SELECT product, remark, cost FROM %s WHERE id = %s" % (table, _id_))
-		for row in self.cursor.fetchall():
+		c = DB.cursor()
+		c.execute("SELECT product, remark, cost FROM %s WHERE id = %s" % (table, _id_))
+		for row in c.fetchall():
 			product = row[0]
 			remark = row[1]
 			price = row[2]
+		c.close()
+		DB.rollback()
 	
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -111,7 +110,7 @@ class AssembledProductsGUI:
 			return
 		selected_file = dialog.get_filename()
 		vendor_id = self.builder.get_object('vendor_combo').get_active_id()
-		c = self.db.cursor()
+		c = DB.cursor()
 		with open(selected_file, 'w') as csvfile:
 			exportfile = csv.writer(	csvfile, 
 										delimiter=',',
@@ -135,6 +134,7 @@ class AssembledProductsGUI:
 			for row in c.fetchall():
 				exportfile.writerow(row)
 		c.close()
+		DB.rollback()
 	
 	def product_hub_activated (self, menuitem):
 		import product_hub
@@ -164,40 +164,44 @@ class AssembledProductsGUI:
 		return True
 
 	def populate_vendor_store (self):
+		c = DB.cursor()
 		active = self.builder.get_object('vendor_combo').get_active()
 		store = self.builder.get_object('vendor_store')
 		store.clear()
 		store.append(['0', 'No vendor'])
-		self.cursor.execute("SELECT id::text, name FROM contacts "
-							"WHERE vendor = True "
-							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		c.execute("SELECT id::text, name FROM contacts "
+					"WHERE vendor = True "
+					"ORDER BY name")
+		for row in c.fetchall():
 			store.append(row)
 		if active < 0:
 			self.builder.get_object('vendor_combo').set_active(0)
+		c.close()
+		DB.rollback()
 
 	def destroy(self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
-		return True
 
 	def focus (self, widget, event):
 		self.populate_stores ()
 
 	def populate_stores(self):
+		c = DB.cursor()
 		self.product_store.clear()
 		self.assembled_product_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM products "
-							"WHERE (deleted, purchasable, stock) = "
-							"(False, True, True) ORDER BY name")
-		for row in self.cursor.fetchall():
+		c.execute("SELECT id::text, name FROM products "
+					"WHERE (deleted, purchasable, stock) = "
+					"(False, True, True) ORDER BY name")
+		for row in c.fetchall():
 			self.product_store.append(row)
-		self.cursor.execute("SELECT id::text, name FROM products "
-							"WHERE (deleted, manufactured) = (False, True) "
-							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		c.execute("SELECT id::text, name FROM products "
+					"WHERE (deleted, manufactured) = (False, True) "
+					"ORDER BY name")
+		for row in c.fetchall():
 			self.assembled_product_store.append(row)
+		c.close()
+		DB.rollback()
 
 	def products_activated (self, button):
 		import products_overview
@@ -224,19 +228,20 @@ class AssembledProductsGUI:
 		self.save_assembly_product_line (tree_iter)
 
 	def save_assembly_product_line(self, tree_iter):
+		c = DB.cursor()
 		if self.assembly_store[tree_iter][3] == "Select a product":
 			return # no product yet
 		line_id = self.assembly_store[tree_iter][0]
 		qty = self.assembly_store[tree_iter][1]
 		product_id = self.assembly_store[tree_iter][2]
 		remark = self.assembly_store[tree_iter][4]
-		self.cursor.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
-		for row in self.cursor.fetchall():
+		c.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
+		for row in c.fetchall():
 			cost = row[0]
 			self.assembly_store[tree_iter][5] = cost
 			self.assembly_store[tree_iter][6] = float(cost) * qty
 		if line_id == 0:
-			self.cursor.execute("INSERT INTO product_assembly_items "
+			c.execute("INSERT INTO product_assembly_items "
 									"(manufactured_product_id, "
 									"qty, "
 									"assembly_product_id, "
@@ -246,9 +251,9 @@ class AssembledProductsGUI:
 									qty, 
 									product_id, 
 									remark))
-			self.assembly_store[tree_iter][0] = self.cursor.fetchone()[0]
+			self.assembly_store[tree_iter][0] = c.fetchone()[0]
 		else:
-			self.cursor.execute("UPDATE product_assembly_items SET "
+			c.execute("UPDATE product_assembly_items SET "
 									"(qty, "
 									"assembly_product_id, "
 									"remark) "
@@ -257,7 +262,8 @@ class AssembledProductsGUI:
 									product_id, 
 									remark, 
 									line_id))
-		self.db.commit()
+		DB.commit()
+		c.close()
 		self.calculate_totals ()
 
 	def calculate_totals(self, widget = None):
@@ -276,13 +282,15 @@ class AssembledProductsGUI:
 		self.assembly_store[tree_iter][6] = round(ext_price, 2)
 
 	def delete_entry(self):
+		c = DB.cursor()
 		row, path = self.builder.get_object("treeview-selection2").get_selected_rows ()
 		tree_iter = row.get_iter(path)
 		line_id = self.assembly_store.get_value(tree_iter, 0)
 		self.assembly_store.remove(tree_iter)
-		self.cursor.execute("DELETE FROM product_assembly_items "
-							"WHERE id = %s", (line_id,))
-		self.db.commit()
+		c.execute("DELETE FROM product_assembly_items "
+					"WHERE id = %s", (line_id,))
+		DB.commit()
+		c.close()
 
 	def add_product(self, widget):
 		import products_overview
@@ -290,25 +298,28 @@ class AssembledProductsGUI:
 		po.get_object('radiobutton3').set_active(True)
 
 	def manufactured_row_activate(self, treeview, path, treeviewcolumn):
+		c = DB.cursor()
 		self.manufactured_product_id = self.assembled_product_store[path][0]
 		product_name = self.assembled_product_store[path][1]
 		self.builder.get_object('label6').set_label("'%s'" % product_name)
 		self.assembly_store.clear()
-		self.cursor.execute("SELECT pai.id, qty, assembly_product_id, name, "
-							"remark, cost, cost*qty "
-							"FROM product_assembly_items AS pai "
-							"JOIN products ON products.id = "
-							"pai.assembly_product_id "
-							"WHERE manufactured_product_id = %s",
-							(self.manufactured_product_id,))
-		for row in self.cursor.fetchall():
+		c.execute("SELECT pai.id, qty, assembly_product_id, name, "
+					"remark, cost, cost*qty "
+					"FROM product_assembly_items AS pai "
+					"JOIN products ON products.id = "
+					"pai.assembly_product_id "
+					"WHERE manufactured_product_id = %s",
+					(self.manufactured_product_id,))
+		for row in c.fetchall():
 			self.assembly_store.append(row)
 		self.populating = True
-		self.cursor.execute ("SELECT assembly_notes "
-								"FROM products WHERE id = %s", 
-								(self.manufactured_product_id,))
-		for row in self.cursor.fetchall():
+		c.execute ("SELECT assembly_notes "
+					"FROM products WHERE id = %s", 
+					(self.manufactured_product_id,))
+		for row in c.fetchall():
 			self.builder.get_object('notes_buffer').set_text(row[0])
+		c.close()
+		DB.rollback()
 		self.calculate_totals ()
 		self.populating = False
 
@@ -327,12 +338,14 @@ class AssembledProductsGUI:
 		self.timeout_id = GLib.timeout_add_seconds(10, self.save_notes)
 
 	def save_notes (self ):
+		c = DB.cursor()
 		if self.timeout_id:
 			GLib.source_remove(self.timeout_id)
-		self.cursor.execute("UPDATE products SET assembly_notes = %s "
-							"WHERE id = %s", 
-							(self.notes, self.manufactured_product_id))
-		self.db.commit()
+		c.execute("UPDATE products SET assembly_notes = %s "
+					"WHERE id = %s", 
+					(self.notes, self.manufactured_product_id))
+		DB.commit()
+		c.close()
 		self.timeout_id = None
 		
 	def delete_item_clicked (self, button):

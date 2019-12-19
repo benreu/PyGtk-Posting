@@ -16,7 +16,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 import subprocess
-from constants import broadcaster, db, ui_directory
+from constants import broadcaster, DB, ui_directory
 from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/products_overview.ui"
@@ -29,6 +29,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		if product_id != None:
 			self.product_id = product_id
 		self.exists = True
@@ -134,7 +135,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.filtered_product_store.refilter()
 
 	def populate_product_store (self, widget = None, d = None):
-		c = db.cursor()
+		c = DB.cursor()
 		model = self.treeview.get_model()
 		self.treeview.set_model(None)
 		self.product_store.clear()
@@ -190,6 +191,11 @@ class ProductsOverviewGUI (Gtk.Builder):
 				treeview_selection.select_path(row.path)
 				self.treeview.scroll_to_cell(row.path, None, True, 0.5)
 				break
+<<<<<<< HEAD
+=======
+		c.close()
+		DB.rollback()
+>>>>>>> refactor db connection; various code upgrades
 			
 	def window_key_press_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)

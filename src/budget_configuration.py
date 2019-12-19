@@ -17,25 +17,26 @@
 
 
 from gi.repository import Gtk, GLib
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/budget_configuration.ui"
+UI_FILE = ui_directory + "/budget_configuration.ui"
 
 class BudgetConfigurationGUI:
 	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.populate_budgets()
 		self.populate_fiscals()
 		self.account_store = self.builder.get_object('account_store')
 		self.populate_accounts()
-		
+		DB.rollback()
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
@@ -46,17 +47,17 @@ class BudgetConfigurationGUI:
 		for row in self.cursor.fetchall():
 			number = row[0]
 			name = row[1]
-			parent = self.account_store.append(None,[number, name])
+			parent = self.account_store.append(None, row)
 			self.populate_child_accounts(parent, number)
+		DB.rollback()
 
 	def populate_child_accounts (self, parent, number):
-		self.cursor.execute("SELECT number::text, name, is_parent "
+		self.cursor.execute("SELECT number::text, name "
 						"FROM gl_accounts WHERE parent_number = %s "
 						"ORDER BY name", (number,))
 		for row in self.cursor.fetchall():
 			number = row[0]
-			name = row[1]
-			p = self.account_store.append(parent,[number, name])
+			p = self.account_store.append(parent, row)
 			self.populate_child_accounts (p, number)
 
 	def add_budget_clicked (self, button):
@@ -66,14 +67,16 @@ class BudgetConfigurationGUI:
 		self.cursor.execute("INSERT INTO budgets "
 							"(name, fiscal_id, total) VALUES (%s, %s, %s)", 
 							(name, fiscal_id, total))
-		self.db.commit()
+		DB.commit()
 		self.populate_budgets ()
 
 	def populate_budgets (self):
 		budget_store = self.builder.get_object('budget_store')
 		budget_store.clear()
-		self.cursor.execute("SELECT id::text, name, total::text, active FROM budgets "
-							"WHERE active = True ORDER BY name")
+		self.cursor.execute("SELECT id::text, name, total::text, active "
+							"FROM budgets "
+							"WHERE active = True "
+							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			budget_store.append(row)
 
@@ -100,7 +103,7 @@ class BudgetConfigurationGUI:
 							"(budget_id, name, amount, account) "
 							"VALUES (%s, %s, %s, %s) ",
 							(self.budget_id, name, amount, account))
-		self.db.commit()
+		DB.commit()
 		self.populate_budget_amounts()
 
 	def amount_edited (self, cellrenderertext, path, amount):
@@ -108,7 +111,7 @@ class BudgetConfigurationGUI:
 		amount_id = store[path][0]
 		self.cursor.execute("UPDATE budget_amounts SET amount = %s "
 							"WHERE id = %s", (amount, amount_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_budget_amounts()
 
 	def amount_name_edited (self, cellrenderertext, path, text):
@@ -116,7 +119,7 @@ class BudgetConfigurationGUI:
 		amount_id = store[path][0]
 		self.cursor.execute("UPDATE budget_amounts SET name = %s "
 							"WHERE id = %s", (text, amount_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_budget_amounts()
 
 	def budget_combo_changed (self, combo):
@@ -134,31 +137,30 @@ class BudgetConfigurationGUI:
 	def populate_budget_amounts (self):
 		store = self.builder.get_object('amount_store')
 		store.clear()
-		c = self.db.cursor()
-		c.execute(	"SELECT "
-					"ba.id, "
-					"ba.name, "
-					"gl.name, "
-					"amount::text, "
-					"ROUND((ba.amount/b.total)*100, 2)::varchar "
-					"FROM budget_amounts AS ba "
-					"JOIN gl_accounts AS gl ON gl.number = ba.account "
-					"JOIN budgets AS b ON b.id = ba.budget_id "
-					"WHERE budget_id = %s "
-					"ORDER BY ba.id",
-					(self.budget_id,))
-		for row in c.fetchall():
+		self.cursor.execute("SELECT "
+							"ba.id, "
+							"ba.name, "
+							"gl.name, "
+							"amount::text, "
+							"ROUND((ba.amount/b.total)*100, 2)::varchar "
+							"FROM budget_amounts AS ba "
+							"JOIN gl_accounts AS gl ON gl.number = ba.account "
+							"JOIN budgets AS b ON b.id = ba.budget_id "
+							"WHERE budget_id = %s "
+							"ORDER BY ba.id",
+							(self.budget_id,))
+		for row in self.cursor.fetchall():
 			store.append(row)
-		c.execute(	"SELECT "
-					"ROUND((SUM(ba.amount)/b.total)*100, 2)::varchar "
-					"FROM budget_amounts AS ba "
-					"JOIN budgets AS b ON b.id = ba.budget_id "
-					"WHERE budget_id = %s "
-					"GROUP BY ba.budget_id, b.total",
-					(self.budget_id,))
-		for row in c.fetchall():
+		self.cursor.execute("SELECT "
+							"ROUND((SUM(ba.amount)/b.total)*100, 2)::varchar "
+							"FROM budget_amounts AS ba "
+							"JOIN budgets AS b ON b.id = ba.budget_id "
+							"WHERE budget_id = %s "
+							"GROUP BY ba.budget_id, b.total",
+							(self.budget_id,))
+		for row in self.cursor.fetchall():
 			self.builder.get_object('total_percent_label').set_label(row[-1])
-		c.close()
+		DB.rollback()
 
 
 

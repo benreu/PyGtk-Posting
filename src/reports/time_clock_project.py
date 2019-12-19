@@ -20,9 +20,9 @@ from gi.repository import Gtk
 import subprocess
 from datetime import datetime
 from dateutils import seconds_to_compact_string
-import constants
+from constants import ui_directory, DB, template_dir
 
-UI_FILE = constants.ui_directory + "/reports/time_clock_project.ui"
+UI_FILE = ui_directory + "/reports/time_clock_project.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -33,8 +33,7 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.time_store = self.builder.get_object('time_store')
 		self.employee_time_store = self.builder.get_object('employee_time_store')
@@ -45,12 +44,15 @@ class GUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def focus_in_event (self, window, event):
 		self.populate_project_store ()
 
 	def populate_project_store (self):
 		self.project_store.clear()
-		self.cursor.execute("SELECT time_clock_projects.id, name, "
+		self.cursor.execute("SELECT time_clock_projects.id::text, name, "
 							"SUM(stop_time-start_time)::text "
 							"FROM time_clock_projects "
 							"JOIN time_clock_entries "
@@ -59,10 +61,8 @@ class GUI:
 							"GROUP BY time_clock_projects.id "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			project_id = row[0]
-			project_name = row[1]
-			time = row[2]
-			self.project_store.append([str(project_id), project_name, time])
+			self.project_store.append(row)
+		DB.rollback()
 
 	def project_combo_changed (self, combo):
 		project_id = combo.get_active_id()
@@ -94,6 +94,7 @@ class GUI:
 			adjusted_seconds = row[1]
 		efficiency = adjusted_seconds/actual_seconds * 100
 		self.builder.get_object('spinbutton1').set_value(efficiency)
+		DB.rollback()
 
 	def report_clicked (self, button):
 		company = Item()
@@ -161,10 +162,11 @@ class GUI:
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
 		time_file = "/tmp/employee_time.odt"
 		time_file_pdf = "/tmp/employee_time.pdf"
-		t = Template(constants.template_dir+"/employee_time.odt", time_file , False)
+		t = Template(template_dir+"/employee_time.odt", time_file , False)
 		t.render(data) #the self.data holds all the info of the invoice
 		subprocess.call('odt2pdf ' + time_file, shell = True)
 		subprocess.Popen('soffice ' + time_file, shell = True)
+		DB.rollback()
 
 	def close_dialog (self, dialog):
 		dialog.hide()
@@ -188,8 +190,6 @@ class GUI:
 			adjusted_seconds = seconds_to_compact_string (row[3])
 			self.time_store.append([str(employee_id), employee_name, 
 									actual_seconds, adjusted_seconds])
-		#self.builder.get_object('label3').set_label(total_actual)
-		#self.builder.get_object('label5').set_label(total_adjusted)
 		self.cursor.execute("SELECT "
 								"time_clock_entries.id, "
 								"name, "
@@ -219,6 +219,7 @@ class GUI:
 			message = "There are %s employee(s) punched in to this WO." % count
 			self.builder.get_object('button1').set_sensitive(False)
 		self.builder.get_object('label1').set_label(message)
+		DB.rollback()
 			
 	def convert_seconds (self, start_seconds):
 		if start_seconds == None:

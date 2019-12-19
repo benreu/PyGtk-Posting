@@ -22,7 +22,7 @@ from datetime import datetime
 from db import transactor
 from decimal import Decimal
 from dateutils import DateTimeCalendar
-from constants import ui_directory, db
+from constants import ui_directory, DB
 from accounts import expense_account
 
 UI_FILE = ui_directory + "/bank_statement.ui"
@@ -34,8 +34,6 @@ class GUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.builder.get_object('treeview2').set_model(expense_account)
 
 		self.calendar = DateTimeCalendar()
@@ -61,18 +59,10 @@ class GUI:
 		self.populate_account_stores ()
 
 		self.window = self.builder.get_object('window1')
-		'''header = Gtk.HeaderBar()
-		header.set_title("Bank Statement")
-		header.add(self.builder.get_object('menubutton1'))
-		header.set_show_close_button(True)
-		self.window.set_titlebar(header)'''
 		self.window.show_all()
 
-	def spinbutton_focus_in_event (self, entry, event):
-		GLib.idle_add(self.highlight, entry)
-
-	def highlight (self, entry):
-		entry.select_region(0, -1)
+	def spinbutton_focus_in_event (self, spinbutton, event):
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def view_closed_items(self, check_button):
 		self.populate_treeview ()
@@ -84,24 +74,27 @@ class GUI:
 		if response == Gtk.ResponseType.ACCEPT:
 			bank_account = self.builder.get_object('combobox3').get_active_id()
 			cheque_number = self.builder.get_object('entry3').get_text()
-			transactor.post_voided_check(self.db, bank_account, self.voided_cheque_date, cheque_number)
+			transactor.post_voided_check(bank_account, self.voided_cheque_date, cheque_number)
 
 	def date_entry_icon_release (self, entry, entryiconposition, event):
 		if self.account_number != 0:
 			self.reconcile_calendar.show()
 
 	def reconcile_calendar_day_selected (self, calendar):
+		c = DB.cursor()
 		entry = self.builder.get_object('entry6')
 		date = calendar.get_date()
-		self.cursor.execute("SELECT COUNT(id) FROM gl_entries "
+		c.execute("SELECT COUNT(id) FROM gl_entries "
 							"WHERE date_reconciled = %s", (date,))
-		if self.cursor.fetchone()[0] != 0:
+		if c.fetchone()[0] != 0:
 			entry.set_text("Date already used !")
 			self.reconcile_date = None
 		else:
 			entry.set_text(calendar.get_text())
 			self.reconcile_date = calendar.get_date()
 		self.account_statement_difference ()
+		c.close()
+		DB.rollback()
 
 	def voided_cheque_day_selected (self, calendar):
 		self.voided_cheque_date = calendar.get_date()
@@ -134,53 +127,59 @@ class GUI:
 		button.set_label('Apply voided check')
 
 	def populate_bank_charge_stores (self):
+		c = DB.cursor()
 		self.expense_store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		c.execute("SELECT number, name FROM gl_accounts "
 							"WHERE type = 3 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			parent_tree = self.expense_store.append(None,[account_number, 
 																account_name])
 			self.get_child_accounts (self.expense_store, account_number, parent_tree)
 		self.transaction_description_store.clear()
-		self.cursor.execute("SELECT transaction_description AS td "
+		c.execute("SELECT transaction_description AS td "
 							"FROM gl_entries "
 							"WHERE (debit_account = %s OR credit_account = %s) "
 							"AND transaction_description IS NOT NULL "
 							"AND fees_rewards = True "
 							"GROUP BY td ORDER BY td",
 							(self.account_number, self.account_number))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			description = row[0]
 			self.transaction_description_store.append([description])
+		c.close()
+		DB.rollback()
 
 	def populate_account_stores(self):
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		c = DB.cursor()
+		c.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE bank_account = True")
-		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			#account_total = self.get_bank_account_total (account_number)
-			self.bank_account_store.append([account_number, account_name])
-		
+		for row in c.fetchall():
+			self.bank_account_store.append(row)
+		c.close()
+		DB.rollback()
 
 	def get_child_accounts (self, store, parent_number, parent_tree):
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		c = DB.cursor()
+		c.execute("SELECT number, name FROM gl_accounts "
 							"WHERE parent_number = %s", (parent_number,))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			parent = store.append(parent_tree,[account_number, account_name])
 			self.get_child_accounts (store, account_number, parent)
+		c.close()
+		DB.rollback()
 
 	def bank_account_changed (self, combo):
+		c = DB.cursor()
 		account_number = combo.get_active_id()
 		if account_number == None:
 			self.account_number = 0
 			self.bank_transaction_store.clear()
 			return
-		self.cursor.execute("CREATE OR REPLACE TEMP VIEW "
+		c.execute("CREATE OR REPLACE TEMP VIEW "
 							"bank_statement_view AS "
 							"WITH account_numbers AS "
 								"(SELECT number FROM gl_accounts "
@@ -200,6 +199,8 @@ class GUI:
 								"FROM gl_entries WHERE credit_account "
 								"IN (SELECT * FROM account_numbers)"
 								, (account_number, account_number))
+		c.close()
+		DB.commit()
 		self.bank_account_total = self.get_bank_account_total(account_number)
 		self.builder.get_object('button2').set_sensitive(True)
 		self.builder.get_object('refresh_button').set_sensitive(True)
@@ -207,25 +208,27 @@ class GUI:
 		self.account_number = account_number
 		self.populate_treeview ()
 		self.calculate_reconciled_balance ()
-		self.db.commit()
 
 	def get_bank_account_total(self, account_number): 
-		self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
+		c = DB.cursor()
+		c.execute("SELECT SUM(debits - credits) AS total FROM "
 								"(SELECT COALESCE(SUM(amount),0.00) AS debits "
 								"FROM bank_statement_view "
 								"WHERE debit = True) d, "
 								"(SELECT COALESCE(SUM(amount),0.00) AS credits "
 								"FROM bank_statement_view "
 								"WHERE credit = True) c  ")
-		bank_account_total = self.cursor.fetchone()[0]
+		bank_account_total = c.fetchone()[0]
+		c.close()
 		return bank_account_total
 
 	def refresh_clicked (self, button):
 		self.populate_treeview()
 
 	def populate_treeview(self ):
+		c = DB.cursor()
 		self.bank_transaction_store.clear()
-		self.cursor.execute("SELECT ge.id, "
+		c.execute("SELECT ge.id, "
 							"COALESCE(ge.check_number::text, ''), "
 							"ge.date_inserted::text, "
 							"format_date(ge.date_inserted), "
@@ -243,22 +246,27 @@ class GUI:
 							"WHERE date_reconciled IS NULL "
 							"ORDER BY date_inserted;", 
 							(self.account_number, self.account_number))
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			self.bank_transaction_store.append(row)
+		c.close()
+		DB.rollback()
 
 	def on_reconciled_toggled(self, widget, path):
+		c = DB.cursor()
 		active = not self.bank_transaction_store[path][5]
 		self.bank_transaction_store[path][5] = active #toggle the button state
 		row_id = self.bank_transaction_store[path][0]
-		self.cursor.execute("UPDATE gl_entries "
+		c.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
 							(active, row_id))
 		self.calculate_reconciled_balance ()
 		self.account_statement_difference ()
-		self.db.commit()
+		DB.commit()
+		c.close()
 		
 	def calculate_reconciled_balance(self):
-		self.cursor.execute("SELECT SUM(debits - credits) AS total FROM "
+		c = DB.cursor()
+		c.execute("SELECT SUM(debits - credits) AS total FROM "
 								"(SELECT COALESCE(SUM(amount),0.00) AS debits "
 								"FROM bank_statement_view "
 								"WHERE (reconciled, debit) = (True, True)"
@@ -267,9 +275,11 @@ class GUI:
 								"FROM bank_statement_view "
 								"WHERE (reconciled, credit) = (True, True)"
 								") c ")
-		self.reconciled_total = self.cursor.fetchone()[0]
+		self.reconciled_total = c.fetchone()[0]
 		t = '${:,.2f}'.format(float(self.reconciled_total))
 		self.builder.get_object('entry2').set_text(t)
+		c.close()
+		DB.rollback()
 
 	def statement_balance_spinbutton_changed (self, entry):
 		self.account_statement_difference ()
@@ -294,7 +304,8 @@ class GUI:
 			button.set_sensitive(False)
 
 	def save_reconciled_items_clicked (self, button):
-		self.cursor.execute("WITH account_numbers AS "
+		c = DB.cursor()
+		c.execute("WITH account_numbers AS "
 							"(SELECT number FROM gl_accounts "
 								"WHERE number = %s OR parent_number = %s"
 								") "
@@ -310,7 +321,8 @@ class GUI:
 							"AND reconciled = True", 
 							(self.account_number, self.account_number,
 							self.reconcile_date))
-		self.db.commit()
+		DB.commit()
+		c.close()
 		self.populate_treeview ()
 		self.builder.get_object('spinbutton1').set_value(0.00)
 
@@ -326,23 +338,23 @@ class GUI:
 			selection = self.builder.get_object('treeview-selection2')
 			model, path = selection.get_selected_rows()
 			expense_account_number = model[path][0]
-			transactor.bank_charge(self.db, self.account_number, 
+			transactor.bank_charge(self.account_number, 
 									self.date, self.amount, 
 									self.description, expense_account_number)
+			DB.commit()
+			self.bank_account_total = self.get_bank_account_total(self.account_number)
+			self.builder.get_object('label13').set_label(str(self.bank_account_total))
 			self.populate_treeview()
-			bank_total = self.get_bank_account_total (self.account_number)
-			path = self.builder.get_object("combobox1").get_active()
-			self.db.commit()
 
 	def number_edited (self, renderer, path, text):
 		row_id = self.bank_transaction_store[path][0]
 		try:
-			self.cursor.execute("UPDATE gl_entries SET check_number = %s "
+			c.execute("UPDATE gl_entries SET check_number = %s "
 								"WHERE id = %s", (text, row_id))
-			self.db.commit()
+			DB.commit()
 			self.bank_transaction_store[path][1] = int(text)
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			print (e)
 			self.builder.get_object('label10').set_label(str(e))
 			dialog = self.builder.get_object('date_error_dialog')
@@ -350,10 +362,12 @@ class GUI:
 			dialog.hide()
 
 	def description_edited (self, renderer, path, text):
+		c = DB.cursor()
 		row_id = self.bank_transaction_store[path][0]
-		self.cursor.execute("UPDATE gl_entries SET transaction_description = %s "
+		c.execute("UPDATE gl_entries SET transaction_description = %s "
 							"WHERE id = %s", (text, row_id))
-		self.db.commit()
+		DB.commit()
+		c.close()
 		self.bank_transaction_store[path][4] = text
 
 	def date_renderer_editing_started (self, renderer, entry, path):
@@ -361,19 +375,21 @@ class GUI:
 		entry.set_text(date)
 
 	def date_renderer_edited (self, renderer, path, text):
+		c = DB.cursor()
 		transaction_id = self.bank_transaction_store[path][0]
 		try:
-			self.cursor.execute("UPDATE gl_entries "
-								"SET date_inserted = %s WHERE id = %s",
-								(text, transaction_id))
+			c.execute("UPDATE gl_entries "
+						"SET date_inserted = %s WHERE id = %s",
+						(text, transaction_id))
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			print (e)
 			self.builder.get_object('label10').set_label(str(e))
 			dialog = self.builder.get_object('dialog2')
 			dialog.run()
 			dialog.hide()
-		self.db.commit()
+		DB.commit()
+		c.close()
 		self.populate_treeview ()
 
 	def expense_treeview_row_activate (self, treeview, path, treeview_column):
@@ -422,9 +438,9 @@ class GUI:
 		import credit_card_statements
 		credit_card_statements.CreditCardStatementGUI()
 	
-	def miscellaneous_income_activated (self, button):
-		import miscellaneous_income
-		miscellaneous_income.MiscellaneousIncomeGUI ()
+	def miscellaneous_revenue_activated (self, button):
+		import miscellaneous_revenue
+		miscellaneous_revenue.MiscellaneousRevenueGUI ()
 
 	def loan_payment_activated (self, widget):
 		import loan_payment

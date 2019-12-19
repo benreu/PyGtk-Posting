@@ -20,7 +20,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
-from constants import db, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/reports/charts.ui"
 
@@ -45,7 +45,7 @@ class ChartsGUI (Gtk.Builder):
 		date_field = self.get_object('invoice_group_by_combo').get_active_id()
 		amount = list()
 		month = list()
-		c = db.cursor()
+		c = DB.cursor()
 		c.execute("WITH cte AS "
 						"(SELECT SUM(amount_due) AS amount, "
 							"date_trunc(%s, dated_for) AS date_group "
@@ -66,6 +66,7 @@ class ChartsGUI (Gtk.Builder):
 		window.set_title('Invoice amount by %s' % date_field)
 		window.set_icon_name('pygtk-posting')
 		window.show_all()
+		DB.rollback()
 
 
 

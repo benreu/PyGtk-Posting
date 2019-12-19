@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+from constants import DB
 
 PROGRESSBAR = None
 COMPLETE_PROGRESS = None
@@ -27,10 +28,10 @@ def progressbar (progress):
 	while Gtk.events_pending():
 		Gtk.main_iteration()
 
-def add_new_tables(db, statusbar):
+def add_new_tables(statusbar):
 	global COMPLETE_PROGRESS
 	statusbar.push(1, "Adding tables ...")
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	COMPLETE_PROGRESS = 42.00
 	progressbar (1)
 	cursor.execute("CREATE TABLE contacts (id serial PRIMARY KEY, name varchar, c_o varchar, address varchar, city varchar, state varchar, zip varchar, fax varchar, phone varchar, email varchar, label varchar, tax_exempt boolean, tax_number varchar, vendor boolean, customer boolean, employee boolean, another_role boolean, organization varchar, custom1 varchar, custom2 varchar, custom3 varchar, custom4 varchar, notes varchar, active boolean, deleted boolean, price_level varchar);")
@@ -119,12 +120,12 @@ def add_new_tables(db, statusbar):
 	progressbar (43)
 	cursor.executemany("INSERT INTO document_column_settings (column_name, visible) VALUES (%s, %s)", [("qty", True), ("product", True), ("remarks", True), ("price", True), ("tax", True), ("ext_price", True), ("min", True), ("max", True), ('retailer', True), ("type_1", True), ("type_2", True), ("type_3", True), ("type_4", True), ("priority", True)])
 	progressbar (44)
-	check_and_update_version (db, statusbar)
+	check_and_update_version (statusbar)
 
-def check_and_update_version (db, statusbar):
+def check_and_update_version (statusbar):
 	global COMPLETE_PROGRESS
 	statusbar.push(1, "Upgrading tables ...")
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	cursor.execute("SELECT version FROM settings")
 	version = cursor.fetchone()[0]
 	COMPLETE_PROGRESS = 126.00
@@ -1371,16 +1372,16 @@ def check_and_update_version (db, statusbar):
 		cursor.execute("UPDATE settings SET version = '132'")
 	cursor.close()
 
-def lob_example (db):
-	#for notice in self.db.notices:
+def lob_example ():
+	#for notice in DB.notices:
 	#	print notice
 	#db lob to file
-	'''loaded_lob = db.lobject(oid=101708, mode="rb", )
+	'''loaded_lob = DB.lobject(oid=101708, mode="rb", )
 	r = loaded_lob.read()
 	with open("/home/reuben/reuben2.jpg", 'wb') as f:
 		f.write(r)'''
 	#file to db lob
-	'''new_lob = self.db.lobject(mode="wb", new_file="/home/reuben/reuben.jpg")
+	'''new_lob = DB.lobject(mode="wb", new_file="/home/reuben/reuben.jpg")
 	new_oid = new_lob.oid
 	new_lob.close()
 	

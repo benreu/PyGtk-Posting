@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/product_markup.ui"
+UI_FILE = ui_directory + "/reports/product_markup.ui"
 
 
 class ProductMarkupGUI (Gtk.Builder):
@@ -34,7 +34,7 @@ class ProductMarkupGUI (Gtk.Builder):
 		window.show_all()
 
 	def populate_markup_store (self):
-		c = constants.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT *, markup::text FROM "
 					"(SELECT "
 						"p.id, "
@@ -54,5 +54,6 @@ class ProductMarkupGUI (Gtk.Builder):
 		for row in c.fetchall():
 			self.store.append(row)
 		c.close()
+		DB.rollback()
 
 

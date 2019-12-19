@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import constants
+from constants import DB, ui_directory
 
-UI_FILE = constants.ui_directory + "/db/version.ui"
+UI_FILE = ui_directory + "/db/version.ui"
 
 
 class CheckVersion :
@@ -37,8 +37,7 @@ class CheckVersion :
 		for dialog in (['db_major_upgrade', 'db_newer_dialog', 
 						'db_minor_upgrade', 'credit_memo_dialog']):
 			self.builder.get_object(dialog).set_transient_for(self.window)
-		self.db = main.db
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 					"major_version::text, "	
 					"minor_version::text, "
@@ -90,7 +89,7 @@ class CheckVersion :
 		d.window.destroy()
 
 	def populate_liabilities_store (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		store = self.builder.get_object('credit_memo_account_store')
 		store.clear()
 		c.execute("SELECT number::text, name FROM gl_accounts "
@@ -100,7 +99,7 @@ class CheckVersion :
 		c.close()
 
 	def run_updates (self, d, version, major_db_version, minor_db_version):
-		c = self.db.cursor()
+		c = DB.cursor()
 		major_posting_version = int(version[2:3])
 		minor_posting_version = int(version[4:6])
 		if int(major_db_version) < major_posting_version:  # major version upgrade 
@@ -114,7 +113,7 @@ class CheckVersion :
 							"SET (major_version, minor_version) = (%s, %s)", 
 							(major_posting_version, minor_posting_version))
 			else:
-				self.db.rollback()
+				DB.rollback()
 				GLib.idle_add(Gtk.main_quit)
 		elif int(major_db_version) > major_posting_version:  # major version behind
 			dialog = self.builder.get_object('db_newer_dialog')
@@ -131,7 +130,7 @@ class CheckVersion :
 				c.execute("UPDATE settings "
 							"SET minor_version = %s", (minor_posting_version,))
 			else:
-				self.db.rollback()
+				DB.rollback()
 				GLib.idle_add(Gtk.main_quit)
 		elif int(minor_db_version) > minor_posting_version:  # minor version behind
 			dialog = self.builder.get_object('db_newer_dialog')
@@ -140,7 +139,7 @@ class CheckVersion :
 			if result == Gtk.ResponseType.DELETE_EVENT:
 				GLib.idle_add(Gtk.main_quit)
 		c.close()
-		self.db.commit()
+		DB.commit()
 		
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

@@ -16,15 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/product_account_relationship.ui"
+UI_FILE = ui_directory + "/reports/product_account_relationship.ui"
 
 class ProductAccountRelationshipGUI:
 	def __init__(self):
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		
 		self.product_text = ''
 		self.expense_text = ''
@@ -35,12 +32,16 @@ class ProductAccountRelationshipGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.product_account_store = self.builder.get_object('product_account_store')
 		self.filtered_store = self.builder.get_object('product_account_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 		self.populate_product_account_store ()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -108,6 +109,7 @@ class ProductAccountRelationshipGUI:
 							"FROM products AS p ORDER BY p.name")
 		for row in self.cursor.fetchall():
 			self.product_account_store.append(row)
+		DB.rollback()
 
 
 

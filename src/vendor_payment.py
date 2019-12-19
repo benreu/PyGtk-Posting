@@ -22,7 +22,7 @@ from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db.transactor import VendorPayment, vendor_check_payment, \
 							vendor_debit_payment, post_purchase_order_accounts
-from constants import db, ui_directory, template_dir
+from constants import ui_directory, DB, template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -38,14 +38,12 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		
-		self.db = db
-		self.cursor = self.db.cursor()
-		
-		self.calendar = DateTimeCalendar (self.db)
+		self.calendar = DateTimeCalendar ()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
-		check_number = get_check_number(self.db, None)
+		check_number = get_check_number(None)
 		self.builder.get_object('entry2').set_text(str(check_number))
 
 		self.vendor_id = 0
@@ -92,6 +90,7 @@ class GUI:
 							"ORDER BY contacts.name")
 		for row in self.cursor.fetchall():
 			self.vendor_store.append(row)
+		DB.rollback()
 
 	def vendor_combo_changed (self, combo):
 		vendor_id = combo.get_active_id()
@@ -136,6 +135,7 @@ class GUI:
 		self.check_cash_entries_valid ()
 		self.check_credit_card_entries_valid ()
 		self.check_cheque_entries_valid ()
+		DB.rollback()
 
 	def focus (self, winow, event):
 		self.populate_credit_card_combo ()
@@ -163,6 +163,7 @@ class GUI:
 			f.write(file_data)
 			subprocess.call("xdg-open %s" % file_name, shell = True)
 			f.close()
+		DB.rollback()
 
 	def populate_bank_combo (self):
 		bank_combo = self.builder.get_object('comboboxtext3')
@@ -175,6 +176,7 @@ class GUI:
 			bank_name = row[1]
 			bank_combo.append(bank_number, bank_name)
 		bank_combo.set_active_id(bank_id)
+		DB.rollback()
 
 	def populate_credit_card_combo(self):
 		credit_card_combo = self.builder.get_object('comboboxtext2')
@@ -197,6 +199,7 @@ class GUI:
 			name = row[1]
 			cash_combo.append(str(number), name)
 		cash_combo.set_active_id(cash_id)
+		DB.rollback()
 
 	def c_c_invoice_name_changed (self, entry):
 		self.builder.get_object('comboboxtext2').set_sensitive(True)
@@ -205,7 +208,7 @@ class GUI:
 		bank_account = combo.get_active_id()
 		if bank_account != None:
 			self.bank_account = bank_account
-			check_number = get_check_number(self.db, bank_account)
+			check_number = get_check_number(bank_account)
 			self.builder.get_object('entry2').set_text(str(check_number))
 			self.builder.get_object('entry4').set_sensitive(True)
 		self.check_cheque_entries_valid ()
@@ -249,10 +252,10 @@ class GUI:
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id()
 		transaction_number = self.builder.get_object('entry4').get_text()
-		vendor_debit_payment (self.db, self.date, self.total, 
+		vendor_debit_payment (self.date, self.total, 
 								checking_account_number, transaction_number)
 		self.mark_invoices_paid ()
-		self.db.commit ()
+		DB.commit ()
 		self.populate_vendor_invoice_store ()
 
 	def post_check_without_printing_clicked (self, button):
@@ -313,11 +316,11 @@ class GUI:
 		check_number =  self.builder.get_object('entry2').get_text()
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id ()
-		vendor_check_payment (self.db, self.date, self.total, 
+		vendor_check_payment (self.date, self.total, 
 								checking_account_number, check_number, 
 								self.vendor_name)
 		self.mark_invoices_paid ()
-		self.db.commit()
+		DB.commit()
 		self.populate_vendor_invoice_store ()
 		self.builder.get_object('box14').set_sensitive(False)
 
@@ -330,7 +333,7 @@ class GUI:
 								"SET (paid, date_paid) = "
 								"(True, %s) WHERE id = %s", 
 								(self.date, po_id))
-			post_purchase_order_accounts (self.db, po_id, self.date)
+			post_purchase_order_accounts (po_id, self.date)
 
 	def credit_card_changed(self, widget):
 		self.check_credit_card_entries_valid ()
@@ -343,15 +346,14 @@ class GUI:
 		c_c_combo = self.builder.get_object('comboboxtext2')
 		c_c_account_number = c_c_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
-		payment = VendorPayment(self.db, 
-								self.date, 
+		payment = VendorPayment(self.date, 
 								self.total, 
 								description)
 		for row in self.c_c_multi_payment_store:
 			amount = row[0]
 			date = row[1]
 			payment.credit_card(c_c_account_number, amount, date)
-		self.db.commit()
+		DB.commit()
 		self.populate_vendor_liststore ()
 		self.populate_vendor_invoice_store ()
 		self.check_credit_card_entries_valid ()
@@ -362,12 +364,11 @@ class GUI:
 		cash_combo = self.builder.get_object('comboboxtext1')
 		cash_account_number = cash_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
-		payment = VendorPayment(self.db, 
-								self.date, 
+		payment = VendorPayment(self.date, 
 								self.total, 
 								description)
 		payment.cash (cash_account_number)
-		self.db.commit()
+		DB.commit()
 		self.populate_vendor_liststore ()
 		self.populate_vendor_invoice_store ()
 		self.check_credit_card_entries_valid ()
@@ -485,4 +486,4 @@ class GUI:
 
 
 
-		
+

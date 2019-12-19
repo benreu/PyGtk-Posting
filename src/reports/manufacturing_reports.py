@@ -20,9 +20,9 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 import numpy as np
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/manufacturing_reports.ui"
+UI_FILE = ui_directory + "/reports/manufacturing_reports.ui"
 
 class ManufacturingReportsGUI (Gtk.Builder):
 	figure = None
@@ -31,13 +31,14 @@ class ManufacturingReportsGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		store = self.get_object('price_level_store')
-		c = constants.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT id::text, name "
 					"FROM customer_markup_percent ORDER BY name")
 		for row in c .fetchall():
 			store.append(row)
 		price_level_id = self.get_object('price_level_combo').set_active(0)
 		c.close()
+		DB.rollback()
 		window = self.get_object('window')
 		window.show_all()
 
@@ -51,7 +52,7 @@ class ManufacturingReportsGUI (Gtk.Builder):
 		toolbar = NavigationToolbar(canvas, window)
 		box.pack_start(toolbar, False, False, 0)
 		figure.subplots_adjust(left=0.3, right=0.99, top=0.9, bottom=0.1)
-		c = constants.db.cursor()
+		c = DB.cursor()
 		product_name = list()
 		time = list()
 		profit = list()
@@ -84,6 +85,7 @@ class ManufacturingReportsGUI (Gtk.Builder):
 			time.append (row[1])
 			profit.append (row[2])
 		c.close()
+		DB.rollback()
 		width = 0.35
 		y_pos = np.arange(len(time))
 		time_plot = figure.add_subplot(111)

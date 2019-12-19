@@ -142,7 +142,7 @@
     <property name="default_width">900</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
-    <signal name="delete-event" handler="close_transaction_window" swapped="no"/>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

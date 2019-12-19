@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
 import subprocess
-from constants import ui_directory, db, broadcaster, template_dir
+from constants import ui_directory, DB, broadcaster, template_dir
 
 UI_FILE = ui_directory + "/catalog_creator.ui"
 
@@ -33,8 +33,6 @@ class CatalogCreatorGUI(Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (("products_changed", self.populate_products ),):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -64,23 +62,26 @@ class CatalogCreatorGUI(Gtk.Builder):
 	def window_destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def populate_products (self, m=None, d=None):
+		c = DB.cursor()
 		self.product_store.clear()
-		self.cursor.execute ("SELECT id::text, name, ext_name FROM products "
+		c.execute ("SELECT id::text, name, ext_name FROM products "
 							"WHERE (sellable, deleted) = (True, False) "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			self.product_store.append(row)
+		c.close()
+		DB.rollback()
 
 	def populate_price_levels (self):
+		c = DB.cursor()
 		default = None
 		price_level_store = self.get_object('price_level_store')
-		self.cursor.execute("SELECT id::text, name, standard "
+		c.execute("SELECT id::text, name, standard "
 							"FROM customer_markup_percent "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			price_level_store.append(row)
 			if row[2] == True:
 				default = row[0]
@@ -90,27 +91,31 @@ class CatalogCreatorGUI(Gtk.Builder):
 	def product_combobox_changed (self, combo):
 		product_id = combo.get_active_id()
 		if product_id != None:
-			self.cursor.execute("UPDATE products SET catalog = True"
+			c = DB.cursor()
+			c.execute("UPDATE products SET catalog = True"
 								" WHERE id = %s", (product_id,))
-			self.db.commit()
-			GLib.idle_add ( self.load_catalog_clicked )
+			DB.commit()
+			c.close()
+			GLib.idle_add (self.load_catalog_clicked)
 			combo.set_active(-1)
 
 	def product_completion_match_selected (self, combo, model, iter_):
+		c = DB.cursor()
 		product_id = model[iter_][0]
-		self.cursor.execute("UPDATE products SET catalog = True"
-								" WHERE id = %s", (product_id,))
-		self.db.commit()
+		c.execute("UPDATE products SET catalog = True"
+					" WHERE id = %s", (product_id,))
+		DB.commit()
 		GLib.idle_add ( self.load_catalog_clicked )
 
 	def show_product_preview_activated (self, menuitem):
+		c = DB.cursor()
 		selection = self.get_object("treeview-selection1")
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		row_id = model[path][0]
-		self.cursor.execute("SELECT image FROM products WHERE id = %s", (row_id,))
-		for row in self.cursor.fetchall():
+		c.execute("SELECT image FROM products WHERE id = %s", (row_id,))
+		for row in c.fetchall():
 			image_bytes = row[0]
 			if image_bytes == None:
 				self.image == None
@@ -120,6 +125,8 @@ class CatalogCreatorGUI(Gtk.Builder):
 			window = self.get_object('image_window')
 			window.show_all()
 			window.present()
+		c.close()
+		DB.rollback()
 
 	def show_image (self):
 		if self.image != None:
@@ -142,28 +149,29 @@ class CatalogCreatorGUI(Gtk.Builder):
 		return True
 
 	def load_catalog_clicked (self, button = None):
+		c = DB.cursor()
 		markup_id = self.get_object('price_level_combo').get_active_id()
 		scale = self.get_object('scale1')
 		size = scale.get_value()
 		self.catalog_store.clear()
 		description = self.get_object('description_checkbutton').get_active()
-		self.cursor.execute("SELECT "
-								"p.id, "
-								"barcode, "
-								"p.name, "
-								"ext_name, "
-								"CASE WHEN %s THEN description ELSE '' END, "
-								"COALESCE(price, 0.00), "
-								"image "
-							"FROM products AS p "
-							"LEFT JOIN products_markup_prices AS pmp "
-							"ON pmp.product_id = p.id "
-							"LEFT JOIN customer_markup_percent AS cmp "
-							"ON cmp.id = pmp.markup_id "
-							"WHERE (catalog, cmp.id) = (True, %s) "
-							"ORDER BY catalog_order", 
-							(description, markup_id))
-		for row in self.cursor.fetchall():
+		c.execute("SELECT "
+						"p.id, "
+						"barcode, "
+						"p.name, "
+						"ext_name, "
+						"CASE WHEN %s THEN description ELSE '' END, "
+						"COALESCE(price, 0.00), "
+						"image "
+					"FROM products AS p "
+					"LEFT JOIN products_markup_prices AS pmp "
+					"ON pmp.product_id = p.id "
+					"LEFT JOIN customer_markup_percent AS cmp "
+					"ON cmp.id = pmp.markup_id "
+					"WHERE (catalog, cmp.id) = (True, %s) "
+					"ORDER BY catalog_order", 
+					(description, markup_id))
+		for row in c.fetchall():
 			p_id = row[0]
 			barcode = row[1]
 			name = row[2]
@@ -179,6 +187,8 @@ class CatalogCreatorGUI(Gtk.Builder):
 				input_in = Gio.MemoryInputStream.new_from_bytes(byte_in)
 				pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(input_in, size, size, True)
 			self.catalog_store.append([p_id, barcode, name, ext_name, description, price, pixbuf])
+		c.close()
+		DB.rollback()
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -214,18 +224,19 @@ class CatalogCreatorGUI(Gtk.Builder):
 			else:
 				store.move_after(source_iter, dest_iter)
 		treeview.emit_stop_by_name("drag-data-received")
-		self.db.commit()
 
 	def drag_data_get (self, treeview, drag_context, data, info, time):
 		model, path = treeview.get_selection().get_selected_rows()
 		data.set_text(str(path[0]), -1)
 
 	def catalog_rows_reordered (self, store, path, treeiter, pointer):
+		c = DB.cursor()
 		for index, row in enumerate(store):
 			product_id = row[0]
-			self.cursor.execute("UPDATE products SET catalog_order = %s "
-								"WHERE id = %s", (index, product_id))
-		self.db.commit()
+			c.execute("UPDATE products SET catalog_order = %s "
+						"WHERE id = %s", (index, product_id))
+		DB.commit()
+		c.close()
 
 	def update_image_clicked (self, button):
 		selection = self.get_object("treeview-selection1")
@@ -240,38 +251,43 @@ class CatalogCreatorGUI(Gtk.Builder):
 			f = open(filename,'rb')
 			file_data = f.read ()
 			f.close()
-			self.cursor.execute("UPDATE products SET image = %s "
-								"WHERE id = %s", (file_data, product_id))
-		self.db.commit()
+			c = DB.cursor()
+			c.execute("UPDATE products SET image = %s "
+						"WHERE id = %s", (file_data, product_id))
+			c.close()
+			DB.commit()
 		dialog.hide()
 	
 	def remove_product_clicked (self, button):
+		c = DB.cursor()
 		selection = self.get_object("treeview-selection1")
 		model, path = selection.get_selected_rows ()
 		if path == []:
 			return
 		product_id = model[path][0]
-		self.cursor.execute("UPDATE products SET catalog = False"
-								" WHERE id = %s", (product_id,))
-		self.db.commit()
-		GLib.idle_add ( self.load_catalog_clicked )
+		c.execute("UPDATE products SET catalog = False"
+					" WHERE id = %s", (product_id,))
+		DB.commit()
+		c.close()
+		GLib.idle_add (self.load_catalog_clicked)
 	
 	def populate_template_clicked (self, button):
+		c = DB.cursor()
 		markup_id = self.get_object('price_level_combo').get_active_id()
 		from py3o.template import Template 
 		product_list = dict()
-		self.cursor.execute("SELECT "
-								"'name'||p.id, p.name, "
-								"'price'||p.id, price::money, "
-								"'barcode'||p.id, p.barcode "
-							"FROM products AS p "
-							"JOIN products_markup_prices AS pmp "
-							"ON pmp.product_id = p.id "
-							"JOIN customer_markup_percent AS cmp "
-							"ON cmp.id = pmp.markup_id "
-							"WHERE (p.catalog, cmp.id) = (True, %s)",
-							(markup_id,))
-		for row in self.cursor.fetchall():
+		c.execute("SELECT "
+						"'name'||p.id, p.name, "
+						"'price'||p.id, price::money, "
+						"'barcode'||p.id, p.barcode "
+					"FROM products AS p "
+					"JOIN products_markup_prices AS pmp "
+					"ON pmp.product_id = p.id "
+					"JOIN customer_markup_percent AS cmp "
+					"ON cmp.id = pmp.markup_id "
+					"WHERE (p.catalog, cmp.id) = (True, %s)",
+					(markup_id,))
+		for row in c.fetchall():
 			name_id = row[0]
 			name = row[1]
 			price_id = row[2]
@@ -281,6 +297,8 @@ class CatalogCreatorGUI(Gtk.Builder):
 			product_list[name_id] = name
 			product_list[price_id] = price
 			product_list[barcode_id] = barcode
+		c.close()
+		DB.rollback()
 		catalog_file = "/tmp/catalog.odt"
 		t = Template(template_dir+"/catalog_template.odt", catalog_file , False)
 		try:
@@ -290,11 +308,11 @@ class CatalogCreatorGUI(Gtk.Builder):
 			dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
 										buttons = Gtk.ButtonsType.CLOSE)
 			dialog.set_transient_for(self.window)
-			dialog.set_markup (message)
+			dialog.set_markup (str(e))
 			dialog.run()
 			dialog.destroy()
-			return
-		subprocess.Popen(["soffice", catalog_file])
+		else:
+			subprocess.Popen(["soffice", catalog_file])
 
 	def image_area_draw (self, drawing_area, cr):
 		image = GdkPixbuf.Pixbuf.new_from_file("/home/reuben/reuben.jpg")

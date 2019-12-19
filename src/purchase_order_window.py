@@ -21,14 +21,14 @@ from datetime import datetime
 import subprocess, re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster, help_dir
 
 items = list()
 
 UI_FILE = ui_directory + "/purchase_order_window.ui"
 
 def add_expense_to_po (po_id, product_id, expense_amount ):
-	cursor = db.cursor ()
+	cursor = DB.cursor ()
 	cursor.execute("INSERT INTO purchase_order_line_items "
 					"(purchase_order_id, product_id, qty, remark, price, "
 					"ext_price, canceled, expense_account) "
@@ -37,7 +37,7 @@ def add_expense_to_po (po_id, product_id, expense_amount ):
 						"FROM products WHERE id = %s))", 
 					(po_id, product_id, expense_amount, expense_amount, 
 					product_id))
-	db.commit ()
+	DB.commit ()
 	cursor.close()
 
 class Item(object):#this is used by py3o library see their example for more info
@@ -51,6 +51,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
 
@@ -66,9 +67,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.barcodes_not_found_store = self.get_object('barcodes_not_found_store')
 		vendor_completion = self.get_object('vendor_completion')
 		vendor_completion.set_match_func(self.vendor_match_func)
-
-		self.db = db
-		self.cursor = db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_vendor_store ), 
 						   ("products_changed", self.populate_product_store )):
@@ -119,6 +117,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			column_id = row[0]
 			visible = row[1]
 			self.get_object(column_id).set_visible(visible)
+		DB.rollback()
 
 	def destroy(self, window):
 		for handler in self.handler_ids:
@@ -134,7 +133,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if self.vendor_id == 0:
 			return
 		qty, product_id = list_[0], list_[1]
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT COALESCE(vendor_sku, ''), p.name "
 						"FROM vendor_product_numbers AS vpn "
 						"JOIN products AS p ON p.id = vpn.product_id "
@@ -168,7 +167,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 											delimiter=',',
 											quotechar='|', 
 											quoting=csv.QUOTE_MINIMAL)
-			cursor = self.db.cursor()
+			cursor = DB.cursor()
 			cursor.execute("SELECT "
 								"qty, "
 								"name, "
@@ -183,15 +182,16 @@ class PurchaseOrderGUI(Gtk.Builder):
 			for row in cursor.fetchall():
 				exportfile.writerow(row)
 			cursor.close()
+		DB.rollback()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/purchase_order.page"])
+		subprocess.Popen(["yelp", help_dir + "/purchase_order.page"])
 
 	def view_all_toggled (self, checkbutton):
 		self.products_from_existing_po ()
 
 	def hold_togglebutton_toggled (self, togglebutton, path):
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		row_id = self.p_o_store[path][0]
 		try:
 			cursor.execute("UPDATE purchase_order_line_items "
@@ -200,7 +200,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"WHERE id = %s FOR UPDATE NOWAIT) "
 							"WHERE id = %s RETURNING hold", (row_id, row_id))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -208,12 +208,12 @@ class PurchaseOrderGUI(Gtk.Builder):
 		for row in cursor.fetchall():
 			active = row[0]
 			self.p_o_store[path][14] = active
-		db.commit()
+		DB.commit()
 		self.calculate_totals ()
 		cursor.close()
 
 	def products_from_existing_po (self):
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		self.p_o_store.clear()
 		if self.get_object ('checkbutton1').get_active() == True:
 			self.get_object('treeviewcolumn11').set_visible(True)
@@ -275,6 +275,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.p_o_store.append(row)
 		self.calculate_totals ()
 		cursor.close()
+		DB.rollback()
 
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
@@ -290,6 +291,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"WHERE vendor_id = %s", (self.vendor_id,))
 		for row in self.cursor.fetchall():
 			self.order_number_store.append(row)
+		DB.rollback()
 
 	def line_items_treeview_vendor_changed (self, combo, path, iter_):
 		vendor_id = self.vendor_store[iter_][0]
@@ -379,7 +381,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.cursor.execute("UPDATE purchase_order_line_items "
 							"SET purchase_order_id = %s "
 							"WHERE id = %s", (purchase_order_id, row_id))
-		db.commit()
+		DB.commit()
 		
 	def products_activated (self, column):
 		import products_overview
@@ -390,7 +392,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		name_combo = self.get_object('combobox1')
 		active_customer = name_combo.get_active() 
 		self.vendor_store.clear()
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT "
 							"id::text, "
 							"name, "
@@ -403,6 +405,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		for row in cursor.fetchall():
 			self.vendor_store.append(row)
 		cursor.close()
+		DB.rollback()
 		self.populating = False
 
 	def contacts_window(self, widget):
@@ -417,8 +420,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def view_purchase_order(self, widget):
 		comment = self.get_object('entry2').get_text()
-		purchase_order = purchase_ordering.Setup(db, 
-													self.vendor_id, 
+		purchase_order = purchase_ordering.Setup( self.vendor_id, 
 													comment, 
 													self.datetime, 
 													self.purchase_order_id)
@@ -430,7 +432,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		unprocessed_po.GUI ()
 
 	def post_purchase_order(self, widget = None):
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT "
 							"pg_try_advisory_lock(id) "
 						"FROM purchase_orders "
@@ -440,8 +442,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.show_message("Somebody else is still accessing this PO")
 				return
 		comment = self.get_object('entry2').get_text()
-		purchase_order = purchase_ordering.Setup(db,  
-													self.vendor_id, 
+		purchase_order = purchase_ordering.Setup(self.vendor_id, 
 													comment, 
 													self.datetime, 
 													self.purchase_order_id)
@@ -460,10 +461,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"(%s, True) RETURNING id", 
 							(self.purchase_order_id, old_purchase_id))
 		if cursor.fetchone() == None: #no products held
-			db.rollback()
+			DB.rollback()
 			self.window.destroy ()
 		else:								#new po created; show it
-			db.commit()
+			DB.commit()
 			self.products_from_existing_po ()
 		cursor.close()
 
@@ -485,6 +486,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"FROM purchase_orders "
 								"WHERE id = %s ", 
 								(self.purchase_order_id, ))
+		DB.commit()
 		
 	def select_vendor (self, vendor_id):
 		self.p_o_store.clear()
@@ -529,24 +531,25 @@ class PurchaseOrderGUI(Gtk.Builder):
 					self.get_object('entry1').set_text(row[1])
 					self.get_object('entry8').set_text(row[2])
 			self.calculate_totals ()
+		DB.rollback()
 
 	def editing_canceled (self, cellrenderer):
 		"all widgets need to connect to this function to release row locks"
 		"removing row locks is as simple as doing a rollback or commit"
 		"all rows need to be locked whenever a widget is opened to "
 		"edit an invoice row"
-		db.rollback() #remove row lock by rolling back
+		DB.rollback() #remove row lock by rolling back
 
 	################## start qty
 
 	def qty_editing_started (self, cellrenderer, celleditable, path):
 		row_id = self.p_o_store[path][0]
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT qty::text FROM purchase_order_line_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -557,7 +560,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor.close()
 
 	def qty_edited(self, widget, path, text):
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		_iter = self.p_o_store.get_iter (path)
 		self.check_po_item_id (_iter)
 		line_id = self.p_o_store[_iter][0]
@@ -569,26 +572,26 @@ class PurchaseOrderGUI(Gtk.Builder):
 								(text, text, line_id))
 		except psycopg2.DataError as e:
 			self.show_message (str(e))
-			self.db.rollback()
+			DB.rollback()
 			return
 		for row in cursor.fetchall():
 			qty = row[0]
 			ext_price = row[1]
 			self.p_o_store[_iter][1] = qty
 			self.p_o_store[_iter][9] = ext_price
-		self.db.commit()
+		DB.commit()
 		self.calculate_totals ()
 
 	################## start order number
 
 	def order_number_editing_started (self, renderer, entry, path):
 		row_id = self.p_o_store[path][0]
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT order_number FROM purchase_order_line_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -618,7 +621,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.cursor.execute("UPDATE purchase_order_line_items "
 							"SET order_number = %s WHERE id = %s",
 							(order_number, row_id))
-		self.db.commit()
+		DB.commit()
 
 	def order_number_match_selected (self, completion, store, _iter):
 		product_id = store[_iter][0]
@@ -639,7 +642,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def update_vendor_order_number (self, order_number, product_id):
 		if self.vendor_id == 0:
 			return
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("INSERT INTO vendor_product_numbers AS vpn "
 							"(vendor_sku, "
 							"vendor_id, "
@@ -652,6 +655,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 						(order_number, self.vendor_id, product_id, 
 						order_number, self.vendor_id, product_id))
 		cursor.close()
+		DB.commit()
 		
 	################## start remark
 
@@ -659,20 +663,20 @@ class PurchaseOrderGUI(Gtk.Builder):
 		_iter = self.p_o_store.get_iter(path)
 		self.p_o_store[_iter][7] = text
 		row_id = self.p_o_store[_iter][0] 
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("UPDATE purchase_order_line_items SET remark = %s "
 							"WHERE id = %s", (text, row_id))
 		cursor.close()
-		self.db.commit()
+		DB.commit()
 		
 	def remark_editing_started (self, cellrenderer, entry, path):
 		row_id = self.p_o_store[path][0]
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT remark FROM purchase_order_line_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -693,7 +697,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		combo.connect('remove-widget', self.product_widget_removed, path)
 		entry = combo.get_child()
 		row_id = self.p_o_store[path][0]
-		cursor = db.cursor()
+		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT p.name "
 							"FROM purchase_order_line_items AS poi "
@@ -701,7 +705,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"WHERE poi.id = %s "
 							"FOR UPDATE OF poi NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
-			db.rollback()
+			DB.rollback()
 			cursor.close()
 			error = str(e) + "Somebody else is editing this row"
 			self.show_message (error)
@@ -715,18 +719,15 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def populate_account_store (self):
 		self.expense_account_store.clear()
 		self.revenue_account_store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE expense_account = True ORDER BY name")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.expense_account_store.append([str(account_number), account_name])
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+			self.expense_account_store.append(row)
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE revenue_account = True ORDER BY name")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.revenue_account_store.append([str(account_number), account_name])
+			self.revenue_account_store.append(row)
+		DB.rollback()
 
 	def create_product_widgets_changed (self, widget):
 		self.get_object ('button1').set_sensitive(False)
@@ -763,6 +764,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if self.get_object ('combobox3').get_active_id() == None:
 			return # no income account
 		self.get_object ('button1').set_sensitive(True)
+		DB.rollback()
 
 	def product_widget_removed (self, combo, path):
 		if self.p_o_store[path][4] == True:
@@ -795,16 +797,16 @@ class PurchaseOrderGUI(Gtk.Builder):
 	
 	def product_edited (self, cellrenderertext, text, path):
 		"Posting does not allow product names to be edited directly"
-		db.rollback () # remove row lock, see editing_canceled
+		DB.rollback () # remove row lock, see editing_canceled
 
 	def save_product (self, _iter, product_id):
 		if self.check_for_duplicate_products (product_id, _iter) == True:
-			db.rollback() # remove row lock, see editing_canceled
+			DB.rollback() # remove row lock, see editing_canceled
 			return # duplicate product, skip the rest of the code
 		self.save_product_without_duplicate_check (_iter, product_id)
 
 	def save_product_without_duplicate_check(self, _iter, product_id):
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		row_id = self.p_o_store[_iter][0]
 		vendor_id = self.p_o_store[_iter][11]
 		self.p_o_store[_iter][2] = int(product_id)
@@ -858,7 +860,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.p_o_store[_iter][8] = price
 			self.p_o_store[_iter][9] = ext_price
 		cursor.close()
-		self.db.commit()
+		DB.commit()
 		self.calculate_totals ()
 
 	def product_match_string(self, completion, key, tree_iter):
@@ -896,7 +898,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 					self.cursor.execute("UPDATE purchase_order_line_items "
 										"SET qty = %s WHERE id = %s", 
 										(qty, row_id))
-					self.db.commit()
+					DB.commit()
 					self.calculate_totals ()
 					self.delete_entry_activated ()
 				elif result == Gtk.ResponseType.REJECT:
@@ -910,7 +912,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = line[0]
 		if row_id != 0:
 			return # we have a valid id
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		qty = line[1]
 		product_id = line[2]
 		order_number = line[3]
@@ -953,11 +955,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = cursor.fetchone()[0]
 		line[0] = row_id
 		cursor.close()
-		db.commit()
+		DB.commit()
 		self.calculate_totals ()
 
 	def calculate_totals(self):
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT COALESCE(SUM(ext_price), 0.0)::money "
 						"FROM purchase_order_line_items "
 						"WHERE purchase_order_id = %s", 
@@ -1009,7 +1011,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			c = treeview.get_column(0)
 			path = self.p_o_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
-		db.commit()
+		DB.commit()
 
 	def delete_entry_activated (self, menuitem = None):
 		selection = self.get_object("treeview-selection")
@@ -1018,7 +1020,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			line_id = model[path][0]
 			self.cursor.execute("DELETE FROM purchase_order_line_items "
 								"WHERE id = %s", (line_id,))
-			db.commit()
+			DB.commit()
 			self.products_from_existing_po ()
 
 	def key_tree_tab(self, treeview, event):

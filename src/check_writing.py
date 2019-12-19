@@ -15,14 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from constants import DB
 import re
 
 Money = (["", "one ", "two ", "three ", "four ", "five ", "six ", "seven ", "eight ", "nine ", "ten ", "eleven ", "twelve ", "thirteen ", "fourteen ", "fifteen ", "sixteen ", "seventeen ", "eighteen ", "nineteen "])
 
 MoneyTy = (["", "onety ", "twenty ", "thirty ", "fourty ", "fifty ", "sixty ", "seventy ", "eighty ", "ninety "])
 
-def get_check_number (db, bank_account):
-	cursor = db.cursor()
+def get_check_number (bank_account):
+	cursor = DB.cursor()
 	cursor.execute("SELECT MAX(check_number) FROM gl_entries "
 					"WHERE credit_account = %s", (bank_account,))
 	check_number = cursor.fetchone()[0]

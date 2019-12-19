@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GLib
 from datetime import datetime
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/time_clock.ui"
 
@@ -29,10 +29,9 @@ class TimeClockGUI :
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.timeout_id = None
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (('clock_entries_changed', self.populate_employees),):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -40,12 +39,9 @@ class TimeClockGUI :
 		self.stack = self.builder.get_object('time_clock_stack')
 		self.employee_store = self.builder.get_object('employee_store')
 		self.project_store = self.builder.get_object('project_store')
-
 		self.populate_employees ()
-
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
-
 
 	def delete_event (self, window, event):
 		window.hide()
@@ -70,7 +66,7 @@ class TimeClockGUI :
 	def commit_routine (self):
 		"we need to commit on a regular basis so that db polling works; "
 		"the db polling feature will then broadcast all revelant changes "
-		self.db.commit()
+		DB.commit()
 		return True
 
 	def populate_employees (self, main_class = None):
@@ -94,6 +90,7 @@ class TimeClockGUI :
 			self.employee_store.append(row)
 		selection = self.builder.get_object('employee_selection')
 		GLib.idle_add(selection.unselect_all)
+		DB.rollback()
 
 	def scan_employee_id_activated (self, entry):
 		entry.select_region(0, -1)
@@ -123,10 +120,11 @@ class TimeClockGUI :
 			project_name = self.employee_store[path][5]
 			self.builder.get_object('project_label1').set_label(project_name)
 			self.stack.set_visible_child_name ('punchout_page')
-			self.db.commit()
+			DB.commit()
 			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
 			self.clock_in_out_time = int(self.cursor.fetchone()[0])
 			self.show_date_from_seconds ()
+		DB.rollback()
 
 	def populate_job_store (self):
 		self.project_store.clear()
@@ -157,6 +155,7 @@ class TimeClockGUI :
 							(self.employee_id,))
 		for row in self.cursor.fetchall():
 			self.project_store.append(row)
+		DB.rollback()
 
 	def scan_job_id_activated (self, entry):
 		entry.select_region(0, -1)
@@ -178,7 +177,7 @@ class TimeClockGUI :
 		job_name = self.project_store[path][1]
 		self.builder.get_object('project_label').set_label(job_name)
 		self.stack.set_visible_child_name ('punchin_page')
-		self.db.commit()
+		DB.commit()
 		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
 		self.clock_in_out_time = int(self.cursor.fetchone()[0])
 		self.show_date_from_seconds ()
@@ -194,7 +193,8 @@ class TimeClockGUI :
 							"VALUES "
 							"(%s, %s, True, False, False, CURRENT_TIMESTAMP)", 
 							(self.employee_id, self.project_id))
-		self.db.commit()
+		DB.commit()
+		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def manual_punch_in_clicked (self, button):
@@ -215,7 +215,8 @@ class TimeClockGUI :
 							(self.employee_id, 
 							self.project_id, 
 							self.clock_in_out_time))
-		self.db.commit()
+		DB.commit()
+		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def punch_out_clicked (self, button):
@@ -223,7 +224,8 @@ class TimeClockGUI :
 							"SET (running, stop_time) = "
 							"(False, CURRENT_TIMESTAMP) "
 							"WHERE id = %s", (self.entry_id,))
-		self.db.commit()
+		DB.commit()
+		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def manual_punch_out_clicked (self, button):
@@ -232,10 +234,12 @@ class TimeClockGUI :
 							"(False, CAST(TO_TIMESTAMP(%s) AS timestamptz)) "
 							"WHERE id = %s", 
 							(self.clock_in_out_time, self.entry_id))
-		self.db.commit()
+		DB.commit()
+		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def cancel_clicked (self, button):
+		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 		
 	def increase_day (self, widget):
@@ -284,7 +288,7 @@ class TimeClockGUI :
 
 	def show_punched_in_calculated_time (self):
 		''' self.entry_id may be 0, resulting in nothing'''
-		self.db.commit()
+		DB.commit()
 		self.cursor.execute("SELECT "
 								"DATE_TRUNC('second',("
 									"CAST(TO_TIMESTAMP(%s) AS timestamptz) - "
@@ -296,12 +300,13 @@ class TimeClockGUI :
 		for row in self.cursor.fetchall():
 			interval = row[0]
 			self.builder.get_object('time_label_manual_out').set_label(interval)
+		DB.rollback()
 
 	def time_renderer_editing_started (self, cellrenderer, celleditable, path):
 		celleditable.set_editable(False)
 		celleditable.set_alignment(1.00)
 		entry_id = self.employee_store[path][4]
-		self.db.commit()
+		DB.commit()
 		self.cursor.execute("SELECT "
 								"'     '||"
 								"DATE_TRUNC('second',("
@@ -312,6 +317,7 @@ class TimeClockGUI :
 		interval = self.cursor.fetchone()[0]
 		celleditable.set_text(interval)
 		celleditable.select_region(-1, -1)
+		DB.rollback()
 
 
 

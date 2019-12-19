@@ -16,10 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from decimal import Decimal
+from constants import ui_directory, DB
 from decimal import Decimal
 
-UI_FILE = constants.ui_directory + "/reports/net_worth.ui"
+UI_FILE = ui_directory + "/reports/net_worth.ui"
 
 class NetWorthGUI(Gtk.Builder):
 	def __init__(self):
@@ -27,14 +28,16 @@ class NetWorthGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.account_treestore = self.get_object("net_worth_store")
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.populate_net_worth ()
 
 		self.window = self.get_object("window")
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_net_worth (self):
 		# Assets first
@@ -81,9 +84,10 @@ class NetWorthGUI(Gtk.Builder):
 			self.account_treestore.set_value(tree_parent, 2, str(equities))
 		net_worth = assets - liabilities + equities
 		self.get_object("income_amount_label").set_label(str(net_worth))
+		DB.rollback()
 
 	def get_child_accounts (self, is_parent, parent_account, parent_tree):
-		c = self.db.cursor()
+		c = DB.cursor()
 		if is_parent == True:
 			c.execute("SELECT is_parent, number::text, name, 0.00::text "
 						"FROM gl_accounts "

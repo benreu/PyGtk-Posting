@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk
 from datetime import datetime, date, timedelta
 from dateutils import DateTimeCalendar
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/sales_tax_report.ui"
+UI_FILE = ui_directory + "/reports/sales_tax_report.ui"
 
 class SalesTaxReportGUI:
 	def __init__(self):
@@ -28,9 +28,7 @@ class SalesTaxReportGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.tax_store = self.builder.get_object('tax_store')
 
 		self.end_datetime = None
@@ -59,6 +57,9 @@ class SalesTaxReportGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_tax_treeview(self):
 		self.tax_store.clear()
@@ -94,6 +95,7 @@ class SalesTaxReportGUI:
 			tax_total = '${:,.2f}'.format(row[1])
 			self.builder.get_object('label4').set_label(tax_total)
 			self.builder.get_object('label6').set_label(sale_total)
+		DB.rollback()
 				
 	def tax_cell_func(self, column, cellrenderer, model, iter1, data):
 		tax = '${:,.2f}'.format(model.get_value(iter1, 1))

@@ -19,7 +19,7 @@ from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 from decimal import Decimal
 from db.transactor import DoubleEntryTransaction
-from constants import db, ui_directory 
+from constants import DB, ui_directory 
 
 UI_FILE = ui_directory + "/double_entry_transaction.ui"
 TWO_PLACES = Decimal('0.01')
@@ -30,6 +30,7 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -40,8 +41,10 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_stores (self):
-		self.cursor = db.cursor()
 		self.account_store.clear()
 		self.cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
 							"WHERE parent_number IS NULL "
@@ -49,7 +52,7 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 		for row in self.cursor.fetchall():
 			iter_ = self.account_store.append(None, row)
 			self.get_child_accounts (row[0], row[2], iter_)
-		self.cursor.close()
+		DB.rollback()
 
 	def get_child_accounts (self, account_number, account_path, parent):
 		self.cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
@@ -211,7 +214,7 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 			amount = row[0]
 			account_number = row[1]
 			det.post_credit_entry(amount, account_number)
-		db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def refresh_accounts_clicked (self, button):
