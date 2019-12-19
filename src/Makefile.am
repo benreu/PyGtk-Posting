@@ -21,7 +21,6 @@ pygtk_posting_PYTHON = \
 	job_sheet.py \
 	job_types.py \
 	credit_card_statements.py \
-	jobs_to_invoice.py \
 	statementing.py \
 	customer_tax_exemptions.py \
 	product_location.py \
@@ -57,7 +56,6 @@ pygtk_posting_PYTHON = \
 	job_types.ui \
 	credit_card_statements.ui \
 	job_sheet.ui \
-	jobs_to_invoice.ui \
 	customer_tax_exemptions.ui \
 	product_location.ui \
 	manufacturing.ui \
