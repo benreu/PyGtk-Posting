@@ -61,8 +61,13 @@ class OpenInvoicesGUI:
 
 	def open_invoice_row_activated (self, treeview, path, treeview_column):
 		invoice_id = self.open_invoice_store[path][0]
+		self.open_invoice (invoice_id)
+
+	def open_invoice (self, invoice_id):
 		import invoice_window
 		invoice_window.InvoiceGUI(invoice_id)
+		if self.builder.get_object('hide_checkbutton').get_active():
+			self.window.hide()
 
 	def populate_store (self):
 		selection = self.builder.get_object('treeview-selection1')
@@ -95,10 +100,8 @@ class OpenInvoicesGUI:
 		if path == []:
 			return
 		invoice_id = model[path][0]
-		import invoice_window
-		invoice_window.InvoiceGUI(invoice_id)
+		self.open_invoice (invoice_id)
 
 
 
 
-		
