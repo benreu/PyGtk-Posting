@@ -142,6 +142,22 @@
               </packing>
             </child>
             <child>
+              <object class="GtkCheckButton" id="hide_checkbutton">
+                <property name="label" translatable="yes">Hide when opening purchase order</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">Hide this window when opening the purchase order window with a PO</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="button1">
                 <property name="label" translatable="yes">Open PO in purchase order window</property>
                 <property name="visible">True</property>
@@ -153,7 +169,7 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="pack_type">end</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>

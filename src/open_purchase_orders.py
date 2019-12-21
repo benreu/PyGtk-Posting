@@ -33,7 +33,8 @@ class OpenPurchaseOrderGUI:
 		self.window.show_all()
 
 	def delete_event (self, window, event):
-		self.cursor.close()
+		window.hide()
+		return True
 
 	def new_po_clicked (self, button):
 		import purchase_order_window
@@ -70,8 +71,13 @@ class OpenPurchaseOrderGUI:
 
 	def open_po_row_activated (self, treeview, path, treeview_column):
 		po_id = self.open_po_store[path][0]
+		self.open_po (po_id)
+
+	def open_po (self, po_id):
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI(po_id)
+		if self.builder.get_object('hide_checkbutton').get_active():
+			self.window.hide()
 
 	def populate_store (self):
 		selection = self.builder.get_object('treeview-selection1')
@@ -103,10 +109,9 @@ class OpenPurchaseOrderGUI:
 		if path == []:
 			return
 		po_id = model[path][0]
-		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(po_id)
+		self.open_po (po_id)
 
 
 
 
-		
+

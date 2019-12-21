@@ -30,6 +30,9 @@ class MainGUI :
 	time_clock_object = None
 	keybinding = None
 	prod_loc_class = None
+	unpaid_invoices_window = None
+	open_invoices_window = None
+	open_po = None
 
 	def __init__(self):
 		self.builder = Gtk.Builder()
@@ -48,8 +51,6 @@ class MainGUI :
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		self.unpaid_invoices_window = None
-		self.open_invoices_window = None
 		self.populate_quick_commands()
 		self.populate_modules ()
 		self.check_db_version ()
@@ -572,8 +573,10 @@ class MainGUI :
 		write_check.GUI()
 
 	def open_pos_clicked (self, button):
-		import open_purchase_orders
-		open_purchase_orders.OpenPurchaseOrderGUI()
+		if not self.open_po:
+			import open_purchase_orders
+			self.open_po = open_purchase_orders.OpenPurchaseOrderGUI()
+		self.open_po.window.present()
 
 	def about_window(self, widget):
 		about_window = self.builder.get_object('aboutdialog1')
