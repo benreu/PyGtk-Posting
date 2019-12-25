@@ -93,14 +93,31 @@ def update_apsw_tables(connection):
 	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
 					"('stocked_column', 25)")
 	# contact window layout
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('contact_window_width', 900)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('contact_window_height', 600)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('contact_pane_width', 300)")
-	cursor.execute("INSERT OR IGNORE INTO widget_size VALUES "
-					"('contact_name_column_width', 175)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS contact_overview "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('window_width', 850)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('window_height', 500)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('ext_name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('address_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('city_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('state_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('zip_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('fax_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('phone_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('email_column', 125)")
 
 
 def connect_to_db (name):

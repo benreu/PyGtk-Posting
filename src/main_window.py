@@ -637,8 +637,8 @@ class MainGUI :
 		budget.BudgetGUI()
 
 	def contacts_window(self, widget):
-		import contact_overview
-		contact_overview.ContactOverviewGUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def database_tools_activated(self, widget):
 		from db import database_tools

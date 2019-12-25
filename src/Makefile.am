@@ -9,7 +9,6 @@ pygtk_postingdir = $(pythondir)/pygtk_posting
 pygtk_posting_PYTHON = \
 	account_transactions.py \
 	bank_statement.py \
-	contacts.py \
 	deposits.py \
 	settings.py \
 	unpaid_invoices.py \
@@ -43,7 +42,6 @@ pygtk_posting_PYTHON = \
 	check_writing.py \
 	loan_payment.py \
 	loan_payment.ui\
-	contacts.ui \
 	account_transactions.ui \
 	bank_statement.ui \
 	deposits.ui \
@@ -160,7 +158,15 @@ pygtk_posting_PYTHON = \
 	product_edit_main.py \
 	product_edit_main.ui \
 	product_edit_order_numbers.py \
-	product_edit_order_numbers.ui
+	product_edit_order_numbers.ui \
+	contact_edit_main.py \
+	contact_edit_main.ui \
+	contacts_overview.py \
+	contacts_overview.ui \
+	contact_edit_exemptions.py \
+	contact_edit_exemptions.ui \
+	contact_edit_files.py \
+	contact_edit_files.ui
 
 
 EXTRA_DIST = $(ui_DATA)
