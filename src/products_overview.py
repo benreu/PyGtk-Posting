@@ -182,7 +182,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.treeview.set_model(model)
 		self.select_product()
 		c.close()
-		db.rollback()
+		DB.rollback()
 
 	def select_product (self):
 		for row in self.treeview.get_model(): 
@@ -191,11 +191,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 				treeview_selection.select_path(row.path)
 				self.treeview.scroll_to_cell(row.path, None, True, 0.5)
 				break
-<<<<<<< HEAD
-=======
-		c.close()
-		DB.rollback()
->>>>>>> refactor db connection; various code upgrades
 			
 	def window_key_press_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
