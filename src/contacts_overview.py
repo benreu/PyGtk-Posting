@@ -153,8 +153,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 		if path == []:
 			return
 		contact_id = model[path][0]
-		import contact_exemptions 
-		ce = contact_exemptions.ContactExemptionsGUI(contact_id)
+		import contact_edit_exemptions 
+		ce = contact_edit_exemptions.ContactEditExemptionsGUI(contact_id)
 		ce.window.set_transient_for(self.window)
 
 	def contact_files_clicked (self, button):
@@ -162,8 +162,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 		if path == []:
 			return
 		contact_id = model[path][0]
-		import contact_files 
-		cf = contact_files.ContactFilesGUI(contact_id)
+		import contact_edit_files 
+		cf = contact_edit_files.ContactEditFilesGUI(contact_id)
 		cf.window.set_transient_for(self.window)
 
 

@@ -19,9 +19,9 @@ from gi.repository import Gtk
 import psycopg2, subprocess
 from constants import ui_directory, DB
 
-UI_FILE = ui_directory + "/contact_files.ui"
+UI_FILE = ui_directory + "/contact_edit_files.ui"
 
-class ContactFilesGUI(Gtk.Builder):
+class ContactEditFilesGUI(Gtk.Builder):
 	def __init__(self, contact_id):
 
 		Gtk.Builder.__init__(self)

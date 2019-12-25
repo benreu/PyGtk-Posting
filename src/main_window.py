@@ -143,7 +143,8 @@ class MainGUI :
 		self.builder.get_object('menuitem64').set_sensitive(value)
 		self.builder.get_object('menuitem49').set_sensitive(value)
 		self.builder.get_object('menuitem80').set_sensitive(value)
-		is_admin = value
+		import constants
+		constants.is_admin = value
 
 	def blank_clicked (self, button):
 		pass
