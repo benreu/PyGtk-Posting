@@ -27,6 +27,33 @@ items = list()
 
 UI_FILE = ui_directory + "/purchase_order_window.ui"
 
+def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
+							expense_account, revenue_account):
+	
+	cursor = DB.cursor()
+	cursor.execute("SELECT id FROM tax_rates WHERE standard = True")
+	default_tax_rate = cursor.fetchone()[0]
+	cursor.execute("INSERT INTO products (name, description, unit, cost, "
+					" tax_rate_id, deleted, sellable, "
+					"purchasable, min_inventory, reorder_qty, tax_exemptible, "
+					"manufactured, weight, tare, ext_name, stock, "
+					"inventory_enabled, default_expense_account, "
+					"revenue_account) "
+					"VALUES (%s, '', 1, 1.00, "
+					"%s, False, False, True, 0, 0, True, False, 0.00, 0.00, "
+					"'', False, False, %s, %s) RETURNING id", ( product_name, 
+					default_tax_rate, expense_account, revenue_account))
+	product_id = cursor.fetchone()[0]
+	cursor.execute("UPDATE products SET barcode = %s WHERE id = %s", 
+					(product_id, product_id))
+	cursor.execute("INSERT INTO vendor_product_numbers "
+					"(vendor_sku, vendor_id, product_id, vendor_barcode) "
+					"VALUES (%s, %s, %s, '')", 
+					(product_number, vendor_id, product_id))
+	DB.commit()
+	cursor.close()
+	return product_id
+
 def add_expense_to_po (po_id, product_id, expense_amount ):
 	cursor = DB.cursor ()
 	cursor.execute("INSERT INTO purchase_order_line_items "
@@ -784,9 +811,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		expense_account = self.get_object ('combobox2').get_active_id()
 		revenue_account = self.get_object ('combobox3').get_active_id()
 		if result == Gtk.ResponseType.ACCEPT:
-			import products
-			product_id = products.add_non_stock_product(
-												self.vendor_id, product_name,
+			product_id = add_non_stock_product(	self.vendor_id, product_name,
 												product_number, expense_account,
 												revenue_account)
 			self.p_o_store[_iter][2] = product_id
