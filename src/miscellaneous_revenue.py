@@ -62,8 +62,8 @@ class MiscellaneousRevenueGUI:
 		self.cursor.close()
 
 	def contacts_clicked (self, button):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def contact_match_func(self, completion, key, iter):
 		split_search_text = key.split()

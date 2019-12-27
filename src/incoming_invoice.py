@@ -121,8 +121,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		DB.rollback()
 
 	def service_provider_clicked (self, button):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 		
 	def provider_match_selected(self, completion, model, iter_):
 		provider_id = model[iter_][0]

@@ -134,8 +134,8 @@ class JobSheetGUI(Gtk.Builder):
 		DB.commit()
 
 	def contacts_window(self, widget):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def product_window(self, column):
 		import products_overview

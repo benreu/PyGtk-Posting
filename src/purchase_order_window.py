@@ -436,8 +436,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.populating = False
 
 	def contacts_window(self, widget):
-		import contacts
-		c = contacts.GUI()
+		import contacts_overview
+		c = contacts_overview.ContactsOverviewGUI ()
 		c.get_object('radiobutton2').set_active(True)
 	
 	def vendor_match_func(self, completion, key, iter):

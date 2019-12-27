@@ -57,9 +57,8 @@ class ContactHubGUI:
 		self.window.destroy()
 
 	def edit_contact_clicked (self, button):
-		import contacts
-		c = contacts.GUI (int(self.contact_id))
-		c.select_contact ()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI(self.contact_id)
 		self.window.destroy()
 
 	def job_sheet_history_clicked (self, button):

@@ -142,8 +142,8 @@ class DocumentGUI:
 		products_overview.ProductsOverviewGUI()
 
 	def contacts_window(self, widget):
-		import contacts
-		contacts.GUI(True)
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def view_document_clicked(self, widget):
 		comment = self.builder.get_object('entry3').get_text()

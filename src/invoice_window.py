@@ -414,8 +414,8 @@ class InvoiceGUI:
 		self.populate_document_list()
 		
 	def contacts_window(self, widget):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def delete_invoice_clicked (self, button):
 		self.cursor.execute("UPDATE invoices SET canceled = True "
