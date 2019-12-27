@@ -21,16 +21,17 @@ from main import get_apsw_connection
 UI_FILE = ui_directory + "/contacts_overview.ui"
 
 class ContactsOverviewGUI(Gtk.Builder):
-	def __init__(self):
+	def __init__(self, contact_id = 0):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
+		self.contact_id = contact_id
 		self.name_filter = ''
 		self.contact_store = self.get_object('contact_store')
 		self.filtered_store = self.get_object('contact_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
+		self.treeview = self.get_object('treeview2')
 		self.populate_contact_store()
 		self.window = self.get_object('window1')
 		self.set_window_layout_from_settings ()
@@ -99,6 +100,12 @@ class ContactsOverviewGUI(Gtk.Builder):
 			self.populate_contact_store()
 
 	def populate_contact_store (self):
+		progressbar = self.get_object('progressbar')
+		spinner = self.get_object('spinner')
+		spinner.show()
+		spinner.start()
+		model = self.treeview.get_model()
+		self.treeview.set_model(None) # unset the model for performance
 		c = DB.cursor()
 		self.contact_store.clear()
 		if self.get_object('radiobutton1').get_active() == True:
@@ -123,10 +130,33 @@ class ContactsOverviewGUI(Gtk.Builder):
 						"email "
 					"FROM contacts %s "
 					"ORDER BY name, ext_name" % where)
-		for row in c.fetchall():
+		c_tuple = c.fetchall()
+		rows = len(c_tuple)
+		for row_count, row in enumerate(c_tuple):
+			progressbar.set_fraction((row_count + 1) / rows)
 			self.contact_store.append(row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		DB.rollback()
 		c.close()
+		spinner.hide()
+		spinner.stop()
+		self.treeview.set_model(model)
+		self.select_contact()
+
+	def select_contact (self):
+		for row in self.treeview.get_model(): 
+			if row[0] == self.contact_id: 
+				treeview_selection = self.get_object('treeview-selection2')
+				treeview_selection.select_path(row.path)
+				self.treeview.scroll_to_cell(row.path, None, True, 0.5)
+				break
+
+	def contact_selection_changed (self, treeselection):
+		model, path = treeselection.get_selected_rows()
+		if path == []:
+			return
+		self.contact_id = model[path][0]
 
 	def contact_activated (self, treeview, treepath, treeviewcolumn):
 		model, path = treeview.get_selection().get_selected_rows()
