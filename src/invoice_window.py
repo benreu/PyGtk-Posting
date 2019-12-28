@@ -283,7 +283,7 @@ class InvoiceGUI:
 				self.time_clock_entries_ids = self.cursor.fetchall()
 				for row in self.time_clock_entries_ids:
 					cancel_time_import_menuitem.set_visible(True)
-			menu = self.builder.get_object('invoice_line_item_menu')
+			menu = self.builder.get_object('invoice_item_menu')
 			menu.popup_at_pointer()
 			self.menu_visible = True
 		else:

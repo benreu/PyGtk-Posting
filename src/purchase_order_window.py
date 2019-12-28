@@ -354,7 +354,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3 and self.menu_visible == False:
-			menu = self.get_object('right_click_menu')
+			menu = self.get_object('p_o_item_menu')
 			menu.popup_at_pointer()
 			self.menu_visible = True
 		else:
@@ -925,7 +925,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 										(qty, row_id))
 					DB.commit()
 					self.calculate_totals ()
-					self.delete_entry_activated ()
+					self.delete_item_activated ()
 				elif result == Gtk.ResponseType.REJECT:
 					self.save_product_without_duplicate_check(_iter, product_id)
 				dialog.hide()
@@ -1038,7 +1038,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			treeview.set_cursor(path, c, True)
 		DB.commit()
 
-	def delete_entry_activated (self, menuitem = None):
+	def delete_item_activated (self, menuitem = None):
 		selection = self.get_object("treeview-selection")
 		model, path = selection.get_selected_rows ()
 		if path != []:
