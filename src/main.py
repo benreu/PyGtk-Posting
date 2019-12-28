@@ -118,6 +118,11 @@ def update_apsw_tables(connection):
 					"('phone_column', 125)")
 	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
 					"('email_column', 125)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS keybindings "
+											"(widget_id text UNIQUE NOT NULL, "
+											"keybinding text NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO keybindings VALUES "
+					"('Main window', 'F9')")
 
 
 def connect_to_db (name):

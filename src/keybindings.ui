@@ -4,18 +4,14 @@
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="keybindings_store">
     <columns>
-      <!-- column-name action -->
+      <!-- column-name menu_path -->
       <column type="gchararray"/>
       <!-- column-name accel -->
       <column type="gint"/>
       <!-- column-name modifier -->
       <column type="GdkModifierType"/>
-      <!-- column-name schema-name -->
-      <column type="gchararray"/>
       <!-- column-name closure -->
       <column type="PyObject"/>
-      <!-- column-name global -->
-      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
@@ -39,8 +35,8 @@
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Restart required to load new keybindings.
-Posting cannot detect global keybinding conflicts.</property>
+            <property name="label" translatable="yes">Note 1: Restart required to load new keybindings.
+Note 2: Posting cannot detect keybinding conflicts with other apps.</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -53,6 +49,7 @@ Posting cannot detect global keybinding conflicts.</property>
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
             <property name="shadow_type">in</property>
             <child>
               <object class="GtkTreeView">
@@ -83,26 +80,12 @@ Posting cannot detect global keybinding conflicts.</property>
                     <child>
                       <object class="GtkCellRendererAccel">
                         <property name="editable">True</property>
+                        <signal name="accel-cleared" handler="accel_cleared" swapped="no"/>
                         <signal name="accel-edited" handler="accel_edited" swapped="no"/>
                       </object>
                       <attributes>
                         <attribute name="accel-key">1</attribute>
                         <attribute name="accel-mods">2</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Global</property>
-                    <property name="reorderable">True</property>
-                    <child>
-                      <object class="GtkCellRendererToggle">
-                        <signal name="toggled" handler="global_toggled" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="active">5</attribute>
                       </attributes>
                     </child>
                   </object>

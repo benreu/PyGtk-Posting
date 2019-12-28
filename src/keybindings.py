@@ -17,67 +17,45 @@
 
 import gi
 gi.require_version('Keybinder', '3.0')
-from gi.repository import Gtk, Gdk, Keybinder, Gio
+from gi.repository import Gtk, Gdk, Keybinder
 from constants import ui_directory
+from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/keybindings.ui"
 
-parent = None
-
-no_mod = Gdk.ModifierType(0)
-def populate_shortcuts (main):
-	global shortcuts
-	shortcuts = (
-	["Main window (global)", 0, no_mod, 'present-main-window', main.present, True],
-	["Product location", 0, no_mod, 'product-location', main.product_location, False],
-	["Quick command", 0, no_mod, 'quick-command', main.quick_command_activate, False],
-	["Invoice window", 0, no_mod, 'invoice-window', main.new_invoice, False],
-	["Purchase order window", 0, no_mod, 'purchase-order-window', main.new_purchase_order, False],
-	["Time clock", 0, no_mod, 'time-clock', main.time_clock, False])
 
 class KeybinderInit (Gtk.Builder):
 	def __init__ (self, main):
-		k = Keybinder
-		k.init()
+		self.k = Keybinder
+		self.k.init()
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.settings = Gio.Settings.new("pygtk-posting.keybinding")
 		self.store = self.get_object('keybindings_store')
-		for row in shortcuts:
-			self.store.append(row)
-		self.accel_group = Gtk.AccelGroup()
-		for index, row in enumerate(self.store):
-			string = self.settings.get_string(row[3]).split()
-			if len(string) == 2:
-				hotkey, global_hotkey = string
-			else : # not a valid hotkey, just default to nothing
-				hotkey, global_hotkey = ('', False)
-			key, mod = Gtk.accelerator_parse(hotkey)
-			row[1] = key
-			row[2] = mod
-			closure = row[4]
-			if hotkey == '':
-				continue # don't bind disabled hotkeys
-			if global_hotkey == 'True':
-				k.bind(hotkey, closure)
-				row[5] = True
-			else:
-				self.accel_group.connect(key, mod, 0, self.accel_callback)
-		parent.window.add_accel_group(self.accel_group)
+		self.sqlite_conn = get_apsw_connection() 
 
-	def global_toggled (self, cellrenderertoggle, path):
-		if path == '0' and self.store[path][5] == True :
-			return # main window is always global, or set to global if it isn't
-		global_hotkey = not self.store[path][5]
-		self.store[path][5] = global_hotkey
-		self.save_hotkey_preference (path)
+	def add_menu_keybinding (self, menu_path, menu_item):
+		cursor = self.sqlite_conn.cursor()
+		cursor.execute("SELECT keybinding FROM keybindings "
+						"WHERE widget_id = ?", (menu_path,))
+		for row in cursor.fetchall():
+			keybinding = row[0]
+			key, modifier = Gtk.accelerator_parse(keybinding)
+			self.k.bind(keybinding, self.callback, menu_item)
+			break
+		else:
+			key, modifier = Gtk.accelerator_parse('')
+		self.store.append([menu_path, key, modifier, menu_item])
+
+	def callback (self, keybinder, menu_item):
+		menu_item.activate()
 
 	def accel_callback(self, accel_group, window, key, mod):
 		for row in self.store:
 			if row[1] == key and row[2] == mod:
 				closure = row[4]
 				closure()
+				break
 
 	def show_window (self):
 		window = self.get_object('window')
@@ -88,22 +66,35 @@ class KeybinderInit (Gtk.Builder):
 		window.hide()
 		return True
 	
-	def accel_edited(self, cellrendereraccel, path, key, mods, hwcode):
-		if key == 32:
-			self.show_message ('Space is not allowed for a keybinding!')
+	def accel_cleared (self, cellrendereraccel, path):
+		sqlite_conn = get_apsw_connection() 
+		cursor = sqlite_conn.cursor()
+		key, modifier = Gtk.accelerator_parse('')
+		menu_path = self.store[path][0]
+		self.store[path][1] = key
+		self.store[path][2] = modifier
+		cursor.execute ("DELETE FROM keybindings "
+						"WHERE widget_id = ?", (menu_path,))
+		sqlite_conn.close()
+
+	def accel_edited(self, cellrendereraccel, path, key, modifiers, hwcode):
+		if key not in range(65470, 65482) and modifiers == Gdk.ModifierType(0):
+			self.show_message ('Please use a modifier key!')
 			return
 		self.store[path][1] = key
-		self.store[path][2] = mods
+		self.store[path][2] = modifiers
 		self.save_hotkey_preference (path)
 
 	def save_hotkey_preference (self, path):
+		sqlite_conn = get_apsw_connection() 
+		cursor = sqlite_conn.cursor()
+		menu_path = self.store[path][0]
 		key = self.store[path][1]
-		mods = self.store[path][2] 
-		setting_name = self.store[path][3]
-		global_hotkey = self.store[path][5]
-		accelerator = Gtk.accelerator_name(key, mods)
-		setting = accelerator + ' ' + str(global_hotkey)
-		self.settings.set_string(setting_name, setting)
+		modifiers = self.store[path][2] 
+		accelerator = Gtk.accelerator_name(key, modifiers)
+		cursor.execute("REPLACE INTO keybindings (keybinding, widget_id) "
+						"VALUES (?, ?) ", (accelerator, menu_path))
+		sqlite_conn.close()
 
 	def show_message (self, message):
 		window = self.get_object('window')

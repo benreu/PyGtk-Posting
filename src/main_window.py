@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re
 from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
@@ -51,39 +52,56 @@ class MainGUI :
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		self.populate_quick_commands()
+		self.populate_menu_features ()
 		self.populate_modules ()
 		self.check_db_version ()
-		if not dev_mode:
-			self.connect_keybindings()
 		import traceback_handler
 		traceback_handler.Log()
 
 	def present (self, keybinding):
 		self.window.present()
 
-	def populate_quick_commands(self):
+	def populate_menu_features (self):
 		menu = self.builder.get_object('menubar1')
+		import keybindings
+		self.keybinding = keybindings.KeybinderInit(self)
 		import quick_command
-		self.quick_command = quick_command.QuickCommandGUI(menu)
+		self.quick_command = quick_command.QuickCommand()
+		self.quick_command.store.clear()
+		# Create an invisible menuitem to show the main window 
+		menuitem = Gtk.MenuItem()
+		menuitem.connect('activate', self.present)
+		self.keybinding.add_menu_keybinding ("Main window", menuitem)
+		for child in menu.get_children():
+			path = child.get_label().strip('_')
+			self.populate_child_menu_shortcuts(child, path)
+		self.keybinding.sqlite_conn.close()
+
+	def populate_child_menu_shortcuts (self, parent, path):
+		if parent.get_sensitive():
+			for child in parent.get_submenu():
+				if type(child) == gi.repository.Gtk.SeparatorMenuItem:
+					continue # skip any separators
+				label = child.get_label().strip('_')
+				c_path = path + ' / ' + label
+				submenus = child.get_submenu()
+				if submenus:
+					self.populate_child_menu_shortcuts(child, c_path)
+				else:
+					self.quick_command.store.append([label, c_path, child])
+					self.keybinding.add_menu_keybinding (c_path, child)
 	
 	def quick_command_activate (self, menuitem):
 		self.quick_command.show_all()
+	
+	def keyboard_shortcuts_activated (self, menuitem):
+		if self.keybinding:
+			self.keybinding.show_window()
 
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
 		version.CheckVersion(self, posting_version)
-
-	def connect_keybindings (self):
-		import keybindings
-		keybindings.parent = self
-		keybindings.populate_shortcuts(self)
-		self.keybinding = keybindings.KeybinderInit(self)
-	
-	def keyboard_shortcuts_activated (self, menuitem):
-		if self.keybinding:
-			self.keybinding.show_window()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
