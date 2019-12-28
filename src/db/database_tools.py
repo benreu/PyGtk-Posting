@@ -15,8 +15,11 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib
+import gi
+gi.require_version('Vte', '2.91')
+from gi.repository import Gtk, GLib, Vte
 import subprocess, psycopg2, re, os
+from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from constants import DB, ui_directory, sql_dir
@@ -43,7 +46,7 @@ class GUI:
 			self.builder.get_object("box2").set_sensitive(True)
 			self.builder.get_object("grid2").set_sensitive(True)
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
-			self.statusbar.push(1,"Please setup PostgreSQL in the Connection tab")
+			self.statusbar.push(1,"Please setup PostgreSQL in the Server (host) tab")
 			self.builder.get_object('window').set_modal(True)
 		
 		self.get_postgre_settings (None)
@@ -305,11 +308,16 @@ class GUI:
 
 	def get_postgre_settings(self, widget):
 		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
+		cursor = sqlite.cursor()
+		for row in cursor.execute("SELECT * FROM connection;"):
 			self.builder.get_object("entry2").set_text(row[0])
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
 			self.builder.get_object("entry5").set_text(row[3])
+		entry = self.builder.get_object('postgres_bin_path_entry')
+		cursor.execute("SELECT value FROM settings "
+						"WHERE setting = 'postgres_bin_path'")
+		entry.set_text(cursor.fetchone()[0])
 		sqlite.close()
 
 	def test_connection_clicked (self, widget):
@@ -347,4 +355,25 @@ class GUI:
 	def message_error(self):
 		self.status_update("Your criteria did not match!")
 		GLib.timeout_add(3000, self.status_update, "Please check the entries and try again")
+
+	def postgres_bin_folder_set (self, filechooser):
+		path = filechooser.get_uri()[7:]
+		filechooser.set_tooltip_text(path)
+		buf = self.builder.get_object('postgres_bin_path_buffer')
+		command = "%s/pg_isready" % path
+		try:
+			p = Popen([command], stdout=PIPE, stderr=PIPE)
+			stdout, stderr = p.communicate()
+			buf.set_text(stdout.decode('utf-8') + stderr.decode('utf-8'))
+		except Exception as e:
+			buf.set_text(str(e))
+			return
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE settings SET value = ? "
+								"WHERE setting = 'postgres_bin_path'", (path,))
+		sqlite.close()
+
+
+
+
 

@@ -49,6 +49,11 @@ def create_apsw_tables(cursor):
 
 def update_apsw_tables(connection):
 	cursor = connection.cursor()
+	cursor.execute("CREATE TABLE IF NOT EXISTS settings "
+							"(setting TEXT UNIQUE NOT NULL,"
+							"value TEXT NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
+							"('postgres_bin_path', '/usr/bin')")
 	cursor.execute("CREATE TABLE IF NOT EXISTS widget_size "
 											"(widget_id text UNIQUE NOT NULL, "
 											"size integer NOT NULL)")
