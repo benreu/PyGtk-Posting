@@ -58,9 +58,8 @@ class ResourceManagementGUI:
 		
 		self.older_than_calendar = DateTimeCalendar()
 		self.older_than_calendar.connect('day-selected', self.older_than_date_selected )
-		self.older_than_calendar.set_today()
-		self.populate_stores()
-		self.populate_resource_store ()
+		entry = self.builder.get_object('entry1')
+		self.older_than_calendar.set_relative_to(entry)
 
 		if id_ != None:
 			selection = self.builder.get_object('treeview-selection1')
@@ -77,6 +76,8 @@ class ResourceManagementGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		self.older_than_calendar.set_today()
+		self.populate_stores()
 
 	def destroy (self, widget):
 		for handler in self.handler_ids:
@@ -461,6 +462,8 @@ class ResourceManagementGUI:
 		date_text = calendar.get_text ()
 		self.builder.get_object('entry1').set_text(date_text)
 		self.older_than_date = calendar.get_date()
+		if self.older_than_date == None:
+			self.older_than_date = datetime.today()
 		self.populate_resource_store ()
 
 	def tags_activated (self, button):
