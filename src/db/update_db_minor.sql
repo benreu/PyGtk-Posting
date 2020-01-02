@@ -42,19 +42,6 @@ ALTER TABLE resource_tags ALTER COLUMN alpha SET NOT NULL;
 --INSERT INTO resource_tags (tag, red, green, blue, alpha, finished) VALUES ('To do', 0, 0, 0, 1, False);
 
 ALTER TABLE time_clock_projects ADD COLUMN IF NOT EXISTS resource_id bigint UNIQUE;
-DO $$
-BEGIN
-	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
-		FROM information_schema.constraint_column_usage 
-		WHERE constraint_schema = 'public'
-		AND constraint_name = 'shipping_info_incoming_invoice_id_fkey' )
-	THEN
-		ALTER TABLE public.shipping_info
-		ADD CONSTRAINT shipping_info_incoming_invoice_id_fkey FOREIGN KEY (incoming_invoice_id)
-		REFERENCES public.incoming_invoices (id) MATCH SIMPLE
-		ON UPDATE NO ACTION ON DELETE RESTRICT;
-	END IF;
-END$$; 
 -- version 0.4.3
 ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS ext_price numeric (12, 2) DEFAULT 0.00;
 UPDATE credit_memo_items SET ext_price = (qty * price) WHERE ext_price IS NULL;
@@ -268,8 +255,8 @@ ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET DEFAUL
 ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN wage SET DEFAULT 0.00;
 ALTER TABLE payroll.employee_info ALTER COLUMN wage SET NOT NULL;
-ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET DEFAULT 24;
-ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN payments_per_year SET DEFAULT 24;
+ALTER TABLE payroll.employee_info ALTER COLUMN payments_per_year SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN married SET DEFAULT False;
 ALTER TABLE payroll.employee_info ALTER COLUMN married SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET DEFAULT now();
@@ -297,8 +284,8 @@ CREATE OR REPLACE FUNCTION payroll.pay_stubs_employee_info_update_func ()
   RETURNS trigger AS
 $func$
 BEGIN
-	UPDATE payroll.employee_info SET current = False 
-		WHERE (id, current) = (SELECT NEW.employee_info_id, True);
+	UPDATE payroll.employee_info SET active = False 
+		WHERE (id, active) = (SELECT NEW.employee_info_id, True);
 	RETURN NEW;
 END
 $func$  LANGUAGE plpgsql;
@@ -311,7 +298,7 @@ CREATE OR REPLACE FUNCTION payroll.employee_info_update_non_current_error_func (
 	RETURNS trigger AS
 $func$
 BEGIN
-	IF OLD.current = False THEN 
+	IF OLD.active = False THEN 
 		RAISE EXCEPTION 'Non-current entries in employee_info are not editable';
 	END IF;
 	RETURN NEW;
@@ -323,8 +310,8 @@ BEFORE UPDATE ON payroll.employee_info
 FOR EACH ROW EXECUTE PROCEDURE payroll.employee_info_update_non_current_error_func() ;
 
 CREATE UNIQUE INDEX IF NOT EXISTS employee_info_employee_current_unique
-ON payroll.employee_info (employee_id, current)
-WHERE current = True;
+ON payroll.employee_info (employee_id, active)
+WHERE active = True;
 --version 0.5.17
 UPDATE purchase_order_line_items SET order_number = '' WHERE order_number IS NULL;
 ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET DEFAULT '';

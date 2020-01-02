@@ -15,7 +15,27 @@
  You should have received a copy of the GNU General Public License
  along with this program. If not, see <http://www.gnu.org/licenses/>. */
 
---version 0.5.0
-ALTER TABLE terms_and_discounts DROP COLUMN IF EXISTS markup_percent; -- not used
-ALTER TABLE payroll.employee_info RENAME current TO active; -- reserved keyword
-ALTER TABLE payroll.employee_info RENAME payment_frequency TO payments_per_year; -- remove ambiguity
+--version 0.5.0; not used
+ALTER TABLE terms_and_discounts DROP COLUMN IF EXISTS markup_percent; 
+--reserved keyword
+DO $$
+BEGIN
+  IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='employee_info' and column_name='current')
+  THEN
+      ALTER TABLE public.employee_info RENAME COLUMN current TO active;
+  END IF;
+END $$;
+--clarify ambiguity
+DO $$
+BEGIN
+  IF EXISTS(SELECT *
+    FROM information_schema.columns
+    WHERE table_name='employee_info' and column_name='payment_frequency')
+  THEN
+      ALTER TABLE public.employee_info RENAME COLUMN payment_frequency TO payments_per_year;
+  END IF;
+END $$;
+
+
