@@ -45,11 +45,19 @@ class ContactEditMainGUI(Gtk.Builder):
 								"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		self.cursor.execute("SELECT id::text FROM terms_and_discounts "
+							"WHERE standard = True")
+		for row in self.cursor.fetchall():
+			self.get_object('combobox1').set_active_id(row[0])
 		store = self.get_object('markup_store')
 		self.cursor.execute("SELECT id::text, name FROM customer_markup_percent "
 								"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		self.cursor.execute("SELECT id::text FROM customer_markup_percent "
+							"WHERE standard = True")
+		for row in self.cursor.fetchall():
+			self.get_object('combobox2').set_active_id(row[0])
 		DB.rollback()
 
 	def load_contact (self):
