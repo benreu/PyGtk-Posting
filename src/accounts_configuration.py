@@ -17,7 +17,7 @@
 
 
 from gi.repository import Gtk, GLib
-import from constants import DB, ui_directory
+from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/accounts_configuration.ui"
 
