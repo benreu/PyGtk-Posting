@@ -45,6 +45,7 @@ class GUI:
 			self.set_active_database ()
 			self.builder.get_object("box2").set_sensitive(True)
 			self.builder.get_object("grid2").set_sensitive(True)
+			self.db = DB
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
 			self.statusbar.push(1,"Please setup PostgreSQL in the Server (host) tab")
 			self.builder.get_object('window').set_modal(True)
@@ -214,7 +215,7 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		sqlite.cursor().execute("UPDATE connection SET db_name = ?", (db_name))
+		sqlite.cursor().execute("UPDATE connection SET db_name = ?", (db_name,))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
