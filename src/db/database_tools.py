@@ -40,12 +40,12 @@ class GUI:
 		self.progressbar = self.builder.get_object("progressbar1")
 		database_utils.PROGRESSBAR = self.progressbar
 		if error == False:
+			self.db = DB
 			self.retrieve_dbs ()
 			self.statusbar.push(1,"Ready to edit databases")
 			self.set_active_database ()
 			self.builder.get_object("box2").set_sensitive(True)
 			self.builder.get_object("grid2").set_sensitive(True)
-			self.db = DB
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
 			self.statusbar.push(1,"Please setup PostgreSQL in the Server (host) tab")
 			self.builder.get_object('window').set_modal(True)
@@ -107,13 +107,15 @@ class GUI:
 			sql_host = row[2]
 			sql_port = row[3]
 		sqlite.close()
-		cursor = DB.cursor()
+		cursor = self.db.cursor()
 		cursor.execute("SELECT b.datname FROM pg_catalog.pg_database b ORDER BY 1;")
 		for db_tuple in cursor.fetchall():
 			try:
 				db_name = db_tuple[0]
-				db = psycopg2.connect( database= db_name, host= sql_host, 
-										user=sql_user, password = sql_password, 
+				db = psycopg2.connect(  database= db_name, 
+										host= sql_host, 
+										user=sql_user, 
+										password = sql_password, 
 										port = sql_port)
 				cursor = db.cursor()
 				cursor.execute("SELECT version FROM settings") # valid pygtk posting database
@@ -146,7 +148,7 @@ class GUI:
 								"database %s" % selected, str(LOG_FILE)])
 
 	def login_single_clicked(self, widget):
-		DB.close()
+		self.db.close()
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			sqlite = get_apsw_connection()
@@ -327,28 +329,29 @@ class GUI:
 		sql_host= self.builder.get_object("entry4").get_text()
 		sql_port= self.builder.get_object("entry5").get_text()
 		try:
-			pysql = psycopg2.connect( host= sql_host, user=sql_user, 
+			self.db = psycopg2.connect( host= sql_host, 
+										user=sql_user, 
 										password = sql_password, 
 										port = sql_port)
-			self.db = pysql # connection successful
-			sqlite = get_apsw_connection()
-			sqlite.cursor().execute("UPDATE connection SET "
-							"(user, password, host, port) = "
-							"(?, ?, ?, ?)", 
-							(sql_user, sql_password, sql_host, sql_port))
-			sqlite.close()
-			self.message_success()
-			self.retrieve_dbs ()
-			self.builder.get_object("textbuffer1").set_text('')
-			self.builder.get_object("box2").set_sensitive(True)
-			self.builder.get_object("grid2").set_sensitive(True)
 		except Exception as e:
 			print (e)
 			self.message_error()
 			self.builder.get_object("textbuffer1").set_text(str(e))
 			self.builder.get_object("box2").set_sensitive(False)
 			self.builder.get_object("grid2").set_sensitive(False)
-
+			return
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE connection SET "
+						"(user, password, host, port) = "
+						"(?, ?, ?, ?)", 
+						(sql_user, sql_password, sql_host, sql_port))
+		sqlite.close()
+		self.message_success()
+		self.retrieve_dbs ()
+		self.builder.get_object("textbuffer1").set_text('')
+		self.builder.get_object("box2").set_sensitive(True)
+		self.builder.get_object("grid2").set_sensitive(True)
+		
 	def message_success(self):
 		self.status_update("Success!")
 		GLib.timeout_add(1000, self.status_update, "Saved to settings")
