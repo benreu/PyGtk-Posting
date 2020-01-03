@@ -24,7 +24,7 @@ BEGIN
     FROM information_schema.columns
     WHERE table_name='employee_info' and column_name='current')
   THEN
-      ALTER TABLE public.employee_info RENAME COLUMN current TO active;
+      ALTER TABLE payroll.employee_info RENAME COLUMN current TO active;
   END IF;
 END $$;
 --clarify ambiguity
@@ -34,7 +34,7 @@ BEGIN
     FROM information_schema.columns
     WHERE table_name='employee_info' and column_name='payment_frequency')
   THEN
-      ALTER TABLE public.employee_info RENAME COLUMN payment_frequency TO payments_per_year;
+      ALTER TABLE payroll.employee_info RENAME COLUMN payment_frequency TO payments_per_year;
   END IF;
 END $$;
 
