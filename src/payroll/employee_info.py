@@ -105,7 +105,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 
 	def select_employee (self):
 		self.populating = True
-		DB.commit() # save and unlock the current employee
+		DB.commit() # save and unlock the active employee
 		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT "
@@ -114,7 +114,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 								"social_security_exempt, "
 								"on_payroll_since, "
 								"wage, "
-								"payment_frequency, "
+								"payments_per_year, "
 								"married, "
 								"format_date(last_updated), "
 								"state_withholding_exempt, "
@@ -125,7 +125,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 								"fed_extra_withholding "
 							"FROM payroll.employee_info "
 							"WHERE employee_id = %s "
-							"ORDER BY current DESC, id DESC "
+							"ORDER BY active DESC, id DESC "
 							"LIMIT 1 FOR UPDATE NOWAIT",
 							(self.employee_id,))
 		except psycopg2.OperationalError as e:
@@ -425,7 +425,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 		social_security_exempt = self.get_object('checkbutton3').get_active()
 		on_payroll_since = self.on_payroll_since_calendar.get_date ()
 		wage = self.get_object('spinbutton6').get_value()
-		payment_frequency = self.get_object('spinbutton5').get_value()
+		payments_per_year = self.get_object('spinbutton5').get_value()
 		married = self.get_object('checkbutton4').get_active()
 		state_withholding_exempt = self.get_object('checkbutton2').get_active()
 		state_credits = self.get_object('spinbutton3').get_value()
@@ -440,7 +440,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"social_security_exempt, "
 						"on_payroll_since, "
 						"wage, "
-						"payment_frequency, "
+						"payments_per_year, "
 						"married, "
 						"state_withholding_exempt, "
 						"state_credits, "
@@ -451,15 +451,15 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"employee_id) "
 					"VALUES (%s, %s, %s, %s, %s, %s, %s, "
 						"%s, %s, %s, %s, %s, %s, %s) "
-					"ON CONFLICT (current, employee_id) "
-						"WHERE current = True "
+					"ON CONFLICT (active, employee_id) "
+						"WHERE active = True "
 					"DO UPDATE SET "
 						"(born, "
 						"social_security, "
 						"social_security_exempt, "
 						"on_payroll_since, "
 						"wage, "
-						"payment_frequency, "
+						"payments_per_year, "
 						"married, "
 						"state_withholding_exempt, "
 						"state_credits, "
@@ -474,7 +474,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"EXCLUDED.social_security_exempt, "
 						"EXCLUDED.on_payroll_since, "
 						"EXCLUDED.wage, "
-						"EXCLUDED.payment_frequency, "
+						"EXCLUDED.payments_per_year, "
 						"EXCLUDED.married, "
 						"EXCLUDED.state_withholding_exempt, "
 						"EXCLUDED.state_credits, "
@@ -483,14 +483,14 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"EXCLUDED.fed_credits, "
 						"EXCLUDED.fed_extra_withholding, "
 						"now()) "
-					"WHERE (employee_info.employee_id, employee_info.current) = "
+					"WHERE (employee_info.employee_id, employee_info.active) = "
 						"(EXCLUDED.employee_id, True) ", 
 					(born,
 					social_security,
 					social_security_exempt,
 					on_payroll_since,
 					wage,
-					payment_frequency,
+					payments_per_year,
 					married,
 					state_withholding_exempt,
 					state_credits,
