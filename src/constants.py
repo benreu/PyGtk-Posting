@@ -48,6 +48,7 @@ class Broadcast (GObject.GObject):
 		c.execute("LISTEN accounts")
 		c.execute("LISTEN time_clock_entries")
 		c.close()
+		DB.commit()
 		
 	def poll_connection (self):
 		if DB.closed == 1:
@@ -55,6 +56,7 @@ class Broadcast (GObject.GObject):
 		DB.poll()
 		while DB.notifies:
 			notify = DB.notifies.pop(0)
+			print (notify)
 			if "product" in notify.payload:
 				self.emit('products_changed')
 			elif "contact" in notify.payload:
