@@ -396,19 +396,19 @@ class ProductEditMainGUI (Gtk.Builder):
 
 	def expense_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
-		if account_number == None or self.product_id == 0:
+		if account_number == None:
 			return
 		self.expense_account = account_number
 
 	def revenue_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
-		if account_number == None or self.product_id == 0:
+		if account_number == None:
 			return
 		self.revenue_account = account_number
 
 	def inventory_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
-		if account_number == None or self.product_id == 0:
+		if account_number == None:
 			return
 		self.inventory_account = account_number
 
