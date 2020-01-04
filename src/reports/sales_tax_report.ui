@@ -23,9 +23,9 @@
       <!-- column-name tax_rate -->
       <column type="gchararray"/>
       <!-- column-name tax_total -->
-      <column type="gfloat"/>
-      <!-- column-name sale_total -->
-      <column type="gfloat"/>
+      <column type="gchararray"/>
+      <!-- column-name sales_total -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">

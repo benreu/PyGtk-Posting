@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GdkPixbuf, Gdk
-from datetime import datetime, date, timedelta
+from gi.repository import Gtk
+from datetime import datetime, timedelta
 from dateutils import DateTimeCalendar
 from constants import ui_directory, DB
 
@@ -46,14 +46,6 @@ class SalesTaxReportGUI:
 
 		self.start_calendar.set_date(datetime.today() - timedelta(days = 365))
 		self.end_calendar.set_today ()
-
-		tax_column = self.builder.get_object('treeviewcolumn2')
-		tax_renderer = self.builder.get_object('cellrenderertext2')
-		tax_column.set_cell_data_func(tax_renderer, self.tax_cell_func )
-
-		total_column = self.builder.get_object('treeviewcolumn3')
-		total_renderer = self.builder.get_object('cellrenderertext3')
-		total_column.set_cell_data_func(total_renderer, self.total_cell_func )
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -63,8 +55,9 @@ class SalesTaxReportGUI:
 
 	def populate_tax_treeview(self):
 		self.tax_store.clear()
-		self.cursor.execute("SELECT SUM(i.ext_price), SUM(i.tax), "
-							"tax_rates.name "
+		self.cursor.execute("SELECT tax_rates.name, "
+							"SUM(i.tax)::money, "
+							"SUM(i.ext_price)::money "
 							"FROM invoice_items AS i "
 							"JOIN tax_rates ON i.tax_rate_id = tax_rates.id "
 							"JOIN invoices ON invoices.id = i.invoice_id "
@@ -75,14 +68,10 @@ class SalesTaxReportGUI:
 							"GROUP BY tax_rates.name", 
 							(self.start_datetime, self.end_datetime))
 		for row in self.cursor.fetchall():
-			sale_amount = row[0]
-			tax_amount = row[1]
-			tax_rate_name = row[2]
-			self.tax_store.append([tax_rate_name, float(tax_amount), 
-									float(sale_amount)])
+			self.tax_store.append(row)
 		self.cursor.execute("SELECT "
-								"COALESCE(SUM(i.ext_price), 0.00), "
-								"COALESCE(SUM(i.tax), 0.00) "
+								"COALESCE(SUM(i.ext_price), 0.00)::money, "
+								"COALESCE(SUM(i.tax), 0.00)::money "
 							"FROM invoice_items AS i "
 							"JOIN invoices ON invoices.id = i.invoice_id "
 							"WHERE (invoices.canceled, invoices.posted) "
@@ -91,19 +80,9 @@ class SalesTaxReportGUI:
 							"AND date_created <= %s", 
 							(self.start_datetime, self.end_datetime))
 		for row in self.cursor.fetchall():
-			sale_total = '${:,.2f}'.format(row[0])
-			tax_total = '${:,.2f}'.format(row[1])
-			self.builder.get_object('label4').set_label(tax_total)
-			self.builder.get_object('label6').set_label(sale_total)
+			self.builder.get_object('label6').set_label(row[0])
+			self.builder.get_object('label4').set_label(row[1])
 		DB.rollback()
-				
-	def tax_cell_func(self, column, cellrenderer, model, iter1, data):
-		tax = '${:,.2f}'.format(model.get_value(iter1, 1))
-		cellrenderer.set_property("text" , tax)	
-
-	def total_cell_func(self, column, cellrenderer, model, iter1, data):
-		total = '${:,.2f}'.format(model.get_value(iter1, 2))
-		cellrenderer.set_property("text" , total)
 
 	def start_date_selected(self, calendar):
 		self.start_datetime = calendar.get_datetime()
