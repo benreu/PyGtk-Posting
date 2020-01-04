@@ -42,6 +42,7 @@ class MainGUI :
 		self.window = self.builder.get_object('main_window')
 		self.window.set_title('%s - PyGtk Posting' % db_name)
 		self.window.show_all()
+		self.window.set_default_icon_name("pygtk-posting") # app-wide icon
 		self.set_admin_menus(dev_mode)
 		about_window = self.builder.get_object('aboutdialog1')
 		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
