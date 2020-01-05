@@ -56,7 +56,6 @@ class Broadcast (GObject.GObject):
 		DB.poll()
 		while DB.notifies:
 			notify = DB.notifies.pop(0)
-			print (notify)
 			if "product" in notify.payload:
 				self.emit('products_changed')
 			elif "contact" in notify.payload:
