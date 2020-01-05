@@ -85,18 +85,19 @@ class ContactsOverviewGUI(Gtk.Builder):
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
 
-	def filter_text_edited (self, store, path, text):
-		store[path][1] = text
-		self.name_filter = store[0][1]
+	def search_changed (self, search_entry):
+		self.name_filter = search_entry.get_text().split()
 		self.filtered_store.refilter()
 
-	def filter_func(self, model, tree_iter, r):
-		if self.name_filter not in model[tree_iter][1]:
-			return False
+	def filter_func (self, model, tree_iter, r):
+		for text in self.name_filter:
+			if text not in model[tree_iter][1].lower():
+				return False
 		return True
 
 	def contact_type_radiobutton_changed (self, radiobutton):
-		if radiobutton.get_active() == True:
+		# dismiss callbacks from non active radiobuttons
+		if radiobutton.get_active() == True: 
 			self.populate_contact_store()
 
 	def populate_contact_store (self):
@@ -109,13 +110,13 @@ class ContactsOverviewGUI(Gtk.Builder):
 		c = DB.cursor()
 		self.contact_store.clear()
 		if self.get_object('radiobutton1').get_active() == True:
-			where = "WHERE customer = True"
+			where = "WHERE (customer, deleted) = (True, False)"
 		elif self.get_object('radiobutton2').get_active() == True:
-			where = "WHERE vendor = True"
+			where = "WHERE (vendor, deleted) = (True, False)"
 		elif self.get_object('radiobutton3').get_active() == True:
-			where = "WHERE employee = True"
+			where = "WHERE (employee, deleted) = (True, False)"
 		elif self.get_object('radiobutton4').get_active() == True:
-			where = "WHERE service_provider = True"
+			where = "WHERE (service_provider, deleted) = (True, False)"
 		else: # all contacts
 			where = ""
 		c.execute("SELECT id, "
@@ -142,6 +143,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 		spinner.hide()
 		spinner.stop()
 		self.treeview.set_model(model)
+		self.treeview.set_search_column(1)
 		self.select_contact()
 
 	def select_contact (self):
