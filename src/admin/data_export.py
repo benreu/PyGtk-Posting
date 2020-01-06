@@ -16,20 +16,18 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import xlrd, xlsxwriter, subprocess
-import constants
+import xlsxwriter, subprocess
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/admin/data_export.ui"
+UI_FILE = ui_directory + "/admin/data_export.ui"
 
 
 class DataExportUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = db
 
 		window = self.builder.get_object('window1')
 		window.show_all()
@@ -47,7 +45,7 @@ class DataExportUI:
 	def populate_contacts (self):
 		store = self.builder.get_object('contact_export_store')
 		store.clear()
-		c = self.db.cursor ()
+		c = DB.cursor ()
 		c.execute ("SELECT "
 							"name, "
 							"ext_name, "
@@ -73,11 +71,12 @@ class DataExportUI:
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
+		DB.rollback()
 
 	def populate_products (self):
 		store = self.builder.get_object('product_export_store')
 		store.clear()
-		c = self.db.cursor ()
+		c = DB.cursor ()
 		c.execute ("SELECT "
 							"name, "
 							"ext_name, "
@@ -95,6 +94,7 @@ class DataExportUI:
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
+		DB.rollback()
 
 	def export_products_clicked (self, button):
 		chooser = self.builder.get_object('export_file_chooser')

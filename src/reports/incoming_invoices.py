@@ -18,9 +18,9 @@
 
 from gi.repository import Gtk
 import subprocess
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/incoming_invoices.ui"
+UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
 
 class IncomingInvoiceGUI:
 	service_provider_id = None
@@ -29,9 +29,7 @@ class IncomingInvoiceGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.service_provider_store = self.builder.get_object('service_provider_store')
 		self.incoming_invoice_store = self.builder.get_object('incoming_invoice_store')
@@ -43,11 +41,13 @@ class IncomingInvoiceGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
@@ -64,6 +64,7 @@ class IncomingInvoiceGUI:
 			with open(file_name,'wb') as f:
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_name])
+			DB.rollback()
 			break
 		else: # no pdf found, give the user the option to attach one
 			import pdf_attachment
@@ -74,16 +75,15 @@ class IncomingInvoiceGUI:
 				self.cursor.execute("UPDATE incoming_invoices "
 									"SET attached_pdf = %s "
 									"WHERE id = %s", (file_data, file_id))
-				self.db.commit()
+				DB.commit()
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE service_provider = True ORDER BY name")
 		for row in self.cursor.fetchall():
-			sp_id = row[0]
-			sp_name = row[1]
-			self.service_provider_store.append([str(sp_id), sp_name])
+			self.service_provider_store.append(row)
+		DB.rollback()
 
 	def sp_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
@@ -138,7 +138,8 @@ class IncomingInvoiceGUI:
 								(self.service_provider_id,))
 		for row in self.cursor.fetchall():
 			self.incoming_invoice_store.append(row)
+		DB.rollback()
 
 
 
-	
+

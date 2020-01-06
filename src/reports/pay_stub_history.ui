@@ -36,6 +36,7 @@
     <property name="window_position">center</property>
     <property name="default_width">550</property>
     <property name="default_height">300</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus_in_event" swapped="no"/>
     <child>
       <placeholder/>

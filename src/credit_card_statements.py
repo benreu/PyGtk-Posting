@@ -19,9 +19,9 @@ from gi.repository import Gtk, GLib
 import psycopg2
 from db import transactor
 from dateutils import DateTimeCalendar
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/credit_card_statements.ui"
+UI_FILE = ui_directory + "/credit_card_statements.ui"
 
 class CreditCardStatementGUI:
 	def __init__(self):
@@ -29,14 +29,13 @@ class CreditCardStatementGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		
 		self.transactions_store = self.builder.get_object('transactions_store')
 		self.income_expense_accounts_store = self.builder.get_object(
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
 									'fees_rewards_description_store')
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -47,15 +46,15 @@ class CreditCardStatementGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def focus (self, window, event):
 		return
 		self.populate_accounts_combo()
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
-		GLib.idle_add(self.highlight, spinbutton)
-
-	def highlight (self, spinbutton):
-		spinbutton.select_region(0, -1)
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def populate_accounts_combo(self):
 		credit_card_store = self.builder.get_object('credit_card_store')
@@ -129,14 +128,14 @@ class CreditCardStatementGUI:
 							"AND (credit_account = %s OR debit_account = %s) ", 
 							(self.date, self.credit_card_account, 
 							self.credit_card_account))
-		self.db.commit()
+		DB.commit()
 		self.populate_statement_treeview ()
 
 	def description_edited (self, renderer, path, text):
 		row_id = self.transactions_store[path][0]
 		self.cursor.execute("UPDATE gl_entries SET transaction_description = %s "
 							"WHERE id = %s", (text, row_id))
-		self.db.commit()
+		DB.commit()
 		self.transactions_store[path][3] = text
 
 	def date_renderer_edited (self, renderer, path, text):
@@ -148,14 +147,14 @@ class CreditCardStatementGUI:
 			#Postgres has a powerful date resolver, let it figure out the date
 			date_formatted = self.cursor.fetchone()[0]
 		except psycopg2.DataError as e:
-			self.db.rollback()
+			DB.rollback()
 			print (e)
 			self.builder.get_object('label10').set_label(str(e))
 			dialog = self.builder.get_object('date_error_dialog')
 			dialog.run()
 			dialog.hide()
 			return
-		self.db.commit()
+		DB.commit()
 		self.transactions_store[path][1] = text
 		self.transactions_store[path][2] = date_formatted
 
@@ -202,7 +201,7 @@ class CreditCardStatementGUI:
 		self.cursor.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
 							(active, row_id))
-		self.db.commit()
+		DB.commit()
 
 	def credit_combo_changed (self, combo):
 		account = combo.get_active_id()
@@ -240,12 +239,12 @@ class CreditCardStatementGUI:
 	def save_fee_reward_clicked (self, button):
 		description = self.builder.get_object('combobox-entry').get_text()
 		if self.fees_rewards_type == 3:
-			transactor.credit_card_fee_reward(self.db, self.date, 
+			transactor.credit_card_fee_reward(self.date, 
 										self.credit_card_account, 
 										self.fees_rewards_account,
 										float(self.penalty_amount), description)
 		else:
-			transactor.credit_card_fee_reward(self.db, self.date, 
+			transactor.credit_card_fee_reward(self.date, 
 										self.fees_rewards_account,
 										self.credit_card_account, 
 										float(self.penalty_amount), description)
@@ -255,7 +254,7 @@ class CreditCardStatementGUI:
 		self.builder.get_object('combobox1').set_active(-1)
 		self.builder.get_object('combobox-entry').set_text('')
 		button.set_sensitive(False)
-		self.db.commit()
+		DB.commit()
 		
 	def payment_amount_value_changed (self, spinbutton):
 		self.builder.get_object('comboboxtext4').set_sensitive(True)
@@ -272,7 +271,7 @@ class CreditCardStatementGUI:
 
 	def save_payment(self, widget):
 		transaction_number = self.builder.get_object('entry3').get_text()
-		transactor.bank_to_credit_card_transfer(self.db, self.bank_account, 
+		transactor.bank_to_credit_card_transfer(self.bank_account, 
 											self.credit_card_account, 
 											self.payment_amount, 
 											self.date, 
@@ -282,7 +281,7 @@ class CreditCardStatementGUI:
 		self.builder.get_object('entry3').set_text("")
 		self.builder.get_object('button2').set_sensitive(False)
 		self.builder.get_object('comboboxtext4').set_sensitive(False)
-		self.db.commit()
+		DB.commit()
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()

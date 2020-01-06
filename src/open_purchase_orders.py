@@ -15,20 +15,17 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/open_purchase_orders.ui"
+UI_FILE = ui_directory + "/open_purchase_orders.ui"
 
 class OpenPurchaseOrderGUI:
 	def __init__(self):
-
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.open_po_store = self.builder.get_object('open_po_store')
 		self.populate_store ()
 		
@@ -36,20 +33,51 @@ class OpenPurchaseOrderGUI:
 		self.window.show_all()
 
 	def delete_event (self, window, event):
-		self.cursor.close()
-		return
+		window.hide()
+		return True
 
 	def new_po_clicked (self, button):
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI()
+
+	def p_o_name_edited (self, cellrenderertext, path, text):
+		po_id = self.open_po_store[path][0]
+		self.cursor.execute("UPDATE purchase_orders SET name = %s "
+							"WHERE id = %s", (text, po_id))
+		DB.commit()
+		self.open_po_store[path][1] = text
+
+	def p_o_name_editing_canceled (self, cellrenderer):
+		self.cursor.execute("SELECT pg_advisory_unlock(id) "
+							"FROM purchase_orders "
+							"WHERE id = %s ",
+							(self.po_id,))
+		DB.commit()
+
+	def p_o_name_editing_started (self, cellrenderer, celleditable, path):
+		self.po_id = self.open_po_store[path][0]
+		self.cursor.execute("SELECT name FROM purchase_orders "
+							"WHERE (id, closed, pg_try_advisory_lock(id)) = "
+							"(%s, False, False)",
+							(self.po_id,))
+		for row in self.cursor.fetchall():
+			celleditable.set_text(row[0])
+			break
+		else:
+			cellrenderer.stop_editing(False)
 
 	def focus_in_event (self, window, event):
 		self.populate_store()
 
 	def open_po_row_activated (self, treeview, path, treeview_column):
 		po_id = self.open_po_store[path][0]
+		self.open_po (po_id)
+
+	def open_po (self, po_id):
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI(po_id)
+		if self.builder.get_object('hide_checkbutton').get_active():
+			self.window.hide()
 
 	def populate_store (self):
 		selection = self.builder.get_object('treeview-selection1')
@@ -73,7 +101,7 @@ class OpenPurchaseOrderGUI:
 			self.open_po_store.append(row)
 		if path != []:
 			selection.select_path(path)
-
+		DB.rollback()
 
 	def open_po_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -81,10 +109,9 @@ class OpenPurchaseOrderGUI:
 		if path == []:
 			return
 		po_id = model[path][0]
-		import purchase_order_window
-		purchase_order_window.PurchaseOrderGUI(po_id)
+		self.open_po (po_id)
 
 
 
 
-		
+

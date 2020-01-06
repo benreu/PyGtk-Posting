@@ -16,31 +16,32 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/product_account_relationship.ui"
+UI_FILE = ui_directory + "/reports/product_account_relationship.ui"
 
 class ProductAccountRelationshipGUI:
 	def __init__(self):
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		
 		self.product_text = ''
 		self.expense_text = ''
 		self.revenue_text = ''
 		self.inventory_text = ''
-		self.product_window = None
+		self.p_o = None
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.product_account_store = self.builder.get_object('product_account_store')
 		self.filtered_store = self.builder.get_object('product_account_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 		self.populate_product_account_store ()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -49,18 +50,16 @@ class ProductAccountRelationshipGUI:
 
 	def show_external_product_window (self, model, path):
 		product_id = model[path][0]
-		if self.product_window == None or not self.product_window.exists:
-			import products
-			self.product_window = products.ProductsGUI()
-			self.product_window.builder.get_object('paned1').set_position(0)
-			self.product_window.builder.get_object('window').resize(600, 600)
-		self.product_window.select_product(product_id)
+		if self.p_o == None or not self.p_o.window:
+			import products_overview
+			self.p_o = products_overview.ProductsOverviewGUI(product_id)
+		self.p_o.product_id = product_id
+		self.p_o.select_product()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
@@ -110,6 +109,7 @@ class ProductAccountRelationshipGUI:
 							"FROM products AS p ORDER BY p.name")
 		for row in self.cursor.fetchall():
 			self.product_account_store.append(row)
+		DB.rollback()
 
 
 

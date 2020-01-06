@@ -18,9 +18,9 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
-import constants
+from constants import ui_directory, DB, help_dir
 
-UI_FILE = constants.ui_directory + "/customer_tax_exemptions.ui"
+UI_FILE = ui_directory + "/customer_tax_exemptions.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -32,9 +32,8 @@ class CustomerTaxExemptionsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.cursor.execute("SELECT name FROM contacts WHERE id = %s",
 							(customer_id,))
 		customer_name = self.cursor.fetchone()[0]
@@ -49,8 +48,11 @@ class CustomerTaxExemptionsGUI:
 		self.dialog.run()
 		self.dialog.hide()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/tax_exemptions.page"])
+		subprocess.Popen(["yelp", help_dir + "/tax_exemptions.page"])
 
 	def populate_treeview (self):
 		self.tax_exemption_store.clear()
@@ -71,6 +73,7 @@ class CustomerTaxExemptionsGUI:
 			else:
 				self.tax_exemption_store.append([exemption_id,
 											exemption_name, False])
+		DB.rollback()
 
 	def regenerate_exemption_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -88,6 +91,7 @@ class CustomerTaxExemptionsGUI:
 							"(tax_rate_id, customer_id) VALUES (%s, %s)", 
 							(tax_id, self.customer_id))
 			GLib.timeout_add(10 , self.open_exemption, tax_id)
+			DB.commit()
 		else:
 			dialog = self.builder.get_object('dialog2')
 			dialog.run()
@@ -95,7 +99,6 @@ class CustomerTaxExemptionsGUI:
 			#self.cursor.execute("DELETE FROM customer_tax_exemptions WHERE "
 			#				"(tax_rate_id, customer_id) = (%s, %s)", 
 			#				(tax_id, self.customer_id))
-		#self.db.commit()
 
 	def open_exemption (self, tax_id):
 		self.cursor.execute("SELECT exemption_template_path FROM tax_rates "

@@ -17,20 +17,18 @@
 
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB, is_admin
 
-UI_FILE = constants.ui_directory + "/reports/job_sheet_history.ui"
+UI_FILE = ui_directory + "/reports/job_sheet_history.ui"
 
 class JobSheetHistoryGUI(Gtk.Builder):
 	def __init__(self):
 
-		
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.customer_text = ''
 		self.ext_name = ''
 		self.job_text = ''
@@ -43,11 +41,14 @@ class JobSheetHistoryGUI(Gtk.Builder):
 		self.job_filter.set_visible_func(self.filter_func)
 
 		self.populate_job_sheet_treeview ()
-		if constants.is_admin == True:
+		if is_admin == True:
 			self.get_object ('treeview1').set_tooltip_column(0)
 			self.get_object ('treeview2').set_tooltip_column(0)
 		self.window = self.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.customer_text.split():
@@ -77,7 +78,7 @@ class JobSheetHistoryGUI(Gtk.Builder):
 		self.job_sheet_line_item_store[path][3] = text
 		self.cursor.execute("UPDATE job_sheet_line_items "
 							"SET remark = %s WHERE id = %s", (text, _id_))
-		self.db.commit()
+		DB.commit()
 
 	def populate_job_sheet_treeview (self):
 		self.job_sheet_store.clear()
@@ -95,6 +96,7 @@ class JobSheetHistoryGUI(Gtk.Builder):
 							"JOIN job_types AS jt ON jt.id = job_type_id")
 		for row in self.cursor.fetchall():
 			self.job_sheet_store.append(row)
+		DB.rollback()
 
 	def job_sheet_treeview_activate(self, treeview, path, treeviewcolumn):
 		job_sheet_id = self.job_sort_store[path][0]
@@ -110,6 +112,7 @@ class JobSheetHistoryGUI(Gtk.Builder):
 							(job_sheet_id,))
 		for row in self.cursor.fetchall():
 			self.job_sheet_line_item_store.append(row)
+		DB.rollback()
 
 	def refresh_clicked (self, button):
 		self.populate_job_sheet_treeview()

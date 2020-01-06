@@ -19,53 +19,53 @@ from gi.repository import Gtk
 import xlrd
 from xlrd.biffh import XLRDError
 from psycopg2 import IntegrityError
-import constants
+from constants import DB, ui_directory
 
-UI_FILE = constants.ui_directory + "/admin/product_import.ui"
+UI_FILE = ui_directory + "/admin/product_import.ui"
 
 
-class ProductsImportGUI:
+class ProductsImportGUI(Gtk.Builder):
 	error = None
-	def __init__(self, db):
+	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
-		self.db = db
-
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_combos()
 
 	def populate_combos (self):
-		revenue_combo = self.builder.get_object('revenue_combo')
-		c = self.db.cursor()
+		revenue_combo = self.get_object('revenue_combo')
+		c = DB.cursor()
 		c.execute("SELECT number::text, name "
 					"FROM gl_accounts "
 					"WHERE revenue_account = True ORDER BY name")
 		for row in c.fetchall():
 			revenue_combo.append(row[0], row[1])
 		revenue_combo.set_active(0)
-		expense_combo = self.builder.get_object('expense_combo')
+		expense_combo = self.get_object('expense_combo')
 		c.execute("SELECT number::text, name "
 					"FROM gl_accounts "
 					"WHERE expense_account = True ORDER BY name")
 		for row in c.fetchall():
 			expense_combo.append(row[0], row[1])
 		expense_combo.set_active(0)
-		tax_rate_combo = self.builder.get_object('tax_rate_combo')
+		tax_rate_combo = self.get_object('tax_rate_combo')
 		c.execute("SELECT id::text, name "
 					"FROM tax_rates "
 					"WHERE (deleted, exemption) = (False, False) ORDER BY name")
 		for row in c.fetchall():
 			tax_rate_combo.append(row[0], row[1])
 		tax_rate_combo.set_active(0)
+		c.close()
+		DB.rollback()
 
 ####### start import to treeview
 
 	def load_xls (self, filename):
-		store = self.builder.get_object('product_import_store')
+		store = self.get_object('product_import_store')
 		store.clear()
 		try:
 			book = xlrd.open_workbook(filename)
@@ -124,12 +124,11 @@ class ProductsImportGUI:
 
 	def treeview_button_release_event (self, widget, event):
 		if event.button == 3:
-			menu = self.builder.get_object('right click menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu = self.get_object('right click menu')
+			menu.popup_at_pointer()
 
-	def delete_contact_activated (self, menu):
-		selection = self.builder.get_object('xls_import_selection')
+	def delete_product_activated (self, menu):
+		selection = self.get_object('xls_import_selection')
 		model, path = selection.get_selected_rows ()
 		if path == []:
 			return
@@ -137,19 +136,22 @@ class ProductsImportGUI:
 		model.remove(iter_)
 
 	def import_clicked (self, button):
-		checkbutton = self.builder.get_object('barcode_checkbutton')
+		button.set_sensitive(False)
+		checkbutton = self.get_object('barcode_checkbutton')
 		if checkbutton.get_active() == True:
 			self.import_with_generated_barcodes()
 		else:
 			self.import_with_barcodes ()
 
 	def import_with_generated_barcodes (self):
-		revenue_account = self.builder.get_object('revenue_combo').get_active_id()
-		expense_account = self.builder.get_object('expense_combo').get_active_id()
-		tax_rate_id = self.builder.get_object('tax_rate_combo').get_active_id()
-		model = self.builder.get_object('product_import_store')
-		c = self.db.cursor()
-		for row in model:
+		revenue_account = self.get_object('revenue_combo').get_active_id()
+		expense_account = self.get_object('expense_combo').get_active_id()
+		tax_rate_id = self.get_object('tax_rate_combo').get_active_id()
+		progressbar = self.get_object('progressbar1')
+		model = self.get_object('product_import_store')
+		c = DB.cursor()
+		total = len(model)
+		for row_count, row in enumerate(model):
 			c.execute ("INSERT INTO products ("
 												"name, "
 												"ext_name, "
@@ -171,16 +173,21 @@ class ProductsImportGUI:
 						(row[0],row[1],row[2],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],
 						revenue_account, expense_account, tax_rate_id))
+			progressbar.set_fraction(float(row_count)/total)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		c.close()
-		self.db.commit()
+		DB.commit()
 
 	def import_with_barcodes (self):
-		revenue_account = self.builder.get_object('revenue_combo').get_active_id()
-		expense_account = self.builder.get_object('expense_combo').get_active_id()
-		tax_rate_id = self.builder.get_object('tax_rate_combo').get_active_id()
-		model = self.builder.get_object('product_import_store')
-		c = self.db.cursor()
-		for row in model:
+		revenue_account = self.get_object('revenue_combo').get_active_id()
+		expense_account = self.get_object('expense_combo').get_active_id()
+		tax_rate_id = self.get_object('tax_rate_combo').get_active_id()
+		progressbar = self.get_object('progressbar1')
+		model = self.get_object('product_import_store')
+		c = DB.cursor()
+		total = len(model)
+		for row_count, row in enumerate(model):
 			try:
 				c.execute ("INSERT INTO products ("
 												"name, "
@@ -204,40 +211,42 @@ class ProductsImportGUI:
 						(row[0],row[1],row[2],row[3],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],
 						revenue_account, expense_account, tax_rate_id))
+				progressbar.set_fraction(float(row_count)/total)
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 			except IntegrityError as e:
 				print (e)
 				self.show_message (str(e))
 				c.close()
-				self.db.rollback()
+				DB.rollback()
 				return
 		c.close()
-		self.db.commit()
+		DB.commit()
 
 	def show_message (self, error):
-		dialog = Gtk.MessageDialog( self.window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									error)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (error)
 		dialog.run()
 		dialog.destroy()
 		
 	def text_renderer_edited (self, text_renderer, path, new_text):
-		treeview = self.builder.get_object('xls_treeview')
+		treeview = self.get_object('xls_treeview')
 		path, column = treeview.get_cursor()
 		model = treeview.get_model ()
 		col_index = column.get_sort_column_id()
 		model[path][col_index] = new_text
 
 	def float_renderer_edited (self, text_renderer, path, new_text):
-		treeview = self.builder.get_object('xls_treeview')
+		treeview = self.get_object('xls_treeview')
 		path, column = treeview.get_cursor()
 		model = treeview.get_model ()
 		col_index = column.get_sort_column_id()
 		model[path][col_index] = float(new_text)
 
 	def boolean_renderer_toggled (self, toggle_renderer, path):
-		treeview = self.builder.get_object('xls_treeview')
+		treeview = self.get_object('xls_treeview')
 		old_path, column = treeview.get_cursor ()
 		model = treeview.get_model ()
 		col_index = column.get_sort_column_id ()
@@ -247,17 +256,17 @@ class ProductsImportGUI:
 		self.window.destroy()
 
 	def barcode_tool_clicked (self, button):
-		dialog = self.builder.get_object('barcode_dialog')
+		dialog = self.get_object('barcode_dialog')
 		response = dialog.run()
 		dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
-			chars = self.builder.get_object('barcode_entry').get_text()
-			model = self.builder.get_object('product_import_store')
+			chars = self.get_object('barcode_entry').get_text()
+			model = self.get_object('product_import_store')
 			for row in model:
 				row[3] = chars + row[3]
 	
 	def barcode_generator_checkbutton_toggled (self, togglebutton):
-		button = self.builder.get_object('prepend_button')
+		button = self.get_object('prepend_button')
 		active = togglebutton.get_active()
 		button.set_sensitive(not active)
 		

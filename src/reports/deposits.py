@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/deposits.ui"
+UI_FILE = ui_directory + "/reports/deposits.ui"
 
 class DepositsGUI(Gtk.Builder):
 	def __init__(self):
@@ -27,9 +27,7 @@ class DepositsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.deposit_store = self.get_object('deposit_store')
 		self.treeview = self.get_object('treeview1')
@@ -37,6 +35,9 @@ class DepositsGUI(Gtk.Builder):
 
 		window = self.get_object('window1')
 		window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_deposits_store (self):
 		self.cursor.execute ("SELECT "
@@ -69,6 +70,7 @@ class DepositsGUI(Gtk.Builder):
 								"WHERE gl_entries_deposit_id = %s", (row_id,))
 			for row in self.cursor.fetchall():
 				self.deposit_store.append(parent, row)
+		DB.rollback()
 
 	def export_to_pdf_activated (self, menuitem):
 		from reports import export_to_pdf

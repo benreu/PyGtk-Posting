@@ -15,23 +15,19 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/open_invoices.ui"
+UI_FILE = ui_directory + "/open_invoices.ui"
 
 class OpenInvoicesGUI:
 	def __init__(self):
 
-		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.open_invoice_store = self.builder.get_object('open_invoice_store')
 		self.populate_store ()
-		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
@@ -57,8 +53,7 @@ class OpenInvoicesGUI:
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def new_invoice_clicked (self, button):
 		import invoice_window
@@ -66,8 +61,13 @@ class OpenInvoicesGUI:
 
 	def open_invoice_row_activated (self, treeview, path, treeview_column):
 		invoice_id = self.open_invoice_store[path][0]
+		self.open_invoice (invoice_id)
+
+	def open_invoice (self, invoice_id):
 		import invoice_window
 		invoice_window.InvoiceGUI(invoice_id)
+		if self.builder.get_object('hide_checkbutton').get_active():
+			self.window.hide()
 
 	def populate_store (self):
 		selection = self.builder.get_object('treeview-selection1')
@@ -92,7 +92,7 @@ class OpenInvoicesGUI:
 			self.open_invoice_store.append(row)
 		if path != []:
 			selection.select_path(path)
-
+		DB.rollback()
 
 	def open_invoice_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -100,10 +100,8 @@ class OpenInvoicesGUI:
 		if path == []:
 			return
 		invoice_id = model[path][0]
-		import invoice_window
-		invoice_window.InvoiceGUI(invoice_id)
+		self.open_invoice (invoice_id)
 
 
 
 
-		

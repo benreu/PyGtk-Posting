@@ -53,6 +53,24 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
+      <object class="GtkMenuItem" id="menuitem2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Block number</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="block_number_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Contact hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="contact_hub_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -61,13 +79,26 @@
         <signal name="activate" handler="delete_activated" swapped="no"/>
       </object>
     </child>
+  </object>
+  <object class="GtkMenu" id="menu2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
     <child>
-      <object class="GtkMenuItem" id="menuitem2">
+      <object class="GtkMenuItem">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Block number</property>
+        <property name="label" translatable="yes">Report hub</property>
         <property name="use_underline">True</property>
-        <signal name="activate" handler="block_number_activated" swapped="no"/>
+        <signal name="activate" handler="report_hub_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Tags</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="tags_activated" swapped="no"/>
       </object>
     </child>
   </object>
@@ -126,6 +157,7 @@
     <property name="default_width">1000</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus_in_event" swapped="no"/>
     <child>
       <placeholder/>
@@ -156,10 +188,11 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="adjustment">adjustment1</property>
+                <property name="numeric">True</property>
                 <signal name="value-changed" handler="row_limit_value_changed" swapped="no"/>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
@@ -180,13 +213,51 @@
               <object class="GtkEntry" id="entry1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="width_chars">11</property>
+                <property name="max_width_chars">11</property>
                 <property name="primary_icon_stock">gtk-find</property>
                 <signal name="icon-release" handler="older_than_entry_icon_released" swapped="no"/>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes"> Sort by </property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="sort_by_combo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="active_id">sort</property>
+                <items>
+                  <item id="sort" translatable="yes">Manually</item>
+                  <item id="subject" translatable="yes">Subject</item>
+                  <item id="name" translatable="yes">Name</item>
+                  <item id="time" translatable="yes">Time</item>
+                  <item id="dated_for" translatable="yes">Dated for</item>
+                  <item id="tag" translatable="yes">Tag</item>
+                  <item id="phone_number" translatable="yes">Phone number</item>
+                  <item id="to_do" translatable="yes">To Do</item>
+                </items>
+                <signal name="changed" handler="sort_by_combo_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
               </packing>
             </child>
             <child>
@@ -203,7 +274,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">6</property>
               </packing>
             </child>
           </object>
@@ -250,7 +321,6 @@
                             <property name="title" translatable="yes">Subject</property>
                             <property name="expand">True</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext1">
                                 <property name="editable">True</property>
@@ -270,7 +340,6 @@
                             <property name="title" translatable="yes">Contact</property>
                             <property name="expand">True</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">3</property>
                             <child>
                               <object class="GtkCellRendererCombo" id="cellrenderercombo2">
                                 <property name="editable">True</property>
@@ -292,7 +361,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Ext name</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">4</property>
                             <child>
                               <object class="GtkCellRendererText"/>
                               <attributes>
@@ -306,7 +374,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Time</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">6</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext3"/>
                               <attributes>
@@ -321,7 +388,6 @@
                             <property name="title" translatable="yes">Dated for</property>
                             <property name="widget">label4</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">7</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext4">
                                 <property name="editable">True</property>
@@ -338,7 +404,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Tag</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">8</property>
                             <child>
                               <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                                 <property name="editable">True</property>
@@ -361,7 +426,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Phone number</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">11</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext5">
                                 <property name="editable">True</property>
@@ -378,7 +442,6 @@
                             <property name="sizing">autosize</property>
                             <property name="title" translatable="yes">CID Date</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">12</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext10"/>
                               <attributes>
@@ -392,7 +455,6 @@
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">To Do</property>
                             <property name="reorderable">True</property>
-                            <property name="sort_column_id">14</property>
                             <child>
                               <object class="GtkCellRendererToggle" id="cellrenderertoggle2">
                                 <signal name="toggled" handler="to_do_toggled" swapped="no"/>
@@ -413,37 +475,10 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox" id="box4">
+                  <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="homogeneous">True</property>
-                    <child>
-                      <object class="GtkButton" id="button1">
-                        <property name="label" translatable="yes">Help</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button4">
-                        <property name="label" translatable="yes">Tags</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <signal name="clicked" handler="tags_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                    <property name="row_spacing">10</property>
                     <child>
                       <object class="GtkButton">
                         <property name="label" translatable="yes">Time clock project</property>
@@ -451,12 +486,12 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="tooltip_text" translatable="yes">This adds this resource entry to the time clock for tracking time</property>
+                        <property name="hexpand">True</property>
                         <signal name="clicked" handler="time_clock_project_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="left_attach">3</property>
+                        <property name="top_attach">0</property>
                       </packing>
                     </child>
                     <child>
@@ -466,12 +501,61 @@
                         <property name="can_focus">True</property>
                         <property name="can_default">True</property>
                         <property name="receives_default">True</property>
+                        <property name="hexpand">True</property>
                         <signal name="clicked" handler="new_entry_clicked" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="left_attach">4</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label">gtk-go-down</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Move the row down</property>
+                        <property name="use_stock">True</property>
+                        <property name="always_show_image">True</property>
+                        <signal name="clicked" handler="down_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label">gtk-go-up</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Move the row up</property>
+                        <property name="use_stock">True</property>
+                        <property name="always_show_image">True</property>
+                        <signal name="clicked" handler="up_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="top_attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkMenuButton">
+                        <property name="width_request">100</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="popup">menu2</property>
+                        <property name="direction">up</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left_attach">0</property>
+                        <property name="top_attach">0</property>
                       </packing>
                     </child>
                   </object>

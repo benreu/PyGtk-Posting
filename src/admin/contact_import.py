@@ -15,23 +15,21 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 import xlrd
 from xlrd.biffh import XLRDError
-import constants
+from constants import DB, ui_directory
 
-UI_FILE = constants.ui_directory + "/admin/contact_import.ui"
+UI_FILE = ui_directory + "/admin/contact_import.ui"
 
 
 class ContactsImportGUI:
 	error = None
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = db
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -39,7 +37,7 @@ class ContactsImportGUI:
 
 	def populate_combos (self):
 		markup_combo = self.builder.get_object('markup_combo')
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT id::text, name "
 					"FROM customer_markup_percent "
 					"WHERE deleted = False ORDER BY name")
@@ -47,13 +45,14 @@ class ContactsImportGUI:
 			markup_combo.append(row[0], row[1])
 		markup_combo.set_active(0)
 		terms_combo = self.builder.get_object('terms_combo')
-		c = self.db.cursor()
 		c.execute("SELECT id::text, name "
 					"FROM terms_and_discounts WHERE deleted = False "
 					"ORDER BY name")
 		for row in c.fetchall():
 			terms_combo.append(row[0], row[1])
 		terms_combo.set_active(0)
+		c.close()
+		DB.rollback()
 
 ####### start import to treeview
 
@@ -80,7 +79,7 @@ class ContactsImportGUI:
 				address = xls_row[2].value
 				city = xls_row[3].value
 				state = xls_row[4].value
-				zip = xls_row[5].value
+				zip_ = xls_row[5].value
 				fax = xls_row[6].value
 				phone = xls_row[7].value
 				email = xls_row[8].value
@@ -96,18 +95,19 @@ class ContactsImportGUI:
 				custom4 = xls_row[18].value
 				notes = xls_row[19].value
 			except Exception as e:
-				self.error = str(e) + """\n\nPlease export some data 
-										from Posting and match that format.
-										\nHint : You are missing 
-										one or more columns."""
+				self.error = str(e) + "\n\nPlease export some data from Posting and match that format.\nHint : You are missing one or more columns."
 				return False
+			try:
+				zip_code = str(int(zip_))
+			except Exception:
+				zip_code = str(zip_)
 			try:
 				store.append([	str(name), 
 								str(ext_name),
 								str(address),
 								str(city),
 								str(state),
-								str(zip),
+								zip_code,
 								str(fax),
 								str(phone),
 								str(email),
@@ -123,33 +123,32 @@ class ContactsImportGUI:
 								str(custom4),
 								str(notes)    ])
 			except Exception as e:
-				self.error = str(e) + """\n\nPlease export some data 
-										from Posting and match that format.
-										\nHint : You have wrong cell data."""
+				self.error = str(e) + "\n\nPlease export some data from Posting and match that format.\nHint : You have wrong cell data."
 				return False
 		return True
 
 ####### end import to treeview
 
-	def treeview_button_release_event (self, widget, event):
+	def treeview_button_press_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('right click menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
+			treeview.stop_emission_by_name('button-press-event')
 
 	def delete_contact_activated (self, menu):
 		selection = self.builder.get_object('xls_import_selection')
-		model, path = selection.get_selected_rows ()
-		if path == []:
+		model, paths = selection.get_selected_rows ()
+		if paths == []:
 			return
-		iter_ = model.get_iter(path)
-		model.remove(iter_)
+		for path in reversed(paths): # remove last rows first
+			iter_ = model.get_iter(path)
+			model.remove(iter_)
 
 	def import_clicked (self, button):
 		term_id = self.builder.get_object('terms_combo').get_active_id()
 		markup_id = self.builder.get_object('markup_combo').get_active_id()
 		model = self.builder.get_object('xls_import_store')
-		c = self.db.cursor()
+		c = DB.cursor()
 		for row in model:
 			c.execute ("INSERT INTO contacts ("
 												"name, "
@@ -175,13 +174,23 @@ class ContactsImportGUI:
 												"terms_and_discounts_id, "
 												"markup_percent_id )"
 						"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-								"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s )",
+								"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s ) "
+						"RETURNING id",
 						(row[0],row[1],row[2],row[3],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],row[12],row[13],
 						row[14],row[15],row[16],row[17],row[18],row[19],
 						term_id, markup_id))
+			contact_id = c.fetchone()[0]
+			c.execute("WITH cte AS "
+							"(SELECT %s AS contact_id, id FROM mailing_lists "
+							"WHERE auto_add = True) "
+						"INSERT INTO mailing_list_register "
+						"(contact_id, mailing_list_id) "
+						"SELECT contact_id, id FROM cte "
+						"ON CONFLICT (contact_id, mailing_list_id) "
+						"DO NOTHING", (contact_id,))
 		c.close()
-		self.db.commit()
+		DB.commit()
 		
 	def text_renderer_edited (self, text_renderer, path, new_text):
 		treeview = self.builder.get_object('xls_treeview')

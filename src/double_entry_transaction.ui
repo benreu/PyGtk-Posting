@@ -4,11 +4,11 @@
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkTreeStore" id="account_store">
     <columns>
-      <!-- column-name account number -->
+      <!-- column-name account -->
       <column type="gint"/>
-      <!-- column-name account name -->
+      <!-- column-name account1 -->
       <column type="gchararray"/>
-      <!-- column-name account path -->
+      <!-- column-name account2 -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -26,11 +26,11 @@
     <columns>
       <!-- column-name amount -->
       <column type="gchararray"/>
-      <!-- column-name account number -->
+      <!-- column-name account -->
       <column type="glong"/>
-      <!-- column-name account name -->
+      <!-- column-name account1 -->
       <column type="gchararray"/>
-      <!-- column-name account tooltip -->
+      <!-- column-name account2 -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -38,11 +38,11 @@
     <columns>
       <!-- column-name amount -->
       <column type="gchararray"/>
-      <!-- column-name account number -->
+      <!-- column-name account -->
       <column type="glong"/>
-      <!-- column-name account name -->
+      <!-- column-name account1 -->
       <column type="gchararray"/>
-      <!-- column-name account tooltip -->
+      <!-- column-name account2 -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -53,6 +53,7 @@
     <property name="default_width">600</property>
     <property name="default_height">400</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

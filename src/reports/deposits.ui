@@ -65,6 +65,7 @@
     <property name="default_width">400</property>
     <property name="default_height">600</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

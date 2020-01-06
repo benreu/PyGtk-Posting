@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -Wd
 #
 # main.py
 #
@@ -24,7 +24,7 @@ import psycopg2, apsw, os, shutil, sys, re
 
 
 
-def get_apsw_cursor ():
+def get_apsw_connection ():
 	import constants
 	if constants.dev_mode == True:
 		pref_file = os.path.join(os.getcwd(), 'local_settings')
@@ -33,38 +33,129 @@ def get_apsw_cursor ():
 	if not os.path.exists(pref_file):
 		con = apsw.Connection(pref_file)
 		cursor = con.cursor()
-		cursor.execute("CREATE TABLE connection "
-												"(user text, password text, "
-												"host text, port text, "
-												"db_name text)")
-		cursor.execute("INSERT INTO connection VALUES "
-												"('postgres', 'None', "
-												"'localhost', '5432', 'None')")
+		create_apsw_tables(cursor)
 	else:
 		con = apsw.Connection(pref_file)
-		cursor = con.cursor()
-	return cursor
+	return con
+
+def create_apsw_tables(cursor):
+	cursor.execute("CREATE TABLE connection "
+											"(user text, password text, "
+											"host text, port text, "
+											"db_name text)")
+	cursor.execute("INSERT INTO connection VALUES "
+											"('postgres', 'None', "
+											"'localhost', '5432', 'None')")
+
+def update_apsw_tables(connection):
+	cursor = connection.cursor()
+	cursor.execute("CREATE TABLE IF NOT EXISTS settings "
+							"(setting TEXT UNIQUE NOT NULL,"
+							"value TEXT NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
+							"('postgres_bin_path', '/usr/bin')")
+	cursor.execute("CREATE TABLE IF NOT EXISTS widget_size "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	# product window layout
+	cursor.execute("CREATE TABLE IF NOT EXISTS product_overview "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('window_width', 850)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('window_height', 500)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('ext_name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('description_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('barcode_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('unit_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('weight_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('tare_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('manufacturer_sku_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('expense_account_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('inventory_account_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('revenue_account_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('sellable_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('purchasable_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('manufactured_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('job_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_overview VALUES "
+					"('stocked_column', 25)")
+	# contact window layout
+	cursor.execute("CREATE TABLE IF NOT EXISTS contact_overview "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('window_width', 850)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('window_height', 500)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('ext_name_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('address_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('city_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('state_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('zip_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('fax_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('phone_column', 125)")
+	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
+					"('email_column', 125)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS keybindings "
+											"(widget_id text UNIQUE NOT NULL, "
+											"keybinding text NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO keybindings VALUES "
+					"('Main window', 'F9')")
+
 
 def connect_to_db (name):
-	cursor_sqlite = get_apsw_cursor ()
+	import constants
+	sqlite = get_apsw_connection()
+	update_apsw_tables(sqlite)
+	sqlite.close() # release database lock from updating tables
+	sqlite = get_apsw_connection()
+	constants.sqlite_connection = sqlite
+	cursor = sqlite.cursor()
 	if name == None:
-		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
+		for row in cursor.execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
 	else:
 		sql_database = name
-	for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+	for row in cursor.execute("SELECT * FROM connection;"):
 		sql_user = row[0]
 		sql_password = row[1]
 		sql_host = row[2]
 		sql_port = row[3]
-	import constants
+	cursor.close()
 	try:
-		constants.db = psycopg2.connect ( dbname = sql_database, 
+		constants.DB = psycopg2.connect ( dbname = sql_database, 
 								host = sql_host, 
 								user = sql_user, 
 								password = sql_password, 
 								port = sql_port)
-		constants.cursor = constants.db.cursor()
+		#constants.cursor = constants.DB.cursor()
 		constants.db_name = sql_database
 		constants.start_broadcaster()
 		import accounts

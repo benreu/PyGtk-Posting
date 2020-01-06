@@ -18,14 +18,13 @@
 from gi.repository import Gtk, GLib
 import subprocess
 import barcode_generator
-from constants import ui_directory, template_dir, db, broadcaster
+from constants import ui_directory, template_dir, DB, broadcaster
 
 UI_FILE = ui_directory + "/manufacturing.ui"
 
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
-
 
 class ManufacturingGUI(Gtk.Builder):
 	timeout_id = None
@@ -35,6 +34,7 @@ class ManufacturingGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		
 		self.handler_ids = list()
 		for connection in (("shutdown", self.main_shutdown),):
@@ -46,14 +46,12 @@ class ManufacturingGUI(Gtk.Builder):
 		product_completion.set_match_func(self.product_match_func)
 
 		self.product_id = None
-		
-		self.db = db
-		self.cursor = self.db.cursor()
-		
 		self.populate_stores ()
-		
 		self.window = self.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def history_clicked (self, button):
 		from reports import manufacturing_history 
@@ -100,7 +98,7 @@ class ManufacturingGUI(Gtk.Builder):
 		serial = serial_number_qty + serial_start + 1
 		self.cursor.execute("UPDATE products SET serial_number = %s "
 							"WHERE id = %s", (serial, self.product_id))
-		self.db.commit()
+		DB.commit()
 
 	def print_serial_number (self, barcode, label_qty):
 		label = Item()
@@ -202,6 +200,7 @@ class ManufacturingGUI(Gtk.Builder):
 			manufacturing_name = "Manufacturing : %s [0]" % product_name
 		self.get_object('entry2').set_text(manufacturing_name)
 		self.get_object('entry1').set_text(manufacturing_name)
+		DB.rollback()
 
 	def new_clicked (self, button):
 		qty = self.get_object('spinbutton1').get_text()
@@ -228,7 +227,7 @@ class ManufacturingGUI(Gtk.Builder):
 								"VALUES (%s, %s, %s, True) RETURNING id", 
 								(self.product_id, manufacturing_name, qty))
 		self.project_id = self.cursor.fetchone()[0]
-		self.db.commit()
+		DB.commit()
 		self.product_selected ()
 
 	def update_clicked (self, button):
@@ -258,7 +257,7 @@ class ManufacturingGUI(Gtk.Builder):
 									"SET time_clock_projects_id = (SELECT id FROM cte) "
 									"WHERE id = %s", 
 									(project_name, self.project_id))
-		self.db.commit()
+		DB.commit()
 
 	def post_as_completed_clicked(self, button):
 		self.cursor.execute("SELECT id, time_clock_projects_id "
@@ -274,11 +273,8 @@ class ManufacturingGUI(Gtk.Builder):
 								"(False, CURRENT_DATE) "
 								"WHERE id = %s",
 								(time_clock_projects_id,))
-		self.db.commit()
+		DB.commit()
 		self.product_selected()
-
-	def destroy(self, window):
-		self.cursor.close()
 
 	def focus (self, widget , event): 
 		self.populate_stores ()
@@ -290,14 +286,15 @@ class ManufacturingGUI(Gtk.Builder):
 							"(True, False) ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.product_store.append(row)
+		DB.rollback()
 
 	def project_name_entry_icon_released (self, entry, icon_position, event):
 		project_name = entry.get_text()
 		self.get_object('entry2').set_text(project_name)
 
 	def product_window(self, column):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def main_shutdown (self, main):
 		if self.timeout_id:
@@ -320,7 +317,7 @@ class ManufacturingGUI(Gtk.Builder):
 							"SET batch_notes = %s "
 							"WHERE id = %s", 
 							(self.notes, self.project_id))
-		self.db.commit()
+		DB.commit()
 		self.timeout_id = None
 
 

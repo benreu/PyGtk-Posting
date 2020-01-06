@@ -10,6 +10,7 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkTextBuffer" id="postgres_bin_path_buffer"/>
   <object class="GtkTextBuffer" id="sql_command_buffer"/>
   <object class="GtkTextBuffer" id="textbuffer1"/>
   <object class="GtkWindow" id="window">
@@ -40,6 +41,7 @@
             <child>
               <object class="GtkBox" id="box2">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
                 <property name="margin_left">10</property>
                 <property name="margin_right">10</property>
@@ -84,7 +86,6 @@
                   <object class="GtkButton" id="button10">
                     <property name="label" translatable="yes">Login with multiple instances (temporary)</property>
                     <property name="visible">True</property>
-                    <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <signal name="clicked" handler="login_multiple_clicked" swapped="no"/>
@@ -99,7 +100,6 @@
                   <object class="GtkButton" id="button3">
                     <property name="label" translatable="yes">Login with single instance (permanent)</property>
                     <property name="visible">True</property>
-                    <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <signal name="clicked" handler="login_single_clicked" swapped="no"/>
@@ -114,7 +114,6 @@
                   <object class="GtkButton" id="button1">
                     <property name="label" translatable="yes">Delete Database</property>
                     <property name="visible">True</property>
-                    <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <signal name="clicked" handler="delete_button" swapped="no"/>
@@ -133,7 +132,6 @@
                       <object class="GtkButton" id="button2">
                         <property name="label" translatable="yes">Add Database</property>
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="add_db" swapped="no"/>
@@ -416,7 +414,7 @@
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Connection</property>
+                <property name="label" translatable="yes">Server (host)</property>
               </object>
               <packing>
                 <property name="position">1</property>
@@ -435,6 +433,7 @@
                 <child>
                   <object class="GtkGrid" id="grid2">
                     <property name="visible">True</property>
+                    <property name="sensitive">False</property>
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkLabel" id="label10">
@@ -507,6 +506,98 @@
               </object>
               <packing>
                 <property name="position">2</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="border_width">10</property>
+                <property name="row_spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Update path to:</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="postgres_bin_path_entry">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="editable">False</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Postgres path for backup/restore tools was set to: </property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFileChooserButton">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="action">select-folder</property>
+                    <property name="create_folders">False</property>
+                    <property name="title" translatable="yes">Choose Postgres /bin path</property>
+                    <signal name="file-set" handler="postgres_bin_folder_set" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="vte_scrolled_window">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTextView">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="wrap_mode">word-char</property>
+                        <property name="buffer">postgres_bin_path_buffer</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">2</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Postgres path</property>
+              </object>
+              <packing>
+                <property name="position">3</property>
                 <property name="tab_fill">False</property>
               </packing>
             </child>

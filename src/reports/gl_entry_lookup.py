@@ -1,6 +1,6 @@
 # gl_entry_lookup.py
 #
-# Copyright (C) 2018 - house
+# Copyright (C) 2018 - Reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
 
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/gl_entry_lookup.ui"
+UI_FILE = ui_directory + "/reports/gl_entry_lookup.ui"
 
 class GlEntryLookupGUI :
 	def __init__ (self, entry_ids):
@@ -29,8 +29,7 @@ class GlEntryLookupGUI :
 		self.builder.connect_signals(self)
 
 		store = self.builder.get_object('lookup_store')
-		self.db = constants.db
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute(	"SELECT "
 						"'Purchase Order', "
 						"po.id, "
@@ -81,6 +80,7 @@ class GlEntryLookupGUI :
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
+		DB.rollback()
 		self.builder.get_object('window').show_all()
 
 

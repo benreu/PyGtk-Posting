@@ -21,14 +21,14 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 import accounts
 
 UI_FILE = ui_directory + "/incoming_invoice.ui"
 
 class IncomingInvoiceGUI(Gtk.Builder):
 	__gsignals__ = { 
-	'invoice_applied': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	'invoice_applied': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())
 	}
 	"""the invoice_applied signal is used to send a message to the parent 
 		window that the incoming invoice is now finished"""
@@ -38,9 +38,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_service_providers ),):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -73,8 +72,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	
 		self.window = self.get_object('window1')
 		self.window.show_all()
-		
 		self.file_data = None
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def provider_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
@@ -83,11 +84,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 				return False
 		return True
 
-	def amount_focus_in_event (self, entry, event):
-		GLib.idle_add(self.highlight, entry)
-
-	def highlight (self, entry):
-		entry.select_region(0, -1)
+	def amount_focus_in_event (self, spinbutton, event):
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def focus (self, window, event):
 		pass
@@ -98,42 +96,33 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		combo = self.get_object('combobox1')
 		active_sp = combo.get_active_id()
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE service_provider = True "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			contact_co = row[2]
-			self.service_provider_store.append([str(contact_id),
-												contact_name,
-												contact_co])
+			self.service_provider_store.append(row)
 		combo.set_active_id(active_sp)
 		self.populating = False
+		DB.rollback()
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE check_writing = True ORDER BY name ")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.bank_account_store.append([str(account_number), account_name])
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+			self.bank_account_store.append(row)
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE cash_account = True ORDER BY name ")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.cash_account_store.append([str(account_number), account_name])
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+			self.cash_account_store.append(row)
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE credit_card_account = True ORDER BY name ")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.credit_card_store.append([str(account_number), account_name])
+			self.credit_card_store.append(row)
+		DB.rollback()
 
 	def service_provider_clicked (self, button):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 		
 	def provider_match_selected(self, completion, model, iter_):
 		provider_id = model[iter_][0]
@@ -230,7 +219,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			self.get_object('entry3').set_sensitive(True)
 			self.get_object('entry5').set_sensitive(True)
 			bank_account = combo.get_active_id()
-			check_number = get_check_number(self.db, bank_account)
+			check_number = get_check_number(bank_account)
 			self.get_object('entry7').set_text(str(check_number))
 		self.check_if_all_entries_valid ()
 
@@ -290,11 +279,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			check_button.set_sensitive(True)
 			transfer_button.set_label('Transfer payment')
 			transfer_button.set_sensitive(True)
-			'''if self.get_object('entry3').get_text() != "":
-				transfer_button.set_label('Transfer payment')
-				transfer_button.set_sensitive(True)
-			else:
-				transfer_button.set_label('No transfer number')'''
 		else:
 			check_button.set_label('No bank account selected')
 			transfer_button.set_label('No bank account selected')
@@ -309,7 +293,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		total = self.save_incoming_invoice ()
 		cash_account = self.get_object('combobox3').get_active_id()
 		self.invoice.cash_payment (total, cash_account, self.invoice_id)
-		self.db.commit()
+		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
 
@@ -321,7 +305,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
 		self.invoice.credit_card_payment (total, description, credit_card, self.invoice_id)
-		self.db.commit()
+		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
 
@@ -333,7 +317,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
 		self.invoice.transfer (total, description, checking_account, self.invoice_id)
-		self.db.commit()
+		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
 
@@ -344,16 +328,16 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		active = self.get_object('combobox1').get_active()
 		description = self.service_provider_store[active][1]
 		self.invoice.check_payment(total, check_number, checking_account, description, self.invoice_id)
-		self.db.commit()
+		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
 
 	def save_incoming_invoice (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		contact_id = self.get_object('combobox1').get_active_id()
 		description = self.get_object('entry1').get_text()
 		total = Decimal(self.get_object('spinbutton1').get_text())
-		self.invoice = transactor.ServiceProviderPayment (self.db, 
+		self.invoice = transactor.ServiceProviderPayment (
 															self.date, 
 															total)
 		c.execute(	"INSERT INTO incoming_invoices "
@@ -390,8 +374,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
@@ -409,6 +392,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		result = dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
 			self.file_data = dialog.get_pdf ()
-		
 
-		
+
+

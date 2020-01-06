@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 from db import transactor
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/deposits.ui"
+UI_FILE = ui_directory + "/deposits.ui"
 
 
 class GUI:
@@ -29,9 +29,7 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect('day-selected', self.day_selected)
@@ -47,6 +45,9 @@ class GUI:
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def focus (self, window, event):
 		self.populate_deposit_store ()
@@ -88,25 +89,23 @@ class GUI:
 											date_formatted, True])
 											
 			self.calculate_deposit_total()
+		DB.rollback()
 
 	def populate_account_stores (self):
 		bank_combo = self.builder.get_object('comboboxtext1')
 		bank_id = bank_combo.get_active_id()
 		bank_combo.remove_all()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE deposits = True")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			bank_combo.append(str(account_number), account_name)
+			bank_combo.append(row[0], row[1])
 		bank_combo.set_active_id(bank_id)
 		self.cash_account_store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE cash_account = True")
 		for row in self.cursor.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			self.cash_account_store.append([str(account_number), account_name])
+			self.cash_account_store.append(row)
+		DB.rollback()
 		
 	def deposit_check_togglebutton_toggled (self, togglebutton, path):
 		self.deposit_store[path][6] = not togglebutton.get_active()
@@ -157,7 +156,7 @@ class GUI:
 		self.check_if_all_entries_valid ()
 
 	def process_deposit(self, widget):
-		d = transactor.Deposit(self.db, self.date)
+		d = transactor.Deposit(self.date)
 		total_amount = 0.00
 		checking_account = self.builder.get_object('comboboxtext1').get_active_id()
 		for row in self.deposit_store:
@@ -178,8 +177,7 @@ class GUI:
 									"SET (check_deposited, "
 										"gl_entries_deposit_id) = (True, %s) "
 									"WHERE id = %s", (deposit_id, row_id))
-		self.db.commit()
-		self.cursor.close()
+		DB.commit()
 		self.window.destroy()
 
 		

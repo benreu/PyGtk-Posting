@@ -16,9 +16,9 @@
 
 from gi.repository import Gtk
 from datetime import datetime
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/inventory/inventory_adjustment.ui"
+UI_FILE = ui_directory + "/inventory/inventory_adjustment.ui"
 
 class InventoryAdjustmentGUI:
 	def __init__(self, product_id):
@@ -26,9 +26,8 @@ class InventoryAdjustmentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 		
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.product_store = self.builder.get_object('product_store')
 		self.location_store = self.builder.get_object('location_store')
 		product_completion = self.builder.get_object('product_completion')
@@ -39,12 +38,11 @@ class InventoryAdjustmentGUI:
 			self.product_id = product_id
 			self.builder.get_object('combobox1').set_active_id(str(product_id))
 		
-		window = self.builder.get_object('window')
-		window.show_all()
+		self.window = self.builder.get_object('window')
+		self.window.show_all()
 
 	def destroy(self, window = None):
-		self.builder.get_object('window').destroy()
-		return True
+		self.cursor.close()
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -54,20 +52,17 @@ class InventoryAdjustmentGUI:
 		return True
 
 	def populate_stores (self, product_id):
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, stock, id) "
 							"= (False, True, %s) ORDER BY name", (product_id,))
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
-		self.cursor.execute("SELECT id, name FROM locations "
+			self.product_store.append(row)
+		self.cursor.execute("SELECT id::text, name FROM locations "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			location_id = row[0]
-			location_name = row[1]
-			self.location_store.append([str(location_id), location_name])
+			self.location_store.append(row)
 		self.builder.get_object('combobox3').set_active(0)
+		DB.rollback()
 
 	def product_combo_changed (self, combo):
 		product_id = combo.get_active_id()
@@ -96,6 +91,7 @@ class InventoryAdjustmentGUI:
 		for row in self.cursor.fetchall():
 			inventory = row[0]
 		self.builder.get_object('label24').set_text(str(inventory))
+		DB.rollback()
 
 	def inventory_history_clicked (self, widget):
 		from inventory import inventory_history
@@ -111,6 +107,7 @@ class InventoryAdjustmentGUI:
 			inventory = row[0]
 		current_inventory = str(inventory + adjustment_amount)
 		self.builder.get_object('label23').set_text(current_inventory)
+		DB.rollback()
 
 	def inventory_adjustment_combobox_changed(self, widget):
 		if self.product_id != 0:
@@ -131,11 +128,11 @@ class InventoryAdjustmentGUI:
 								datetime.today(), location_id, adjustment_reason))
 		self.cursor.execute("UPDATE products SET inventory_enabled = True "
 							"WHERE id = %s", (self.product_id,))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('spinbutton12').set_value(0)
 		self.builder.get_object('comboboxtext3').set_active(0-1)
 		widget.set_sensitive(False)
-		self.builder.get_object('window').destroy() 
+		self.window.destroy() 
 
 	def populate_adjustment_reason_combobox(self):
 		combo = self.builder.get_object('comboboxtext3')

@@ -1,6 +1,6 @@
 # accounts.py
 #
-# Copyright (C) 2019 - house
+# Copyright (C) 2019 - Reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from constants import db
+from constants import DB
 
 expense_account = Gtk.TreeStore(int, str)
 revenue_account = Gtk.TreeStore(int, str)
@@ -30,7 +30,7 @@ def populate_accounts():
 			product_expense_account, \
 			product_inventory_account, \
 			product_revenue_account
-	cursor = db.cursor()
+	cursor = DB.cursor()
 
 	def populate_child_product_inventory ( number, parent):
 		show = False
@@ -173,4 +173,6 @@ def populate_accounts():
 		if show == False:
 			product_inventory_account.remove(parent)
 
+	cursor.close()
+	DB.rollback()
 

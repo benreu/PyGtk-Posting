@@ -85,9 +85,13 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">xls_import_store</property>
-                <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
+                <property name="search_column">0</property>
+                <property name="rubber_banding">True</property>
+                <signal name="button-press-event" handler="treeview_button_press_event" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="xls_import_selection"/>
+                  <object class="GtkTreeSelection" id="xls_import_selection">
+                    <property name="mode">multiple</property>
+                  </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">
@@ -479,7 +483,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Revenue account :</property>
+                <property name="label" translatable="yes">Markup :</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -502,7 +506,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Expense account :</property>
+                <property name="label" translatable="yes">Terms :</property>
               </object>
               <packing>
                 <property name="expand">False</property>

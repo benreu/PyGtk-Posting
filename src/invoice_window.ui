@@ -65,9 +65,17 @@
       <column type="gboolean"/>
     </columns>
   </object>
-  <object class="GtkMenu" id="invoice_line_item_menu">
+  <object class="GtkMenu" id="invoice_item_menu">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem14">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Delete item</property>
+        <signal name="activate" handler="delete_line_item_activated" swapped="no"/>
+      </object>
+    </child>
     <child>
       <object class="GtkMenuItem" id="menuitem10">
         <property name="visible">True</property>
@@ -97,45 +105,7 @@
       </object>
     </child>
   </object>
-  <object class="GtkListStore" id="invoice_store">
-    <columns>
-      <!-- column-name id -->
-      <column type="gint"/>
-      <!-- column-name qty -->
-      <column type="gchararray"/>
-      <!-- column-name product_id -->
-      <column type="gint"/>
-      <!-- column-name product_name -->
-      <column type="gchararray"/>
-      <!-- column-name ext_product_name -->
-      <column type="gchararray"/>
-      <!-- column-name remark -->
-      <column type="gchararray"/>
-      <!-- column-name price -->
-      <column type="gchararray"/>
-      <!-- column-name tax -->
-      <column type="gchararray"/>
-      <!-- column-name ext_price -->
-      <column type="gchararray"/>
-      <!-- column-name tax_description -->
-      <column type="gchararray"/>
-      <!-- column-name new_entry -->
-      <column type="gboolean"/>
-      <!-- column-name tax_letter -->
-      <column type="gchararray"/>
-      <!-- column-name serial_number -->
-      <column type="gboolean"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="location_store">
-    <columns>
-      <!-- column-name id -->
-      <column type="gchararray"/>
-      <!-- column-name location_name -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkMenu" id="menu1">
+  <object class="GtkMenu" id="invoice_menu">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
@@ -145,15 +115,6 @@
         <property name="label" translatable="yes">Cancel</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="destroy" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem14">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Delete item</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="delete_line_item_activated" swapped="no"/>
       </object>
     </child>
     <child>
@@ -239,6 +200,44 @@
         <signal name="activate" handler="view_invoice" swapped="no"/>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="invoice_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name qty -->
+      <column type="gchararray"/>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name product_name -->
+      <column type="gchararray"/>
+      <!-- column-name ext_product_name -->
+      <column type="gchararray"/>
+      <!-- column-name remark -->
+      <column type="gchararray"/>
+      <!-- column-name price -->
+      <column type="gchararray"/>
+      <!-- column-name tax -->
+      <column type="gchararray"/>
+      <!-- column-name ext_price -->
+      <column type="gchararray"/>
+      <!-- column-name tax_description -->
+      <column type="gchararray"/>
+      <!-- column-name new_entry -->
+      <column type="gboolean"/>
+      <!-- column-name tax_letter -->
+      <column type="gchararray"/>
+      <!-- column-name serial_number -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="location_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
+      <!-- column-name location_name -->
+      <column type="gchararray"/>
+    </columns>
   </object>
   <object class="GtkListStore" id="product_store">
     <columns>
@@ -753,7 +752,7 @@
                   <object class="GtkMenuButton" id="menubutton1">
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="popup">menu1</property>
+                    <property name="popup">invoice_menu</property>
                     <property name="direction">up</property>
                     <child>
                       <placeholder/>

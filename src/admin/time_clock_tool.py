@@ -15,25 +15,21 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 from gi.repository import Gtk, Gdk
 from datetime import datetime, date, timedelta 
 from dateutils import seconds_to_user_format, seconds_to_compact_string
-import constants
+from constants import DB, ui_directory
 
-UI_FILE = constants.ui_directory + "/admin/time_clock_tool.ui"
+UI_FILE = ui_directory + "/admin/time_clock_tool.ui"
 
 
 class TimeClockToolGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db  = db
-		self.cursor = db.cursor()
+		self.cursor = DB.cursor()
 
 		style_provider = Gtk.CssProvider()
 		css_data = b'''
@@ -73,15 +69,16 @@ class TimeClockToolGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_stores (self):
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE (employee, deleted) = "
 							"(True, False) ORDER BY name")
 		for row in self.cursor.fetchall():
-			emp_id = row[0]
-			emp_name = row[1]
-			self.employee_store.append([str(emp_id), emp_name])
-		self.cursor.execute("SELECT project_id, time_clock_projects.name "
+			self.employee_store.append(row)
+		self.cursor.execute("SELECT project_id::text, time_clock_projects.name "
 							"FROM time_clock_entries "
 							"JOIN time_clock_projects "
 							"ON time_clock_projects.id = "
@@ -90,9 +87,8 @@ class TimeClockToolGUI:
 							"GROUP BY project_id, time_clock_projects.name "
 							"ORDER BY time_clock_projects.name")
 		for row in self.cursor.fetchall():
-			project_id = row[0]
-			project_name = row[1]
-			self.project_store.append([str(project_id), project_name])
+			self.project_store.append(row)
+		DB.rollback()
 
 	def view_all_employees_toggled (self, checkbutton):
 		self.populate_employee_project_store ()
@@ -184,10 +180,11 @@ class TimeClockToolGUI:
 											project_name, total_time])
 		self.builder.get_object('button1').set_sensitive(False)
 		self.builder.get_object('button5').set_sensitive(False)
+		DB.rollback()
 		
 	def populate_time_clock_entries_store (self):
 		self.time_clock_entries_store.clear()
-		self.cursor.execute("SELECT id, start_time, stop_time, "
+		self.cursor.execute("SELECT id::text, start_time, stop_time, "
 							"actual_seconds, adjusted_seconds "
 							"FROM time_clock_entries "
 							"WHERE (employee_id, project_id) "
@@ -201,6 +198,7 @@ class TimeClockToolGUI:
 			adjusted_time = seconds_to_compact_string (row[4])
 			self.time_clock_entries_store.append([row_id, start_time, stop_time,
 												 actual_time, adjusted_time])
+		DB.rollback()
 
 	def employee_project_row_activated (self, treeview, path, treeviewcolumn):
 		self.employee_id = self.employee_project_store[path][0]
@@ -275,7 +273,7 @@ class TimeClockToolGUI:
 		elif response == -5: #Delete the entry
 			self.cursor.execute("DELETE FROM time_clock_entries "
 								"WHERE id = %s", (entry_id,))
-		self.db.commit()
+		DB.commit()
 		self.populate_employee_project_store ()
 
 	def start_time_spinbutton_changed (self, spinbutton):
@@ -305,17 +303,6 @@ class TimeClockToolGUI:
 		self.active_entry = entry
 		self.unselect_inactive_entries (entry)
 
-	#def unselect_inactive_entries (self, active_entry):
-	#	for line in [('entry1', 86400), ('entry2', 3600), ('entry3', 60),
-	#				 ('entry4', 86400), ('entry5', 3600), ('entry6', 60)]:
-	#		widget = line[0]
-	#		entry = self.builder.get_object(widget)
-	#		if entry == active_entry:
-	#			entry.select_region(0,-1)
-	#			self.time_value = line[1]
-	#		else:
-	#			entry.select_region(0,0)
-
 	def unselect_inactive_entries (self, active_entry):
 		for line in		[('entry1', timedelta(days=1)),
 						('entry2', timedelta(hours=1)),
@@ -339,15 +326,6 @@ class TimeClockToolGUI:
 		offset = spinbutton.get_value_as_int()
 		self.stop_time = self.original_stop_time + (offset * self.time_object)
 		self.convert_stop_seconds (self.stop_time) 
-
-	
-	#def stop_time_spinbutton_changed (self, spinbutton):
-	#	if self.active_entry == None:
-	#		spinbutton.set_value (0)
-	#		return
-	#	offset = spinbutton.get_value()
-	#	self.stop_time = self.original_stop_time + (offset * self.time_value)
-	#	self.convert_stop_seconds (self.stop_time)
 		
 	def convert_stop_seconds (self, stop_time):
 		date_time = stop_time#datetime.fromtimestamp(stop_time)
@@ -368,7 +346,7 @@ class TimeClockToolGUI:
 							"WHERE (project_id, employee_id) = "
 							"(%s, %s)", 
 							(efficiency, self.project_id, self.employee_id))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('button1').set_sensitive(False)
 
 

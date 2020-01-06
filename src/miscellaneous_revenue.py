@@ -18,7 +18,7 @@
 from gi.repository import Gtk, GLib
 from db import transactor
 from dateutils import DateTimeCalendar
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 from accounts import revenue_account
 
 UI_FILE = ui_directory + "//miscellaneous_revenue.ui"
@@ -29,9 +29,8 @@ class MiscellaneousRevenueGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_contacts ), ):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -57,14 +56,14 @@ class MiscellaneousRevenueGUI:
 		return
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
-		GLib.idle_add(self.highlight, spinbutton)
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
-	def highlight (self, spinbutton):
-		spinbutton.select_region(0, -1)
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def contacts_clicked (self, button):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def contact_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -85,13 +84,11 @@ class MiscellaneousRevenueGUI:
 
 	def populate_contacts (self, m=None, i=None):
 		self.contact_store.clear ()
-		self.cursor.execute("SELECT id, name, ext_name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			contact_name = row[1]
-			contact_co = row[2]
-			self.contact_store.append([str(contact_id), contact_name, contact_co])
+			self.contact_store.append(row)
+		DB.rollback()
 
 	def check_btn_toggled(self, widget):
 		self.check_entry.set_sensitive(True)
@@ -157,24 +154,22 @@ class MiscellaneousRevenueGUI:
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		revenue_account = model[path][0]
-		#transactor.post_miscellaneous_income (self.db, self.date, amount, account_number)
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming (check_payment, cash_payment, credit_card_payment, payment_text , check_deposited, customer_id, amount, date_inserted, comments, closed, misc_income) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) RETURNING id", (True, False, False, payment_text, False, self.contact_id, amount, self.date, comments, False))
 			payment_id = self.cursor.fetchone()[0]
-			transactor.post_misc_check_payment(self.db, self.date, amount, payment_id, revenue_account)	
+			transactor.post_misc_check_payment(self.date, amount, payment_id, revenue_account)	
 		elif self.payment_type_id == 1:
 			payment_text = self.credit_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming (check_payment, cash_payment, credit_card_payment, payment_text , check_deposited, customer_id, amount, date_inserted, comments, closed, misc_income) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) RETURNING id", (False, False, True, payment_text, False, self.contact_id, amount, self.date, comments, False))
 			payment_id = self.cursor.fetchone()[0]
-			transactor.post_misc_credit_card_payment(self.db, self.date, amount, payment_id, revenue_account)	
+			transactor.post_misc_credit_card_payment(self.date, amount, payment_id, revenue_account)	
 		elif self.payment_type_id == 2:
 			payment_text = self.cash_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming (check_payment, cash_payment, credit_card_payment, payment_text , check_deposited, customer_id, amount, date_inserted, comments, closed, misc_income) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) RETURNING id", (False, True, False, payment_text, False, self.contact_id, amount, self.date, comments, False))
 			payment_id = self.cursor.fetchone()[0]
-			transactor.post_misc_cash_payment(self.db, self.date, amount, payment_id, revenue_account)
-		self.db.commit()
-		self.cursor.close()
+			transactor.post_misc_cash_payment(self.date, amount, payment_id, revenue_account)
+		DB.commit()
 		for connection_id in self.handler_ids:
 			broadcaster.disconnect(connection_id)
 		self.window.destroy()

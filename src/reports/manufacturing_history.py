@@ -17,15 +17,12 @@
 
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/manufacturing_history.ui"
+UI_FILE = ui_directory + "/reports/manufacturing_history.ui"
 
 class ManufacturingHistoryGUI(Gtk.Builder):
 	def __init__(self):
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		
 		self.product_text = ''
 		self.name_text = ''
@@ -33,12 +30,16 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 		Gtk.Builder.__init__ (self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.manufacturing_store = self.get_object('manufacturing_history_store')
 		self.filtered_store = self.get_object('manufacturing_history_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_manufacturing_store()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def manufacturing_history_row_activated (self, treeview, path, column):
 		store = treeview.get_model()
@@ -54,9 +55,10 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 							"WHERE manufacturing_id = %s", (manufacturing_id,))
 		for row in self.cursor.fetchall():
 			serial_number_store.append(row)
+		DB.rollback()
 
 	def populate_manufacturing_store (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 					"m.id, "
 					"m.name, "
@@ -75,6 +77,7 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 		for row in c.fetchall():
 			self.manufacturing_store.append(row)
 		c.close()
+		DB.rollback()
 
 	def filter_changed (self, entry):
 		entry = self.get_object('searchentry1')

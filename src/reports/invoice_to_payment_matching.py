@@ -17,9 +17,9 @@
 import gi
 gi.require_version('GooCanvas', '2.0')
 from gi.repository import Gtk, Gdk, GooCanvas
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/invoice_to_payment_matching.ui"
+UI_FILE = ui_directory + "/reports/invoice_to_payment_matching.ui"
 
 class GUI:
 	def __init__(self):
@@ -27,15 +27,16 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		c = self.db.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.customer_store.clear()
+		c = DB.cursor()
 		c.execute("SELECT id::text, name, ext_name FROM contacts "
 					"WHERE customer = True ORDER BY name")
 		for row in c.fetchall():
 			self.customer_store.append(row)
+		c.close()
+		DB.rollback()
 		sw = self.builder.get_object('scrolledwindow1')
 		self.canvas = GooCanvas.Canvas()
 		sw.add(self.canvas)
@@ -49,7 +50,7 @@ class GUI:
 		window.show_all()
 
 	def populate_invoices (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		root = self.canvas.get_root_item()
 		previous_position = 25.0
 		c.execute("SELECT "
@@ -76,9 +77,10 @@ class GUI:
 			t.connect("button-release-event", self.invoice_clicked, row[2])
 			previous_position += amount
 		self.canvas.set_size_request(800,  previous_position + 100)
+		c.close()
 
 	def populate_payments (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		root = self.canvas.get_root_item()
 		previous_position = 25.0
 		c.execute("SELECT * FROM "
@@ -117,6 +119,7 @@ class GUI:
 			previous_position += amount
 		if previous_position + 100 > self.canvas.get_size_request().height:
 			self.canvas.set_size_request(800,  previous_position)
+		c.close()
 
 	def customer_changed (self, combobox):
 		customer_id = combobox.get_active_id()
@@ -126,6 +129,7 @@ class GUI:
 			self.canvas.set_root_item(group)
 			self.populate_invoices ()
 			self.populate_payments ()
+		DB.rollback()
 
 	def customer_match_selected (self, entrycompletion, treemodel, treeiter):
 		self.customer_id = treemodel[treeiter][0]
@@ -133,6 +137,7 @@ class GUI:
 		self.canvas.set_root_item(group)
 		self.populate_invoices ()
 		self.populate_payments ()
+		DB.rollback()
 
 	def customer_match_func(self, completion, key, iter_):
 		split_search_text = key.split()

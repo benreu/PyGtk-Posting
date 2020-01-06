@@ -41,7 +41,7 @@ ALTER TABLE resource_tags ALTER COLUMN green SET NOT NULL;
 ALTER TABLE resource_tags ALTER COLUMN alpha SET NOT NULL;
 --INSERT INTO resource_tags (tag, red, green, blue, alpha, finished) VALUES ('To do', 0, 0, 0, 1, False);
 
-ALTER TABLE time_clock_projects ADD COLUMN IF NOT EXISTS resource_id bigint UNIQUE REFERENCES resources ON UPDATE RESTRICT ON DELETE RESTRICT;
+ALTER TABLE time_clock_projects ADD COLUMN IF NOT EXISTS resource_id bigint UNIQUE;
 -- version 0.4.3
 ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS ext_price numeric (12, 2) DEFAULT 0.00;
 UPDATE credit_memo_items SET ext_price = (qty * price) WHERE ext_price IS NULL;
@@ -83,7 +83,20 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 --version 0.5.1
-ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERENCES gl_entries ON UPDATE RESTRICT ON DELETE RESTRICT; 
+ALTER TABLE credit_memo_items ADD COLUMN IF NOT EXISTS gl_entry_id bigint;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'credit_memo_items_gl_entry_id_fkey' )
+	THEN
+		ALTER TABLE public.credit_memo_items
+		ADD CONSTRAINT credit_memo_items_gl_entry_id_fkey FOREIGN KEY (gl_entry_id)
+		REFERENCES public.gl_entries (id) MATCH SIMPLE
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
+	END IF;
+END$$; 
 --version 0.5.2
 CREATE TABLE IF NOT EXISTS public.shipping_info (id serial PRIMARY KEY, tracking_number varchar NOT NULL UNIQUE, reason varchar, invoice_id bigint UNIQUE REFERENCES invoices ON DELETE RESTRICT ON UPDATE RESTRICT, CONSTRAINT shipment_reason_not_null CHECK (reason IS NOT NULL OR invoice_id IS NOT NULL));
 --version 0.5.3
@@ -132,13 +145,39 @@ ALTER TABLE log.products ALTER COLUMN barcode DROP DEFAULT;
 CREATE TABLE IF NOT EXISTS public.budgets (id serial primary key, name varchar NOT NULL, fiscal_id bigint NOT NULL REFERENCES fiscal_years ON DELETE RESTRICT, total numeric(12,2) NOT NULL, date_created date NOT NULL DEFAULT now(), active boolean NOT NULL DEFAULT TRUE);
 CREATE TABLE IF NOT EXISTS public.budget_amounts (id serial primary key, budget_id bigint NOT NULL REFERENCES budgets ON DELETE RESTRICT ON UPDATE RESTRICT, name varchar NOT NULL, amount numeric(12,2) NOT NULL, account bigint NOT NULL REFERENCES gl_accounts ON DELETE RESTRICT ON UPDATE CASCADE, date_created date NOT NULL DEFAULT now());
 --version 0.5.7
-ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_entry_id bigint REFERENCES gl_entries ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_entry_id bigint;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'incoming_invoices_gl_entry_id_fkey' )
+	THEN
+		ALTER TABLE public.incoming_invoices
+		ADD CONSTRAINT incoming_invoices_gl_entry_id_fkey FOREIGN KEY (gl_entry_id)
+		REFERENCES public.gl_entries (id) MATCH SIMPLE
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
+	END IF;
+END$$; 
 CREATE TABLE IF NOT EXISTS incoming_invoices_gl_entry_expenses_ids (id bigserial PRIMARY KEY, gl_entry_expense_id bigint NOT NULL REFERENCES gl_entries ON DELETE RESTRICT ON UPDATE RESTRICT, incoming_invoices_id bigint NOT NULL REFERENCES incoming_invoices ON DELETE RESTRICT ON UPDATE RESTRICT);
 --version 0.5.8
 ALTER TABLE public.purchase_order_line_items DROP CONSTRAINT IF EXISTS purchase_order_line_items_expense_account_fkey;
 ALTER TABLE public.purchase_order_line_items ADD CONSTRAINT purchase_order_line_items_expense_account_fkey FOREIGN KEY (expense_account) REFERENCES public.gl_accounts ("number") MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT;
 --version 0.5.9
-ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_transaction_id bigint REFERENCES gl_transactions ON DELETE RESTRICT;
+ALTER TABLE incoming_invoices ADD COLUMN IF NOT EXISTS gl_transaction_id bigint;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'incoming_invoices_gl_transaction_id_fkey' )
+	THEN
+		ALTER TABLE public.incoming_invoices
+		ADD CONSTRAINT incoming_invoices_gl_transaction_id_fkey FOREIGN KEY (gl_transaction_id)
+		REFERENCES public.gl_transactions (id) MATCH SIMPLE
+		ON UPDATE NO ACTION ON DELETE RESTRICT;
+	END IF;
+END$$; 
 UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELECT id, gl_transaction_id FROM gl_entries) AS ge WHERE incoming_invoices.gl_entry_id = ge.id AND incoming_invoices.gl_transaction_id IS NULL;
 UPDATE incoming_invoices SET gl_transaction_id = ge.gl_transaction_id FROM (SELECT date_inserted, amount, gl_transaction_id FROM gl_entries) AS ge WHERE incoming_invoices.amount = ge.amount AND incoming_invoices.gl_transaction_id IS NULL AND incoming_invoices.date_created = ge.date_inserted ;
 --version 0.5.10
@@ -156,10 +195,36 @@ ALTER TABLE public.document_items ALTER COLUMN min SET DEFAULT 0.00;
 ALTER TABLE public.document_items ALTER COLUMN max SET DEFAULT 100.00;
 ALTER TABLE public.document_items ALTER COLUMN qty SET DEFAULT 1.00;
 --version 0.5.12
-ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS incoming_invoice_id bigint REFERENCES incoming_invoices ON DELETE RESTRICT;
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS incoming_invoice_id bigint;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'shipping_info_incoming_invoice_id_fkey' )
+	THEN
+		ALTER TABLE public.shipping_info
+		ADD CONSTRAINT shipping_info_incoming_invoice_id_fkey FOREIGN KEY (incoming_invoice_id)
+		REFERENCES public.incoming_invoices (id) MATCH SIMPLE
+		ON UPDATE NO ACTION ON DELETE RESTRICT;
+	END IF;
+END$$; 
 --version 0.5.13
 ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS date_shipped date DEFAULT now();
-ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS contact_id bigint REFERENCES contacts ON DELETE RESTRICT;
+ALTER TABLE shipping_info ADD COLUMN IF NOT EXISTS contact_id bigint;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'shipping_info_contact_id_fkey' )
+	THEN
+		ALTER TABLE public.shipping_info
+		ADD CONSTRAINT shipping_info_contact_id_fkey FOREIGN KEY (contact_id)
+		REFERENCES public.contacts (id) MATCH SIMPLE
+		ON UPDATE NO ACTION ON DELETE RESTRICT;
+	END IF;
+END$$; 
 UPDATE shipping_info SET contact_id = c_join.contact_id FROM (SELECT co.id AS contact_id, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
 UPDATE shipping_info SET date_shipped = c_join.dated_for FROM (SELECT co.id AS contact_id, i.dated_for AS dated_for, i.id AS invoice_id FROM contacts AS co JOIN invoices AS i ON i.customer_id = co.id) AS c_join WHERE c_join.invoice_id = shipping_info.invoice_id;
 ALTER TABLE shipping_info ALTER COLUMN contact_id SET NOT NULL;
@@ -168,6 +233,12 @@ ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS batch_notes varchar 
 UPDATE manufacturing_projects SET batch_notes = '' WHERE batch_notes IS NULL;
 ALTER TABLE manufacturing_projects ALTER COLUMN batch_notes SET NOT NULL;
 --version 0.5.15
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_income_status boolean DEFAULT False;
+UPDATE payroll.employee_info SET state_income_status = False WHERE state_income_status IS NULL;
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_credits integer DEFAULT 0;
+UPDATE payroll.employee_info SET state_credits = 0 WHERE state_credits IS NULL;
+ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS fed_income_status boolean DEFAULT False;
+UPDATE payroll.employee_info SET fed_income_status = False WHERE fed_income_status IS NULL;
 ALTER TABLE payroll.employee_info ADD COLUMN IF NOT EXISTS state_withholding_exempt boolean DEFAULT False;
 UPDATE payroll.employee_info SET state_withholding_exempt = False WHERE state_withholding_exempt IS NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN state_withholding_exempt SET NOT NULL;
@@ -184,8 +255,8 @@ ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET DEFAUL
 ALTER TABLE payroll.employee_info ALTER COLUMN social_security_exempt SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN wage SET DEFAULT 0.00;
 ALTER TABLE payroll.employee_info ALTER COLUMN wage SET NOT NULL;
-ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET DEFAULT 24;
-ALTER TABLE payroll.employee_info ALTER COLUMN payment_frequency SET NOT NULL;
+ALTER TABLE payroll.employee_info ALTER COLUMN payments_per_year SET DEFAULT 24;
+ALTER TABLE payroll.employee_info ALTER COLUMN payments_per_year SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN married SET DEFAULT False;
 ALTER TABLE payroll.employee_info ALTER COLUMN married SET NOT NULL;
 ALTER TABLE payroll.employee_info ALTER COLUMN last_updated SET DEFAULT now();
@@ -213,8 +284,8 @@ CREATE OR REPLACE FUNCTION payroll.pay_stubs_employee_info_update_func ()
   RETURNS trigger AS
 $func$
 BEGIN
-	UPDATE payroll.employee_info SET current = False 
-		WHERE (id, current) = (SELECT NEW.employee_info_id, True);
+	UPDATE payroll.employee_info SET active = False 
+		WHERE (id, active) = (SELECT NEW.employee_info_id, True);
 	RETURN NEW;
 END
 $func$  LANGUAGE plpgsql;
@@ -227,7 +298,7 @@ CREATE OR REPLACE FUNCTION payroll.employee_info_update_non_current_error_func (
 	RETURNS trigger AS
 $func$
 BEGIN
-	IF OLD.current = False THEN 
+	IF OLD.active = False THEN 
 		RAISE EXCEPTION 'Non-current entries in employee_info are not editable';
 	END IF;
 	RETURN NEW;
@@ -239,12 +310,77 @@ BEFORE UPDATE ON payroll.employee_info
 FOR EACH ROW EXECUTE PROCEDURE payroll.employee_info_update_non_current_error_func() ;
 
 CREATE UNIQUE INDEX IF NOT EXISTS employee_info_employee_current_unique
-ON payroll.employee_info (employee_id, current)
-WHERE current = True;
+ON payroll.employee_info (employee_id, active)
+WHERE active = True;
 --version 0.5.17
 UPDATE purchase_order_line_items SET order_number = '' WHERE order_number IS NULL;
 ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET DEFAULT '';
 ALTER TABLE purchase_order_line_items ALTER COLUMN order_number SET NOT NULL;
+--version 0.5.18
+ALTER TABLE mailing_lists ADD COLUMN IF NOT EXISTS auto_add boolean DEFAULT False;
+UPDATE mailing_lists SET auto_add = False WHERE auto_add IS NULL;
+ALTER TABLE mailing_lists ALTER COLUMN auto_add SET NOT NULL;
+COMMENT ON COLUMN mailing_lists.auto_add IS 'automatically add these mailing lists when updating or inserting contacts';
+CREATE UNIQUE INDEX IF NOT EXISTS mailing_list_register_contact_mailing_list_unique
+ON public.mailing_list_register (mailing_list_id, contact_id);
+--version 0.5.19
+ALTER TABLE job_types ADD COLUMN IF NOT EXISTS current_serial_number int DEFAULT 0;
+UPDATE job_types SET current_serial_number = 0 WHERE current_serial_number IS NULL;
+ALTER TABLE job_types ALTER COLUMN current_serial_number SET NOT NULL;
+--version 0.5.20
+ALTER TABLE mailing_list_register ADD COLUMN IF NOT EXISTS printed boolean DEFAULT False;
+UPDATE mailing_list_register SET printed = False WHERE printed IS NULL;
+ALTER TABLE mailing_list_register ALTER COLUMN printed SET NOT NULL;
+--version 0.5.21
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS sort int DEFAULT 0;
+UPDATE resources SET sort = 0 WHERE sort IS NULL;
+ALTER TABLE resources ALTER COLUMN sort SET NOT NULL;
+--version 0.5.22
+CREATE TABLE IF NOT EXISTS public.units (id serial PRIMARY KEY, name varchar UNIQUE NOT NULL);
+INSERT INTO units (name) VALUES ('Piece'), ('Hour'), ('Minute'), ('Foot'), ('Inch'), ('Ounce'), ('Pound'), ('Ton'), ('Acre') ON CONFLICT (name) DO NOTHING;
+ALTER TABLE products ALTER COLUMN unit TYPE int using unit::integer;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT constraint_schema, constraint_name 
+		FROM information_schema.constraint_column_usage 
+		WHERE constraint_schema = 'public'
+		AND constraint_name = 'products_units_fkey' )
+	THEN
+		ALTER TABLE public.products
+		ADD CONSTRAINT products_units_fkey FOREIGN KEY (unit)
+		REFERENCES public.units (id) MATCH SIMPLE
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
+	END IF;
+END$$; 
+-- 0.5.23
+CREATE OR REPLACE FUNCTION complete_search(search_text text)
+RETURNS table(schemaname text, tablename text, columnname text, rowfound text, rowctid text)
+AS $$ 
+BEGIN
+  FOR schemaname,tablename,columnname IN
+      SELECT c.table_schema,c.table_name,c.column_name
+      FROM information_schema.columns c
+      JOIN information_schema.tables t ON
+        (t.table_name=c.table_name AND t.table_schema=c.table_schema)
+      WHERE c.table_schema <> 'pg_catalog'
+        AND c.table_schema <> 'information_schema'
+        AND c.data_type <> 'bytea' 
+        AND t.table_type='BASE TABLE'
+  LOOP
+    EXECUTE format('SELECT ctid, cast(%I as text) FROM %I.%I WHERE lower(cast(%I as text)) ~ %L',
+       columnname,
+       schemaname,
+       tablename,
+       columnname,
+       search_text
+    ) INTO rowctid, rowfound;
+    IF rowctid IS NOT NULL THEN
+      RETURN NEXT;
+    END IF;
+ END LOOP;
+END; 
+$$ language plpgsql;
+
 
 
 

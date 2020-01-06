@@ -1,4 +1,4 @@
-# daniel_employee_time.py
+# employee_payment.py
 #
 # Copyright (C) 2017 - reuben
 #
@@ -20,9 +20,9 @@ import os, sys, subprocess, time, re, psycopg2
 from datetime import datetime, timedelta
 from dateutils import datetime_to_text, calendar_to_text, \
 					calendar_to_datetime, set_calendar_from_datetime 
-import constants
+from constants import ui_directory, DB, template_dir
 
-UI_FILE = constants.ui_directory + "/employee_time.ui"
+UI_FILE = ui_directory + "/employee_time.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -33,8 +33,7 @@ class EmployeePaymentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.datetime = datetime.today()
 		date_text = datetime_to_text(self.datetime)
 		self.builder.get_object('entry8').set_text(date_text)
@@ -57,21 +56,22 @@ class EmployeePaymentGUI:
 
 		self.populate_employees ()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def focus_in_event (self, window, event):
 		self.populate_employees ()
 
 	def populate_employees (self):
 		self.employee_store.clear()
-		self.cursor.execute("SELECT employee_id, name "
+		self.cursor.execute("SELECT employee_id::text, name "
 							"FROM time_clock_entries "
 							"JOIN contacts ON contacts.id = "
 							"time_clock_entries.employee_id "
 							"WHERE employee_paid = False "
 							"GROUP BY employee_id, name ORDER BY name")
 		for row in self.cursor.fetchall():
-			employee_id = row[0]
-			employee_name = row[1]
-			self.employee_store.append([str(employee_id), employee_name])
+			self.employee_store.append(row)
 
 	def employee_combo_changed (self, combo):
 		employee_id = combo.get_active_id()
@@ -95,19 +95,6 @@ class EmployeePaymentGUI:
 		if self.employee_id == 0:
 			return
 		self.employee_payment_store.clear()
-		'''self.cursor.execute ("SELECT COUNT(id) FROM time_clock_entries "
-							"WHERE (employee_id, state) = "
-							"(%s, 'running') AND start_time < %s",
-							(self.employee_id, self.stop_time))
-		for row in self.cursor.fetchall():
-			count = row[0]
-			if count == 0:
-				self.builder.get_object('button1').set_sensitive(True)
-				message = "%s is punched out of all jobs." % employee_name
-			else:
-				message = "%s is still punched in." % employee_name
-				self.builder.get_object('button1').set_sensitive(False)
-			self.builder.get_object('label9').set_label(message)'''
 		self.cursor.execute("SELECT id "
 							"FROM time_clock_entries "
 							"WHERE (employee_id, employee_paid) = "
@@ -130,17 +117,16 @@ class EmployeePaymentGUI:
 				self.adjusted_seconds = 0.0
 			actual_time = self.convert_seconds (self.actual_seconds)
 			adjusted_time = self.convert_seconds (self.adjusted_seconds)
-		
 		if self.adjusted_seconds == 0 and self.actual_seconds == 0:
 			self.efficiency = 0
 		else:
 			self.efficiency = self.adjusted_seconds/self.actual_seconds * 100
-
 		self.builder.get_object('entry1').set_text(actual_time)
 		self.builder.get_object('entry6').set_text(adjusted_time)
 		self.builder.get_object('entry4').set_text(cost_sharing_time)
 		self.builder.get_object('entry5').set_text(profit_sharing_time)
 		self.builder.get_object('entry7').set_text(str(self.efficiency))
+		DB.rollback()
 
 	def post_employee_payment_clicked (self, button):
 		actual_hours = self.actual_seconds / 3600
@@ -171,7 +157,7 @@ class EmployeePaymentGUI:
 								"(employee_paid, pay_stub_id) = "
 								"(True, %s) WHERE id = %s",
 								(self.pay_stub_id, row_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_employees ()
 		self.builder.get_object('button1').set_sensitive(False)
 
@@ -227,11 +213,10 @@ class EmployeePaymentGUI:
 		from py3o.template import Template #import for every use or there is an error about invalid magic header numbers
 		self.time_file = "/tmp/employee_time.odt"
 		self.time_file_pdf = "/tmp/employee_time.pdf"
-		t = Template(constants.template_dir+"/employee_time.odt", self.time_file , True)
+		t = Template(template_dir+"/employee_time.odt", self.time_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
-				
 		subprocess.call('soffice ' + self.time_file, shell = True)
-		
+		DB.rollback()
 
 	def calendar_day_selected (self, calendar):
 		date_tuple = calendar.get_date()
@@ -272,4 +257,4 @@ class EmployeePaymentGUI:
 		return day_formatted
 
 
-		
+

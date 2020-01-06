@@ -1,6 +1,6 @@
 # constants.py
 #
-# Copyright (C) 2019 - house
+# Copyright (C) 2019 - Reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GObject
-import os
+from gi.repository import Gtk, GLib, GObject
+import os, shutil
 
 dev_mode = False
-db = None
+DB = None
 cursor = None
 broadcaster = None
 ACCOUNTS = None
@@ -33,26 +33,29 @@ def start_broadcaster ():
 
 class Broadcast (GObject.GObject):
 	__gsignals__ = { 
-	'products_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'contacts_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'clock_entries_changed': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'shutdown': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
+	'products_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'contacts_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
+	'shutdown': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())
 	}
-	global db, cursor, ACCOUNTS
+	global DB, ACCOUNTS
 	def __init__ (self):
 		GObject.GObject.__init__(self)
-		GObject.timeout_add_seconds(1, self.poll_connection)
-		cursor.execute("LISTEN products")
-		cursor.execute("LISTEN contacts")
-		cursor.execute("LISTEN accounts")
-		cursor.execute("LISTEN time_clock_entries")
+		GLib.timeout_add_seconds(1, self.poll_connection)
+		c = DB.cursor()
+		c.execute("LISTEN products")
+		c.execute("LISTEN contacts")
+		c.execute("LISTEN accounts")
+		c.execute("LISTEN time_clock_entries")
+		c.close()
+		DB.commit()
 		
 	def poll_connection (self):
-		if db.closed == 1:
+		if DB.closed == 1:
 			return False
-		db.poll()
-		while db.notifies:
-			notify = db.notifies.pop(0)
+		DB.poll()
+		while DB.notifies:
+			notify = DB.notifies.pop(0)
 			if "product" in notify.payload:
 				self.emit('products_changed')
 			elif "contact" in notify.payload:

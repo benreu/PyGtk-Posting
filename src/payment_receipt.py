@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 import subprocess, psycopg2
 import printing
-import constants
+from constants import ui_directory, DB, template_dir
 
-UI_FILE = constants.ui_directory + "/payment_receipt.ui"
+UI_FILE = ui_directory + "/payment_receipt.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -31,9 +31,7 @@ class PaymentReceiptGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = constants.db.cursor ()
+		self.cursor = DB.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.payment_store = self.builder.get_object('payment_store')
@@ -45,19 +43,20 @@ class PaymentReceiptGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_customer_store (self):
 		self.customer_store.clear()
-		self.cursor.execute ("SELECT contacts.id, contacts.name, ext_name "
+		self.cursor.execute ("SELECT contacts.id::text, contacts.name, ext_name "
 							"FROM payments_incoming "
 							"JOIN contacts "
 							"ON contacts.id = payments_incoming.customer_id "
 							"GROUP BY contacts.id, contacts.name, ext_name "
 							"ORDER BY contacts.name, contacts.ext_name")
 		for row in self.cursor.fetchall():
-			c_id = row[0]
-			c_name = row[1]
-			c_co = row[2]
-			self.customer_store.append([str(c_id), c_name, c_co])
+			self.customer_store.append(row)
+		DB.rollback()
 
 	def customer_combo_changed (self, combo):
 		customer_id = combo.get_active_id()
@@ -118,6 +117,7 @@ class PaymentReceiptGUI:
 								(customer_id,))
 		for row in self.cursor.fetchall():
 			self.payment_store.append(row)
+		DB.rollback()
 
 	def view_payment_receipt_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -134,8 +134,9 @@ class PaymentReceiptGUI:
 				return
 			f = open(file_name,'wb')
 			f.write(file_data)
-			subprocess.call("xdg-open %s" % file_name, shell = True)
+			subprocess.call(["xdg-open", file_name])
 			f.close()
+		DB.rollback()
 
 	def generate_payment_receipt (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -144,8 +145,8 @@ class PaymentReceiptGUI:
 			return
 		line = model[path]
 		self.create_payment_receipt (line)
-		subprocess.Popen ("soffice " + self.receipt_file, shell = True)
-		
+		subprocess.Popen (["soffice", self.receipt_file])
+		DB.rollback()
 
 	def post_payment_receipt_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -163,7 +164,7 @@ class PaymentReceiptGUI:
 		self.cursor.execute("UPDATE payments_incoming "
 							"SET payment_receipt_pdf = %s WHERE id = %s", 
 							(binary, self.payment_id))
-		self.db.commit()
+		DB.commit()
 		p = printing.PrintDialog("/tmp/" + self.document_pdf)
 		p.run_print_dialog(self.window)
 
@@ -217,7 +218,7 @@ class PaymentReceiptGUI:
 		data = dict(payment = payment, contact = customer, company = company)
 		from py3o.template import Template 
 		self.receipt_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/payment_receipt_template.odt", self.receipt_file , True)
+		t = Template(template_dir+"/payment_receipt_template.odt", self.receipt_file , True)
 		t.render(data) #the data holds all the info of the invoice
 
 

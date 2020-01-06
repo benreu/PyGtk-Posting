@@ -21,7 +21,7 @@ from datetime import date, timedelta
 import subprocess
 from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
-from constants import db, ui_directory, help_dir
+from constants import DB, ui_directory, help_dir
 from accounts import expense_account
 
 UI_FILE = ui_directory + "/customer_payment.ui"
@@ -34,9 +34,7 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		
-		self.db = db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.cursor.execute ("SELECT enforce_exact_payment FROM settings")
 		self.exact_payment = self.cursor.fetchone()[0]
 		self.cursor.execute("SELECT accrual_based FROM settings")
@@ -83,10 +81,7 @@ class GUI:
 		self.cursor.close()
 		
 	def spinbutton_focus_in_event (self, spinbutton, event):
-		GLib.idle_add(self.highlight, spinbutton)
-
-	def highlight (self, spinbutton):
-		spinbutton.select_region(0, -1)
+		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def help_button_clicked (self, button):
 		subprocess.Popen (["yelp", help_dir + "/customer_payment.page"])
@@ -104,6 +99,7 @@ class GUI:
 							"WHERE customer = True ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
+		DB.rollback()
 
 	def view_invoice_clicked (self, widget):
 		invoice_combo = self.builder.get_object('comboboxtext1')
@@ -117,6 +113,7 @@ class GUI:
 			f.write(file_data)		
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
+		DB.rollback()
 
 	def calculate_discount (self, discount, total):
 		discount_percent = (float(discount) / 100.00)
@@ -170,6 +167,7 @@ class GUI:
 				self.builder.get_object('label4').set_label(str(discounted_amount))
 		else:
 			raise Exception("the terms_and_discounts table has invalid entries")
+		DB.rollback()
 
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -198,6 +196,7 @@ class GUI:
 			self.builder.get_object('label17').set_label(row[2])
 			self.builder.get_object('label12').set_label(row[3])
 		self.populate_invoices()
+		DB.rollback()
 	
 	def populate_invoices (self):
 		self.update_invoice_amounts_due ()
@@ -238,8 +237,7 @@ class GUI:
 	def invoice_treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			#menu.popup(None, None, None, None, event.button, event.time)
-			#menu.show_all()
+			menu.popup_at_pointer()
 
 	def amount_due_edited (self, renderer, path, amount):
 		invoice_id = self.invoice_store[path][0]
@@ -247,7 +245,7 @@ class GUI:
 			amount = self.invoice_store[path][4]
 		self.cursor.execute("UPDATE invoices SET amount_due = %s "
 							"WHERE id = %s", (amount, invoice_id))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('spinbutton1').set_value(float(amount))
 		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
 
@@ -272,7 +270,7 @@ class GUI:
 		if result == Gtk.ResponseType.ACCEPT:
 			self.cursor.execute("UPDATE invoices SET amount_due = %s "
 								"WHERE id = %s", (discounted_amount, invoice_id))
-			self.db.commit()
+			DB.commit()
 			self.builder.get_object('spinbutton1').set_value(discounted_amount)
 			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
 			#self.populate_invoices ()
@@ -300,7 +298,7 @@ class GUI:
 		comments = 	self.builder.get_object('entry2').get_text()
 		total = self.builder.get_object('spinbutton1').get_text()
 		total = Decimal(total)
-		self.payment = transactor.CustomerInvoicePayment(self.db, self.date, total)
+		self.payment = transactor.CustomerInvoicePayment(self.date, total)
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
 			self.cursor.execute("INSERT INTO payments_incoming "
@@ -344,12 +342,12 @@ class GUI:
 			self.payment_id = self.cursor.fetchone()[0]
 			self.update_invoices_paid ()
 			self.payment.cash (self.payment_id)
-		self.db.commit()
+		DB.commit()
 		self.cursor.close()
 		self.window.destroy ()
 		
 	def update_invoices_paid (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c_id = self.customer_id
 		c.execute("(SELECT id, total - amount_due AS discount FROM "
 					"(SELECT id, total, amount_due, SUM(amount_due) "
@@ -386,7 +384,7 @@ class GUI:
 			if discount != Decimal('0.00'):
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
-				transactor.post_invoice_accounts (self.db, self.date, invoice_id)
+				transactor.post_invoice_accounts (self.date, invoice_id)
 			c.execute("UPDATE invoices "
 						"SET (paid, payments_incoming_id, date_paid) "
 						"= (True, %s, %s) "
@@ -464,7 +462,7 @@ class GUI:
 									"WHERE id = %s", (total, invoice_id))
 		else:
 			raise Exception("your terms_and_discounts table has invalid entries")
-		self.db.commit()
+		DB.commit()
 		
 	def discount_cash_back_amount_changed (self, spinbutton):
 		self.check_amount_totals_validity ()

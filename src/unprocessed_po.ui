@@ -22,11 +22,6 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment5">
-    <property name="upper">100000</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
   <object class="GtkListStore" id="expense_account_store">
     <columns>
       <!-- column-name expense_account_id -->
@@ -37,15 +32,9 @@
   </object>
   <object class="GtkListStore" id="expense_products_store">
     <columns>
-      <!-- column-name product_id -->
-      <column type="gint"/>
-      <!-- column-name product_name -->
+      <!-- column-name id -->
       <column type="gchararray"/>
-      <!-- column-name price -->
-      <column type="gfloat"/>
-      <!-- column-name expense_account -->
-      <column type="glong"/>
-      <!-- column-name expense_account_name -->
+      <!-- column-name name -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -72,7 +61,7 @@
       <column type="gchararray"/>
       <!-- column-name attachment -->
       <column type="gboolean"/>
-      <!-- column-name invoice comments or number -->
+      <!-- column-name invoice -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -104,7 +93,7 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkWindow" id="unprocessed">
+  <object class="GtkWindow" id="window">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Unprocessed Purchase Orders</property>
@@ -195,7 +184,8 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="hexpand">True</property>
-                        <property name="placeholder_text" translatable="yes">Company name or transaction description</property>
+                        <property name="placeholder_text" translatable="yes">Company name or PO description</property>
+                        <signal name="changed" handler="po_description_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -353,7 +343,6 @@
                       <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                         <property name="editable">True</property>
                         <property name="has_entry">False</property>
-                        <property name="model">expense_account_store</property>
                         <property name="text_column">1</property>
                         <signal name="changed" handler="expense_account_combo_changed" swapped="no"/>
                       </object>
@@ -422,10 +411,18 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="comboboxtext1">
+              <object class="GtkComboBox" id="expense_product_combo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <signal name="changed" handler="expense_reason_combo_changed" swapped="no"/>
+                <property name="model">expense_products_store</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="expense_product_combo_changed" swapped="no"/>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -581,7 +578,7 @@
     <property name="default_height">400</property>
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
-    <property name="transient_for">unprocessed</property>
+    <property name="transient_for">window</property>
     <child>
       <placeholder/>
     </child>
@@ -857,156 +854,13 @@
       <action-widget response="-3">button4</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkDialog" id="expense_products_dialog">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Expense products</property>
-    <property name="default_width">400</property>
-    <property name="default_height">300</property>
-    <property name="icon_name">pygtk-posting</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">unprocessed</property>
-    <child>
-      <placeholder/>
-    </child>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox3">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area3">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button14">
-                <property name="label" translatable="yes">Close</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button13">
-                <property name="label" translatable="yes">Delete</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="delete_expense_product_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button12">
-                <property name="label" translatable="yes">New</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="new_expense_product_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScrolledWindow" id="scrolledwindow4">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="shadow_type">in</property>
-            <child>
-              <object class="GtkTreeView" id="treeview1">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="model">expense_products_store</property>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection2"/>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn8">
-                    <property name="title" translatable="yes">Product</property>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext10">
-                        <property name="editable">True</property>
-                        <signal name="edited" handler="product_expense_name_renderer_edited" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="text">1</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn9">
-                    <property name="title" translatable="yes">Price</property>
-                    <child>
-                      <object class="GtkCellRendererSpin" id="cellrendererspin1">
-                        <property name="editable">True</property>
-                        <property name="adjustment">adjustment5</property>
-                        <property name="digits">2</property>
-                        <signal name="edited" handler="product_expense_spin_value_edited" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="text">2</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn10">
-                    <property name="title" translatable="yes">Expense account</property>
-                    <child>
-                      <object class="GtkCellRendererCombo" id="cellrenderercombo2">
-                        <property name="editable">True</property>
-                        <property name="has_entry">False</property>
-                        <property name="model">expense_account_store</property>
-                        <property name="text_column">1</property>
-                        <signal name="changed" handler="product_expense_account_combo_changed" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="text">4</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-3">button14</action-widget>
-    </action-widgets>
-  </object>
   <object class="GtkDialog" id="missing_attachment_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Missing attachment</property>
     <property name="window_position">center</property>
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
-    <property name="transient_for">unprocessed</property>
+    <property name="transient_for">window</property>
     <child>
       <placeholder/>
     </child>

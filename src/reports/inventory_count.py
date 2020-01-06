@@ -20,9 +20,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 from pricing import product_retail_price
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/inventory_count.ui"
+UI_FILE = ui_directory + "/reports/inventory_count.ui"
 
 
 class InventoryCountGUI:
@@ -31,9 +31,7 @@ class InventoryCountGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.inventory_store = self.builder.get_object('inventory_store')
 		self.product_store = self.builder.get_object('product_store')
 		self.cursor.execute("SELECT id::text, name || ' {' || ext_name || '}' "
@@ -46,6 +44,9 @@ class InventoryCountGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 	
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
 		for text in split_search_text:
@@ -62,6 +63,7 @@ class InventoryCountGUI:
 		for row in self.cursor.fetchall():
 			self.process_product(int(product_id), row[0], row[1], row[2])
 			self.calculate_totals ()
+		DB.rollback()
 
 	def product_match_selected (self, completion, treemodel, treeiter):
 		product_id = treemodel[treeiter][0]
@@ -81,6 +83,7 @@ class InventoryCountGUI:
 		for row in self.cursor.fetchall():
 			self.process_product(row[0], row[1], row[2], barcode)
 			self.calculate_totals ()
+		DB.rollback()
 
 	def process_product(self, product_id, product_name, product_cost, barcode, qty = 0):
 		for row in self.inventory_store:
@@ -92,7 +95,7 @@ class InventoryCountGUI:
 				break
 			continue
 		else:
-			retail = product_retail_price (self.db, product_id)
+			retail = product_retail_price (product_id)
 			self.inventory_store.append([product_id, barcode, 1, product_name,
 										product_cost, retail])
 

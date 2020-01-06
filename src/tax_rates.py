@@ -16,17 +16,16 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/tax_rates.ui"
+UI_FILE = ui_directory + "/tax_rates.ui"
 
 class TaxRateGUI:
 	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.tax_store = self.builder.get_object("tax_store")
 		self.account_store = self.builder.get_object("tax_received_account_store")
@@ -39,20 +38,20 @@ class TaxRateGUI:
 		self.new()
 		
 	def destroy(self, window):
-		return True
+		self.cursor.close()
 
 	def populate_account_store (self):
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE "
+		self.cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
 							"(is_parent, type) = (False, 5) ORDER BY name")
 		for row in self.cursor.fetchall():
-			account_number = str(row[0])
-			account_name = row[1]
-			self.account_store.append([account_number, account_name])
+			self.account_store.append(row)
 		self.builder.get_object('treeview-selection').unselect_all()
+		DB.rollback()
 
 	def populate_tax_rates_store(self):
 		self.tax_store.clear()
-		self.cursor.execute("SELECT tr.id, tr.name, rate, standard, exemption, "
+		self.cursor.execute("SELECT tr.id::text, tr.name, rate::text, "
+							"standard, exemption, "
 							"tax_letter, COALESCE(gl_accounts.name, '') "
 							"FROM tax_rates AS tr "
 							"LEFT JOIN gl_accounts "
@@ -60,15 +59,8 @@ class TaxRateGUI:
 							"WHERE deleted = False "
 							"ORDER BY tr.name")
 		for row in self.cursor.fetchall():
-			tax_id = str(row[0])
-			tax_name = row[1]
-			tax_rate = str(row[2])
-			default = row[3]
-			exemption = row[4]
-			tax_letter = row[5]
-			tax_account = row[6]
-			self.tax_store.append([tax_id, tax_name, tax_rate, 
-									default, exemption, tax_letter, tax_account])
+			self.tax_store.append(row)
+		DB.rollback()
 
 	def row_activate(self, treeview, path, treeviewcolumn):
 		treeiter = self.tax_store.get_iter(path)
@@ -94,6 +86,7 @@ class TaxRateGUI:
 				self.builder.get_object('filechooserbutton1').unselect_all()
 			self.builder.get_object('entry1').set_text(row[4])
 			self.builder.get_object('combobox1').set_active_id(str(row[5]))
+		DB.rollback()
 
 	def update_default(self, cell_renderer, path):
 		selected_path = Gtk.TreePath(path)
@@ -107,7 +100,7 @@ class TaxRateGUI:
 				row[3] = False
 				self.cursor.execute("UPDATE tax_rates SET standard = False "
 									"WHERE id = %s",[row[0]])
-		self.db.commit()
+		DB.commit()
 
 	def exemption_checkbutton_toggled (self, checkbutton):
 		active = checkbutton.get_active()
@@ -161,7 +154,7 @@ class TaxRateGUI:
 								"WHERE id = %s",
 								(name, rate, exemption, file_path, tax_letter, 
 								tax_account, self.tax_rate_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_tax_rates_store ()
 			
 	def delete(self, widget):
@@ -169,13 +162,13 @@ class TaxRateGUI:
 			#verify no conflicting FK's
 			self.cursor.execute("DELETE FROM tax_rates WHERE id = %s",
 												(self.tax_rate_id,))
-			self.db.rollback()
+			DB.rollback()
 			self.cursor.execute("UPDATE tax_rates SET deleted = true "
 								"WHERE id = %s", (self.tax_rate_id,))
-			self.db.commit()
+			DB.commit()
 		except Exception as e:
 			print (e)
-			self.db.rollback()
+			DB.rollback()
 			self.builder.get_object('label5').set_label(str(e))
 			self.builder.get_object('button1').set_sensitive(False)
 			dialog = self.builder.get_object('dialog1')
@@ -188,7 +181,7 @@ class TaxRateGUI:
 									(new_tax_id, self.tax_rate_id))
 				self.cursor.execute("UPDATE tax_rates SET deleted = true "
 									"WHERE id = %s", (self.tax_rate_id,))
-			self.db.commit()
+			DB.commit()
 		self.populate_tax_rates_store()
 
 	def tax_rate_combo_changed (self, combo):
@@ -197,7 +190,7 @@ class TaxRateGUI:
 			self.builder.get_object('button1').set_sensitive(False)
 		else:
 			self.builder.get_object('button1').set_sensitive(True)
-		
-	
 
-	
+
+
+

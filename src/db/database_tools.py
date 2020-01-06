@@ -15,13 +15,16 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib
+import gi
+gi.require_version('Vte', '2.91')
+from gi.repository import Gtk, GLib, Vte
 import subprocess, psycopg2, re, os
+from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
-from main import get_apsw_cursor
-from constants import db, ui_directory, sql_dir
+from constants import DB, ui_directory, sql_dir
 from constants import log_file as LOG_FILE
+from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -36,18 +39,15 @@ class GUI:
 		self.statusbar = self.builder.get_object("statusbar2")
 		self.progressbar = self.builder.get_object("progressbar1")
 		database_utils.PROGRESSBAR = self.progressbar
-		if error == False: 
-			self.db = db
-			self.cursor = self.db.cursor()
+		if error == False:
+			self.db = DB
 			self.retrieve_dbs ()
 			self.statusbar.push(1,"Ready to edit databases")
 			self.set_active_database ()
-			self.builder.get_object("button3").set_sensitive(True)
-			self.builder.get_object("button2").set_sensitive(True)
-			self.builder.get_object("button1").set_sensitive(True)
-			self.builder.get_object("button10").set_sensitive(True)
+			self.builder.get_object("box2").set_sensitive(True)
+			self.builder.get_object("grid2").set_sensitive(True)
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
-			self.statusbar.push(1,"Please setup PostgreSQL in the Connection tab")
+			self.statusbar.push(1,"Please setup PostgreSQL in the Server (host) tab")
 			self.builder.get_object('window').set_modal(True)
 		
 		self.get_postgre_settings (None)
@@ -89,36 +89,42 @@ class GUI:
 			self.status_update("Ready to restore database")
 		
 	def set_active_database (self ):
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT db_name FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT db_name FROM connection;"):
 			sql_database = row[0]
 		self.builder.get_object('combobox1').set_active_id(sql_database)
 		self.builder.get_object('label10').set_text("Current database : " + sql_database)
 		self.builder.get_object('label14').set_text(sql_database)
+		sqlite.close()
 	
 	def retrieve_dbs(self):
+		sqlite = get_apsw_connection()
 		db_name_store = self.builder.get_object('db_name_store')
 		db_name_store.clear()
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
+		sqlite.close()
 		cursor = self.db.cursor()
 		cursor.execute("SELECT b.datname FROM pg_catalog.pg_database b ORDER BY 1;")
 		for db_tuple in cursor.fetchall():
 			try:
 				db_name = db_tuple[0]
-				db = psycopg2.connect( database= db_name, host= sql_host, 
-										user=sql_user, password = sql_password, 
+				db = psycopg2.connect(  database= db_name, 
+										host= sql_host, 
+										user=sql_user, 
+										password = sql_password, 
 										port = sql_port)
 				cursor = db.cursor()
 				cursor.execute("SELECT version FROM settings") # valid pygtk posting database
 				version = cursor.fetchone()[0]
 				db_name_store.append([version, db_name])
+				db.close()
 			except Exception as e:
 				pass
+		cursor.close()
 
 	def db_combo_changed (self, combo):
 		model = combo.get_model()
@@ -131,7 +137,7 @@ class GUI:
 		self.builder.get_object('label14').set_label(db_name)
 
 	def upgrade_old_version (self):
-		database_utils.check_and_update_version (self.db, self.statusbar)
+		database_utils.check_and_update_version (self.statusbar)
 
 	def login_multiple_clicked(self, widget):
 		selected = self.builder.get_object('combobox-entry').get_text()
@@ -145,8 +151,8 @@ class GUI:
 		self.db.close()
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
-			cursor_sqlite = get_apsw_cursor ()
-			cursor_sqlite.execute("UPDATE connection SET db_name = '%s'" % (selected))
+			sqlite = get_apsw_connection()
+			sqlite.cursor().execute("UPDATE connection SET db_name = '%s'" % (selected))
 			self.error = False
 			self.window.close()
 			subprocess.Popen(["./src/main.py", 
@@ -174,8 +180,8 @@ class GUI:
 			print ("No database name!")
 			self.status_update("No database name!")
 			return
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -211,7 +217,7 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		cursor_sqlite.execute("UPDATE connection SET db_name = ('%s')" % (db_name))
+		sqlite.cursor().execute("UPDATE connection SET db_name = ?", (db_name,))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
@@ -304,12 +310,18 @@ class GUI:
 		self.warning_dialog.hide()
 
 	def get_postgre_settings(self, widget):
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		cursor = sqlite.cursor()
+		for row in cursor.execute("SELECT * FROM connection;"):
 			self.builder.get_object("entry2").set_text(row[0])
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
 			self.builder.get_object("entry5").set_text(row[3])
+		entry = self.builder.get_object('postgres_bin_path_entry')
+		cursor.execute("SELECT value FROM settings "
+						"WHERE setting = 'postgres_bin_path'")
+		entry.set_text(cursor.fetchone()[0])
+		sqlite.close()
 
 	def test_connection_clicked (self, widget):
 		sql_user= self.builder.get_object("entry2").get_text()
@@ -317,31 +329,29 @@ class GUI:
 		sql_host= self.builder.get_object("entry4").get_text()
 		sql_port= self.builder.get_object("entry5").get_text()
 		try:
-			pysql = psycopg2.connect( host= sql_host, user=sql_user, 
+			self.db = psycopg2.connect( host= sql_host, 
+										user=sql_user, 
 										password = sql_password, 
 										port = sql_port)
-			self.db = pysql # connection successful
-			cursor_sqlite = get_apsw_cursor ()
-			cursor_sqlite.execute("UPDATE connection SET user = ('%s')" % (sql_user))
-			cursor_sqlite.execute("UPDATE connection SET password = ('%s')" % (sql_password))
-			cursor_sqlite.execute("UPDATE connection SET host = ('%s')" % (sql_host))
-			cursor_sqlite.execute("UPDATE connection SET port = ('%s')" % (sql_port))
-			self.message_success()
-			self.retrieve_dbs ()
-			self.builder.get_object("textbuffer1").set_text('')
-			self.builder.get_object("button3").set_sensitive(True)
-			self.builder.get_object("button2").set_sensitive(True)
-			self.builder.get_object("button1").set_sensitive(True)
-			self.builder.get_object("button10").set_sensitive(True)
 		except Exception as e:
 			print (e)
 			self.message_error()
 			self.builder.get_object("textbuffer1").set_text(str(e))
-			self.builder.get_object("button3").set_sensitive(False)
-			self.builder.get_object("button2").set_sensitive(False)
-			self.builder.get_object("button1").set_sensitive(False)
-			self.builder.get_object("button10").set_sensitive(False)
-
+			self.builder.get_object("box2").set_sensitive(False)
+			self.builder.get_object("grid2").set_sensitive(False)
+			return
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE connection SET "
+						"(user, password, host, port) = "
+						"(?, ?, ?, ?)", 
+						(sql_user, sql_password, sql_host, sql_port))
+		sqlite.close()
+		self.message_success()
+		self.retrieve_dbs ()
+		self.builder.get_object("textbuffer1").set_text('')
+		self.builder.get_object("box2").set_sensitive(True)
+		self.builder.get_object("grid2").set_sensitive(True)
+		
 	def message_success(self):
 		self.status_update("Success!")
 		GLib.timeout_add(1000, self.status_update, "Saved to settings")
@@ -349,4 +359,25 @@ class GUI:
 	def message_error(self):
 		self.status_update("Your criteria did not match!")
 		GLib.timeout_add(3000, self.status_update, "Please check the entries and try again")
+
+	def postgres_bin_folder_set (self, filechooser):
+		path = filechooser.get_uri()[7:]
+		filechooser.set_tooltip_text(path)
+		buf = self.builder.get_object('postgres_bin_path_buffer')
+		command = "%s/pg_isready" % path
+		try:
+			p = Popen([command], stdout=PIPE, stderr=PIPE)
+			stdout, stderr = p.communicate()
+			buf.set_text(stdout.decode('utf-8') + stderr.decode('utf-8'))
+		except Exception as e:
+			buf.set_text(str(e))
+			return
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE settings SET value = ? "
+								"WHERE setting = 'postgres_bin_path'", (path,))
+		sqlite.close()
+
+
+
+
 

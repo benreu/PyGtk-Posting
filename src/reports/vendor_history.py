@@ -19,9 +19,9 @@
 from gi.repository import Gtk, Gdk
 from decimal import Decimal
 import subprocess
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/vendor_history.ui"
+UI_FILE = ui_directory + "/reports/vendor_history.ui"
 
 class VendorHistoryGUI:
 	def __init__(self):
@@ -31,6 +31,7 @@ class VendorHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.search_store = Gtk.ListStore(str)
 		self.po_store = self.builder.get_object('purchase_order_store')
@@ -45,8 +46,6 @@ class VendorHistoryGUI:
 		treeview.drag_source_set_target_list([dnd])
 
 		self.vendor_id = 0
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 
 		self.vendor_store = self.builder.get_object('vendor_store')
 		self.cursor.execute("SELECT c.id::text, c.name "
@@ -56,7 +55,7 @@ class VendorHistoryGUI:
 							"ORDER BY c.name")
 		for row in self.cursor.fetchall():
 			self.vendor_store.append(row)
-		
+		DB.rollback()
 		self.product_name = ''
 		self.product_ext_name = ''
 		self.remark = ''
@@ -88,10 +87,10 @@ class VendorHistoryGUI:
 			with open(file_url,'wb') as f:
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_url])
+		DB.rollback()
 
-	def close_transaction_window(self, window, void):
-		self.window.destroy()
-		return True
+	def destroy (self, window):
+		self.cursor.close()
 		
 	def po_treeview_button_release_event (self, treeview, event):
 		selection = self.builder.get_object('treeview-selection1')
@@ -100,8 +99,7 @@ class VendorHistoryGUI:
 			return
 		if event.button == 3:
 			menu = self.builder.get_object('po_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 			
 	def po_item_treeview_button_release_event (self, treeview, event):
 		selection = self.builder.get_object('treeview-selection2')
@@ -110,8 +108,7 @@ class VendorHistoryGUI:
 			return
 		if event.button == 3:
 			menu = self.builder.get_object('po_item_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection2')
@@ -151,7 +148,7 @@ class VendorHistoryGUI:
 		self.load_vendor_purchase_orders ()
 
 	def load_vendor_purchase_orders (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		self.po_store.clear()
 		total = Decimal()
 		if self.builder.get_object('checkbutton3').get_active() == True:
@@ -190,6 +187,7 @@ class VendorHistoryGUI:
 			self.po_store.append(row)
 		self.builder.get_object('label3').set_label(str(total))
 		c.close()
+		DB.rollback()
 
 	def invoice_row_changed (self, selection):
 		self.builder.get_object('checkbutton1').set_active(False)
@@ -264,6 +262,7 @@ class VendorHistoryGUI:
 								"WHERE purchase_order_id IN " + args)
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def search_entry_search_changed (self, entry):
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
@@ -305,6 +304,7 @@ class VendorHistoryGUI:
 			break
 		else:
 			self.run_attach_dialog (po_id)
+		DB.rollback()
 
 	def run_attach_dialog (self, po_id):
 		import pdf_attachment
@@ -314,7 +314,7 @@ class VendorHistoryGUI:
 			file_data = dialog.get_pdf ()
 			self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
 								"WHERE id = %s", (file_data, po_id))
-			self.db.commit()
+			DB.commit()
 
 
 

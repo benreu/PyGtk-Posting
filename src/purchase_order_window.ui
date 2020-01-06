@@ -44,6 +44,95 @@
       </attributes>
     </child>
   </object>
+  <object class="GtkMenu" id="p_o_item_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem8">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Delete item</property>
+        <signal name="activate" handler="delete_item_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem11">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="product_hub_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="p_o_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem3">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Cancel</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="destroy" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkCheckMenuItem" id="menuitem1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Direct print</property>
+        <property name="use_underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem7">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Export to CSV</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="export_to_csv_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem4">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Help</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="help_clicked" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem5">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Post and process</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="post_and_process" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem6">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Products</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="products_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem2">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">View purchase order</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="view_purchase_order" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="product_store">
     <columns>
       <!-- column-name product_id -->
@@ -104,96 +193,6 @@
       <!-- column-name account -->
       <column type="gchararray"/>
     </columns>
-  </object>
-  <object class="GtkMenu" id="right_click_menu">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <child>
-      <object class="GtkMenuItem" id="menuitem11">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Product hub</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="product_hub_activated" swapped="no"/>
-      </object>
-    </child>
-  </object>
-  <object class="GtkMenu" id="treeview_menu">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <child>
-      <object class="GtkMenuItem" id="menuitem3">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Cancel</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="destroy" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem8">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Delete entry</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="delete_entry_activated" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkCheckMenuItem" id="menuitem1">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Direct print</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem7">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Export to CSV</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="export_to_csv_activated" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem4">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Help</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="help_clicked" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem5">
-        <property name="visible">True</property>
-        <property name="sensitive">False</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Post and process</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="post_and_process" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem6">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Products</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="products_activated" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menuitem2">
-        <property name="visible">True</property>
-        <property name="sensitive">False</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">View purchase order</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="view_purchase_order" swapped="no"/>
-      </object>
-    </child>
   </object>
   <object class="GtkListStore" id="vendor_store">
     <columns>
@@ -614,7 +613,7 @@
               <object class="GtkMenuButton" id="menubutton1">
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="popup">treeview_menu</property>
+                <property name="popup">p_o_menu</property>
                 <property name="direction">up</property>
                 <child>
                   <placeholder/>

@@ -9,9 +9,7 @@ pygtk_postingdir = $(pythondir)/pygtk_posting
 pygtk_posting_PYTHON = \
 	account_transactions.py \
 	bank_statement.py \
-	contacts.py \
 	deposits.py \
-	products.py \
 	settings.py \
 	unpaid_invoices.py \
 	accounts_configuration.py \
@@ -22,7 +20,6 @@ pygtk_posting_PYTHON = \
 	job_sheet.py \
 	job_types.py \
 	credit_card_statements.py \
-	jobs_to_invoice.py \
 	statementing.py \
 	customer_tax_exemptions.py \
 	product_location.py \
@@ -45,8 +42,6 @@ pygtk_posting_PYTHON = \
 	check_writing.py \
 	loan_payment.py \
 	loan_payment.ui\
-	contacts.ui \
-	products.ui \
 	account_transactions.ui \
 	bank_statement.ui \
 	deposits.ui \
@@ -59,7 +54,6 @@ pygtk_posting_PYTHON = \
 	job_types.ui \
 	credit_card_statements.ui \
 	job_sheet.ui \
-	jobs_to_invoice.ui \
 	customer_tax_exemptions.ui \
 	product_location.ui \
 	manufacturing.ui \
@@ -152,7 +146,29 @@ pygtk_posting_PYTHON = \
 	main_window.ui \
 	accounts.py \
 	open_job_sheets.py \
-	open_job_sheets.ui
+	open_job_sheets.ui \
+	expense_products.py \
+	expense_products.ui \
+	mailing_list_printing.py \
+	mailing_list_printing.ui \
+	products_overview.py \
+	products_overview.ui \
+	product_edit_location.py \
+	product_edit_location.ui \
+	product_edit_main.py \
+	product_edit_main.ui \
+	product_edit_order_numbers.py \
+	product_edit_order_numbers.ui \
+	contact_edit_main.py \
+	contact_edit_main.ui \
+	contacts_overview.py \
+	contacts_overview.ui \
+	contact_edit_exemptions.py \
+	contact_edit_exemptions.ui \
+	contact_edit_files.py \
+	contact_edit_files.ui \
+	complete_search.py \
+	complete_search.ui
 
 
 EXTRA_DIST = $(ui_DATA)

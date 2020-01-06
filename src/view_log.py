@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GObject
-import constants
+from constants import ui_directory, log_file
 
-UI_FILE = constants.ui_directory + "/view_log.ui"
+UI_FILE = ui_directory + "/view_log.ui"
 
 parent = None
 builder = None
@@ -42,13 +42,13 @@ class ViewLogGUI:
 
 
 	def focus (self, window, event):
-		if constants.log_file == None:
+		if log_file == None:
 			log_exception = ("Log file '%s' was not found. \n"
 								"Hint: are you starting PyGtk Posting "
-								"with the run.sh?" % constants.log_file)
+								"with the run.sh?" % log_file)
 			builder.get_object("textbuffer1").set_text(log_exception)
 			return
-		with open (constants.log_file, 'r') as f:
+		with open (log_file, 'r') as f:
 			log_text = f.read()
 			builder.get_object("textbuffer1").set_text(log_text)
 

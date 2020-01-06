@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GObject, GLib
 from datetime import datetime, date, timedelta
-from constants import cursor
+from constants import DB
 import time
 
 PARSE_STRING = "%b %d %Y"
@@ -144,16 +144,16 @@ def seconds_to_compact_string (start_seconds):
 
 class DateTimeCalendar (Gtk.Popover):
 	'''A Gtk Calendar within a Gtk Popover that recognizes Python datetimes'''
-	__gsignals__ = { 'day_selected': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())}
+	__gsignals__ = { 'day_selected': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())}
 	
 	__gtype_name__ = 'DateTimeCalendar'
 	
 	def __init__(self, override = False):
 		Gtk.Popover.__init__(self)
 		self.calendar = Gtk.Calendar()
-		date_label = Gtk.Label('No date')
+		date_label = Gtk.Label(label = 'No date')
 		s = "<span foreground='#d40000'>No fiscal range applicable</span>"
-		fiscal_label = Gtk.Label(s, use_markup = True)
+		fiscal_label = Gtk.Label(label = s, use_markup = True)
 		fiscal_label.set_no_show_all(True)
 		self.box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
 		self.box.pack_start (self.calendar, False, False, 0 )
@@ -200,12 +200,15 @@ class DateTimeCalendar (Gtk.Popover):
 		return date_time
 
 	def get_text(self):
-		global cursor
+		cursor = DB.cursor()
 		if self.error == True:
 			return ''
 		date = self.get_datetime().date()
 		cursor.execute("SELECT format_date(%s)", (date,))
-		return cursor.fetchone()[0]
+		value = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		return value
 
 	def set_datetime (self, date_time):
 		date_time = str(date_time)
@@ -242,7 +245,7 @@ class DateTimeCalendar (Gtk.Popover):
 		self.set_datetime (date_time)
 
 	def day_selected (self, calendar, date_label, fiscal_label, override):
-		global cursor
+		cursor = DB.cursor()
 		date_time = self.get_datetime ()
 		cursor.execute("SELECT id FROM fiscal_years "
 							"WHERE active = True AND %s >= start_date "
@@ -264,6 +267,8 @@ class DateTimeCalendar (Gtk.Popover):
 				self.timeout = None		
 		date_label.set_label(str(date_string))
 		self.emit('day-selected')
+		cursor.close()
+		DB.rollback()
 
 	def force_show (self):
 		self.show()

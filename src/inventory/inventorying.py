@@ -16,11 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
+from constants import DB
 
-
-def sell (db, invoice_store, location_id, contact_id, date):
+def sell (invoice_store, location_id, contact_id, date):
 	'''adjust inventory taking in consideration that invoices can be edited afterwards'''
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	for row in invoice_store:
 		invoice_line_id = row[0]
 		qty = row[1]
@@ -51,8 +51,8 @@ def sell (db, invoice_store, location_id, contact_id, date):
 							(invoice_line_id,))
 	cursor.close()
 
-def receive (db, po_id, location_id):
-	cursor = db.cursor()
+def receive (po_id, location_id):
+	cursor = DB.cursor()
 	cursor.execute("WITH cte AS "
 						"(SELECT "
 							"poli.id, "
@@ -74,12 +74,12 @@ def receive (db, po_id, location_id):
 					(location_id, po_id))
 	cursor.close()
 
-def transfer (db, transfer_store):
-	cursor = db.cursor()
+def transfer (transfer_store):
+	cursor = DB.cursor()
 	cursor.close()
 
-def manufacture (db, manufacturing_id):
-	cursor = db.cursor()
+def manufacture (manufacturing_id):
+	cursor = DB.cursor()
 	
 	cursor.close()
 

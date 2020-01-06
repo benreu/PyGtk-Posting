@@ -20,9 +20,9 @@ import subprocess
 from inventory import inventorying
 import locations, barcode_generator
 from pricing import product_retail_price
-import constants
+from constants import ui_directory, DB, template_dir
 
-UI_FILE = constants.ui_directory + "/receive_orders.ui"
+UI_FILE = ui_directory + "/receive_orders.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -30,13 +30,12 @@ class Item(object):#this is used by py3o library see their example for more info
 class ReceiveOrdersGUI:
 	def __init__(self):
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.previous_keyname = None
 		self.ascending = False
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.purchase_order_store = self.builder.get_object('purchase_order_store')
 		self.receive_order_store = self.builder.get_object('receive_order_store')
@@ -48,6 +47,8 @@ class ReceiveOrdersGUI:
 		window = self.builder.get_object('window1')
 		window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
 		
 	def populate_purchase_order_combo(self):
 		self.builder.get_object('button3').set_sensitive(False)
@@ -57,16 +58,19 @@ class ReceiveOrdersGUI:
 							"(False, True, True, False) ")	
 		for row in self.cursor.fetchall():
 			self.purchase_order_store.append(row)
+		DB.rollback()
 
 	def purchase_order_combo_changed(self, combo):
 		self.receive_order_store.clear()
 		po_id = combo.get_active_id()
-		self.cursor.execute("SELECT pli.id, qty, product_id, remark, received, "
+		self.cursor.execute("SELECT pli.id, qty::int, product_id, "
+							"remark, received, "
 							"name, ext_name, cost "
 							"FROM purchase_order_line_items AS pli "
 							"JOIN products ON products.id = pli.product_id "
 							"AND expense = False "
-							"WHERE purchase_order_id = %s ORDER BY id", (po_id,))
+							"WHERE purchase_order_id = %s "
+							"ORDER BY id", (po_id,))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			qty = row[1]
@@ -76,11 +80,12 @@ class ReceiveOrdersGUI:
 			product_name = row[5]
 			product_ext_name = row[6]
 			cost = row[7]
-			sell_price = product_retail_price (self.db, product_id)
-			self.receive_order_store.append([row_id, int(qty), product_id, 
+			sell_price = product_retail_price (product_id)
+			self.receive_order_store.append([row_id, qty, product_id, 
 											product_name, product_ext_name, 
 											remark, received, cost, sell_price])
 		self.check_if_all_products_received()
+		DB.rollback()
 	
 	def reload_clicked (self, button):
 		self.populate_purchase_order_combo()
@@ -116,8 +121,8 @@ class ReceiveOrdersGUI:
 		self.cursor.execute("UPDATE purchase_orders SET "
 							"received = True WHERE id = %s", (po_id,))
 		location_id = self.builder.get_object('combobox2').get_active_id()
-		inventorying.receive(self.db, po_id, location_id)
-		self.db.commit()
+		inventorying.receive(po_id, location_id)
+		DB.commit()
 		self.populate_purchase_order_combo()
 
 	def check_if_all_products_received (self):
@@ -140,7 +145,7 @@ class ReceiveOrdersGUI:
 			self.cursor.execute("UPDATE purchase_order_line_items "
 								"SET received = %s WHERE id = %s", 
 								(ordered, row_id))
-			self.db.commit()
+			DB.commit()
 		self.builder.get_object('button3').set_sensitive(True)
 
 	def received_spinbutton_changed (self, spinbutton):
@@ -159,7 +164,7 @@ class ReceiveOrdersGUI:
 		self.receive_order_store[path][6] = qty
 		self.cursor.execute("UPDATE purchase_order_line_items "
 							"SET received = %s WHERE id = %s", (qty, row_id))
-		self.db.commit()
+		DB.commit()
 		self.check_if_all_products_received()
 
 	def print_label(self, product_id):
@@ -167,7 +172,7 @@ class ReceiveOrdersGUI:
 			return
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		label = Item()
-		price = product_retail_price (self.db, product_id)
+		price = product_retail_price (product_id)
 		label.price = '${:,.2f}'.format(price)
 		self.cursor.execute("SELECT aisle, cart, rack, shelf, cabinet, drawer, "
 							"bin FROM product_location "
@@ -200,9 +205,10 @@ class ReceiveOrdersGUI:
 			data = dict(label = label)
 			from py3o.template import Template
 			label_file = "/tmp/product_label.odt"
-			t = Template(constants.template_dir+"/product_label_template.odt", label_file )
+			t = Template(template_dir+"/product_label_template.odt", label_file )
 			t.render(data) #the self.data holds all the info
 			subprocess.call("soffice -p --headless " + label_file, shell = True)
+		DB.rollback()
 
 
 

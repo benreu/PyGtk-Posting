@@ -20,9 +20,9 @@ from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
 import dateutils
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/contact_history.ui"
+UI_FILE = ui_directory + "/reports/contact_history.ui"
 
 class ContactHistoryGUI (Gtk.Builder):
 	contact_id = None
@@ -33,12 +33,10 @@ class ContactHistoryGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		contact_completion = self.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 
 		self.invoice_history = None
 
@@ -87,7 +85,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			dest_notebook.set_tab_reorderable(widget, True)
 			dest_notebook.child_set_property(widget, 'tab-expand', True)
 
-	def close_transaction_window (self, window, event):
+	def destroy (self, window):
 		self.cursor.close()
 
 	def contact_hub_clicked (self, button):
@@ -110,6 +108,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			f.write(file_data)
 			subprocess.call(["xdg-open", file_name])
 			f.close()
+		DB.rollback()
 
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection4')
@@ -118,8 +117,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('invoice_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def invoice_history_activated (self, menuitem):
 		selection = self.get_object('treeview-selection4')
@@ -191,6 +189,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		self.populate_warranty_store ()
 		self.populate_incoming_invoice_store ()
 		self.populate_contact_shipping()
+		DB.rollback()
 
 	def populate_incoming_invoice_store (self):
 		incoming_invoice_store = self.get_object('incoming_invoice_store')
@@ -246,7 +245,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		product_store.clear()
 		count = 0
 		c_id = self.contact_id
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT * FROM "
 					"(SELECT SUM(qty), "
 					"SUM(qty)::text, "
@@ -429,7 +428,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		shipping_store = self.get_object('shipping_store')
 		shipping_store.clear()
 		count = 0
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 						"si.id, "
 						"si.tracking_number, "

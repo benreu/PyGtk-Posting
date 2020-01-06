@@ -18,7 +18,7 @@
 from gi.repository import Gtk, Gdk, GLib
 import psycopg2
 from dateutils import DateTimeCalendar
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/credit_memo.ui"
 
@@ -28,12 +28,11 @@ class CreditMemoGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.product_store = self.builder.get_object('credit_products_store')
 		self.credit_items_store = self.builder.get_object('credit_items_store')
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store),):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -81,7 +80,7 @@ class CreditMemoGUI:
 		self.update_product_row (path, invoice_item_id)
 
 	def update_product_row (self, path, invoice_item_id):
-		c = self.db.cursor()
+		c = DB.cursor()
 		iter_ = self.credit_items_store.get_iter (path)
 		self.check_row_id (iter_)
 		row_id = self.credit_items_store[iter_][0]
@@ -140,7 +139,7 @@ class CreditMemoGUI:
 		entry.set_completion(self.builder.get_object('product_completion'))
 	
 	def price_edited (self, cellrenderer, path, text):
-		c = self.db.cursor()
+		c = DB.cursor()
 		iter_ = self.credit_items_store.get_iter(path)
 		self.check_row_id (iter_)
 		row_id = self.credit_items_store[iter_][0]
@@ -166,7 +165,7 @@ class CreditMemoGUI:
 							(invoice_item_id, text, text, text, row_id))
 		except psycopg2.DataError as e:
 			self.show_message(str(e))
-			self.db.rollback()
+			DB.rollback()
 			return
 		for row in c.fetchall():
 			price = row[0]
@@ -179,7 +178,7 @@ class CreditMemoGUI:
 		self.calculate_totals ()
 
 	def qty_edited (self, cellrenderertext, path, text):
-		c = self.db.cursor()
+		c = DB.cursor()
 		iter_ = self.credit_items_store.get_iter(path)
 		self.check_row_id (iter_)
 		row_id = self.credit_items_store[iter_][0]
@@ -205,7 +204,7 @@ class CreditMemoGUI:
 						(invoice_item_id, text, text, text, row_id))
 		except psycopg2.DataError as e:
 			self.show_message(str(e))
-			self.db.rollback()
+			DB.rollback()
 			return
 		for row in c.fetchall():
 			qty = row[0]
@@ -227,7 +226,7 @@ class CreditMemoGUI:
 								(text, row_id))
 		except psycopg2.DataError as e:
 			self.show_message(str(e))
-			self.db.rollback()
+			DB.rollback()
 			return
 		for row in self.cursor.fetchall():
 			tax = row[0]
@@ -242,7 +241,7 @@ class CreditMemoGUI:
 		return True
 
 	def calculate_totals (self ):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute(	"WITH cte AS "
 						"(SELECT "
 							"SUM(ext_price) AS subtotal, "
@@ -275,7 +274,7 @@ class CreditMemoGUI:
 			self.builder.get_object('tax_entry').set_text(tax)
 			self.builder.get_object('total_entry').set_text(total)
 		c.close()
-		self.db.commit()
+		DB.commit()
 		self.credit_memo_template = None # credit memo changed, force regenerate
 
 	def populate_customer_store (self, m=None, i=None):
@@ -332,7 +331,7 @@ class CreditMemoGUI:
 		self.builder.get_object('button2').set_sensitive(True)
 
 	def populate_credit_memo (self):
-		c = self.db.cursor()
+		c = DB.cursor()
 		self.credit_items_store.clear()
 		c.execute("SELECT "
 						"cmi.id, "
@@ -359,7 +358,7 @@ class CreditMemoGUI:
 
 	def populate_product_store(self, m=None, i=None):
 		self.product_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT ili.id::text, p.name || '  {' || ext_name || '}', "
 					"i.id::text, format_date(i.dated_for) "
 					"FROM products AS p "
@@ -424,7 +423,7 @@ class CreditMemoGUI:
 								"SET dated_for = %s "
 								"WHERE id = %s", 
 								(self.date, self.credit_memo_id))
-			self.db.commit()
+			DB.commit()
 
 	def date_returned_editing_started (self, renderer, entry, path):
 		self.path = path
@@ -434,7 +433,7 @@ class CreditMemoGUI:
 		entry.destroy()
 
 	def check_row_id (self, _iter):
-		c = self.db.cursor()
+		c = DB.cursor()
 		row_id = self.credit_items_store[_iter][0]
 		qty = self.credit_items_store[_iter][1]
 		price = self.credit_items_store[_iter][5]
@@ -458,11 +457,11 @@ class CreditMemoGUI:
 						self.credit_memo_id))
 			row_id = c.fetchone()[0]
 			self.credit_items_store[_iter][0] = row_id
-		self.db.commit()
+		DB.commit()
 		c.close()
 
 	def new_item_clicked (self, button):
-		c = self.db.cursor()
+		c = DB.cursor()
 		self.check_credit_memo_id()
 		invoice_item_id = self.product_store[0][0]
 		c.execute("SELECT "
@@ -499,7 +498,7 @@ class CreditMemoGUI:
 		self.cursor.execute("UPDATE credit_memo_items "
 							"SET deleted = True "
 							"WHERE id = %s", (row_id,))
-		self.db.commit()
+		DB.commit()
 		self.populate_credit_memo ()
 		
 	def treeview_key_release_event (self, treeview, event):
@@ -527,27 +526,25 @@ class CreditMemoGUI:
 		if self.credit_memo_id == None:
 			self.cursor.execute("INSERT INTO credit_memos "
 								"(name, customer_id, date_created, total) "
-								"VALUES ('', %s, now(), 0.00) RETURNING id",
-								(self.customer_id,))
+								"VALUES ('Credit Memo', %s, now(), 0.00) "
+								"RETURNING id", (self.customer_id,))
 			self.credit_memo_id = self.cursor.fetchone()[0]
 
 	def post_credit_memo_clicked (self, button):
-		c = self.db.cursor()
 		import credit_memo_template as cmt
-		self.credit_memo_template = cmt.Setup(self.db, 
+		self.credit_memo_template = cmt.Setup(
 												self.credit_items_store,
 												self.credit_memo_id,
 												self.customer_id)
 		self.credit_memo_template.print_pdf(self.window)
 		self.credit_memo_template.post()
-		c.close()
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def view_document_activated (self, button):
 		if not self.credit_memo_template:
 			import credit_memo_template as cmt
-			self.credit_memo_template = cmt.Setup(self.db, 
+			self.credit_memo_template = cmt.Setup(
 													self.credit_items_store,
 													self.credit_memo_id,
 													self.customer_id)
@@ -560,14 +557,13 @@ class CreditMemoGUI:
 		self.cursor.execute("UPDATE credit_memos SET comments = %s "
 							"WHERE id = %s", 
 							(notes,  self.credit_memo_id))
-		self.db.commit()
+		DB.commit()
 
 	def show_message (self, message):
-		dialog = Gtk.MessageDialog( self.window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									message)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
 

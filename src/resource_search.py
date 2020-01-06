@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 import re
 from dateutils import DateTimeCalendar
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/resource_search.ui"
+UI_FILE = ui_directory + "/resource_search.ui"
 
 class ResourceSearchGUI:
 	def __init__ (self):
@@ -28,9 +28,7 @@ class ResourceSearchGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -41,7 +39,8 @@ class ResourceSearchGUI:
 		search = entry.get_text().lower()
 		search = re.sub("%", " ", search)
 		search = "%" + search + "%" 
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"subject, "
 								"dated_for::text, "
@@ -49,7 +48,9 @@ class ResourceSearchGUI:
 							"FROM resources WHERE diary = True "
 							"AND LOWER(subject) LIKE %s ORDER BY dated_for", 
 							(search,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
+		DB.rollback()
 
 		

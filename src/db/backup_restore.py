@@ -19,10 +19,10 @@ import gi
 gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
 import time
-from db.database_tools import get_apsw_cursor
-import constants
+from constants import DB, ui_directory, db_name
+from main import get_apsw_connection
 
-UI_FILE = constants.ui_directory + "/db/backup_restore.ui"
+UI_FILE = ui_directory + "/db/backup_restore.ui"
 
 class Utilities:
 	def __init__(self, parent):
@@ -32,12 +32,20 @@ class Utilities:
 		self.builder.connect_signals(self)
 		self.parent_window = parent.window
 		self.parent = parent
-		self.db = parent.db
+		self.get_postgres_bin_path ()
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 
+	def get_postgres_bin_path (self):
+		sqlite = get_apsw_connection()
+		cursor = sqlite.cursor()
+		cursor.execute("SELECT value FROM settings "
+						"WHERE setting = 'postgres_bin_path'")
+		self.bin_path = cursor.fetchone()[0]
+		sqlite.close()
+
 	def backup_gui (self):
-		self.database = constants.db_name
+		self.database = db_name
 		self.result = False
 		self.builder.get_object('backup_scrolled_window').add(self.terminal)
 		backup_window = self.builder.get_object('backupdialog')
@@ -54,17 +62,18 @@ class Utilities:
 
 	def backup_database (self):
 		self.error = False
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
+		sqlite.close()
 		backup_window = self.builder.get_object('backupdialog')
 		db_name = backup_window.get_current_name()
 		path = backup_window.get_current_folder()
 		full_path = path + "/" + db_name
-		backup_command = ["/usr/lib/postgresql/10/bin/pg_dump", 
+		backup_command = ["%s/pg_dump" % self.bin_path, 
 							"-CWv", "-F", "c", 
 							"-U", sql_user, 
 							"-h", sql_host, 
@@ -97,9 +106,9 @@ class Utilities:
 		self.builder.get_object('button2').set_visible(False)
 			
 	def done_clicked (self, dialog):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("UPDATE settings SET last_backup = CURRENT_DATE")
-		self.db.commit()
+		DB.commit()
 		c.close()
 		dialog.destroy()
 
@@ -114,13 +123,14 @@ class Utilities:
 		db_file = restore_window.get_filename()
 		if response != Gtk.ResponseType.ACCEPT:
 			return
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			self.sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
-		create_command = ["/usr/lib/postgresql/10/bin/createdb", 
+		sqlite.close()
+		create_command = ["%s/createdb" % self.bin_path, 
 							"-e",
 							"-U", sql_user, 
 							"-h", sql_host, 
@@ -148,13 +158,14 @@ class Utilities:
 			self.builder.get_object('button7').set_label('Create failed!')
 			return
 		self.parent.status_update("Created database %s" % db_name)
-		cursor_sqlite = get_apsw_cursor ()
-		for row in cursor_sqlite.execute("SELECT * FROM connection;"):
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
 			sql_user = row[0]
 			self.sql_password = row[1]
 			sql_host = row[2]
 			sql_port = row[3]
-		restore_command = ["/usr/lib/postgresql/10/bin/pg_restore", 
+		sqlite.close()
+		restore_command = ["%s/pg_restore" % self.bin_path, 
 							"-v",
 							"-U", sql_user, 
 							"-h", sql_host, 
@@ -188,4 +199,4 @@ class Utilities:
 		self.parent.progressbar.set_fraction(1.0)
 		self.parent.status_update("Successfully restored %s" % db_name)
 
-		
+

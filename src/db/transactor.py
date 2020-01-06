@@ -17,120 +17,137 @@
 
 
 from datetime import datetime
-from constants import db as DB
+from constants import DB
 
 class Deposit:
-	def __init__(self, db, date):
+	def __init__(self, date):
 		
-		self.db = db
-		self.cursor = db.cursor()
 		self.date = date
-		self.cursor.execute ("INSERT INTO gl_transactions (date_inserted) "
+		c = DB.cursor()
+		c.execute ("INSERT INTO gl_transactions (date_inserted) "
 							"VALUES (%s) RETURNING id", (date,))
-		self.transaction_id = self.cursor.fetchone()[0]
+		self.transaction_id = c.fetchone()[0]
+		c.close()
 
 	def cash (self, cash_deposit, cash_account):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, gl_transaction_id) "
 					"VALUES (%s, %s, %s)", 
 					(cash_account, cash_deposit, self.transaction_id))
+		c.close()
 
 	def check (self, amount):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'check_payment'), %s, %s)", 
 					(amount, self.transaction_id))
+		c.close()
 
 	def bank (self, amount, checking_account):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, amount, date_inserted, "
 					"transaction_description, gl_transaction_id) "
 					"VALUES (%s, %s, %s, %s, %s) RETURNING id", 
 					(checking_account,  amount, self.date,  "Deposit",
 					self.transaction_id))
-		deposit_id = self.cursor.fetchone()[0]
+		deposit_id = c.fetchone()[0]
+		c.close()
 		return deposit_id
 
 class CustomerInvoicePayment:
-	def __init__ (self, db, date, total):
+	def __init__ (self, date, total):
 
-		self.db = db
-		self.cursor = db.cursor()
 		self.date = date
 		self.total = total
-		self.cursor.execute ("INSERT INTO gl_transactions (date_inserted) "
+		c = DB.cursor()
+		c.execute ("INSERT INTO gl_transactions (date_inserted) "
 							"VALUES (%s) RETURNING id", (date,))
-		self.transaction_id = self.cursor.fetchone()[0]
+		self.transaction_id = c.fetchone()[0]
+		c.close()
 
 	def bank_check (self, payment_id):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'check_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
 					(self.total, self.transaction_id))
-		pi_id = self.cursor.fetchone()[0]
-		self.cursor.execute("UPDATE payments_incoming "
+		pi_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
+		c.close()
 
 	def cash (self, payment_id):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'cash_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
 					(self.total, self.transaction_id)) 
-		pi_id = self.cursor.fetchone()[0]
-		self.cursor.execute("UPDATE payments_incoming "
+		pi_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
+		c.close()
 
 	def credit_card (self, payment_id):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'credit_card_payment'), "
 					"(SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
 					(self.total, self.transaction_id)) 
-		pi_id = self.cursor.fetchone()[0]
-		self.cursor.execute("UPDATE payments_incoming "
+		pi_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
+		c.close()
 
 	def post_offset (self, account_number, amount):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
 					"VALUES (%s, (SELECT account FROM gl_account_flow "
 					"WHERE function = 'post_invoice'), %s, %s)", 
 					(account_number, amount, self.transaction_id))
+		c.close()
 
 	def customer_discount (self, discount):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, debit_account, amount, gl_transaction_id) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 						"WHERE function = 'post_invoice'), "
 						"(SELECT account FROM gl_account_flow "
 						"WHERE function = 'customer_discount'), %s, %s)", 
 					(discount, self.transaction_id))
+		c.close()
 
 class ServiceProviderPayment :
-	def __init__ (self, db, date, total):
+	def __init__ (self, date, total):
 
-		self.db = db
-		self.c = db.cursor()
 		self.date = date
 		self.total = total
-		self.c.execute ("INSERT INTO gl_transactions (date_inserted) "
-							"VALUES (%s) RETURNING id", (date,))
-		self.transaction_id = self.c.fetchone()[0]
+		c = DB.cursor()
+		c.execute ("INSERT INTO gl_transactions (date_inserted) "
+					"VALUES (%s) RETURNING id", (date,))
+		self.transaction_id = c.fetchone()[0]
+		c.close()
 		
 	def check_payment(self, amount, check_number, checking_account, description, invoice_id):
-		self.c.execute("WITH cte AS "
+		c = DB.cursor()
+		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
 							"(credit_account, amount, check_number, "
 							"gl_transaction_id, date_inserted, "
@@ -143,9 +160,11 @@ class ServiceProviderPayment :
 						(checking_account, amount, check_number, 
 						self.transaction_id, self.date, description, 
 						invoice_id))
+		c.close()
 	
 	def transfer (self, amount, description, checking_account, invoice_id):
-		self.c.execute("WITH cte AS "
+		c = DB.cursor()
+		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
 							"(credit_account, amount, date_inserted, "
 							"transaction_description, gl_transaction_id) "
@@ -156,9 +175,11 @@ class ServiceProviderPayment :
 						"WHERE id = %s", 
 						(checking_account, amount, self.date, description, 
 						self.transaction_id, invoice_id))
+		c.close()
 
 	def credit_card_payment (self, amount, description, credit_card, invoice_id):
-		self.c.execute("WITH cte AS "
+		c = DB.cursor()
+		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
 							"(credit_account, amount, date_inserted, "
 							"transaction_description, gl_transaction_id) "
@@ -169,9 +190,11 @@ class ServiceProviderPayment :
 						"WHERE id = %s", 
 						(credit_card, amount, self.date, description, 
 						self.transaction_id, invoice_id))
+		c.close()
 
 	def cash_payment (self, amount, cash_account, invoice_id):
-		self.c.execute("WITH cte AS "
+		c = DB.cursor()
+		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
 							"(credit_account, amount, date_inserted, "
 							"gl_transaction_id) VALUES (%s, %s, %s, %s) "
@@ -181,9 +204,11 @@ class ServiceProviderPayment :
 						"WHERE id = %s", 
 						(cash_account, amount, self.date, 
 						self.transaction_id, invoice_id))
+		c.close()
 
 	def expense (self, amount, expense_account_number, invoice_id):
-		self.c.execute("WITH cte AS "
+		c = DB.cursor()
+		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
 							"(debit_account, amount, date_inserted, "
 							"gl_transaction_id) VALUES (%s, %s, %s, %s) "
@@ -193,103 +218,126 @@ class ServiceProviderPayment :
 						"VALUES ((SELECT id FROM cte), %s) ", 
 						(expense_account_number, amount, self.date, 
 						self.transaction_id, invoice_id))
+		c.close()
 
 class LoanPayment:
-	def __init__(self, db, date, total, contact_id):
+	def __init__(self, date, total, contact_id):
 
-		self.db = db
-		self.cursor = db.cursor()
 		self.total = total
 		self.date = date
-		self.cursor.execute ("INSERT INTO gl_transactions "
+		c = DB.cursor()
+		c.execute ("INSERT INTO gl_transactions "
 							"(date_inserted, contact_id) "
 							"VALUES (%s, %s) RETURNING id", 
 							(date, contact_id))
-		self.transaction_id = self.cursor.fetchone()[0]
+		self.transaction_id = c.fetchone()[0]
+		c.close()
 		
 	def credit_card (self, credit_card_account):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, gl_transaction_id) "
 					"VALUES (%s, %s, %s) RETURNING id", 
 					(credit_card_account, self.total, self.transaction_id))
-		return self.cursor.fetchone()[0]
+		value = c.fetchone()[0]
+		c.close()
+		return value
 
 	def bank_check (self, checking_account, check_number, contact_name):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, check_number, gl_transaction_id, "
 					"date_inserted, transaction_description) "
 					"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", 
 					(checking_account, self.total, check_number, 
 					self.transaction_id, self.date, contact_name))
-		return self.cursor.fetchone()[0]
+		value = c.fetchone()[0]
+		c.close()
+		return value
 
 	def cash (self, cash_account):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, gl_transaction_id) "
 					"VALUES (%s, %s, %s) RETURNING id", 
 					(cash_account, self.total, self.transaction_id))
-		return self.cursor.fetchone()[0]
+		value = c.fetchone()[0]
+		c.close()
+		return value
 
 	def bank_transfer (self, checking_account, transaction_number):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, transaction_description, "
 					"date_inserted, gl_transaction_id) "
 					"VALUES (%s, %s, %s, %s, %s) RETURNING id", 
 					(checking_account, self.total, transaction_number, 
 					self.date, self.transaction_id))
-		return self.cursor.fetchone()[0]
+		value = c.fetchone()[0]
+		c.close()
+		return value
 
 	def principal (self, principal_account, amount):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, amount, gl_transaction_id) "
 					"VALUES (%s, %s, %s) RETURNING id", 
 					(principal_account, amount, self.transaction_id))
-		return self.cursor.fetchone()[0]
+		value = c.fetchone()[0]
+		c.close()
+		return value
 
 	def interest (self, expense_account, amount):
-		self.cursor.execute("INSERT INTO gl_entries "
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
 					"(debit_account, amount, gl_transaction_id) "
 					"VALUES (%s, %s, %s) RETURNING id", 
 					(expense_account, amount, self.transaction_id))
-		return self.cursor.fetchone()[0]
+		value = c.fetchone()[0]
+		c.close()
+		return value
 					
 class VendorPayment :
-	def __init__ (self, db, date, total, description):
+	def __init__ (self, date, total, description):
 
-		self.db = db
-		self.cursor = db.cursor()
 		self.date = date
 		self.total = total
-		self.cursor.execute ("INSERT INTO gl_transactions (date_inserted) "
-							"VALUES (%s) RETURNING id", (date,))
-		self.transaction_id = self.cursor.fetchone()[0]
-		self.cursor.execute("INSERT INTO gl_entries (debit_account, amount, "
-							"gl_transaction_id, transaction_description) "
-							"VALUES ((SELECT account FROM gl_account_flow "
-							"WHERE function = 'post_purchase_order'), "
-							"%s, %s, %s)",
-							(total, self.transaction_id, description))
+		c = DB.cursor()
+		c.execute ("INSERT INTO gl_transactions (date_inserted) "
+					"VALUES (%s) RETURNING id", (date,))
+		self.transaction_id = c.fetchone()[0]
+		c.execute("INSERT INTO gl_entries (debit_account, amount, "
+					"gl_transaction_id, transaction_description) "
+					"VALUES ((SELECT account FROM gl_account_flow "
+					"WHERE function = 'post_purchase_order'), "
+					"%s, %s, %s)",
+					(total, self.transaction_id, description))
+		c.close()
 		
 	def credit_card (self, c_c_account_number, amount, date):
-		self.cursor.execute("INSERT INTO gl_entries "
-						"(credit_account, amount, date_inserted, "
-						" gl_transaction_id) "
-						"VALUES (%s, %s, %s, %s)", 
-						(c_c_account_number, amount, date, self.transaction_id))
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+					"(credit_account, amount, date_inserted, "
+					" gl_transaction_id) "
+					"VALUES (%s, %s, %s, %s)", 
+					(c_c_account_number, amount, date, self.transaction_id))
+		c.close()
 
 	def cash (self, cash_account_number):
-		self.cursor.execute("INSERT INTO gl_entries "
-						"(credit_account, amount, date_inserted, "
-						" gl_transaction_id) "
-						"VALUES (%s, %s, %s, %s)", 
-						(cash_account_number, self.total, self.date, self.transaction_id))
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+					"(credit_account, amount, date_inserted, "
+					" gl_transaction_id) "
+					"VALUES (%s, %s, %s, %s)", 
+					(cash_account_number, self.total, self.date, self.transaction_id))
+		c.close()
 
-def cancel_invoice (db, datetime, invoice_id):
-	c = db.cursor()
+def cancel_invoice (datetime, invoice_id):
+	c = DB.cursor()
 	c.execute("SELECT gt.id FROM gl_transactions AS gt "
-					"JOIN gl_entries AS ge ON ge.gl_transaction_id = gt.id "
-					"JOIN invoices ON invoices.gl_entries_id = ge.id "
-					"WHERE invoices.id = %s", (invoice_id,))
+				"JOIN gl_entries AS ge ON ge.gl_transaction_id = gt.id "
+				"JOIN invoices ON invoices.gl_entries_id = ge.id "
+				"WHERE invoices.id = %s", (invoice_id,))
 	t_id = c.fetchone()[0]
 	c.execute("WITH credits AS "
 				"(SELECT amount, credit_account, gl_transaction_id FROM gl_entries "
@@ -310,8 +358,8 @@ def cancel_invoice (db, datetime, invoice_id):
 				, (t_id, t_id))
 	c.close()
 
-def post_credit_memo(db, credit_memo_id):
-	c = db.cursor()
+def post_credit_memo(credit_memo_id):
+	c = DB.cursor()
 	c.execute ("WITH gl_transaction AS "
 					"(INSERT INTO gl_transactions (date_inserted) "
 					"VALUES (CURRENT_DATE) RETURNING id), "
@@ -376,8 +424,8 @@ def post_credit_memo(db, credit_memo_id):
 		
 	c.close()
 
-def post_invoice_receivables (db, amount, date, invoice_id, gl_entries_id):
-	cursor = db.cursor()
+def post_invoice_receivables (amount, date, invoice_id, gl_entries_id):
+	cursor = DB.cursor()
 	if gl_entries_id != None:
 		cursor.execute("UPDATE gl_entries SET amount = %s WHERE id = %s", 
 														(amount, gl_entries_id))
@@ -395,8 +443,8 @@ def post_invoice_receivables (db, amount, date, invoice_id, gl_entries_id):
 						(date, amount, invoice_id))
 	cursor.close()
 
-def post_invoice_accounts (db, date, invoice_id):
-	cursor = db.cursor()
+def post_invoice_accounts (date, invoice_id):
+	cursor = DB.cursor()
 	cursor.execute ("SELECT gl_transactions.id FROM gl_transactions "
 					"JOIN gl_entries "
 						"ON gl_entries.gl_transaction_id = gl_transactions.id "
@@ -435,8 +483,8 @@ def post_invoice_accounts (db, date, invoice_id):
 						(revenue, account, transaction_id, date, line_id))
 	cursor.close()
 	
-def post_purchase_order (db, amount, po_id):
-	cursor = db.cursor()
+def post_purchase_order (amount, po_id):
+	cursor = DB.cursor()
 	cursor.execute ("INSERT INTO gl_transactions (date_inserted) "
 							"VALUES (CURRENT_DATE) RETURNING id")
 	transaction_id = cursor.fetchone()[0]
@@ -450,8 +498,8 @@ def post_purchase_order (db, amount, po_id):
 					"%s WHERE id = %s", (gl_entries_id, po_id))
 	cursor.close()
 
-def post_purchase_order_accounts (db, po_id, date):
-	cursor = db.cursor()
+def post_purchase_order_accounts (po_id, date):
+	cursor = DB.cursor()
 	cursor.execute ("SELECT gl_transactions.id FROM gl_transactions "
 					"JOIN gl_entries "
 						"ON gl_entries.gl_transaction_id = gl_transactions.id "
@@ -476,9 +524,9 @@ def post_purchase_order_accounts (db, po_id, date):
 						gl_transaction_id, date, row_id))
 	cursor.close()
 
-def vendor_check_payment(db, date, amount, checking_account_number,
+def vendor_check_payment(date, amount, checking_account_number,
 												check_number, customer_name):
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -492,9 +540,9 @@ def vendor_check_payment(db, date, amount, checking_account_number,
 				customer_name))
 	cursor.close()
 
-def vendor_debit_payment (db, date, amount, checking_account_number,
+def vendor_debit_payment (date, amount, checking_account_number,
 															transaction_number):
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -507,9 +555,9 @@ def vendor_debit_payment (db, date, amount, checking_account_number,
 				(date, checking_account_number, amount, transaction_number))
 	cursor.close()
 
-def bank_to_credit_card_transfer(db, bank_account, credit_card_account, amount, 
+def bank_to_credit_card_transfer(bank_account, credit_card_account, amount, 
 								date, transaction_number):
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -522,9 +570,9 @@ def bank_to_credit_card_transfer(db, bank_account, credit_card_account, amount,
 					credit_card_account, amount, date, transaction_number))
 	cursor.close()
 
-def credit_card_fee_reward(db, date, credit_card_account, gl_account, amount, 
+def credit_card_fee_reward(date, credit_card_account, gl_account, amount, 
 																description):
-	cursor = db.cursor()
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -535,8 +583,8 @@ def credit_card_fee_reward(db, date, credit_card_account, gl_account, amount,
 				(date, credit_card_account, gl_account, amount, description))
 	cursor.close()
 
-def bank_charge(db, bank_account, date, amount, description, account_number):
-	cursor = db.cursor()
+def bank_charge(bank_account, date, amount, description, account_number):
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -548,8 +596,8 @@ def bank_charge(db, bank_account, date, amount, description, account_number):
 				(date, bank_account, account_number, amount, description))
 	cursor.close()
 
-def post_voided_check (db, bank_account, date, cheque_number):
-	cursor = db.cursor()
+def post_voided_check (bank_account, date, cheque_number):
+	cursor = DB.cursor()
 	cursor.execute(	"WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -589,8 +637,8 @@ class DoubleEntryTransaction :
 					(account_number, amount, self.desc, self.trans_id))
 		c.close()
 
-def post_misc_check_payment (db, date, amount, payment_id, revenue_account):
-	cursor = db.cursor()
+def post_misc_check_payment (date, amount, payment_id, revenue_account):
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -606,8 +654,8 @@ def post_misc_check_payment (db, date, amount, payment_id, revenue_account):
 				"WHERE id = %s", (pi_id, payment_id))
 	cursor.close()
 
-def post_misc_cash_payment (db, date, amount, payment_id, revenue_account):
-	cursor = db.cursor()
+def post_misc_cash_payment (date, amount, payment_id, revenue_account):
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -623,8 +671,8 @@ def post_misc_cash_payment (db, date, amount, payment_id, revenue_account):
 				"WHERE id = %s", (pi_id, payment_id))
 	cursor.close()
 
-def post_misc_credit_card_payment (db, date, amount, payment_id, revenue_account):
-	cursor = db.cursor()
+def post_misc_credit_card_payment (date, amount, payment_id, revenue_account):
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
@@ -640,22 +688,23 @@ def post_misc_credit_card_payment (db, date, amount, payment_id, revenue_account
 				"WHERE id = %s", (pi_id, payment_id))
 	cursor.close()
 
-def switch_to_accrual_based (db):
-	cursor = db.cursor()
+def switch_to_accrual_based ():
+	cursor = DB.cursor()
 	cursor.execute ("SELECT id FROM invoices "
 					"WHERE (canceled, posted, paid) = (False, True, False)")
 	for row in cursor.fetchall():
 		invoice_id = row[0]
-		post_invoice_accounts (db, datetime.today(), invoice_id)
+		post_invoice_accounts (datetime.today(), invoice_id)
 	cursor.execute ("SELECT id FROM purchase_orders "
-					"WHERE (paid, canceled, closed) = (False, False, True)")
+					"WHERE (paid, canceled, closed, invoiced) = "
+					"(False, False, True, True)")
 	for row in cursor.fetchall():
 		po_id = row[0]
-		post_purchase_order_accounts (db, po_id)
+		post_purchase_order_accounts (po_id, datetime.today())
 	cursor.close()
 
-def create_loan (db, date, amount, liability_account):
-	cursor = db.cursor()
+def create_loan (date, amount, liability_account):
+	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "

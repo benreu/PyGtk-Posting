@@ -93,6 +93,7 @@
     <property name="title" translatable="yes">Time Clock History</property>
     <property name="window_position">center</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

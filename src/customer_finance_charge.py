@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 import subprocess
 from datetime import datetime
-import constants
+from constants import ui_directory, DB, help_dir
 
-UI_FILE = constants.ui_directory + "/customer_finance_charge.ui"
+UI_FILE = ui_directory + "/customer_finance_charge.ui"
 
 class CustomerFinanceChargeGUI:
 	def __init__(self):
@@ -28,9 +28,6 @@ class CustomerFinanceChargeGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 
 		self.customer_id = None
 
@@ -44,14 +41,14 @@ class CustomerFinanceChargeGUI:
 		self.window.show_all()
 
 	def help_button_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/finance_charge.page"])
+		subprocess.Popen(["yelp", help_dir + "/finance_charge.page"])
 
 	def payment_window(self, widget):
 		import customer_payment
 		customer_payment.GUI(customer_id = self.customer_id )
 
 	def print_statement_clicked(self, button):
-		statement = statementing.Setup(self.db, self.finance_charge_store, 
+		statement = statementing.Setup(self.finance_charge_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.print_dialog(self.window)
@@ -60,14 +57,14 @@ class CustomerFinanceChargeGUI:
 		self.builder.get_object('combobox-entry').set_text("")
 
 	def view_statement_clicked (self, button):
-		statement = statementing.Setup(self.db, self.finance_charge_store, 
+		statement = statementing.Setup(self.finance_charge_store, 
 										self.customer_id, datetime.today(), 
 										self.customer_total)
 		statement.view()
 
 	def customer_combobox_populate(self):
 		self.customer_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("WITH table2 AS "
 					"( "
 					"SELECT id, "
@@ -104,6 +101,7 @@ class CustomerFinanceChargeGUI:
 		for row in c.fetchall():
 			self.customer_store.append(row)
 		c.close()
+		DB.rollback()
 
 	def focus (self, window, event):
 		self.customer_combobox_populate ()
@@ -134,7 +132,7 @@ class CustomerFinanceChargeGUI:
 	def populate_finance_charge_store (self):
 		self.finance_charge_store.clear()
 		c_id = self.customer_id
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("WITH invoice_cte AS "
 					"(SELECT i.id, i.name, i.dated_for, "
 						"(CASE WHEN SUM(i.amount_due) OVER (ORDER BY i.id) > "
@@ -170,7 +168,7 @@ class CustomerFinanceChargeGUI:
 		for row in c.fetchall():
 			self.finance_charge_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)
-
+		DB.rollback()
 
 		
 

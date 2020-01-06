@@ -55,6 +55,19 @@
       <column type="gint"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="p_o_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">View attachment</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="view_p_o_attachment_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="po_store">
     <columns>
       <!-- column-name po_id -->
@@ -129,7 +142,7 @@
     <property name="default_width">900</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
-    <signal name="delete-event" handler="close_transaction_window" swapped="no"/>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -371,6 +384,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">po_store</property>
+                    <signal name="button-release-event" handler="p_o_treeview_button_release_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection1"/>
                     </child>

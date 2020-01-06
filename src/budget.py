@@ -1,6 +1,6 @@
 # budget.py
 #
-# Copyright (C) 2018 - house
+# Copyright (C) 2018 - Reuben
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/budget.ui"
+UI_FILE = ui_directory + "/budget.ui"
 
 class BudgetGUI:
 	def __init__(self):
@@ -26,19 +26,19 @@ class BudgetGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.populate_budgets()
-		
 		self.window = self.builder.get_object('budget_window')
 		self.window.show_all()
 
 	def populate_budgets (self):
+		c = DB.cursor()
 		budget_store = self.builder.get_object('budget_store')
 		budget_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM budgets")
-		for row in self.cursor.fetchall():
+		c.execute("SELECT id::text, name FROM budgets")
+		for row in c.fetchall():
 			budget_store.append(row)
+		DB.rollback()
+		c.close()
 
 	def budget_combo_changed (self, combo):
 		budget_id = combo.get_active_id ()
@@ -48,6 +48,7 @@ class BudgetGUI:
 			self.populate_budget_treeview()
 
 	def populate_budget_treeview (self):
+		c = DB.cursor()
 		treeview = self.builder.get_object('budget_treeview')
 		for column in treeview.get_columns():
 			treeview.remove_column(column)
@@ -56,7 +57,6 @@ class BudgetGUI:
 		store_list.append(str)
 		blank_list = list()
 		budget_amounts = list()
-		c = self.db.cursor()
 		renderer = Gtk.CellRendererText()
 		column = Gtk.TreeViewColumn("Date", renderer, text=0)
 		treeview.append_column(column)
@@ -124,6 +124,8 @@ class BudgetGUI:
 			for row_index, row in enumerate (c.fetchall()):
 				store[row_index][column + 1] = str(row[1])
 		treeview.set_model(store)
+		DB.rollback()
+		c.close()
 
 	def configure_budget_clicked (self, button):
 		import budget_configuration

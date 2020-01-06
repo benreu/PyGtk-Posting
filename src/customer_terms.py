@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/customer_terms.ui"
+UI_FILE = ui_directory + "/customer_terms.ui"
 
 class CustomerTermsGUI:
 	def __init__(self):
@@ -26,9 +26,8 @@ class CustomerTermsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.terms_store = self.builder.get_object('terms_store')
 		self.populate_terms_store()
 		self.new_button_clicked ()
@@ -37,6 +36,9 @@ class CustomerTermsGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def term_combo_changed (self, combo):
 		term_id = combo.get_active_id()
@@ -51,10 +53,8 @@ class CustomerTermsGUI:
 							"terms_and_discounts WHERE deleted = False "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			term_id = row[0]
-			term_name = row[1]
-			term_default = row[2]
-			self.terms_store.append([term_id, term_name, term_default])
+			self.terms_store.append(row)
+		DB.rollback()
 
 	def terms_row_activated (self, treeview, path, treeview_column):
 		self.terms_id = self.terms_store[path][0]
@@ -91,6 +91,7 @@ class CustomerTermsGUI:
 			self.builder.get_object('entry3').set_text(text2)
 			self.builder.get_object('entry4').set_text(text3)
 			self.builder.get_object('entry5').set_text(text4)
+		DB.rollback()
 
 	def cash_only_toggled (self, togglebutton):
 		active = togglebutton.get_active()
@@ -113,12 +114,12 @@ class CustomerTermsGUI:
 		try:
 			self.cursor.execute("DELETE FROM terms_and_discounts "
 								"WHERE id = %s", (term_id,))
-			self.db.rollback()
+			DB.rollback()
 			self.cursor.execute("UPDATE terms_and_discounts "
 								"SET deleted = True "
 								"WHERE id = %s", (term_id,))
 		except Exception as e:
-			self.db.rollback()
+			DB.rollback()
 			self.builder.get_object('label6').set_label(str(e))
 			self.builder.get_object('button4').set_sensitive(False)
 			dialog = self.builder.get_object('dialog1')
@@ -133,7 +134,7 @@ class CustomerTermsGUI:
 				self.cursor.execute("UPDATE terms_and_discounts "
 									"SET deleted = True "
 									"WHERE id = %s", (term_id,))
-		self.db.commit()
+		DB.commit()
 		self.populate_terms_store()
 
 	def new_button_clicked (self, button = None):
@@ -186,7 +187,7 @@ class CustomerTermsGUI:
 								paid_in_days, paid_by_day_month_active, 
 								paid_by_day_month, plus_date, 
 								text1, text2, text3, text4, self.terms_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_terms_store ()
 
 	def default_toggled (self, cell_renderer, path):
@@ -200,7 +201,7 @@ class CustomerTermsGUI:
 				row[2] = False
 				self.cursor.execute("UPDATE terms_and_discounts SET "
 									"standard = False WHERE id = %s",[row[0]])
-		self.db.commit()
+		DB.commit()
 
 
 
@@ -210,5 +211,3 @@ class CustomerTermsGUI:
 
 
 
-		
-		

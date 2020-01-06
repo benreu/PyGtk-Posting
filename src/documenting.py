@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -18,15 +18,15 @@
 import os, sys, subprocess, time, psycopg2
 from time import strftime
 from datetime import datetime, timedelta
-from db import transactor
-import printing, constants
+import printing
+from constants import DB, template_dir
 
 items = list()
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, db, store, contact, comment, date, document_type_id, document_name):
+	def __init__(self, store, contact, comment, date, document_type_id, document_name):
 		'''store is the liststore used by the treeview, contact id, comment, date, document_type_id, document_name'''
 		self.contact = contact
 		self.store = store
@@ -35,12 +35,11 @@ class Setup():
 		self.document_type_id = document_type_id
 		self.document_name = document_name
 		self.total = 0.00
-		self.db = db
-		self.cursor = self.db.cursor()
-		self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)",(self.contact, ))
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",(self.contact,))
 		vendor = Item()
 		items = list()
-		for string in self.cursor.fetchall():
+		for string in cursor.fetchall():
 			vendor.name = (string[1])
 			self.vendor_id = (string[0])
 			name = (string[1])
@@ -56,8 +55,8 @@ class Setup():
 			vendor.tax_exempt = (string[11])
 			vendor.tax_exempt_number = (string[12])
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -85,10 +84,10 @@ class Setup():
 			self.total += i[13]
 		
 		document = Item()
-		self.cursor.execute("SELECT name FROM document_types WHERE id = %s", (document_type_id, ))
+		cursor.execute("SELECT name FROM document_types WHERE id = %s", (document_type_id, ))
 		document.type = self.cursor.fetchone()[0]
-		self.cursor.execute("SELECT * FROM document_types WHERE id = %s", (self.document_type_id))
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM document_types WHERE id = %s", (self.document_type_id))
+		for row in cursor.fetchall():
 			document.text1 = row[2]
 			document.text2 = row[3]
 			document.text3 = row[4]
@@ -106,7 +105,7 @@ class Setup():
 		document.date = self.date
 		
 		date_thirty = date + timedelta(days=30)
-		self.cursor.execute("SELECT format_date(%s)", (date_thirty,))
+		cursor.execute("SELECT format_date(%s)", (date_thirty,))
 		payment_thirty = self.cursor.fetchone()[0]
 		document.payment_due = payment_thirty
 
@@ -114,18 +113,19 @@ class Setup():
 		self.document_odt = self.document_name + ".odt"
 		self.document_pdf = self.document_name + ".pdf"
 		self.data = dict(items=items, document=document, contact = vendor, company = company)
+		cursor.close()
 
 	def view(self):
 		from py3o.template import Template 
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/document_template.odt", purchase_order_file , True)
+		t = Template(template_dir+"/document_template.odt", purchase_order_file , True)
 		t.render(self.data) #the self.data holds all the info of the purchase_order
 		subprocess.Popen("libreoffice " + purchase_order_file, shell = True)
 
 	def print_dialog(self, window):
 		from py3o.template import Template 
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/document_template.odt", purchase_order_file , True)
+		t = Template(template_dir+"/document_template.odt", purchase_order_file , True)
 		t.render(self.data)  #the self.data holds all the info of the purchase_order
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = "document")
@@ -136,22 +136,24 @@ class Setup():
 	def print_directly(self):
 		from py3o.template import Template #import for every purchase order or there is an error about invalid magic header numbers
 		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/document_template.odt", purchase_order_file , True)
+		t = Template(template_dir+"/document_template.odt", purchase_order_file , True)
 		t.render(self.data)
 		subprocess.Popen("libreoffice --nologo --headless -p " + purchase_order_file, shell = True)
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		self.store = []
 
 	def post(self, document_id):
-
+		cursor = DB.cursor()
 		document = "/tmp/" + self.document_pdf		
 		f = open(document,'rb')
 		dat = f.read()
 		binary = psycopg2.Binary(dat)
 		f.close()
-		
-		self.cursor.execute("UPDATE documents SET (pdf_data, pending_invoice, closed) = (%s, True, True) WHERE id = %s", (binary, document_id))
-		self.db.commit()
+		cursor.execute("UPDATE documents SET "
+						"(pdf_data, pending_invoice, closed) = "
+						"(%s, True, True) WHERE id = %s", (binary, document_id))
+		DB.commit()
+		cursor.close()
 
 
 

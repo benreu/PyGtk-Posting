@@ -1,13 +1,13 @@
-#
-# pygtk_posting.py
+# main_window.py
+# 
 # Copyright (C) 2016 reuben 
 # 
-# pygtk-posting is free software: you can redistribute it and/or modify it
+# main_window.py is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
-# pygtk-posting is distributed in the hope that it will be useful, but
+# main_window.py is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
@@ -15,11 +15,13 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re
-import constants
+from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
+						is_admin, help_dir, broadcaster
 
-UI_FILE = constants.ui_directory + "/main_window.ui"
+UI_FILE = ui_directory + "/main_window.ui"
 
 invoice_window = None
 ccm = None
@@ -29,17 +31,19 @@ class MainGUI :
 	time_clock_object = None
 	keybinding = None
 	prod_loc_class = None
+	unpaid_invoices_window = None
+	open_invoices_window = None
+	open_po = None
 
 	def __init__(self):
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.window = self.builder.get_object('main_window')
-		self.window.set_title('%s - PyGtk Posting' % constants.db_name)
+		self.window.set_title('%s - PyGtk Posting' % db_name)
 		self.window.show_all()
-		self.set_admin_menus(constants.dev_mode)
+		self.window.set_default_icon_name("pygtk-posting") # app-wide icon
+		self.set_admin_menus(dev_mode)
 		about_window = self.builder.get_object('aboutdialog1')
 		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
 		about_window.add_credit_section("Suggestions/advice from (in no particular order)", 
@@ -49,50 +53,69 @@ class MainGUI :
 													"Daniel Witmer", 
 													"Alvin Witmer",
 													"Jonathan Groff"])
-		self.unpaid_invoices_window = None
-		self.open_invoices_window = None
-		self.populate_quick_commands()
+		self.populate_menu_features ()
 		self.populate_modules ()
 		self.check_db_version ()
-		if not constants.dev_mode:
-			self.connect_keybindings()
 		import traceback_handler
 		traceback_handler.Log()
 
 	def present (self, keybinding):
 		self.window.present()
 
-	def populate_quick_commands(self):
+	def populate_menu_features (self):
 		menu = self.builder.get_object('menubar1')
+		import keybindings
+		self.keybinding = keybindings.KeybinderInit(self)
 		import quick_command
-		self.quick_command = quick_command.QuickCommandGUI(menu)
+		self.quick_command = quick_command.QuickCommand()
+		self.quick_command.store.clear()
+		# Create an invisible menuitem to show the main window 
+		menuitem = Gtk.MenuItem()
+		menuitem.connect('activate', self.present)
+		self.keybinding.add_menu_keybinding ("Main window", menuitem)
+		for child in menu.get_children():
+			path = child.get_label().strip('_')
+			self.populate_child_menu_shortcuts(child, path)
+		self.keybinding.sqlite_conn.close()
+
+	def populate_child_menu_shortcuts (self, parent, path):
+		if parent.get_sensitive():
+			for child in parent.get_submenu():
+				if type(child) == gi.repository.Gtk.SeparatorMenuItem:
+					continue # skip any separators
+				label = child.get_label().strip('_')
+				c_path = path + ' / ' + label
+				submenus = child.get_submenu()
+				if submenus:
+					self.populate_child_menu_shortcuts(child, c_path)
+				else:
+					self.quick_command.store.append([label, c_path, child])
+					self.keybinding.add_menu_keybinding (c_path, child)
 	
 	def quick_command_activate (self, menuitem):
 		self.quick_command.show_all()
+	
+	def keyboard_shortcuts_activated (self, menuitem):
+		if self.keybinding:
+			self.keybinding.show_window()
 
 	def check_db_version (self):
 		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
 		version.CheckVersion(self, posting_version)
 
-	def connect_keybindings (self):
-		import keybindings
-		keybindings.parent = self
-		keybindings.populate_shortcuts(self)
-		self.keybinding = keybindings.KeybinderInit(self)
-	
-	def keyboard_shortcuts_activated (self, menuitem):
-		if self.keybinding:
-			self.keybinding.show_window()
-
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
 		sql_window.SQLWindowGUI()
 
+	def complete_search_activated (self, menuitem):
+		import complete_search
+		complete_search.CompleteSearchGUI()
+
 	def populate_modules (self):
 		import importlib.util as i_utils
 		cwd = os.getcwd()
-		module_folder = constants.modules_dir
+		module_folder = modules_dir
 		files = os.listdir(module_folder)
 		menu = self.builder.get_object('menu11')
 		for file_ in files:
@@ -125,7 +148,7 @@ class MainGUI :
 			ccm.window.present()
 
 	def admin_login_clicked (self, menuitem):
-		if constants.is_admin == True:
+		if is_admin == True:
 			self.set_admin_menus (False)
 			menuitem.set_label("Admin login")
 		else:
@@ -143,6 +166,7 @@ class MainGUI :
 		self.builder.get_object('menuitem64').set_sensitive(value)
 		self.builder.get_object('menuitem49').set_sensitive(value)
 		self.builder.get_object('menuitem80').set_sensitive(value)
+		import constants
 		constants.is_admin = value
 
 	def blank_clicked (self, button):
@@ -171,6 +195,10 @@ class MainGUI :
 	def incoming_invoice_report_activated(self, menuitem):
 		from reports import incoming_invoices
 		incoming_invoices.IncomingInvoiceGUI()
+
+	def mailing_list_printing_activated (self, menuitem):
+		import mailing_list_printing
+		mailing_list_printing.MailingListPrintingGUI()
 
 	def duplicate_contact_finder_activated (self, menuitem):
 		from admin import duplicate_contact
@@ -275,7 +303,7 @@ class MainGUI :
 		inventory_count.InventoryCountGUI()
 
 	def user_manual_help (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/index.page"])
+		subprocess.Popen(["yelp", help_dir + "/index.page"])
 
 	def create_document_clicked (self, widget):
 		import documents_window
@@ -381,7 +409,7 @@ class MainGUI :
 
 	def check_admin (self, external = True):
 		"check for admin, external option to show extra alert for not being admin"
-		if constants.is_admin == False:
+		if is_admin == False:
 			dialog = self.builder.get_object('admin_dialog')
 			self.builder.get_object('label21').set_visible(external)
 			result = dialog.run()
@@ -424,53 +452,54 @@ class MainGUI :
 		loan_payment.LoanPaymentGUI (id_)
 
 	def populate_to_do_treeview (self):
+		c = DB.cursor()
 		store = self.builder.get_object('to_do_store')
 		store.clear()
 		red = Gdk.RGBA(1, 0, 0, 1)
 		orange = Gdk.RGBA(1, 0.5, 0, 1)
 		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
 		try:
-			self.cursor.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
-								"(SELECT statement_finish_date FROM settings) "
-								"+ INTERVAL'1 month') "
-								"+ ((SELECT statement_day_of_month FROM settings) "
-									"* INTERVAL '1 day') "
-								"- INTERVAL '1 day'")
+			c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
+						"(SELECT statement_finish_date FROM settings) "
+						"+ INTERVAL'1 month') "
+						"+ ((SELECT statement_day_of_month FROM settings) "
+							"* INTERVAL '1 day') "
+						"- INTERVAL '1 day'")
 		except Exception as e:
-			self.db.rollback()
+			DB.rollback()
 			return
-		if self.cursor.fetchone()[0] == True:
+		if c.fetchone()[0] == True:
 			store.append(["Print statements", 0, self.statement_window, orange])
-		self.cursor.execute("SELECT "
-								"date_trunc('day', "
-									"(SELECT last_backup FROM settings)) <= "
-								"date_trunc('day', "
-									"CURRENT_DATE - "
-										"((SELECT backup_frequency_days "
-										"FROM settings) * INTERVAL '1 day'))")
-		if self.cursor.fetchone()[0] == True:
+		c.execute("SELECT "
+					"date_trunc('day', "
+						"(SELECT last_backup FROM settings)) <= "
+					"date_trunc('day', "
+						"CURRENT_DATE - "
+							"((SELECT backup_frequency_days "
+							"FROM settings) * INTERVAL '1 day'))")
+		if c.fetchone()[0] == True:
 			store.append(['Backup database', 0, self.backup_window, red])
-		self.cursor.execute("SELECT l.id, c.name || ' loan payment' "
-							"FROM loans AS l "
-							"JOIN contacts AS c ON l.contact_id = c.id "
-							"WHERE date_trunc"
-							"(l.period, l.last_payment_date) <= "
-							"date_trunc(l.period, "
-								"CURRENT_DATE - "
-									"(l.period_amount||' '||l.period)::interval "
-							")")
-		for row in self.cursor.fetchall():
+		c.execute("SELECT l.id, c.name || ' loan payment' "
+					"FROM loans AS l "
+					"JOIN contacts AS c ON l.contact_id = c.id "
+					"WHERE date_trunc"
+					"(l.period, l.last_payment_date) <= "
+					"date_trunc(l.period, "
+						"CURRENT_DATE - "
+							"(l.period_amount||' '||l.period)::interval "
+					")")
+		for row in c.fetchall():
 			loan_id = row[0]
 			reminder = row[1]
 			store.append([reminder, loan_id, self.loan_payment, brown])
-		self.cursor.execute("SELECT rm.id, subject, red, green, blue, alpha "
+		c.execute("SELECT rm.id, subject, red, green, blue, alpha "
 							"FROM resources AS rm "
 							"JOIN resource_tags AS rmt "
 							"ON rmt.id = rm.tag_id "
 							"WHERE finished != True "
-							"AND diary IS NULL "
+							"AND diary != True "
 							"AND to_do = True")
-		for row in self.cursor.fetchall():
+		for row in c.fetchall():
 			id_ = row[0]
 			subject = row[1]
 			rgba = Gdk.RGBA(1, 1, 1, 1)
@@ -479,55 +508,68 @@ class MainGUI :
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
 			store.append([subject, id_, self.resource_window, rgba])
+		c.close()
+		DB.rollback()
 
 	def resource_window (self, id_):
 		import resource_management
 		resource_management.ResourceManagementGUI(id_)
 		
 	def focus (self, widget = None, d = None):
+		c = DB.cursor()
 		self.populate_to_do_treeview()
-		self.cursor.execute("SELECT COUNT(id) FROM invoices WHERE (canceled, paid, posted) = (False, False, True)")
+		c.execute("SELECT COUNT(id) FROM invoices "
+					"WHERE (canceled, paid, posted) = (False, False, True)")
 		unpaid_invoices = 0
-		for row in self.cursor.fetchall():
-			unpaid_invoices = row[0]
-		self.builder.get_object('button2').set_label("Unpaid Invoices\n          (%s)" % unpaid_invoices)
-		self.cursor.execute("SELECT COUNT(id) FROM purchase_orders WHERE (canceled, invoiced, closed) = (False, False, True) ")	
+		for row in c.fetchall():
+			unpaid_invoices = "Unpaid Invoices\n          (%s)" % row[0]
+		self.builder.get_object('button2').set_label(unpaid_invoices)
+		c.execute("SELECT COUNT(id) FROM purchase_orders "
+					"WHERE (canceled, invoiced, closed) = "
+					"(False, False, True) ")
 		unpaid_po = 0
-		for row in self.cursor.fetchall():
-			unpaid_po = row[0]
-		self.builder.get_object('button5').set_label("Unprocessed Orders\n               (%s)" % unpaid_po)
-		self.cursor.execute("SELECT COUNT(id) FROM job_sheets WHERE (invoiced, completed) = (False, False)")	
+		for row in c.fetchall():
+			unpaid_po = "Unprocessed Orders\n               (%s)" % row[0]
+		self.builder.get_object('button5').set_label(unpaid_po)
+		c.execute("SELECT COUNT(id) FROM job_sheets "
+					"WHERE (invoiced, completed) = (False, False)")	
 		jobs = 0
-		for row in self.cursor.fetchall():
-			jobs = row[0]
-		self.builder.get_object('button10').set_label("Open Job Sheets\n           (%s)" % jobs)
-		self.cursor.execute("SELECT COUNT(id) FROM documents WHERE (canceled, invoiced, pending_invoice) = (False, False, True)")	
+		for row in c.fetchall():
+			jobs = "Open Job Sheets\n           (%s)" % row[0]
+		self.builder.get_object('button10').set_label(jobs)
+		c.execute("SELECT COUNT(id) FROM documents "
+					"WHERE (canceled, invoiced, pending_invoice) = "
+					"(False, False, True)")	
 		documents = 0
-		for row in self.cursor.fetchall():
-			documents = row[0]
-		self.builder.get_object('button14').set_label("Documents To Invoice\n                 (%s)" % documents)
-		self.cursor.execute("SELECT COUNT(id) FROM purchase_orders WHERE (canceled, invoiced, received) = (False, True, False) ")	
+		for row in c.fetchall():
+			documents = "Documents To Invoice\n                 (%s)" % row[0]
+		self.builder.get_object('button14').set_label(documents)
+		c.execute("SELECT COUNT(id) FROM purchase_orders "
+					"WHERE (canceled, invoiced, received) = "
+					"(False, True, False) ")	
 		unreceived_po = 0
-		for row in self.cursor.fetchall():
-			unreceived_po = row[0]
-		self.builder.get_object('button12').set_label("Receive Orders\n          (%s)" % unreceived_po)
-		self.cursor.execute("SELECT COUNT(invoices.id) FROM invoices, "
-							"LATERAL (SELECT product_id FROM invoice_items "
-								"WHERE invoice_items.invoice_id = "
-								"invoices.id LIMIT 1) ILI "
-							"WHERE (invoices.canceled, posted, active) = (False, False, True)")
-		for row in self.cursor.fetchall():
-			open_invoices = row[0]
-		self.builder.get_object('button17').set_label("Open invoices\n         (%s)" % open_invoices)
-		self.cursor.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
-							"LATERAL (SELECT product_id FROM purchase_order_line_items "
-								"WHERE purchase_order_line_items.purchase_order_id = "
-								"purchase_orders.id LIMIT 1) ILI "
-							"WHERE (purchase_orders.canceled, closed) = (False, False)")
-		for row in self.cursor.fetchall():
-			open_invoices = row[0]
-		self.builder.get_object('button13').set_label("Open POs\n         (%s)" % open_invoices)
-		#print self.window.get_size()
+		for row in c.fetchall():
+			unreceived_po = "Receive Orders\n          (%s)" % row[0]
+		self.builder.get_object('button12').set_label(unreceived_po)
+		c.execute("SELECT COUNT(invoices.id) FROM invoices, "
+					"LATERAL (SELECT product_id FROM invoice_items "
+						"WHERE invoice_items.invoice_id = "
+						"invoices.id LIMIT 1) ILI "
+					"WHERE (invoices.canceled, posted, active) = "
+					"(False, False, True)")
+		for row in c.fetchall():
+			open_invoices = "Open invoices\n         (%s)" % row[0]
+		self.builder.get_object('button17').set_label(open_invoices)
+		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
+					"LATERAL (SELECT product_id FROM purchase_order_line_items "
+						"WHERE purchase_order_line_items.purchase_order_id = "
+						"purchase_orders.id LIMIT 1) ILI "
+					"WHERE (purchase_orders.canceled, closed) = (False, False)")
+		for row in c.fetchall():
+			open_invoices = "Open POs\n         (%s)" % row[0]
+		self.builder.get_object('button13').set_label(open_invoices)
+		c.close()
+		DB.rollback()
 
 	def inventory_history_report (self, widget):
 		from inventory import inventory_history
@@ -542,10 +584,6 @@ class MainGUI :
 			self.time_clock_object.populate_employees ()
 			self.time_clock_object.populate_job_store ()
 
-	def kit_products_activated (self, db):
-		import kit_products
-		kit_products.KitProductsGUI()
-
 	def data_import_activated (self, widget):
 		from admin import data_import
 		data_import.DataImportUI()
@@ -559,8 +597,10 @@ class MainGUI :
 		write_check.GUI()
 
 	def open_pos_clicked (self, button):
-		import open_purchase_orders
-		open_purchase_orders.OpenPurchaseOrderGUI()
+		if not self.open_po:
+			import open_purchase_orders
+			self.open_po = open_purchase_orders.OpenPurchaseOrderGUI()
+		self.open_po.window.present()
 
 	def about_window(self, widget):
 		about_window = self.builder.get_object('aboutdialog1')
@@ -580,10 +620,12 @@ class MainGUI :
 			self.unpaid_invoices_window.present()
 
 	def destroy(self, widget):
-		constants.broadcaster.emit("shutdown")
-		self.cursor.execute("UNLISTEN products")
-		self.cursor.execute("UNLISTEN contacts")
-		self.db.close ()
+		broadcaster.emit("shutdown")
+		c = DB.cursor()
+		c.execute("UNLISTEN products")
+		c.execute("UNLISTEN contacts")
+		c.close()
+		DB.close ()
 		Gtk.main_quit()
 
 	def statement_window(self, widget = None):
@@ -603,8 +645,8 @@ class MainGUI :
 		customer_payment.GUI()
 
 	def products_window(self, widget):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
 
 	def deposit_window(self, widget):
 		import deposits
@@ -619,8 +661,8 @@ class MainGUI :
 		budget.BudgetGUI()
 
 	def contacts_window(self, widget):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def database_tools_activated(self, widget):
 		from db import database_tools

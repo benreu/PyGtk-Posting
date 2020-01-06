@@ -15,16 +15,17 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/admin/duplicate_contact.ui"
+UI_FILE = ui_directory + "/admin/duplicate_contact.ui"
 
 class DuplicateContactGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.name_filter = ''
 		self.ext_name_filter = ''
@@ -37,19 +38,20 @@ class DuplicateContactGUI:
 		self.email_filter = ''
 
 		store = self.builder.get_object('filter_store')
-		for row in [('Name', ''), ('Ext name', ''), ('Address', ''), ('City', ''), ('State', ''), ('Zip', ''), ('Fax', ''), ('Phone', ''), ('Email', '')]:
+		for row in [('Name', ''), ('Ext name', ''), ('Address', ''), 
+					('City', ''), ('State', ''), ('Zip', ''), 
+					('Fax', ''), ('Phone', ''), ('Email', '')]:
 			store.append(row)
 		self.duplicate_contact_store = self.builder.get_object('duplicate_contact_store')
 		self.filtered_store = self.builder.get_object(
 													'duplicate_contact_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.merging = False
-		
-		self.db = db
-		self.cursor = db.cursor()
-		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def filter_text_edited (self, store, path, text):
 		store[path][1] = text
@@ -139,7 +141,7 @@ class DuplicateContactGUI:
 								(contact_id,))
 			self.cursor.execute("UPDATE contacts SET deleted = False "
 								"WHERE id = %s", (final_contact_id,))
-		self.db.commit()
+		DB.commit()
 		selection.unselect_all()
 		self.populate_duplicate_contact_store ()
 
@@ -163,30 +165,20 @@ class DuplicateContactGUI:
 
 	def populate_duplicate_contact_store (self):
 		self.duplicate_contact_store.clear()
-		self.cursor.execute("SELECT id, name, ext_name, address, city, state, zip, "
-							"fax, phone, email FROM contacts c_outer "
+		self.cursor.execute("SELECT id, name, ext_name, address, city, state, "
+							"zip, fax, phone, email FROM contacts c_outer "
 							"WHERE (SELECT count(%s) FROM contacts c_inner "
 							"WHERE c_inner.%s = c_outer.%s) > 1 "
 							"AND c_outer.%s != ''" % 
 							(self.search, self.search, 
 							self.search, self.search))
 		for row in self.cursor.fetchall():
-			contact_id = row[0]
-			name = row[1]
-			ext_name = row[2]
-			address = row[3]
-			city = row[4]
-			state = row[5]
-			zip = row[6]
-			fax = row[7]
-			phone = row[8]
-			email = row[9]
-			self.duplicate_contact_store.append([contact_id, name, ext_name, address,
-												city, state, zip, fax, phone, email])
+			self.duplicate_contact_store.append(row)
+		DB.rollback()
 
 
 
 
 
 
-			
+

@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/inventory/inventory_history.ui"
+UI_FILE = ui_directory + "/inventory/inventory_history.ui"
 
 class InventoryHistoryGUI:
 	def __init__(self, product_id = None):
@@ -28,9 +28,7 @@ class InventoryHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		
 		self.product_id = product_id
 
@@ -41,39 +39,37 @@ class InventoryHistoryGUI:
 		self.populate_product_store ()
 		
 		self.filter_list = ""
-		#self.populate_history_treeview ()
 		self.builder.get_object('product_completion').set_match_func(self.product_match_string)
-
 		if product_id != None:
 			self.builder.get_object('combobox2').set_active_id(str(product_id))
 			self.populate_history_treeview ()
-
 		window = self.builder.get_object('window1')
 		window.show_all()
+
+	def destroy (self, widget):
+		self.cursor.close()
 
 	def populate_location_store (self):
 		location_combo = self.builder.get_object('combobox1')
 		active_location = location_combo.get_active()
 		self.location_store.clear()
-		self.cursor.execute("SELECT id, name FROM locations ORDER BY 1")
+		self.cursor.execute("SELECT id::text, name FROM locations ORDER BY 1")
 		for row in self.cursor.fetchall():
-			location_id = row[0]
-			location_name = row[1]
-			self.location_store.append([str(location_id), location_name])
+			self.location_store.append(row)
 		if active_location < 0:
 			location_combo.set_active(0)
 		else:
 			location_combo.set_active(active_location)
+		DB.rollback()
 
 	def populate_product_store (self):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, stock) = (False, True) "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			self.product_store.append([str(product_id), product_name])
+			self.product_store.append(row)
+		DB.rollback()
 
 	def product_match_selected(self, completion, model, iter_):
 		self.product_id = model[iter_][0]
@@ -151,9 +147,10 @@ class InventoryHistoryGUI:
 								(location_id, ))
 		for row in self.cursor.fetchall():
 			self.inventory_transaction_store.append(row)
+		DB.rollback()
 
 
 
-				
+
 
 		

@@ -20,9 +20,9 @@ from gi.repository import Gtk
 from datetime import timedelta
 from dateutils import DateTimeCalendar
 import spell_check
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/resource_diary.ui"
+UI_FILE = ui_directory + "/resource_diary.ui"
 
 class ResourceDiaryGUI:
 	def __init__(self):
@@ -30,9 +30,8 @@ class ResourceDiaryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 		self.populating = False
 
 		textview = self.builder.get_object('textview1')
@@ -47,7 +46,7 @@ class ResourceDiaryGUI:
 
 	def add_day_info (self):
 		self.populating = True
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("WITH date_range AS "
 							"(SELECT generate_series "
 								"(%s - INTERVAL '4 year', "
@@ -97,6 +96,7 @@ class ResourceDiaryGUI:
 		self.builder.get_object('textbuffer5').set_text(subject4)
 		cursor.close()
 		self.populating = False
+		DB.rollback()
 
 	def next_day_clicked (self, button):
 		self.day = (self.day + timedelta(days = 1))
@@ -120,7 +120,7 @@ class ResourceDiaryGUI:
 							"WHERE (resources.diary, resources.dated_for) = "
 							"(True, %s)", 
 							(text, self.day, text, self.day))
-		self.db.commit()
+		DB.commit()
 
 	def entry_icon_release (self, entry, position, button):
 		self.calendar.set_relative_to (entry)

@@ -16,47 +16,42 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gio
+from gi.repository import Gtk, GLib
 from decimal import Decimal, ROUND_HALF_UP
 from subprocess import Popen
 from datetime import datetime
 import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/unprocessed_po.ui"
+UI_FILE = ui_directory + "/unprocessed_po.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 	
-class GUI:
+class GUI(Gtk.Builder):
+	purchase_order_id = None
 	def __init__(self, po_id = None):
 
-		self.db = constants.db
-		self.cursor = self.db.cursor()
-		self.purchase_order_id = None
-		self.text = 0
-		self.path = None
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
-		self.edited_renderer_text = 1
-		self.qty_renderer_value = 1
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		
-		self.purchase_order_items_store = self.builder.get_object('purchase_order_items_store')
-		self.expense_account_store = self.builder.get_object('expense_account_store')
-		self.po_store = self.builder.get_object('po_store')
-		self.expense_products_store = self.builder.get_object('expense_products_store')
+		self.purchase_order_items_store = self.get_object('purchase_order_items_store')
+		self.expense_account_store = self.get_object('expense_account_store')
+		self.po_store = self.get_object('po_store')
 		self.populate_expense_account_store ()
 		if po_id == None:
 			self.populate_po_combobox ()
 		else:
 			self.purchase_order_id = po_id
 			self.populate_purchase_order_items_store ()
-			self.builder.get_object("button7").set_sensitive(True)
+			self.get_object("button7").set_sensitive(True)
 
-		self.cursor.execute("SELECT qty_prec, price_prec FROM settings.purchase_order")
+		self.cursor.execute("SELECT qty_prec, price_prec "
+							"FROM settings.purchase_order")
 		for row in self.cursor.fetchall():
 			qty_prec = row[0]
 			price_prec = row[1]
@@ -69,56 +64,48 @@ class GUI:
 			self.cost_decrease = row[0]
 			self.request_po_attachment = row[1]
 		
-		qty_renderer = self.builder.get_object('cellrenderertext1')
-		qty_column = self.builder.get_object('treeviewcolumn1')
+		qty_renderer = self.get_object('cellrenderertext1')
+		qty_column = self.get_object('treeviewcolumn1')
 		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 		
-		price_renderer = self.builder.get_object('cellrenderertext4')
-		price_column = self.builder.get_object('treeviewcolumn4')
+		price_renderer = self.get_object('cellrenderertext4')
+		price_column = self.get_object('treeviewcolumn4')
 		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
 		
-		ext_price_renderer = self.builder.get_object('cellrenderertext5')
-		ext_price_column = self.builder.get_object('treeviewcolumn5')
+		ext_price_renderer = self.get_object('cellrenderertext5')
+		ext_price_column = self.get_object('treeviewcolumn5')
 		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
 
 		self.populate_terms_listbox()
 		self.populate_expense_account_store ()
-		self.populate_expense_product_combo ()
-		self.window = self.builder.get_object('unprocessed')
+		self.populate_expense_products ()
+		self.window = self.get_object('window')
 		self.window.show_all()
 
 	def spinbutton_focus_in_event (self, entry, event):
-		GLib.idle_add(self.highlight, entry)
+		GLib.idle_add(entry.select_region, 0, -1)
 
 	def view_attachment_clicked (self, button):
 		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
 							"WHERE id = %s AND attached_pdf IS NOT NULL", 
 							(self.purchase_order_id,))
 		for row in self.cursor.fetchall():
-			file_name = "/tmp/Attachment.pdf"
-			file_data = row[0]
-			f = open(file_name,'wb')
-			f.write(file_data)
+			file_name = "/tmp/PO %s Attachment.pdf" % self.purchase_order_id
+			with open(file_name,'wb') as f:
+				f.write(row[0])
 			Popen(["xdg-open", file_name])
-			f.close()
-
-	def highlight (self, entry):
-		entry.select_region(0, -1)
+		DB.rollback()
 
 	def destroy(self, window):
-		self.window.destroy()
+		self.cursor.close()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
-			self.menu_visible = True
-		else:
-			self.menu_visible = False
+			menu = self.get_object('menu1')
+			menu.popup_at_pointer()
 
 	def product_hub_activated (self, menuitem):
-		selection = self.builder.get_object("treeview-selection")
+		selection = self.get_object("treeview-selection")
 		model, path = selection.get_selected_rows ()
 		if path == []:
 			return
@@ -130,19 +117,18 @@ class GUI:
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI(self.purchase_order_id)
 
-	def populate_expense_product_combo (self):
-		combo = self.builder.get_object ('comboboxtext1')
-		combo.remove_all()
-		self.cursor.execute ("SELECT id, name FROM products "
-							"WHERE expense = True")
+	def populate_expense_products (self):
+		store = self.get_object ('expense_products_store')
+		store.clear()
+		self.cursor.execute ("SELECT id::text, name FROM products "
+							"WHERE expense = True ORDER BY name")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			combo.append(str(product_id), product_name)
+			store.append(row)
+		DB.rollback()
 
 	def expense_spinbutton_value_changed (self, spinbutton):
-		product = self.builder.get_object('comboboxtext1').get_active_id()
-		button = self.builder.get_object('button6')
+		product = self.get_object('expense_product_combo').get_active_id()
+		button = self.get_object('button6')
 		if product == None:
 			button.set_label("No product selected")
 			button.set_sensitive(False)
@@ -150,9 +136,9 @@ class GUI:
 		button.set_label("Add to Invoice")
 		button.set_sensitive(True)
 
-	def expense_reason_combo_changed (self, combo):
-		value = self.builder.get_object('spinbutton2').get_value()
-		button = self.builder.get_object('button6')
+	def expense_product_combo_changed (self, combo):
+		value = self.get_object('spinbutton2').get_value()
+		button = self.get_object('button6')
 		if value == 0.00:
 			button.set_label("Amount is 0.00")
 			button.set_sensitive(False)
@@ -162,13 +148,12 @@ class GUI:
 
 	def add_expense_to_invoice_clicked (self, button):
 		from purchase_order_window import add_expense_to_po
-		product_id = self.builder.get_object(
-										'comboboxtext1').get_active_id()
-		amount = self.builder.get_object('spinbutton2').get_value()
+		product_id = self.get_object('expense_product_combo').get_active_id()
+		amount = self.get_object('spinbutton2').get_value()
 		add_expense_to_po (self.purchase_order_id, product_id, amount)
 		self.populate_purchase_order_items_store ()
-		self.builder.get_object('comboboxtext1').set_active(-1)
-		self.builder.get_object('spinbutton2').set_value(0.00)
+		self.get_object('expense_product_combo').set_active(-1)
+		self.get_object('spinbutton2').set_value(0.00)
 
 	def calculate_cost_clicked (self, button):
 		self.cursor.execute("SELECT SUM(price) FROM purchase_order_line_items "
@@ -194,10 +179,11 @@ class GUI:
 			calculated_cost = Decimal(row[5]) + expense_adder
 			row[9] = float(calculated_cost)
 			self.check_current_cost (index)
+		DB.rollback()
 
 	def save_invoice_button_clicked (self, button):
 		if self.request_po_attachment and not self.attachment:
-			dialog = self.builder.get_object('missing_attachment_dialog')
+			dialog = self.get_object('missing_attachment_dialog')
 			result = dialog.run()
 			dialog.hide()
 			if result == Gtk.ResponseType.CANCEL:
@@ -205,22 +191,20 @@ class GUI:
 			elif result == 0:
 				if not self.attach_button_clicked():
 					return
-		invoice_number = self.builder.get_object('entry6').get_text()
+		invoice_number = self.get_object('entry6').get_text()
 		self.cursor.execute("UPDATE purchase_orders "
 							"SET (amount_due, invoiced, total, "
 								"invoice_description) = "
 							"(%s, True, %s, %s) WHERE id = %s", 
 							(self.total, self.total, invoice_number, 
 							self.purchase_order_id))
-		self.populate_po_combobox ()
-		post_purchase_order (self.db, self.total, 
-														self.purchase_order_id)
+		post_purchase_order (self.total, self.purchase_order_id)
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		if self.cursor.fetchone()[0] == True:
-			post_purchase_order_accounts (self.db, self.purchase_order_id, 
+			post_purchase_order_accounts (self.purchase_order_id, 
 											datetime.today())
-		self.window.hide()
-		self.db.commit()
+		DB.commit()
+		self.window.destroy()
 
 	def save_and_pay_invoice(self, widget):
 		self.save_invoice()
@@ -236,9 +220,10 @@ class GUI:
 							"WHERE expense_account = True")
 		for row in self.cursor.fetchall():
 			self.expense_account_store.append(row)
+		DB.rollback()
 
 	def populate_po_combobox (self):
-		name_combo = self.builder.get_object('combobox1') 
+		name_combo = self.get_object('combobox1') 
 		self.cursor.execute("SELECT "
 								"po.id::text, "
 								"po.name, "
@@ -251,6 +236,7 @@ class GUI:
 							"(False, False, True) ORDER by po.id" )
 		for row in self.cursor.fetchall():
 			self.po_store.append(row)
+		DB.rollback()
 		
 	def po_combobox_changed (self, combo): 
 		po_id = combo.get_active_id()
@@ -258,16 +244,16 @@ class GUI:
 			return
 		path = combo.get_active()
 		invoice_description = self.po_store[path][4]
-		self.builder.get_object('entry6').set_text(invoice_description)
+		self.get_object('entry6').set_text(invoice_description)
 		self.purchase_order_id = po_id
 		self.populate_purchase_order_items_store ()
-		self.builder.get_object("button7").set_sensitive(True)
+		self.get_object("button7").set_sensitive(True)
 		self.attachment = self.po_store[path][3]
-		self.builder.get_object("button15").set_sensitive(self.attachment)
+		self.get_object("button15").set_sensitive(self.attachment)
 
 	def populate_purchase_order_items_store (self):
 		self.purchase_order_items_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 						"poli.id, "
 						"qty, "
@@ -291,21 +277,26 @@ class GUI:
 			self.purchase_order_items_store.append(row)
 		self.calculate_totals ()
 		c.close()
+		DB.rollback()
 
-	def check_expense_accounts (self):
+	def po_description_changed (self, editable):
+		self.check_all_entries_completed()
+
+	def check_all_entries_completed (self):
+		button = self.get_object('button5')
+		button.set_sensitive(False)
+		if self.get_object('entry6').get_text() == '':
+			button.set_label("PO description is blank")
+			return
 		for row in self.purchase_order_items_store:
 			if row[7] == 0:
-				button = self.builder.get_object('button5')
 				button.set_label("Missing expense account")
-				button.set_sensitive(False)
-				self.builder.get_object('button2').set_sensitive(False)
+				self.get_object('button2').set_sensitive(False)
 				return
 			continue
-		else:
-			button = self.builder.get_object('button5')
-			button.set_label("Save as invoice")
-			button.set_sensitive(True)
-			self.builder.get_object('button2').set_sensitive(True)
+		button.set_sensitive(True)
+		button.set_label("Save as invoice")
+		self.get_object('button2').set_sensitive(True)
 
 	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
 		qty = model.get_value(iter1, 1)
@@ -362,27 +353,27 @@ class GUI:
 							"SET (qty, remark, price, ext_price) = "
 							"(%s, %s, %s, %s) WHERE id = %s", 
 							(qty, remarks, price, ext_price, row_id))
-		self.db.commit()
+		DB.commit()
 		
 	def check_current_cost(self, path):
 		self.product_id = self.purchase_order_items_store[path][2]
 		product_name = self.purchase_order_items_store[path][3]
-		self.builder.get_object('label12').set_label(product_name)
+		self.get_object('label12').set_label(product_name)
 		new_cost = self.purchase_order_items_store[path][5]
 		self.cursor.execute("SELECT cost FROM products "
 							"WHERE id = %s", (self.product_id,))
 		current_cost = self.cursor.fetchone()[0]
-		self.builder.get_object('spinbutton1').set_value(current_cost)
+		self.get_object('spinbutton1').set_value(current_cost)
 		# set the current cost first and the new cost later
 		cost_formatted = '${:,.2f}'.format(current_cost)
-		self.builder.get_object('label13').set_label(cost_formatted)
+		self.get_object('label13').set_label(cost_formatted)
 		#check if cost went up by any amount, or down by set percentage
 		if new_cost > current_cost or \
 			new_cost < (current_cost - (current_cost * self.cost_decrease)) :
 			self.load_product_terms_prices()
-			self.builder.get_object('spinbutton1').set_value(new_cost)
+			self.get_object('spinbutton1').set_value(new_cost)
 			# set the new cost afterwards to update all the selling prices
-			dialog = self.builder.get_object('cost_update_dialog')
+			dialog = self.get_object('cost_update_dialog')
 			result = dialog.run()
 			dialog.hide()
 			if result == Gtk.ResponseType.ACCEPT:
@@ -397,7 +388,7 @@ class GUI:
 		self.cursor.execute("UPDATE purchase_order_line_items "
 							"SET expense_account = %s WHERE id = %s", 
 							(account_number, row_id))
-		self.db.commit()
+		DB.commit()
 		self.calculate_totals ()
 
 	def calculate_totals(self):
@@ -405,12 +396,12 @@ class GUI:
 		for item in self.purchase_order_items_store:
 			self.total += item[6]
 		total = '${:,.2f}'.format(self.total)
-		self.builder.get_object('entry4').set_text(total)
-		self.check_expense_accounts ()
+		self.get_object('entry4').set_text(total)
+		self.check_all_entries_completed ()
 
 	def populate_terms_listbox (self):
-		listbox = self.builder.get_object('listbox2')
-		cost_spinbutton = self.builder.get_object('spinbutton1')
+		listbox = self.get_object('listbox2')
+		cost_spinbutton = self.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
 		self.cursor.execute("SELECT id, name, markup_percent "
 							"FROM customer_markup_percent ORDER BY name")
@@ -418,9 +409,9 @@ class GUI:
 			terms_id = row[0]
 			terms_name = row[1]
 			terms_markup = row[2]
-			terms_id_label = Gtk.Label(str(terms_id), xalign=0)
+			terms_id_label = Gtk.Label(label = str(terms_id), xalign=0)
 			terms_id_label.set_no_show_all(True)
-			terms_name_label = Gtk.Label(terms_name, xalign=1)
+			terms_name_label = Gtk.Label(label = terms_name, xalign=1)
 			markup_spinbutton = Gtk.SpinButton.new_with_range(0.00, 5000.00, 1.00)
 			markup_spinbutton.set_digits(2)
 			markup_spinbutton.set_value(terms_markup)
@@ -441,9 +432,10 @@ class GUI:
 			list_box_row.add(hbox)
 			listbox.add(list_box_row)
 		listbox.show_all()
+		DB.rollback()
 
 	def cost_changed (self, cost_spin, markup_spin, sell_spin, terms_id):
-		cost = self.builder.get_object('spinbutton1').get_text()
+		cost = self.get_object('spinbutton1').get_text()
 		cost = float(cost)
 		markup_percent = markup_spin.get_value()
 		markup = cost * (markup_percent / 100)
@@ -453,7 +445,7 @@ class GUI:
 		sell_spin.set_value(selling_price)
 
 	def sell_changed (self, sell_spin, markup_spin, markup_id):
-		cost = self.builder.get_object('spinbutton1').get_text()
+		cost = self.get_object('spinbutton1').get_text()
 		cost = float(cost)
 		sell_price = sell_spin.get_value ()
 		margin = sell_price - cost
@@ -461,7 +453,7 @@ class GUI:
 		markup_spin.set_value(markup)
 		
 	def markup_changed(self, markup_spin, sell_spin, terms_id):
-		cost = self.builder.get_object('spinbutton1').get_text()
+		cost = self.get_object('spinbutton1').get_text()
 		cost = float(cost)
 		markup = markup_spin.get_value()
 		margin = (markup / 100) * cost
@@ -469,9 +461,9 @@ class GUI:
 		sell_spin.set_value(sell_price)
 
 	def load_product_terms_prices (self):
-		cost = self.builder.get_object('spinbutton1').get_text()
+		cost = self.get_object('spinbutton1').get_text()
 		cost = float(cost)
-		listbox = self.builder.get_object('listbox2')
+		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
 			if list_box_row.get_index() == 0:
 				continue # skip the header
@@ -502,12 +494,13 @@ class GUI:
 				margin = (markup / 100) * cost
 				sell_price = margin + cost
 				sell_spin.set_value(sell_price)
+		DB.rollback()
 
 	def save_product_terms_prices (self):
-		cost = self.builder.get_object('spinbutton1').get_value()
+		cost = self.get_object('spinbutton1').get_value()
 		self.cursor.execute("UPDATE products SET cost = %s "
 							"WHERE id = %s", (cost, self.product_id))
-		listbox = self.builder.get_object('listbox2')
+		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
 			if list_box_row.get_index() == 0:
 				continue # skip the header
@@ -531,7 +524,7 @@ class GUI:
 									"(product_id, markup_id, price) "
 									"VALUES (%s, %s, %s)", 
 									(self.product_id, terms_id, sell_price))
-		self.db.commit()
+		DB.commit()
 
 	def attach_button_clicked (self, button = None):
 		import pdf_attachment
@@ -543,111 +536,20 @@ class GUI:
 								"SET attached_pdf = %s "
 								"WHERE id = %s", 
 								(pdf_data, self.purchase_order_id))
-			self.db.commit()
+			DB.commit()
 			# update the attachment status for this po
-			active = self.builder.get_object("combobox1").get_active()
+			active = self.get_object("combobox1").get_active()
 			self.po_store[active][3] = True
-			self.builder.get_object("button15").set_sensitive(True)
+			self.get_object("button15").set_sensitive(True)
 			self.attachment = True
 			return True
 		return False
 
 	def expense_products_clicked (self, button):
-		self.populate_expense_products_store ()
-		dialog = self.builder.get_object("expense_products_dialog")
-		dialog.run()
-		dialog.hide()
-		self.populate_expense_product_combo()
+		import expense_products
+		ep = expense_products.GUI()
+		ep.connect('expense-products-changed', self.ep_callback)
 
-	def populate_expense_products_store (self):
-		self.expense_products_store.clear()
-		self.cursor.execute("SELECT p.id, p.name, cost, "
-							"default_expense_account, a.name "
-							"FROM products AS p LEFT JOIN gl_accounts "
-							"AS a ON a.number = p.default_expense_account "
-							"WHERE (deleted, expense) = (False, True)")
-		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name  = row[1]
-			cost = row[2]
-			expense_account = row[3]
-			expense_account_name = row[4]
-			self.expense_products_store.append([product_id, product_name, 
-												cost, expense_account, 
-												expense_account_name])
-		self.check_expense_accounts ()
-
-	def product_expense_account_combo_changed (self, combo, path, iter_):
-		expense_account = self.expense_account_store[iter_][0]
-		expense_account_name = self.expense_account_store[iter_][1]
-		self.expense_products_store[path][3] = int(expense_account)
-		self.expense_products_store[path][4] = expense_account_name
-		self.save_expense_product (path)
-
-	def product_expense_name_renderer_edited (self, entry, path, text):
-		self.expense_products_store[path][1] = text
-		self.save_expense_product (path)
-
-	def product_expense_spin_value_edited (self, spin, path, value):
-		self.expense_products_store[path][2] = float(value)
-		self.save_expense_product (path)
-
-	def save_expense_product (self, path):
-		product_id = self.expense_products_store[path][0]
-		product_name = self.expense_products_store[path][1]
-		product_cost = self.expense_products_store[path][2]
-		expense_account = self.expense_products_store[path][3]
-		if expense_account == 0:
-			expense_account = None
-		self.cursor.execute("UPDATE products SET "
-							"(name, cost, default_expense_account) = "
-							"(%s, %s, %s) WHERE id = %s", 
-							(product_name, product_cost, 
-							expense_account, product_id))
-		self.db.commit()
-
-	def new_expense_product_clicked (self, button):
-		self.cursor.execute("INSERT INTO products "
-								"(name, "
-								"unit, "
-								"cost, "
-								"expense, "
-								"tax_rate_id, "
-								"revenue_account, "
-								"default_expense_account) "
-							"VALUES "
-								"('New expense product', "
-								"1, "
-								"0.00, "
-								"True, "
-								"(SELECT id FROM tax_rates "
-									"WHERE standard = True "
-									"), "
-								"(SELECT number FROM gl_accounts "
-									"WHERE revenue_account = True LIMIT 1 "
-									"), "
-								"(SELECT number FROM gl_accounts "
-									"WHERE expense_account = True LIMIT 1 "
-									"))")
-		self.db.commit()
-		self.populate_expense_products_store ()
-
-	def delete_expense_product_clicked (self, button):
-		model, path = self.builder.get_object("treeview-selection2").get_selected_rows()
-		if path == []:
-			return
-		product_id = model[path][0]
-		try:
-			self.cursor.execute("DELETE FROM products WHERE id = %s ", 
-								(product_id,))
-		except psycopg2.IntegrityError as e:
-			print (e)
-			self.db.rollback()
-			self.cursor.execute("UPDATE products SET deleted = TRUE "
-								"WHERE id = %s ", (product_id,))
-		self.db.commit()
-		self.populate_expense_products_store ()
-
-
-
+	def ep_callback (self, expense_product_gui):
+		self.populate_expense_products()
 

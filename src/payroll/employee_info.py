@@ -21,7 +21,7 @@ from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
 import sane, psycopg2, subprocess
-from constants import db, ui_directory, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/payroll/employee_info.ui"
 
@@ -33,14 +33,13 @@ class EmployeeInfoGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		self.employee_store = self.get_object('employee_store')
 		self.s_s_medicare_store = self.get_object('s_s_medicare_store')
 		self.federal_withholding_store = self.get_object('federal_withholding_store')
 		self.state_withholding_store = self.get_object('state_withholding_store')
 
-		self.db = db
-		self.cursor = self.db.cursor()
 
 		self.populate_employee_store ()
 		self.born_calendar = DateTimeCalendar (override = True)
@@ -84,7 +83,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 	def main_shutdown (self):
 		# commit all changes before shutdown,
 		# because committing changes releases the row lock
-		self.db.commit()
+		DB.commit()
 
 	def populate_employee_store (self):
 		self.populating = True
@@ -94,6 +93,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			self.employee_store.append(row)
 		self.populating = False
+		DB.rollback()
 
 	def employee_treeview_cursor_changed (self, treeview):
 		if self.populating == True:
@@ -105,8 +105,8 @@ class EmployeeInfoGUI(Gtk.Builder):
 
 	def select_employee (self):
 		self.populating = True
-		self.db.commit() # save and unlock the current employee
-		cursor = self.db.cursor()
+		DB.commit() # save and unlock the active employee
+		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT "
 								"born, "
@@ -114,7 +114,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 								"social_security_exempt, "
 								"on_payroll_since, "
 								"wage, "
-								"payment_frequency, "
+								"payments_per_year, "
 								"married, "
 								"format_date(last_updated), "
 								"state_withholding_exempt, "
@@ -125,11 +125,11 @@ class EmployeeInfoGUI(Gtk.Builder):
 								"fed_extra_withholding "
 							"FROM payroll.employee_info "
 							"WHERE employee_id = %s "
-							"ORDER BY current DESC, id DESC "
+							"ORDER BY active DESC, id DESC "
 							"LIMIT 1 FOR UPDATE NOWAIT",
 							(self.employee_id,))
 		except psycopg2.OperationalError as e:
-			self.db.rollback()
+			DB.rollback()
 			cursor.close()
 			self.get_object('box1').set_sensitive(False)
 			error = str(e) + "Hint: somebody else is editing this employee info"
@@ -155,7 +155,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 		else:
 			cursor.execute("INSERT INTO payroll.employee_info (employee_id) "
 								"VALUES (%s)", (self.employee_id,))
-			self.db.commit()
+			DB.commit()
 			GLib.timeout_add(50, self.select_employee)
 		self.populating = False
 		self.populate_exemption_forms ()
@@ -322,7 +322,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"( " + column + ", employee_id, date_inserted) "
 						"VALUES (%s, %s, %s)", 
 						(binary, self.employee_id, datetime.today()))
-		self.db.commit()
+		DB.commit()
 		self.populate_exemption_forms ()
 
 	def state_button_release_event (self, button, event):
@@ -425,7 +425,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 		social_security_exempt = self.get_object('checkbutton3').get_active()
 		on_payroll_since = self.on_payroll_since_calendar.get_date ()
 		wage = self.get_object('spinbutton6').get_value()
-		payment_frequency = self.get_object('spinbutton5').get_value()
+		payments_per_year = self.get_object('spinbutton5').get_value()
 		married = self.get_object('checkbutton4').get_active()
 		state_withholding_exempt = self.get_object('checkbutton2').get_active()
 		state_credits = self.get_object('spinbutton3').get_value()
@@ -433,14 +433,14 @@ class EmployeeInfoGUI(Gtk.Builder):
 		fed_withholding_exempt = self.get_object('checkbutton1').get_active()
 		fed_credits = self.get_object('spinbutton4').get_value()
 		fed_extra_withholding = self.get_object('spinbutton1').get_value()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute ("INSERT INTO payroll.employee_info "
 						"(born, "
 						"social_security, "
 						"social_security_exempt, "
 						"on_payroll_since, "
 						"wage, "
-						"payment_frequency, "
+						"payments_per_year, "
 						"married, "
 						"state_withholding_exempt, "
 						"state_credits, "
@@ -451,15 +451,15 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"employee_id) "
 					"VALUES (%s, %s, %s, %s, %s, %s, %s, "
 						"%s, %s, %s, %s, %s, %s, %s) "
-					"ON CONFLICT (current, employee_id) "
-						"WHERE current = True "
+					"ON CONFLICT (active, employee_id) "
+						"WHERE active = True "
 					"DO UPDATE SET "
 						"(born, "
 						"social_security, "
 						"social_security_exempt, "
 						"on_payroll_since, "
 						"wage, "
-						"payment_frequency, "
+						"payments_per_year, "
 						"married, "
 						"state_withholding_exempt, "
 						"state_credits, "
@@ -474,7 +474,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"EXCLUDED.social_security_exempt, "
 						"EXCLUDED.on_payroll_since, "
 						"EXCLUDED.wage, "
-						"EXCLUDED.payment_frequency, "
+						"EXCLUDED.payments_per_year, "
 						"EXCLUDED.married, "
 						"EXCLUDED.state_withholding_exempt, "
 						"EXCLUDED.state_credits, "
@@ -483,14 +483,14 @@ class EmployeeInfoGUI(Gtk.Builder):
 						"EXCLUDED.fed_credits, "
 						"EXCLUDED.fed_extra_withholding, "
 						"now()) "
-					"WHERE (employee_info.employee_id, employee_info.current) = "
+					"WHERE (employee_info.employee_id, employee_info.active) = "
 						"(EXCLUDED.employee_id, True) ", 
 					(born,
 					social_security,
 					social_security_exempt,
 					on_payroll_since,
 					wage,
-					payment_frequency,
+					payments_per_year,
 					married,
 					state_withholding_exempt,
 					state_credits,
@@ -513,16 +513,15 @@ class EmployeeInfoGUI(Gtk.Builder):
 		self.get_object('treeview1').set_sensitive(False)
 
 	def show_message (self, message):
-		dialog = Gtk.MessageDialog( self.window,
-									0,
-									Gtk.MessageType.ERROR,
-									Gtk.ButtonsType.CLOSE,
-									message)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
 
 	def window_delete_event (self, window, event):
 		# save any uncommitted changes and unlock the selected row
-		self.db.commit() 
+		DB.commit() 
 
 

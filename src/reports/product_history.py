@@ -19,9 +19,9 @@
 from gi.repository import Gtk
 from decimal import Decimal
 import subprocess
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/reports/product_history.ui"
+UI_FILE = ui_directory + "/reports/product_history.ui"
 
 class ProductHistoryGUI (Gtk.Builder):
 	def __init__(self):
@@ -31,12 +31,10 @@ class ProductHistoryGUI (Gtk.Builder):
 		Gtk.Builder.__init__ (self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
 		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
 
 		self.invoice_history = None
 
@@ -44,13 +42,13 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.cursor.execute("SELECT id::text, name, ext_name FROM products "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			name = row[1]
-			ext_name = row[2]
-			self.product_store.append([id_ , name, ext_name])
-		
+			self.product_store.append(row)
+		DB.rollback()
 		self.window = self.get_object('window1')
 		self.window.show_all()
+
+	def destroy (self, window):
+		self.cursor.close()
 
 	def notebook_create_window (self, notebook, widget, x, y):
 		window = Gtk.Window()
@@ -83,24 +81,20 @@ class ProductHistoryGUI (Gtk.Builder):
 			dest_notebook.set_tab_detachable(widget, True)
 			dest_notebook.set_tab_reorderable(widget, True)
 			dest_notebook.child_set_property(widget, 'tab-expand', True)
-
-	def close_transaction_window (self, window, event):
-		self.cursor.close()
 		
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices WHERE id = %s", 
-																	(file_id ,))
+		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+							"WHERE id = %s AND pdf_data IS NOT NULL", 
+							(file_id ,))
 		for row in self.cursor.fetchall():
 			file_name = "/tmp/" + row[0]
-			if file_name == None:
-				return
 			file_data = row[1]
-			f = open(file_name,'wb')
-			f.write(file_data)
-			subprocess.call(["xdg-open", file_name])
-			f.close()
+			with open(file_name,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_name])
+		DB.rollback()
 
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection4')
@@ -109,8 +103,7 @@ class ProductHistoryGUI (Gtk.Builder):
 			return
 		if event.button == 3:
 			menu = self.get_object('invoice_menu')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 	def invoice_history_activated (self, menuitem):
 		selection = self.get_object('treeview-selection4')
@@ -120,16 +113,43 @@ class ProductHistoryGUI (Gtk.Builder):
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
 			self.invoice_history = ih.InvoiceHistoryGUI()
-		combo = self.invoice_history.builder.get_object('combobox1')
+		combo = self.invoice_history.get_object('combobox1')
 		combo.set_active_id(contact_id)
-		store = self.invoice_history.builder.get_object('invoice_store')
-		selection = self.invoice_history.builder.get_object('treeview-selection1')
+		store = self.invoice_history.get_object('invoice_store')
+		selection = self.invoice_history.get_object('treeview-selection1')
 		selection.unselect_all()
 		for row in store:
 			if row[0] == invoice_id:
 				selection.select_iter(row.iter)
 				break
 		self.invoice_history.present()
+
+	def p_o_treeview_button_release_event (self, treeview, event):
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		if event.button == 3:
+			menu = self.get_object('p_o_menu')
+			menu.popup_at_pointer()
+
+	def view_p_o_attachment_activated (self, menuitem):
+		selection = self.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		p_o_id = model[path][0]
+		self.cursor.execute("SELECT name, attached_pdf FROM purchase_orders "
+							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+							(p_o_id,))
+		for row in self.cursor.fetchall():
+			file_name = "/tmp/" + row[0]
+			file_data = row[1]
+			with open(file_name,'wb') as f:
+				f.write(file_data)
+				subprocess.call(["xdg-open", file_name])
+			break
+		else:
+			self.show_message("No attachment for this Purchase Order")
+		DB.rollback()
 
 	def product_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -158,6 +178,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.populate_purchase_orders ()
 		self.populate_warranty_store ()
 		self.populate_manufacturing_store ()
+		DB.rollback()
 
 	def populate_warranty_store (self):
 		warranty_store = self.get_object('warranty_store')
@@ -272,7 +293,14 @@ class ProductHistoryGUI (Gtk.Builder):
 		else:
 			label = "<span weight='bold'>Manufacturing (%s)</span>" % count
 			self.get_object('label3').set_markup(label)
-
+		
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

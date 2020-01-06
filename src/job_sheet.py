@@ -15,22 +15,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import psycopg2
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
+import subprocess
 from invoice_window import create_new_invoice 
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster, template_dir
+import printing
 
 UI_FILE = ui_directory + "/job_sheet.ui"
 
+class Item(object):#this is used by py3o library see their example for more info
+	pass
+	
 class JobSheetGUI(Gtk.Builder):
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = db
-		self.cursor = db.cursor()
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store ), 
 						   ("products_changed", self.populate_product_store )):
@@ -126,15 +131,37 @@ class JobSheetGUI(Gtk.Builder):
 								"SET (job_sheet_id, qty, product_id, remark) "
 								"= (%s, %s, %s, %s) WHERE id = %s", 
 								(self.job_id, qty, product_id, remark, row_id))
-		self.db.commit()
+		DB.commit()
 
 	def contacts_window(self, widget):
-		import contacts
-		contacts.GUI()
+		import contacts_overview
+		contacts_overview.ContactsOverviewGUI()
 
 	def product_window(self, column):
-		import products
-		products.ProductsGUI()
+		import products_overview
+		products_overview.ProductsOverviewGUI()
+
+	def generate_serial_number_clicked (self, button):
+		c = DB.cursor()
+		c.execute("UPDATE job_types "
+					"SET current_serial_number = (current_serial_number + 1) "
+					"WHERE id = %s RETURNING current_serial_number::text",
+					(self.job_type_id,))
+		serial_number = c.fetchone()[0]
+		self.get_object('entry1').set_text(serial_number)
+		button.set_sensitive(False)
+		self.print_serial_number(serial_number)
+		DB.commit()
+
+	def print_serial_number(self, serial_number):
+		document = Item()
+		document.serial_number = serial_number
+		data = dict(label = document)
+		from py3o.template import Template
+		sn_file = "/tmp/job_serial.odt"
+		t = Template(template_dir+"/job_serial_template.odt", sn_file, True)
+		t.render(data)
+		subprocess.Popen(["soffice", sn_file])
 
 	def populate_product_store (self, m=None):
 		self.product_store.clear()
@@ -143,6 +170,7 @@ class JobSheetGUI(Gtk.Builder):
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.product_store.append(row)
+		DB.rollback()
 
 	def focus(self, window, void):
 		if self.get_object("entry1").get_text() == "":
@@ -163,6 +191,7 @@ class JobSheetGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			model.append(row)
 		job_combo.set_active_id(job)
+		DB.rollback()
 
 	def populate_existing_job_combobox (self):
 		existing_job_combo = self.get_object('comboboxtext2')
@@ -177,13 +206,18 @@ class JobSheetGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			existing_job_combo.append(row[0], row[1])
 		existing_job_combo.set_active_id(existing_job)
+		DB.rollback()
 
 	def delete_existing_job	(self, widget):
 		job_id = widget.get_active_id()
-		self.cursor.execute("DELETE FROM job_sheets WHERE id = %s", (job_id,))
-		self.cursor.execute("DELETE FROM job_sheet_line_items "
-							"WHERE job_sheet_id = %s", (job_id ,))
-		self.db.commit()
+		try:
+			self.cursor.execute("DELETE FROM job_sheets WHERE id = %s", 
+															(job_id,))
+		except psycopg2.IntegrityError as e:
+			DB.rollback()
+			self.show_message(str(e))
+			return
+		DB.commit()
 		self.populate_existing_job_combobox ()
 		self.job_store.clear()
 
@@ -208,19 +242,22 @@ class JobSheetGUI(Gtk.Builder):
 								"SET (active, stop_date) = (%s, %s) "
 								"WHERE job_sheet_id = %s", 
 								(available, datetime.today(), self.job_id))
-		self.db.commit()
+		DB.commit()
 
-	def new_job_combo_changed(self, widget):
-		if widget.get_active_id() != None: # something actually selected
-			#self.save ()
+	def new_job_combo_changed(self, combo):
+		id_ = combo.get_active_id()
+		if id_ != None: # something actually selected
 			self.get_object('comboboxtext2').set_active(-1)
 			self.job_id = 0 # new job
 			self.job_store.clear()
+			self.job_type_id = id_
 			self.get_object('entry1').set_sensitive(True)
 			self.get_object('entry1').set_text("")
+			self.get_object('button8').set_sensitive(True)
 		else: # changed by code to nothing
 			self.get_object('button7').set_sensitive(False)
 			self.get_object('button5').set_sensitive(False)
+			self.get_object('button8').set_sensitive(False)
 
 	def existing_job_combo_changed (self, widget):
 		if widget.get_active_id() != None:
@@ -244,10 +281,12 @@ class JobSheetGUI(Gtk.Builder):
 			self.get_object('button7').set_sensitive(False)
 			self.get_object('button5').set_sensitive(False)
 			self.get_object('button3').set_sensitive(False)
+		DB.rollback()
 
 	def customer_combo_changed(self, widget):
 		id_ = widget.get_active_id()
 		if id_ != None:
+			self.get_object('job_type_combo').set_sensitive(True)
 			self.get_object('comboboxtext2').set_sensitive(True)
 			self.job_id = 0
 			self.job_store.clear()
@@ -280,7 +319,6 @@ class JobSheetGUI(Gtk.Builder):
 		time_clock_project = self.get_object('checkbutton2').get_active()
 		contact_name = self.get_object('combobox-entry').get_text()
 		iter_ = self.get_object('job_type_combo').get_active_iter()
-		job_type_id = self.job_type_store[iter_][0]
 		job_name = self.job_type_store[iter_][1]
 		job_name_description = self.get_object('entry1').get_text()
 		self.cursor.execute("INSERT INTO job_sheets "
@@ -288,7 +326,7 @@ class JobSheetGUI(Gtk.Builder):
 							"date_inserted, invoiced, completed, contact_id) "
 							"VALUES (%s, %s, %s, %s, %s, %s, %s) "
 							"RETURNING id", 
-							(description, job_type_id, time_clock_project, 
+							(description, self.job_type_id, time_clock_project, 
 							datetime.today(), False, False, 
 							self.customer_id))
 		self.job_id = self.cursor.fetchone()[0]
@@ -300,7 +338,7 @@ class JobSheetGUI(Gtk.Builder):
 								"VALUES (%s, %s, True, False, %s)", 
 								(self.project_name, datetime.today(), 
 								self.job_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_existing_job_combobox ()
 		self.get_object('comboboxtext2').set_active_id(str(self.job_id))
 		self.get_object('button7').set_sensitive(False)
@@ -312,25 +350,24 @@ class JobSheetGUI(Gtk.Builder):
 			job_line_id = store[path][0]
 			self.cursor.execute("DELETE FROM job_sheet_line_items "
 								"WHERE id = %s", (job_line_id,))
-			self.db.commit()
+			DB.commit()
 			self.populate_job_treeview ()
 			
 	def new_line (self, widget = None):
-		self.cursor.execute("SELECT id, name FROM products "
+		self.cursor.execute("SELECT 0, 1, id, name, '' FROM products "
 							"WHERE deleted = False LIMIT 1")
 		for row in self.cursor.fetchall():
-			product_id = row[0]
-			product_name = row[1]
-			iter_ = self.job_store.append([0, 1, product_id, product_name, ""])
+			iter_ = self.job_store.append(row)
 		line = self.job_store[iter_]
 		self.save_line(line)
 		path = self.job_store.get_path(iter_)
 		treeview = self.get_object('treeview1')
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, True)
+		DB.rollback()
 
 	def post_job_to_invoice_clicked (self, widget):
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT i.id, i.name, c.name FROM invoices AS i "
 					"JOIN contacts AS c ON c.id = i.customer_id "
 					"WHERE (i.posted, i.canceled, i.active, i.customer_id) = "
@@ -349,7 +386,7 @@ class JobSheetGUI(Gtk.Builder):
 			else:
 				return # cancel posting to invoice altogether
 		else: # create new invoice
-			invoice_id = create_new_invoice (datetime.today(), customer_id)
+			invoice_id = create_new_invoice (datetime.today(), self.customer_id)
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
 					"SELECT qty, product_id, remark, %s "
@@ -369,27 +406,22 @@ class JobSheetGUI(Gtk.Builder):
 		self.job_id = 0
 		self.populate_customer_store ()
 		self.populate_existing_job_combobox ()
-		self.db.commit()
+		DB.commit()
 
 	def populate_job_treeview(self):
 		treeselection = self.get_object('treeview-selection1')
 		model, path = treeselection.get_selected_rows ()
 		self.job_store.clear()
-		self.cursor.execute("SELECT id, qty, product_id, remark "
-							"FROM job_sheet_line_items "
+		self.cursor.execute("SELECT jsli.id, qty, p.id, p.name, remark "
+							"FROM job_sheet_line_items AS jsli "
+							"JOIN products AS p ON p.id = jsli.product_id "
 							"WHERE job_sheet_id = %s", (self.job_id ,))
 		for row in self.cursor.fetchall():
-			id_ = row[0]
-			qty = row[1]
-			product_id = row[2]
-			self.cursor.execute("SELECT name FROM products WHERE id = %s", 
-															(product_id,))
-			product_name = self.cursor.fetchone()[0]
-			remark = row[3]
-			self.job_store.append([id_, qty, product_id, product_name, remark])
+			self.job_store.append(row)
 		if path != [] : # a row is selected
 			tree_iter = model.get_iter(path)
 			treeselection.select_iter(tree_iter)
+		DB.rollback()
 
 	def customer_match_func (self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -403,11 +435,9 @@ class JobSheetGUI(Gtk.Builder):
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE (deleted, customer) = (False, True) "
 							"ORDER BY name")
-		for i in self.cursor.fetchall():
-			serial = i[0]
-			name = i[1]
-			ext_name = i[2]
-			self.customer_store.append([str(serial), name, ext_name])
+		for row in self.cursor.fetchall():
+			self.customer_store.append(row)
+		DB.rollback()
 
 	def window_key_release_event_ (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -442,13 +472,21 @@ class JobSheetGUI(Gtk.Builder):
 								0)
 		dialog.add_button("Cancel", 1)
 		dialog.add_button("Append items", 2)
-		label = Gtk.Label(message)
+		label = Gtk.Label(label = message)
 		box = dialog.get_content_area()
 		box.add(label)
 		label.show()
 		response = dialog.run()
 		dialog.destroy()
 		return response
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

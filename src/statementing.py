@@ -18,24 +18,25 @@
 from gi.repository import Gtk
 import subprocess, psycopg2, re
 from datetime import datetime, timedelta
-import printing, constants
+import printing
+from constants import DB, template_dir
 
 items = list()
 class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, store, customer_id, date, total, comment = ""):	
-		self.db = constants.db
-		self.cursor = self.db.cursor ()
+	def __init__(self, store, customer_id, date, total, comment = ""):
+		
 		self.customer_id = customer_id
 		self.store = store
 		self.comment = comment
 		self.date = date	
-		self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)",[customer_id])
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",[customer_id])
 		customer = Item()
 		
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			customer.name = row[1]
 			self.customer_id = row[0]
 			name = row[1]
@@ -51,8 +52,8 @@ class Setup():
 			customer.tax_exempt = row[11]
 			customer.tax_exempt_number = row[12]
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -76,8 +77,8 @@ class Setup():
 		document = Item() 
 		document.total = '${:,.2f}'.format(total)
 		document.comment = self.comment
-		self.cursor.execute("SELECT format_date(%s)", (date.date(),))
-		date_text = self.cursor.fetchone()[0]
+		cursor.execute("SELECT format_date(%s)", (date.date(),))
+		date_text = cursor.fetchone()[0]
 		document.date = date_text
 		
 		split_name = name.split(' ') 
@@ -86,11 +87,11 @@ class Setup():
 			name_str = name_str + i[0:3]
 		name = name_str.lower()
 		
-		self.cursor.execute("INSERT INTO statements (date_inserted, "
+		cursor.execute("INSERT INTO statements (date_inserted, "
 							"customer_id, amount, printed) "
 							"VALUES (%s, %s, %s, False) RETURNING id", 
 							(self.date, self.customer_id, total))
-		self.statement_id = self.cursor.fetchone()[0]
+		self.statement_id = cursor.fetchone()[0]
 		text = "Sta_" + str(self.statement_id) + "_"  + name + "_" + date_text
 		document.name = re.sub(" ", "_", text)
 		self.document_name = document.name
@@ -101,21 +102,23 @@ class Setup():
 		self.data = dict(items = items, statement = document, contact = customer, company = company)
 		from py3o.template import Template #import for every statement or there is an error about invalid magic header numbers
 		self.statement_file = "/tmp/" + self.document_odt
-		t = Template(constants.template_dir+"/statement_template.odt", self.statement_file , True)
+		t = Template(template_dir+"/statement_template.odt", self.statement_file , True)
 		t.render(self.data) #the self.data holds all the info of the invoice
 		subprocess.call(["odt2pdf", self.statement_file])
+		cursor.close()
 
 	def view (self):
 		subprocess.Popen(["soffice", self.statement_file])
-		self.db.rollback ()  # we are only viewing the statement, so remove the id again
+		DB.rollback ()  # we are only viewing the statement, so remove the id again
 		
 	def print_dialog (self, window):
+		cursor = DB.cursor()
 		p = printing.Operation(settings_file = 'statement')
 		p.set_parent(window)
 		p.set_file_to_print("/tmp/" + self.document_pdf)
 		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
-			self.cursor.execute("UPDATE statements SET (print_date, printed) = "
+			cursor.execute("UPDATE statements SET (print_date, printed) = "
 								"(CURRENT_DATE, True) WHERE id = %s", 
 								(self.statement_id,))
 		document = "/tmp/" + self.document_pdf
@@ -123,33 +126,36 @@ class Setup():
 		dat = f.read()
 		binary = psycopg2.Binary(dat)
 		f.close()
-		self.cursor.execute("UPDATE statements SET (name, pdf) = (%s, %s) "
+		cursor.execute("UPDATE statements SET (name, pdf) = (%s, %s) "
 							"WHERE id = %s", 
 							(self.document_name, binary, self.statement_id))
 		self.close_invoices_and_payments ()
+		cursor.close()
 		
 	def post_as_unprinted(self):
 		self.close_invoices_and_payments ()
 		
 
 	def close_invoices_and_payments (self):
-		self.cursor.execute("UPDATE invoices SET statement_id = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET statement_id = %s "
 							"WHERE (canceled, active, posted) = "
 							"(False, True, True) "
 							"AND customer_id = %s "
 							"AND statement_id IS NULL", 
 							(self.statement_id, self.customer_id))
-		self.cursor.execute("UPDATE payments_incoming "
+		cursor.execute("UPDATE payments_incoming "
 							"SET (closed, statement_id) = (True, %s) "
 							"WHERE statement_id IS NULL "
 							"AND customer_id = %s", 
 							(self.statement_id, self.customer_id))
-		self.cursor.execute("UPDATE credit_memos "
+		cursor.execute("UPDATE credit_memos "
 							"SET statement_id = %s "
 							"WHERE statement_id IS NULL "
 							"AND customer_id = %s", 
 							(self.statement_id, self.customer_id))
-		self.db.commit()
+		DB.commit()
+		cursor.close()
 
 
 

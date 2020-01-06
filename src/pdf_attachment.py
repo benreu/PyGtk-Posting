@@ -16,13 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import gi
+gi.require_version('Vte', '2.91')
 gi.require_version('EvinceView', '3.0')
-from gi.repository import Gtk, GObject
-from gi.repository import EvinceView
-from gi.repository import EvinceDocument
+from gi.repository import Gtk, GLib, Vte, EvinceView, EvinceDocument
 from multiprocessing import Queue, Process
 from queue import Empty
-from subprocess import Popen, PIPE, STDOUT, call
+from subprocess import call
 import os, sane
 
 UI_FILE = "src/pdf_attachment.ui"
@@ -37,13 +36,18 @@ class Dialog :
 		self.builder.connect_signals(self)
 		dialog = self.builder.get_object("scan_dialog")
 		dialog.set_transient_for(parent_window)
+		
+		self.terminal = Vte.Terminal()
+		self.terminal.show()
+		self.terminal.set_scroll_on_output(True)
+		self.builder.get_object('scrolledwindow3').add(self.terminal)
 
 		self.data_queue = Queue()
 		self.scanner_store = self.builder.get_object("scanner_store")
 		thread = Process(target=self.get_scanners)
 		thread.start()
 		
-		GObject.timeout_add(100, self.populate_scanners)
+		GLib.timeout_add(100, self.populate_scanners)
 		
 		EvinceDocument.init()
 		self.view = EvinceView.View()
@@ -104,20 +108,27 @@ class Dialog :
 		self.spinner = self.builder.get_object('spinner1')
 		self.spinner.start()
 		self.spinner.set_visible(True)
-		self.result_buffer = self.builder.get_object('pdf_opt_result_buffer')
-		self.result_buffer.set_text('', -1)
-		self.sw = self.builder.get_object('scrolledwindow3')
 		self.file_name = chooser.get_filename()
-		p = Popen(['pdfsizeopt', self.file_name, '/tmp/opt.pdf'], 
-														stdout = PIPE,
-														stderr = STDOUT,
-														stdin = PIPE)
-		self.io_id = GObject.io_add_watch(p.stdout, GObject.IO_IN, self.optimizer_thread)
-		GObject.io_add_watch(p.stdout, GObject.IO_HUP, self.thread_finished)
+		commands = ['gs',
+					'-sDEVICE=pdfwrite',
+					'-dCompatibilityLevel=1.4',
+					'-dPDFSETTINGS=/screen',
+					'-dNOPAUSE',
+					'-dBATCH',
+					'-sOutputFile=/tmp/opt.pdf',
+					self.file_name]
+		self.terminal.spawn_sync(   Vte.PtyFlags.DEFAULT,
+									'/usr/bin',
+									commands,
+									[],
+									GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+									None,
+									None,
+									)
+		self.handler_id = self.terminal.connect("child-exited", self.callback)
 
-	def thread_finished (self, stdout, condition):
-		GObject.source_remove(self.io_id)
-		stdout.close()
+	def callback (self, terminal, error):
+		terminal.disconnect(self.handler_id)
 		button = self.builder.get_object('button8')
 		self.spinner.stop()
 		self.spinner.set_visible(False)
@@ -131,15 +142,6 @@ class Dialog :
 			button.set_label("Attach without optimization")
 			call(["cp", self.file_name, "/tmp/opt.pdf"])
 		self.view_file ()
-
-	def optimizer_thread (self, stdout, condition):
-		line = stdout.readline()
-		line = line.decode(encoding="utf-8", errors="strict")
-		adj = self.sw.get_vadjustment()
-		adj.set_value(adj.get_upper() - adj.get_page_size())
-		iter_ = self.result_buffer.get_end_iter()
-		self.result_buffer.insert(iter_, line, -1)
-		return True
 
 	def scan_clicked (self, button):
 		if os.path.exists("/tmp/opt.pdf"):

@@ -37,6 +37,7 @@
     <property name="title" translatable="yes">Customer terms and discounts</property>
     <property name="window_position">center</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>

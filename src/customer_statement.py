@@ -19,9 +19,9 @@ from gi.repository import Gtk, Gdk
 import os, sys, subprocess
 from datetime import datetime
 import customer_payment, statementing
-import constants
+from constants import ui_directory, DB, help_dir
 
-UI_FILE = constants.ui_directory + "/customer_statement.ui"
+UI_FILE = ui_directory + "/customer_statement.ui"
 
 class GUI:
 	def __init__(self):
@@ -29,9 +29,7 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.customer_id = None
 
@@ -45,17 +43,20 @@ class GUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def finish_statement_clicked (self, button):
 		dialog = self.builder.get_object('dialog1')
 		response = dialog.run()
 		if response == Gtk.ResponseType.ACCEPT:
 			self.cursor.execute("UPDATE settings "
 								"SET statement_finish_date = CURRENT_DATE")
-			self.db.commit()
+			DB.commit()
 		dialog.hide()
 
 	def help_button_clicked (self, widget):
-		subprocess.Popen(["yelp", constants.help_dir + "/statement.page"])
+		subprocess.Popen(["yelp", help_dir + "/statement.page"])
 
 	def payment_window(self, widget):
 		customer_payment.GUI(customer_id = self.customer_id )
@@ -71,13 +72,14 @@ class GUI:
 
 	def view_statement_clicked (self, button):
 		statement = statementing.Setup( self.statement_store, 
-										self.customer_id, datetime.today(), 
+										self.customer_id, 
+										datetime.today(), 
 										self.customer_total)
 		statement.view()
 
 	def customer_combobox_populate(self):
 		self.customer_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("with table2 AS "
 					"( "
 					"SELECT id, "
@@ -120,6 +122,7 @@ class GUI:
 									'Balance : ${:,.2f}'.format(unpaid),
 									unpaid])
 		c.close()
+		DB.rollback()
 
 	def focus (self, window, event):
 		self.customer_combobox_populate ()
@@ -203,7 +206,8 @@ class GUI:
 		for row in self.cursor.fetchall():
 			self.statement_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)
+		DB.rollback()
 
 
-		
+
 

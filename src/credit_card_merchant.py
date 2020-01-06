@@ -18,7 +18,7 @@
 from gi.repository import Gtk, Gdk, GLib, GObject
 from dateutils import DateTimeCalendar
 from db.transactor import double_entry_transaction
-from constants import db, ui_directory 
+from constants import ui_directory, DB
 
 UI_FILE = ui_directory + "/credit_card_merchant.ui"
 
@@ -29,9 +29,8 @@ class CreditCardMerchantGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.cursor = DB.cursor()
 
-		self.db = db
-		self.cursor = self.db.cursor()
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
@@ -40,8 +39,6 @@ class CreditCardMerchantGUI:
 		self.contact_id = 0
 
 		self.exists = True
-		self.debit_account_store = self.builder.get_object('debit_account_store')
-		self.credit_account_store = self.builder.get_object('credit_account_store')
 		self.populate_stores()
 		
 		self.window = self.builder.get_object('window1')
@@ -49,9 +46,12 @@ class CreditCardMerchantGUI:
 
 	def destroy (self, window = None):
 		self.exists = False
+		self.cursor.close()
 
 	def populate_stores (self):
-		self.debit_account_store.clear()
+		# debit accounts
+		store = self.builder.get_object('debit_account_store')
+		store.clear()
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE (type = 3) "
 							"AND parent_number IS NULL "
@@ -59,11 +59,11 @@ class CreditCardMerchantGUI:
 							"ORDER BY number")
 		for row in self.cursor.fetchall():
 			account_number = row[0]
-			account_name = row[1]
-			tree_parent = self.debit_account_store.append(None,[account_number, 
-																account_name])
-			self.get_child_accounts (self.debit_account_store, account_number, tree_parent)
-		self.credit_account_store.clear()
+			tree_parent = store.append(None, row)
+			self.get_child_accounts (store, account_number, tree_parent)
+		# credit accounts
+		store = self.builder.get_object('credit_account_store')
+		store.clear()
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE (type = 4) "
 							"AND parent_number IS NULL "
@@ -71,18 +71,15 @@ class CreditCardMerchantGUI:
 							"ORDER BY number")
 		for row in self.cursor.fetchall():
 			account_number = row[0]
-			account_name = row[1]
-			tree_parent = self.credit_account_store.append(None,[account_number, 
-																account_name])
-			self.get_child_accounts (self.credit_account_store, account_number, tree_parent)
+			tree_parent = store.append(None, row)
+			self.get_child_accounts (store, account_number, tree_parent)
 
 	def get_child_accounts (self, store, parent_number, tree_parent):
 		self.cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE parent_number = %s", (parent_number,))
 		for row in self.cursor.fetchall():
 			account_number = row[0]
-			account_name = row[1]
-			parent = store.append(tree_parent,[account_number, account_name])
+			parent = store.append(tree_parent, row)
 			self.get_child_accounts (store, account_number, parent)
 
 	def check_if_all_requirements_valid (self):
@@ -117,8 +114,9 @@ class CreditCardMerchantGUI:
 
 	def debit_row_activate (self, treeview, path, treeviewcolumn):
 		self.check_if_all_requirements_valid ()
-		account_number = self.debit_account_store[path][0]
-		account_name = self.debit_account_store[path][1]
+		store = self.builder.get_object('debit_account_store')
+		account_number = store[path][0]
+		account_name = store[path][1]
 		acc_type = str(account_number)[0:1]
 		if acc_type == '3' or acc_type == '4':
 			treeviewcolumn.set_title('%s+'% account_name)
@@ -127,8 +125,9 @@ class CreditCardMerchantGUI:
 
 	def credit_row_activate (self, treeview, path, treeviewcolumn):
 		self.check_if_all_requirements_valid ()
-		account_number = self.credit_account_store[path][0]
-		account_name = self.credit_account_store[path][1]
+		store = self.builder.get_object('credit_account_store')
+		account_number = store[path][0]
+		account_name = store[path][1]
 		acc_type = str(account_number)[0:1]
 		if acc_type == '3' or acc_type == '4':
 			treeviewcolumn.set_title('%s+'% account_name)
@@ -151,9 +150,9 @@ class CreditCardMerchantGUI:
 		credit_selection = self.builder.get_object('treeview-selection3')
 		model, path = credit_selection.get_selected_rows()
 		credit_account = model[path][0]
-		double_entry_transaction (self.db, self.date, debit_account,
+		double_entry_transaction (self.date, debit_account,
 									credit_account, amount, '')
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def refresh_accounts_clicked (self, button):

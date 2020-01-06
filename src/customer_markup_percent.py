@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/customer_markup_percent.ui"
+UI_FILE = ui_directory + "/customer_markup_percent.ui"
 
 class CustomerMarkupPercentGUI:
 	def __init__(self):
@@ -26,9 +26,7 @@ class CustomerMarkupPercentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = constants.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.customer_markup_store = self.builder.get_object('customer_markup_store')
 		self.populate_markup_store ()
@@ -36,17 +34,17 @@ class CustomerMarkupPercentGUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_markup_store (self):
 		self.customer_markup_store.clear()
 		self.cursor.execute("SELECT id::text, name, markup_percent, standard "
 							"FROM customer_markup_percent "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
-			m_id = row[0]
-			name = row[1]
-			percent = row[2]
-			default = row[3]
-			self.customer_markup_store.append([m_id, name, percent, default])
+			self.customer_markup_store.append(row)
+		DB.rollback()
 
 	def new_clicked (self, button):
 		iter_ = self.customer_markup_store.append([0, 'New markup', 35, False])
@@ -64,12 +62,12 @@ class CustomerMarkupPercentGUI:
 		try:
 			self.cursor.execute("DELETE FROM customer_markup_percent "
 								"WHERE id = %s", (current_markup_id,))
-			self.db.rollback()
+			DB.rollback()
 			self.cursor.execute("UPDATE customer_markup_percent "
 								"SET deleted = True WHERE id = %s", 
 								(current_markup_id,))
 		except Exception as e:
-			self.db.rollback()
+			DB.rollback()
 			self.builder.get_object('label3').set_label(str(e))
 			dialog = self.builder.get_object('dialog1')
 			result = dialog.run()
@@ -83,7 +81,7 @@ class CustomerMarkupPercentGUI:
 				self.cursor.execute("UPDATE customer_markup_percent "
 									"SET deleted = True WHERE id = %s", 
 									(current_markup_id,))
-		self.db.commit()
+		DB.commit()
 		self.builder.get_object('button2').set_sensitive(False)
 		self.populate_markup_store ()
 
@@ -110,7 +108,7 @@ class CustomerMarkupPercentGUI:
 				self.cursor.execute("UPDATE customer_markup_percent "
 									"SET standard = False "
 									"WHERE id = %s",[row[0]])
-		self.db.commit()
+		DB.commit()
 
 	def save (self, iter_):
 		row_id = self.customer_markup_store[iter_][0]
@@ -128,7 +126,7 @@ class CustomerMarkupPercentGUI:
 								"SET (name, markup_percent) = (%s, %s) "
 								"WHERE id = %s", 
 								(name, markup, row_id))
-		self.db.commit()
+		DB.commit()
 		
 
 

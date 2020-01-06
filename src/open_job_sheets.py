@@ -4,7 +4,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -18,9 +18,9 @@
 from gi.repository import Gtk
 from datetime import datetime
 from invoice_window import create_new_invoice 
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/open_job_sheets.ui"
+UI_FILE = ui_directory + "/open_job_sheets.ui"
 
 
 class OpenJobSheetsGUI (Gtk.Builder):
@@ -29,9 +29,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.jobs_store = self.get_object('jobs_to_invoice_store')
 		self.job_sheet_line_store = self.get_object("job_sheet_line_store")
@@ -41,17 +39,21 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_contact_store (self):
 		store = self.get_object ('contact_store')
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"ORDER BY name, ext_name")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def populate_job_store(self):
 		self.jobs_store.clear()
 		self.job_sheet_line_store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 					"js.id, "
 					"js.description, "
@@ -67,6 +69,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		for row in c.fetchall():
 			self.jobs_store.append(row)
 		c.close()
+		DB.rollback()
 
 	def job_treeview_button_release_event (self, widget, event):
 		if event.button == 3:
@@ -88,7 +91,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		job_id = model[path][0]
 		self.cursor.execute("UPDATE job_sheets SET contact_id = %s "
 							"WHERE id = %s", (customer_id, job_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_job_store ()
 
 	def contact_match_selected (self, entrycompletion, model, t_iter):
@@ -100,7 +103,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		self.get_object("box2").set_sensitive(True)
 		store = self.get_object("job_sheet_line_store")
 		store.clear()
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("SELECT "
 					"jsli.id, "
 					"jsli.qty::text, "
@@ -148,7 +151,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 				return # cancel posting to invoice altogether
 		else: # create new invoice
 			invoice_id = create_new_invoice (datetime.today(), customer_id)
-		c = self.db.cursor()
+		c = DB.cursor()
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
 					"SELECT qty, product_id, remark, %s "
@@ -157,7 +160,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 					"UPDATE job_sheets SET (invoiced, completed) "
 						"= (True, True) WHERE id = %s", 
 					(invoice_id, job_sheet_id, job_sheet_id))
-		self.db.commit()
+		DB.commit()
 		self.populate_job_store ()
 
 	def post_job_as_completed_clicked (self, button):
@@ -167,22 +170,22 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		job_sheet_id = model[path][0]
 		self.cursor.execute("UPDATE job_sheets SET completed = True "
 							"WHERE id = %s", (job_sheet_id,))
-		self.db.commit()
+		DB.commit()
 		self.populate_job_store()
 
 	def focus (self, window, event):
+		self.populate_job_store()
 		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		self.populate_job_store()
 		selection.select_path(path)
 
 	def show_invoice_exists_message (self, message):
-		dialog = Gtk.Dialog("", self.window, 0)
+		dialog = Gtk.Dialog(title = "", parent = self.window, flag = 0)
 		dialog.add_button("Cancel", 1)
 		dialog.add_button("Append items", 2)
-		label = Gtk.Label(message)
+		label = Gtk.Label(label = message)
 		box = dialog.get_content_area()
 		box.add(label)
 		label.show()

@@ -18,9 +18,9 @@
 import gi
 gi.require_version('GtkSource', '3.0')
 from gi.repository import Gtk, GtkSource, GObject, Gdk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = constants.ui_directory + "/db/sql_window.ui"
+UI_FILE = ui_directory + "/db/sql_window.ui"
 
 class SQLWindowGUI :
 	def __init__(self):
@@ -29,7 +29,6 @@ class SQLWindowGUI :
 		GObject.type_register(GtkSource.View)
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.db = constants.db
 
 		language_manager = GtkSource.LanguageManager()
 		self.source_view = self.builder.get_object('gtksourceview1')
@@ -46,22 +45,24 @@ class SQLWindowGUI :
 
 		self.populate_sql_commands()
 
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT command FROM sql.history WHERE current = True")
 		command = cursor.fetchone()[0]
 		self.source_buffer.set_text(command)
 		cursor.close()
+		DB.rollback()
 
 	def sql_combo_changed (self, combobox):
 		if self.builder.get_object('comboboxtext-entry').has_focus():
 			return #user is typing new values
 		name = combobox.get_active_text()
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT command FROM sql.history WHERE name = %s", (name,))
 		for row in cursor.fetchall():
 			command = row[0]
 			self.source_buffer.set_text(command)
 		cursor.close()
+		DB.rollback()
 		
 	def sourceview_populate_popup (self, textview, menu):
 		separator = Gtk.SeparatorMenuItem()
@@ -90,23 +91,24 @@ class SQLWindowGUI :
 	def populate_sql_commands (self):
 		combo = self.builder.get_object('comboboxtext1')
 		combo.remove_all()
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("SELECT name FROM sql.history WHERE current IS NOT TRUE "
 						"ORDER BY name")
 		for row in cursor.fetchall():
 			combo.append(row[0], row[0])
 		cursor.close()
+		DB.rollback()
 
 	def delete_activated (self, menuitem):
 		name = self.builder.get_object('comboboxtext-entry').get_text()
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("DELETE FROM sql.history WHERE name = %s", (name,))
-		self.db.commit()
+		DB.commit()
 		cursor.close()
 		self.populate_sql_commands()
 
 	def save_clicked (self, button):
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		name = self.builder.get_object('comboboxtext-entry').get_text()
 		start = self.source_buffer.get_start_iter()
 		end = self.source_buffer.get_end_iter()
@@ -115,7 +117,7 @@ class SQLWindowGUI :
 						"VALUES (%s, %s, CURRENT_DATE) ON CONFLICT (name) "
 						"DO UPDATE SET command = %s WHERE history.name = %s", 
 						(name, command, command, name))
-		self.db.commit()
+		DB.commit()
 		cursor.close()
 		self.populate_sql_commands()
 
@@ -126,14 +128,14 @@ class SQLWindowGUI :
 		start_iter = self.source_buffer.get_start_iter ()
 		end_iter = self.source_buffer.get_end_iter ()
 		string = self.source_buffer.get_text(start_iter, end_iter, True)
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		try:
 			cursor.execute(string)
 		except Exception as e:
 			self.builder.get_object('sql_error_buffer').set_text(str(e))
 			self.builder.get_object('textview2').set_visible(True)
 			self.builder.get_object('scrolledwindow2').set_visible(False)
-			self.db.rollback()
+			DB.rollback()
 			return
 		#create treeview columns and a liststore to store the info
 		if cursor.description == None: #probably an UPDATE, report rows affected
@@ -141,7 +143,7 @@ class SQLWindowGUI :
 			self.builder.get_object('sql_error_buffer').set_text(result)
 			self.builder.get_object('textview2').set_visible(True)
 			self.builder.get_object('scrolledwindow2').set_visible(False)
-			self.db.rollback()
+			DB.rollback()
 			return
 		self.builder.get_object('textview2').set_visible(False)
 		self.builder.get_object('scrolledwindow2').set_visible(True)
@@ -174,19 +176,19 @@ class SQLWindowGUI :
 			for index, element in enumerate(row):
 				store_row.append(type_list[index](element))
 			store.append (store_row)
-		self.db.rollback()
+		DB.rollback()
 		cursor.close()
 		self.save_current_sql(string)
 
 	def save_current_sql(self, command):
-		cursor = self.db.cursor()
+		cursor = DB.cursor()
 		cursor.execute("UPDATE sql.history SET command = %s "
 						"WHERE current = True RETURNING name", (command,))
 		if cursor.fetchone() == None:
 			cursor.execute("INSERT INTO sql.history "
 							"(name, command, date_inserted, current) VALUES "
 							"('Current', %s, CURRENT_DATE, TRUE)", (command,))
-		self.db.commit()
+		DB.commit()
 		cursor.close()
 
 	def copy_for_database_utils_clicked (self, button):

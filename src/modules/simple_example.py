@@ -1,4 +1,4 @@
-# add_files.py
+# simple_example.py
 #
 # Copyright (C) 2016 - reuben
 #
@@ -16,9 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import constants
+from constants import ui_directory, DB
 
-UI_FILE = "src/modules/simple_example.ui"
+UI_FILE = ui_directory + "/modules/simple_example.ui"
 
 class GUI:
 	def __init__(self, menuitem):
@@ -26,24 +26,25 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-
-		
-		self.db = constants.db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.populate_combo ()
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
+	def destroy (self, widget):
+		self.cursor.close()
+
 	def populate_combo (self):
 		combo = self.builder.get_object('comboboxtext1')
 		combo.remove_all()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE deleted = False "
 							"ORDER BY name")
 		for row in self.cursor.fetchall():
 			contact_id = row[0]
 			contact_name = row[1]
-			combo.append(str(contact_id), contact_name)
+			combo.append(contact_id, contact_name)
+		DB.rollback()
 
 	def button1_clicked (self, button):
 		buffer_ = self.builder.get_object('textbuffer1')

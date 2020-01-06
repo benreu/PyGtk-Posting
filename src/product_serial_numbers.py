@@ -19,7 +19,7 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
-from constants import db, ui_directory, broadcaster
+from constants import ui_directory, DB, broadcaster
 import constants
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
@@ -30,9 +30,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-
-		self.db = db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 		self.product_store = self.get_object('product_store')
 		self.contact_store = self.get_object('contact_store')
 		self.handler_ids = list()
@@ -110,6 +108,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.product_store.append(row)
+		DB.rollback()
 		
 	def populate_contact_store (self, m=None, i=None):
 		self.contact_store.clear()
@@ -117,6 +116,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
+		DB.rollback()
 
 	def populate_serial_number_history (self):
 		store = self.get_object('serial_number_treeview_store')
@@ -145,6 +145,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -165,6 +166,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"WHERE serial_number_id = %s", (serial_id,))
 		for row in self.cursor.fetchall():
 			store.append(row)
+		DB.rollback()
 
 	def add_serial_event_clicked (self, button):
 		dialog = self.get_object('event_dialog')
@@ -181,7 +183,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"VALUES (%s, %s, %s, %s)", 
 								(self.contact_id, self.date, 
 								description, self.serial_id))
-			self.db.commit()
+			DB.commit()
 			self.populate_serial_number_history ()
 			self.get_object('combobox2').set_sensitive(False)
 			self.get_object('combobox3').set_sensitive(False)
@@ -209,12 +211,12 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"date_inserted) "
 								"VALUES (%s, %s, %s)", 
 								(self.product_id, serial_number, self.date))
-			self.db.commit()
+			DB.commit()
 			dialog = self.get_object('add_serial_number_dialog')
 			dialog.response(Gtk.ResponseType.ACCEPT)
 		except psycopg2.IntegrityError as e:
 			self.get_object('label10').set_text(str(e))
-			self.db.rollback()
+			DB.rollback()
 
 	def refresh_clicked (self, button):
 		self.populate_serial_number_history ()
@@ -245,6 +247,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"WHERE product_id = %s", (product_id,))
 			for row in self.cursor.fetchall():
 				store.append(row)
+		DB.rollback()
 
 	def add_product_combo_changed (self, combo):
 		product_id = combo.get_active_id()
@@ -282,5 +285,5 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 
 
-		
-		
+
+

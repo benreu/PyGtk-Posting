@@ -17,7 +17,7 @@
 
 
 from gi.repository import Gtk
-from constants import ui_directory, db, broadcaster
+from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/product_location.ui"
 
@@ -26,10 +26,8 @@ class ProductLocationGUI:
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
-			
 		self.builder.connect_signals(self)
-		self.db = db
-		self.cursor = self.db.cursor()
+		self.cursor = DB.cursor()
 
 		self.aisle_text = ""
 		self.product_text = ""
@@ -186,6 +184,7 @@ class ProductLocationGUI:
 							(location_id,))
 		for row in self.cursor.fetchall():
 			self.product_location_store.append(row)
+		DB.rollback()
 
 	def populate_location_combo(self):
 		location_combo = self.builder.get_object('combobox1')
@@ -200,20 +199,20 @@ class ProductLocationGUI:
 			location_combo.set_active(0)
 		else:
 			location_combo.set_active_id(active_id)
+		DB.rollback()
 
 	def row_activate(self, treeview, path, treeviewcolumn):
 		treeiter = self.product_location_store.get_iter(path)
 		product_id = self.product_location_store.get_value(treeiter, 9)
-		import products
-		products.ProductsGUI(self.db, product_id, product_location_tab = True)
+		import products_overview
+		po = products_overview.ProductsOverviewGUI(product_id)
 
 	def product_treeview_button_release (self, treeview, event):
 		if event.button == 3:
 			menu = self.builder.get_object('menu1')
-			menu.popup(None, None, None, None, event.button, event.time)
-			menu.show_all()
+			menu.popup_at_pointer()
 
 
 
 
-		
+
