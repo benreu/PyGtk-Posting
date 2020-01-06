@@ -108,6 +108,10 @@ class MainGUI :
 		from db import sql_window
 		sql_window.SQLWindowGUI()
 
+	def complete_search_activated (self, menuitem):
+		import complete_search
+		complete_search.CompleteSearchGUI()
+
 	def populate_modules (self):
 		import importlib.util as i_utils
 		cwd = os.getcwd()

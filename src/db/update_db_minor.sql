@@ -352,6 +352,34 @@ BEGIN
 		ON UPDATE RESTRICT ON DELETE RESTRICT;
 	END IF;
 END$$; 
+-- 0.5.23
+CREATE OR REPLACE FUNCTION complete_search(search_text text)
+RETURNS table(schemaname text, tablename text, columnname text, rowfound text, rowctid text)
+AS $$ 
+BEGIN
+  FOR schemaname,tablename,columnname IN
+      SELECT c.table_schema,c.table_name,c.column_name
+      FROM information_schema.columns c
+      JOIN information_schema.tables t ON
+        (t.table_name=c.table_name AND t.table_schema=c.table_schema)
+      WHERE c.table_schema <> 'pg_catalog'
+        AND c.table_schema <> 'information_schema'
+        AND c.data_type <> 'bytea' 
+        AND t.table_type='BASE TABLE'
+  LOOP
+    EXECUTE format('SELECT ctid, cast(%I as text) FROM %I.%I WHERE lower(cast(%I as text)) ~ %L',
+       columnname,
+       schemaname,
+       tablename,
+       columnname,
+       search_text
+    ) INTO rowctid, rowfound;
+    IF rowctid IS NOT NULL THEN
+      RETURN NEXT;
+    END IF;
+ END LOOP;
+END; 
+$$ language plpgsql;
 
 
 
