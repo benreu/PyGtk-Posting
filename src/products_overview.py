@@ -134,10 +134,18 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.filter_list = filter_text.split(" ")
 		self.filtered_product_store.refilter()
 
+	def product_type_radiobutton_toggled (self, radiobutton):
+		if radiobutton.get_active() == True:
+			self.populate_product_store()
+
 	def populate_product_store (self, widget = None, d = None):
+		progressbar = self.get_object('progressbar')
 		c = DB.cursor()
 		model = self.treeview.get_model()
 		self.treeview.set_model(None)
+		spinner = self.get_object('spinner')
+		spinner.show()
+		spinner.start()
 		self.product_store.clear()
 		if self.get_object('radiobutton1').get_active() == True:
 			where = "WHERE (deleted, sellable) = (False, True) " 
@@ -177,10 +185,17 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"JOIN units AS u ON u.id = p.unit "
 							"%s OR p.id = %s ORDER BY p.name, p.ext_name"
 							% (where, self.product_id))
-		for row in c.fetchall():
+		p_tuple = c.fetchall()
+		rows = len(p_tuple)
+		for row_count, row in enumerate(p_tuple):
+			progressbar.set_fraction((row_count + 1) / rows)
 			self.product_store.append(row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		self.treeview.set_model(model)
 		self.select_product()
+		spinner.hide()
+		spinner.stop()
 		c.close()
 		DB.rollback()
 
