@@ -325,6 +325,8 @@ class GUI:
 		self.builder.get_object('box14').set_sensitive(False)
 
 	def mark_invoices_paid (self ):
+		self.cursor.execute("SELECT accrual_based FROM settings")
+		accrual_based = self.cursor.fetchone()[0] 
 		selection = self.builder.get_object('treeview-selection1')
 		model, paths = selection.get_selected_rows()
 		for path in paths:
@@ -333,7 +335,8 @@ class GUI:
 								"SET (paid, date_paid) = "
 								"(True, %s) WHERE id = %s", 
 								(self.date, po_id))
-			post_purchase_order_accounts (po_id, self.date)
+			if accrual_based == False:
+				post_purchase_order_accounts (po_id, self.date)
 
 	def credit_card_changed(self, widget):
 		self.check_credit_card_entries_valid ()
