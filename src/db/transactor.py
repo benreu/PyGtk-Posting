@@ -696,10 +696,11 @@ def switch_to_accrual_based ():
 		invoice_id = row[0]
 		post_invoice_accounts (datetime.today(), invoice_id)
 	cursor.execute ("SELECT id FROM purchase_orders "
-					"WHERE (paid, canceled, closed) = (False, False, True)")
+					"WHERE (paid, canceled, closed, invoiced) = "
+					"(False, False, True, True)")
 	for row in cursor.fetchall():
 		po_id = row[0]
-		post_purchase_order_accounts (po_id)
+		post_purchase_order_accounts (po_id, datetime.today())
 	cursor.close()
 
 def create_loan (date, amount, liability_account):
