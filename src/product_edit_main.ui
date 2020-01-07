@@ -35,16 +35,21 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
-  <object class="GtkListStore" id="placeholder_store"/>
-  <object class="GtkEntryCompletion" id="product_name_suggestion">
+  <object class="GtkListStore" id="placeholder_store">
+    <columns>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="product_completion">
     <property name="model">placeholder_store</property>
-    <property name="text_column">1</property>
+    <property name="text_column">0</property>
     <property name="inline_completion">True</property>
     <property name="inline_selection">True</property>
     <child>
       <object class="GtkCellRendererText" id="cellrenderertext1"/>
       <attributes>
-        <attribute name="text">1</attribute>
+        <attribute name="text">0</attribute>
       </attributes>
     </child>
   </object>
@@ -564,7 +569,7 @@
                                         <property name="hexpand">True</property>
                                         <property name="text" translatable="yes">New product</property>
                                         <property name="placeholder_text" translatable="yes">Product name</property>
-                                        <property name="completion">product_name_suggestion</property>
+                                        <property name="completion">product_completion</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
