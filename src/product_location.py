@@ -180,7 +180,7 @@ class ProductLocationGUI:
 								"product_id "
 							"FROM product_location AS pl "
 							"JOIN products AS p ON p.id = pl.product_id "
-							"WHERE (locator_visible, location_id) = (True, %s)", 
+							"WHERE location_id = %s", 
 							(location_id,))
 		for row in self.cursor.fetchall():
 			self.product_location_store.append(row)
