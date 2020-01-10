@@ -24,7 +24,7 @@ UI_FILE = ui_directory + "/time_clock.ui"
 
 class TimeClockGUI :
 	entry_id = 0
-	def __init__(self, parent = None):
+	def __init__(self):
 		
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -67,7 +67,7 @@ class TimeClockGUI :
 		"we need to commit on a regular basis so that db polling works; "
 		"the db polling feature will then broadcast all revelant changes "
 		DB.commit()
-		return True
+		return self.window.is_active() # double check that the window is focused
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
