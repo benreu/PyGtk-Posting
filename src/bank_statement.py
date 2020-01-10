@@ -259,9 +259,9 @@ class GUI:
 		c.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
 							(active, row_id))
+		DB.commit()
 		self.calculate_reconciled_balance ()
 		self.account_statement_difference ()
-		DB.commit()
 		c.close()
 		
 	def calculate_reconciled_balance(self):
