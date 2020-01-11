@@ -348,14 +348,15 @@ class GUI:
 
 	def number_edited (self, renderer, path, text):
 		row_id = self.bank_transaction_store[path][0]
+		c = DB.cursor()
 		try:
 			c.execute("UPDATE gl_entries SET check_number = %s "
 								"WHERE id = %s", (text, row_id))
+			c.close()
 			DB.commit()
-			self.bank_transaction_store[path][1] = int(text)
+			self.bank_transaction_store[path][1] = text
 		except psycopg2.DataError as e:
 			DB.rollback()
-			print (e)
 			self.builder.get_object('label10').set_label(str(e))
 			dialog = self.builder.get_object('date_error_dialog')
 			dialog.run()
