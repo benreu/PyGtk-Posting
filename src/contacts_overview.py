@@ -15,10 +15,14 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-from constants import ui_directory, DB
+import subprocess
+from constants import ui_directory, DB, template_dir
 from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/contacts_overview.ui"
+
+class Item(object):
+	pass
 
 class ContactsOverviewGUI(Gtk.Builder):
 	def __init__(self, contact_id = 0):
@@ -197,6 +201,123 @@ class ContactsOverviewGUI(Gtk.Builder):
 		import contact_edit_files 
 		cf = contact_edit_files.ContactEditFilesGUI(contact_id)
 		cf.window.set_transient_for(self.window)
+
+	def open_company_letter_head_activated (self, menuitem):
+		contact = Item()
+		c = DB.cursor()
+		c.execute("SELECT name, address, city, state, zip, phone, "
+							"fax, email FROM contacts WHERE id = %s", 
+							(self.contact_id,))
+		for row in c.fetchall():
+			contact.name = row[0]
+			contact.street = row[1]
+			contact.city = row[2]
+			contact.state = row[3]
+			contact.zip = row[4]
+			contact.phone = row[5]
+			contact.fax = row[6]
+			contact.email = row[7]
+		company = Item()
+		c.execute("SELECT * FROM company_info")
+		for row in c.fetchall():
+			company.name = row[1]
+			company.street = row[2]
+			company.city = row[3]
+			company.state = row[4]
+			company.zip = row[5]
+			company.country = row[6]
+			company.phone = row[7]
+			company.fax = row[8]
+			company.email = row[9]
+			company.website = row[10]
+		data = dict(contact = contact, company = company)
+		from py3o.template import Template
+		label_file = "/tmp/letter_head_template.odt"
+		t = Template(template_dir+"/letter_head_template.odt", 
+									label_file,
+									True)
+		t.render(data)
+		subprocess.Popen(["soffice", label_file])
+		c.close()
+		DB.rollback()
+
+	def print_mailing_envelope_activated (self, menuitem):
+		contact = Item()
+		c = DB.cursor()
+		c.execute("SELECT name, address, city, state, zip, phone, "
+							"fax, email FROM contacts WHERE id = %s", 
+							(self.contact_id,))
+		for row in c.fetchall():
+			contact.name = row[0]
+			contact.street = row[1]
+			contact.city = row[2]
+			contact.state = row[3]
+			contact.zip = row[4]
+			contact.phone = row[5]
+			contact.fax = row[6]
+			contact.email = row[7]
+		company = Item()
+		c.execute("SELECT * FROM company_info")
+		for row in c.fetchall():
+			company.name = row[1]
+			company.street = row[2]
+			company.city = row[3]
+			company.state = row[4]
+			company.zip = row[5]
+			company.country = row[6]
+			company.phone = row[7]
+			company.fax = row[8]
+			company.email = row[9]
+			company.website = row[10]
+		data = dict(contact = contact, company = company)
+		from py3o.template import Template
+		env_file = "/tmp/mailing_envelope_template.odt"
+		t = Template(template_dir+"/mailing_envelope_template.odt", 
+									env_file, 
+									True)
+		t.render(data)
+		subprocess.Popen(["soffice", env_file])
+		c.close()
+		DB.rollback()
+
+	def print_shipping_label_activated (self, menuitem):
+		contact = Item()
+		c = DB.cursor()
+		c.execute("SELECT name, address, city, state, zip, phone, "
+							"fax, email FROM contacts WHERE id = %s", 
+							(self.contact_id,))
+		for row in c.fetchall():
+			contact.name = row[0]
+			contact.street = row[1]
+			contact.city = row[2]
+			contact.state = row[3]
+			contact.zip = row[4]
+			contact.phone = row[5]
+			contact.fax = row[6]
+			contact.email = row[7]
+		company = Item()
+		c.execute("SELECT * FROM company_info")
+		for row in c.fetchall():
+			company.name = row[1]
+			company.street = row[2]
+			company.city = row[3]
+			company.state = row[4]
+			company.zip = row[5]
+			company.country = row[6]
+			company.phone = row[7]
+			company.fax = row[8]
+			company.email = row[9]
+			company.website = row[10]
+		data = dict(contact = contact, company = company)
+		from py3o.template import Template
+		label_file = "/tmp/shipping_label_template.odt"
+		t = Template("./templates/shipping_label_template.odt", 
+												label_file, 
+												True)
+		t.render(data) 
+		subprocess.Popen(["soffice", label_file])
+		c.close()
+		DB.rollback()
 
 
 

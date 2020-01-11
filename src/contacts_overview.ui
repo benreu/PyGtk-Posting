@@ -39,6 +39,33 @@
       <object class="GtkMenuItem">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Open company letter head</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="open_company_letter_head_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Print mailing envelope</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="print_mailing_envelope_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Print shipping label</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="print_shipping_label_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">Save window layout</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="save_window_layout_activated" swapped="no"/>
