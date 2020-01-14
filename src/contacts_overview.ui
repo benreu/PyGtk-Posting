@@ -32,6 +32,11 @@
   <object class="GtkTreeModelSort" id="contact_sort">
     <property name="model">contact_filter</property>
   </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-media-record</property>
+  </object>
   <object class="GtkMenu" id="menu1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -79,6 +84,7 @@
     <property name="default_width">1100</property>
     <property name="default_height">700</property>
     <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -187,7 +193,21 @@
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="refresh_button">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="no_show_all">True</property>
+                <property name="tooltip_text" translatable="yes">Refresh contacts, this button only shows when the contacts have changed</property>
+                <property name="image">image1</property>
+                <property name="always_show_image">True</property>
+                <signal name="clicked" handler="refresh_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
+              </packing>
             </child>
             <child>
               <placeholder/>

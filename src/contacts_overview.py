@@ -16,7 +16,7 @@
 
 from gi.repository import Gtk, GLib
 import subprocess
-from constants import ui_directory, DB, template_dir
+from constants import ui_directory, DB, template_dir, broadcaster
 from main import get_apsw_connection
 
 UI_FILE = ui_directory + "/contacts_overview.ui"
@@ -36,11 +36,26 @@ class ContactsOverviewGUI(Gtk.Builder):
 		self.filtered_store = self.get_object('contact_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.treeview = self.get_object('treeview2')
+		self.handler_ids = list()
+		for connection in (("contacts_changed", self.show_refresh_button),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		self.populate_contact_store()
 		self.window = self.get_object('window1')
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
+
+	def destroy (self, widget):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+
+	def show_refresh_button (self, broadcast):
+		self.get_object('refresh_button').set_visible(True)
+
+	def refresh_button_clicked (self, button):
+		self.populate_contact_store()
+		button.set_visible(False)
 
 	def set_window_layout_from_settings(self):
 		sqlite = get_apsw_connection()
@@ -150,7 +165,27 @@ class ContactsOverviewGUI(Gtk.Builder):
 		self.treeview.set_search_column(1)
 		self.select_contact()
 
-	def select_contact (self):
+	def append_contact(self, contact_id):
+		c = DB.cursor()
+		c.execute("SELECT id, "
+						"name, "
+						"ext_name, "
+						"address, "
+						"city, "
+						"state, "
+						"zip, "
+						"fax, "
+						"phone, "
+						"email "
+					"FROM contacts "
+					"WHERE id = %s" , (contact_id,))
+		for row in c.fetchall():
+			self.contact_store.append(row)
+		c.close()
+
+	def select_contact (self, contact_id = None):
+		if contact_id != None:
+			self.contact_id = contact_id
 		for row in self.treeview.get_model(): 
 			if row[0] == self.contact_id: 
 				treeview_selection = self.get_object('treeview-selection2')
@@ -173,7 +208,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 
 	def new_clicked (self, button):
 		import contact_edit_main
-		contact_edit_main.ContactEditMainGUI()
+		contact_edit_main.ContactEditMainGUI(overview_class = self)
 
 	def edit_clicked (self, button):
 		model, path = self.get_object('treeview-selection2').get_selected_rows()

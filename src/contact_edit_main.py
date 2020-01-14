@@ -22,7 +22,7 @@ from constants import ui_directory, DB
 UI_FILE = ui_directory + "/contact_edit_main.ui"
 
 class ContactEditMainGUI(Gtk.Builder):
-	def __init__(self, contact_id = None):
+	def __init__(self, contact_id = None, overview_class = None):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
@@ -35,6 +35,7 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.contact_id = contact_id
 		if contact_id != None:
 			self.load_contact()
+		self.overview_class = overview_class
 		
 	def destroy(self, window):
 		self.cursor.close()
@@ -132,8 +133,8 @@ class ContactEditMainGUI(Gtk.Builder):
 		phone = self.get_object('entry7').get_text()
 		fax = self.get_object('entry8').get_text()
 		email = self.get_object('entry9').get_text()
-		misc = self.get_object('entry10').get_text()
-		checks_payable_to = self.get_object('entry11').get_text()
+		checks_payable_to = self.get_object('entry10').get_text()
+		misc = self.get_object('entry11').get_text()
 		tax_number = self.get_object('entry12').get_text()
 		custom1 = self.get_object('entry13').get_text()
 		custom2 = self.get_object('entry14').get_text()
@@ -186,7 +187,9 @@ class ContactEditMainGUI(Gtk.Builder):
 								custom3, custom4, notes, term_id, 
 								service_provider, checks_payable_to, 
 								markup_id))
-			self.contact_id = self.cursor.fetchone()[0]
+			contact_id = self.cursor.fetchone()[0]
+			self.overview_class.append_contact(contact_id)
+			self.overview_class.select_contact(contact_id)
 		DB.commit()
 		self.window.destroy()
 
