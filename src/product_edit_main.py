@@ -471,7 +471,8 @@ class ProductEditMainGUI (Gtk.Builder):
 			DB.commit()
 			if self.product_overview != None:
 				self.product_overview.product_id = product_id
-				self.product_overview.populate_product_store()
+				self.product_overview.append_product()
+				self.product_overview.select_product()
 		else:  # just save the existing product
 			try:
 				if barcode == '':
