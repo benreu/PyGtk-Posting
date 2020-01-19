@@ -380,6 +380,9 @@ BEGIN
  END LOOP;
 END; 
 $$ language plpgsql;
+-- 0.5.24
+CREATE UNIQUE INDEX IF NOT EXISTS products_markup_prices_unique
+ON public.products_markup_prices (product_id, markup_id);
 
 
 
