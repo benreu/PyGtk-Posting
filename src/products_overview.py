@@ -126,6 +126,11 @@ class ProductsOverviewGUI (Gtk.Builder):
 			broadcaster.disconnect(handler)
 		self.window = None
 
+	def report_hub_activated (self, menuitem):
+		treeview = self.get_object('treeview2')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
+
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		product_id = model[path][0]
@@ -218,6 +223,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 		self.treeview.set_model(model)
+		self.treeview.set_search_column(1)
 		self.select_product()
 		spinner.hide()
 		spinner.stop()
