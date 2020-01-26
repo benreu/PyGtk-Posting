@@ -208,7 +208,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 
 	def new_clicked (self, button):
 		import contact_edit_main
-		contact_edit_main.ContactEditMainGUI(overview_class = self)
+		ce = contact_edit_main.ContactEditMainGUI(overview_class = self)
+		ce.window.set_transient_for(self.window)
 
 	def edit_clicked (self, button):
 		model, path = self.get_object('treeview-selection2').get_selected_rows()

@@ -233,7 +233,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">contact_sort</property>
-                    <property name="rubber_banding">True</property>
+                    <property name="search_column">1</property>
+                    <property name="enable_grid_lines">horizontal</property>
                     <signal name="row-activated" handler="contact_activated" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection2">
