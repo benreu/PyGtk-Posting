@@ -95,7 +95,7 @@ class ManufacturingGUI(Gtk.Builder):
 								"manufacturing_id) "
 								"VALUES (%s, CURRENT_DATE, %s, %s)", 
 								(self.product_id, barcode, self.project_id))
-		serial = serial_number_qty + serial_start + 1
+		serial = serial_number_qty + serial_start
 		self.cursor.execute("UPDATE products SET serial_number = %s "
 							"WHERE id = %s", (serial, self.product_id))
 		DB.commit()
