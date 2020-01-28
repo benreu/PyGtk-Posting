@@ -23,9 +23,12 @@ from constants import 	broadcaster, \
 						is_admin, \
 						help_dir, \
 						template_dir
-from accounts import 	product_revenue_account, \
-						product_expense_account, \
-						product_inventory_account
+from accounts import 	product_revenue_tree, \
+						product_expense_tree, \
+						product_inventory_tree, \
+						product_revenue_list, \
+						product_expense_list, \
+						product_inventory_list
 from main import get_apsw_connection
 import spell_check, barcode_generator
 
@@ -70,9 +73,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		self.product_overview = product_overview
-		self.get_object('combobox1').set_model(product_expense_account)
-		self.get_object('combobox2').set_model(product_revenue_account)
-		self.get_object('combobox3').set_model(product_inventory_account)
+		self.set_models ()
 		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 		self.treeview = self.get_object('treeview2')
@@ -81,8 +82,21 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.set_window_layout_from_settings ()
 		self.window = self.get_object('window')
 		self.window.show_all()
-		self.window.set_keep_above(True)
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
+
+	def set_models (self):
+		self.get_object('combobox1').set_model(product_expense_tree)
+		self.get_object('combobox2').set_model(product_revenue_tree)
+		self.get_object('combobox3').set_model(product_inventory_tree)
+		comp = self.get_object('expense_completion')
+		comp.set_model(product_expense_list)
+		comp.set_match_func(self.account_match_func, product_expense_list)
+		comp = self.get_object('inventory_completion')
+		comp.set_model(product_inventory_list)
+		comp.set_match_func(self.account_match_func, product_inventory_list)
+		comp = self.get_object('revenue_completion')
+		comp.set_model(product_revenue_list)
+		comp.set_match_func(self.account_match_func, product_revenue_list)
 
 	def set_window_layout_from_settings (self):
 		sqlite = get_apsw_connection ()
@@ -112,6 +126,16 @@ class ProductEditMainGUI (Gtk.Builder):
 
 	def help_button_activated (self, menuitem):
 		subprocess.Popen(["yelp", help_dir + "/products.page"])
+	
+	def widget_focus_in (self, widget, event):
+		GLib.idle_add(widget.select_region, 0, -1)
+
+	def account_match_func(self, completion, key, tree_iter, account):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in account[tree_iter][1].lower():
+				return False
+		return True
 
 	def populate_account_combos(self):
 		c = DB.cursor()
@@ -336,17 +360,26 @@ class ProductEditMainGUI (Gtk.Builder):
 			return
 		self.expense_account = account_number
 
+	def expense_completion_match_selected (self, completion, model, treeiter):
+		self.expense_account = model[treeiter][0]
+
 	def revenue_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
 		if account_number == None:
 			return
 		self.revenue_account = account_number
 
+	def revenue_completion_match_selected (self, completion, model, treeiter):
+		self.revenue_account = model[treeiter][0]
+
 	def inventory_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
 		if account_number == None:
 			return
 		self.inventory_account = account_number
+
+	def inventory_completion_match_selected (self, completion, model, treeiter):
+		self.inventory_account = model[treeiter][0]
 
 	def save_clicked (self, button = None):
 		name = self.get_object('entry1').get_text()
