@@ -80,7 +80,6 @@ class InvoiceGUI:
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.customer_id = 0
-		self.menu_visible = False
 		
 		textview = self.builder.get_object('comment_textview')
 		spell_check.add_checker_to_widget (textview)
@@ -266,11 +265,9 @@ class InvoiceGUI:
 
 	def focus (self, window, event):
 		self.populate_location_store ()
-		if self.invoice_id != None:
-			self.populate_invoice_items ()
 
 	def treeview_button_release_event (self, treeview, event):
-		if event.button == 3 and self.menu_visible == False:
+		if event.button == 3:
 			selection = self.builder.get_object("treeview-selection")
 			model, path = selection.get_selected_rows ()
 			cancel_time_import_menuitem = self.builder.get_object("menuitem13")
@@ -285,9 +282,6 @@ class InvoiceGUI:
 					cancel_time_import_menuitem.set_visible(True)
 			menu = self.builder.get_object('invoice_item_menu')
 			menu.popup_at_pointer()
-			self.menu_visible = True
-		else:
-			self.menu_visible = False
 		DB.rollback()
 
 	def cancel_time_clock_import_activated (self, menuitem):
@@ -326,6 +320,38 @@ class InvoiceGUI:
 		product_id = model[path][2]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
+
+	def move_up_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_prev = model.iter_previous(iter_)
+		if iter_prev == None:
+			return
+		model.swap(iter_, iter_prev)
+		self.save_row_ordering()
+
+	def move_down_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_next = model.iter_next(iter_)
+		if iter_next == None:
+			return
+		model.swap(iter_, iter_next)
+		self.save_row_ordering()
+
+	def save_row_ordering (self):
+		for row_count, row in enumerate (self.invoice_store):
+			row_id = row[0]
+			self.cursor.execute("UPDATE invoice_items "
+								"SET sort = %s WHERE id = %s", 
+								(row_count, row_id))
+		DB.commit()
 
 	def tax_exemption_window (self, widget):
 		import customer_tax_exemptions as cte
@@ -498,7 +524,7 @@ class InvoiceGUI:
 							"LEFT JOIN tax_rates "
 							"ON tax_rates.id = ili.tax_rate_id "
 							"WHERE (invoice_id, canceled) = (%s, False) "
-							"ORDER BY ili.id", (self.invoice_id,))
+							"ORDER BY ili.sort, ili.id", (self.invoice_id,))
 		for row in self.cursor.fetchall():
 			id = row[0]
 			qty = row[1]

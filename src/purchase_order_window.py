@@ -83,7 +83,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.qty_renderer_value = 1
 
 		self.focusing = False
-		self.menu_visible = False
 
 		self.order_number_completion = self.get_object ('order_number_completion')
 		self.order_number_store = self.get_object ('order_number_store')
@@ -269,7 +268,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"ON (vpn.vendor_id, vpn.product_id) "
 							"= (poli.product_id, po.vendor_id) "
 							"WHERE (po.canceled, po.closed, po.paid) = "
-							"(False, False, False) ORDER BY poli.id")
+							"(False, False, False) "
+							"ORDER BY poli.sort, poli.id")
 		else:
 			self.get_object('treeviewcolumn11').set_visible(False)
 			cursor.execute("SELECT "
@@ -296,7 +296,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"LEFT JOIN vendor_product_numbers AS vpn "
 							"ON (vpn.vendor_id, vpn.product_id) "
 							"= (poli.product_id, po.vendor_id) "
-							"WHERE purchase_order_id = %s ORDER BY poli.id", 
+							"WHERE purchase_order_id = %s "
+							"ORDER BY poli.sort, poli.id", 
 							(self.purchase_order_id, ) )
 		for row in cursor.fetchall():
 			self.p_o_store.append(row)
@@ -335,8 +336,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.populate_product_store ()
 		self.populate_vendor_store ()
 		self.focusing = False
-		if self.purchase_order_id != None:
-			self.products_from_existing_po ()
 
 	def vendor_combo_populate_popup (self, entry, menu):
 		separator = Gtk.SeparatorMenuItem ()
@@ -353,12 +352,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 			contact_hub.ContactHubGUI(self.vendor_id)
 
 	def treeview_button_release_event (self, treeview, event):
-		if event.button == 3 and self.menu_visible == False:
+		if event.button == 3:
 			menu = self.get_object('p_o_item_menu')
 			menu.popup_at_pointer()
-			self.menu_visible = True
-		else:
-			self.menu_visible = False
 
 	def product_hub_activated (self, menuitem):
 		selection = self.get_object('treeview-selection')
@@ -368,6 +364,38 @@ class PurchaseOrderGUI(Gtk.Builder):
 		product_id = model[path][2]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
+
+	def move_up_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_prev = model.iter_previous(iter_)
+		if iter_prev == None:
+			return
+		model.swap(iter_, iter_prev)
+		self.save_row_ordering()
+
+	def move_down_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_next = model.iter_next(iter_)
+		if iter_next == None:
+			return
+		model.swap(iter_, iter_next)
+		self.save_row_ordering()
+
+	def save_row_ordering (self):
+		for row_count, row in enumerate (self.p_o_store):
+			row_id = row[0]
+			self.cursor.execute("UPDATE purchase_order_line_items "
+								"SET sort = %s WHERE id = %s", 
+								(row_count, row_id))
+		DB.commit()
 
 	def update_line_item_vendor (self, _iter, vendor_id):
 		row_id = self.p_o_store[_iter][0]
