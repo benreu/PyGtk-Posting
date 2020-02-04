@@ -50,6 +50,24 @@
         <signal name="activate" handler="product_hub_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Move down</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="move_down_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Move up</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="move_up_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="po_store">
     <columns>
@@ -343,6 +361,7 @@
                       <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                         <property name="editable">True</property>
                         <property name="has_entry">False</property>
+                        <property name="model">expense_account_store</property>
                         <property name="text_column">1</property>
                         <signal name="changed" handler="expense_account_combo_changed" swapped="no"/>
                       </object>

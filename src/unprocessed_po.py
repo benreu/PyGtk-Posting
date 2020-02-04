@@ -77,7 +77,6 @@ class GUI(Gtk.Builder):
 		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
 
 		self.populate_terms_listbox()
-		self.populate_expense_account_store ()
 		self.populate_expense_products ()
 		self.window = self.get_object('window')
 		self.window.show_all()
@@ -103,6 +102,38 @@ class GUI(Gtk.Builder):
 		if event.button == 3:
 			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
+
+	def move_down_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_next = model.iter_next(iter_)
+		if iter_next == None:
+			return
+		model.swap(iter_, iter_next)
+		self.save_row_ordering()
+
+	def move_up_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_prev = model.iter_previous(iter_)
+		if iter_prev == None:
+			return
+		model.swap(iter_, iter_prev)
+		self.save_row_ordering()
+
+	def save_row_ordering (self):
+		for row_count, row in enumerate (self.purchase_order_items_store):
+			row_id = row[0]
+			self.cursor.execute("UPDATE purchase_order_line_items "
+								"SET sort = %s WHERE id = %s", 
+								(row_count, row_id))
+		DB.commit()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.get_object("treeview-selection")
@@ -271,7 +302,8 @@ class GUI(Gtk.Builder):
 					"JOIN products AS p ON p.id = poli.product_id "
 					"LEFT JOIN gl_accounts AS a "
 					"ON a.number = poli.expense_account "
-					"WHERE purchase_order_id = (%s) ORDER BY poli.id", 
+					"WHERE purchase_order_id = (%s) "
+					"ORDER BY poli.sort, poli.id", 
 					(self.purchase_order_id, ))
 		for row in c.fetchall() :
 			self.purchase_order_items_store.append(row)
