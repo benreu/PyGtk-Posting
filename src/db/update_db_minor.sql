@@ -390,6 +390,10 @@ ALTER TABLE purchase_order_line_items ALTER COLUMN sort SET NOT NULL;
 ALTER TABLE invoice_items ADD COLUMN IF NOT EXISTS sort int DEFAULT 0;
 UPDATE invoice_items SET sort = 0 WHERE sort IS NULL;
 ALTER TABLE invoice_items ALTER COLUMN sort SET NOT NULL;
+--0.5.26
+ALTER TABLE incoming_invoices_gl_entry_expenses_ids ADD COLUMN IF NOT EXISTS remark varchar DEFAULT '';
+UPDATE incoming_invoices_gl_entry_expenses_ids SET remark = '' WHERE remark IS NULL;
+ALTER TABLE incoming_invoices_gl_entry_expenses_ids ALTER COLUMN remark SET NOT NULL;
 
 
 

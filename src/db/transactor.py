@@ -144,8 +144,9 @@ class ServiceProviderPayment :
 					"VALUES (%s) RETURNING id", (date,))
 		self.transaction_id = c.fetchone()[0]
 		c.close()
+		self.incoming_invoice_id = None # updated from the rest of Posting
 		
-	def check_payment(self, amount, check_number, checking_account, description, invoice_id):
+	def check_payment(self, amount, check_number, checking_account, description):
 		c = DB.cursor()
 		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
@@ -159,10 +160,10 @@ class ServiceProviderPayment :
 						"WHERE id = %s", 
 						(checking_account, amount, check_number, 
 						self.transaction_id, self.date, description, 
-						invoice_id))
+						self.incoming_invoice_id))
 		c.close()
 	
-	def transfer (self, amount, description, checking_account, invoice_id):
+	def transfer (self, amount, description, checking_account):
 		c = DB.cursor()
 		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
@@ -174,10 +175,10 @@ class ServiceProviderPayment :
 						"SET gl_entry_id = (SELECT id FROM cte) "
 						"WHERE id = %s", 
 						(checking_account, amount, self.date, description, 
-						self.transaction_id, invoice_id))
+						self.transaction_id, self.incoming_invoice_id))
 		c.close()
 
-	def credit_card_payment (self, amount, description, credit_card, invoice_id):
+	def credit_card_payment (self, amount, description, credit_card):
 		c = DB.cursor()
 		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
@@ -189,10 +190,10 @@ class ServiceProviderPayment :
 						"SET gl_entry_id = (SELECT id FROM cte) "
 						"WHERE id = %s", 
 						(credit_card, amount, self.date, description, 
-						self.transaction_id, invoice_id))
+						self.transaction_id, self.incoming_invoice_id))
 		c.close()
 
-	def cash_payment (self, amount, cash_account, invoice_id):
+	def cash_payment (self, amount, cash_account):
 		c = DB.cursor()
 		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
@@ -203,10 +204,10 @@ class ServiceProviderPayment :
 						"SET gl_entry_id = (SELECT id FROM cte) "
 						"WHERE id = %s", 
 						(cash_account, amount, self.date, 
-						self.transaction_id, invoice_id))
+						self.transaction_id, self.incoming_invoice_id))
 		c.close()
 
-	def expense (self, amount, expense_account_number, invoice_id):
+	def expense (self, amount, expense_account_number, remark):
 		c = DB.cursor()
 		c.execute("WITH cte AS "
 							"(INSERT INTO gl_entries "
@@ -214,10 +215,10 @@ class ServiceProviderPayment :
 							"gl_transaction_id) VALUES (%s, %s, %s, %s) "
 							"RETURNING id) "
 						"INSERT INTO incoming_invoices_gl_entry_expenses_ids "
-						"(gl_entry_expense_id, incoming_invoices_id) "
-						"VALUES ((SELECT id FROM cte), %s) ", 
+						"(gl_entry_expense_id, incoming_invoices_id, remark) "
+						"VALUES ((SELECT id FROM cte), %s, %s) ", 
 						(expense_account_number, amount, self.date, 
-						self.transaction_id, invoice_id))
+						self.transaction_id, self.incoming_invoice_id, remark))
 		c.close()
 
 class LoanPayment:

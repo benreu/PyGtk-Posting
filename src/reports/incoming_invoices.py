@@ -22,23 +22,24 @@ from constants import ui_directory, DB
 
 UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
 
-class IncomingInvoiceGUI:
+class IncomingInvoiceGUI(Gtk.Builder):
 	service_provider_id = None
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
 
-		self.service_provider_store = self.builder.get_object('service_provider_store')
-		self.incoming_invoice_store = self.builder.get_object('incoming_invoice_store')
-		sp_completion = self.builder.get_object('service_provider_completion')
+		self.service_provider_store = self.get_object('service_provider_store')
+		self.incoming_invoice_store = self.get_object('incoming_invoice_store')
+		self.invoice_items_store = self.get_object('invoice_items_store')
+		sp_completion = self.get_object('service_provider_completion')
 		sp_completion.set_match_func(self.sp_match_func)
 
 		self.populate_service_provider_store ()
 
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -46,11 +47,11 @@ class IncomingInvoiceGUI:
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
 
 	def view_attachment_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -95,20 +96,21 @@ class IncomingInvoiceGUI:
 	def service_provider_combo_changed (self, combo):
 		service_provider_id = combo.get_active_id()
 		if service_provider_id != None:
-			self.builder.get_object('checkbutton1').set_active (False)
+			self.get_object('checkbutton1').set_active (False)
 			self.service_provider_id = service_provider_id
 			self.populate_incoming_invoice_store()
 
 	def service_provider_match_selected (self, completion, model, iter_):
 		sp_id = model[iter_][0]
-		self.builder.get_object('combobox1').set_active_id (sp_id)
+		self.get_object('combobox1').set_active_id (sp_id)
 
 	def view_all_toggled (self, checkbutton):
 		self.populate_incoming_invoice_store()
 
 	def populate_incoming_invoice_store (self):
 		self.incoming_invoice_store.clear()
-		if self.builder.get_object('checkbutton1').get_active () == True:
+		self.invoice_items_store.clear()
+		if self.get_object('checkbutton1').get_active () == True:
 			self.cursor.execute("SELECT "
 									"i.id, "
 									"c.name, "
@@ -138,6 +140,30 @@ class IncomingInvoiceGUI:
 								(self.service_provider_id,))
 		for row in self.cursor.fetchall():
 			self.incoming_invoice_store.append(row)
+		DB.rollback()
+
+	def incoming_invoice_selection_changed (self, treeselection):
+		model, path = treeselection.get_selected_rows()
+		if path == []:
+			return
+		self.invoice_items_store.clear()
+		row_id = model[path][0]
+		self.cursor.execute("SELECT "
+								"iige.id, "
+								"ge.amount, "
+								"ge.amount::text, "
+								"ga.name, "
+								"iige.remark "
+							"FROM "
+							"incoming_invoices_gl_entry_expenses_ids AS iige "
+							"JOIN gl_entries AS ge ON ge.id = "
+								"iige.gl_entry_expense_id "
+							"JOIN gl_accounts AS ga ON ga.number = "
+								"ge.debit_account "
+							"WHERE incoming_invoices_id = %s",
+							(row_id,))
+		for row in self.cursor.fetchall():
+			self.invoice_items_store.append(row)
 		DB.rollback()
 
 
