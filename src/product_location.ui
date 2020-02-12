@@ -39,8 +39,29 @@
       <column type="gint"/>
     </columns>
   </object>
-  <object class="GtkTreeModelFilter" id="filtered_location_store">
+  <object class="GtkTreeModelFilter" id="filtered_location_treeview_store">
     <property name="child_model">location_treeview_store</property>
+  </object>
+  <object class="GtkTreeModelSort" id="sorted_location_treeview_store">
+    <property name="model">filtered_location_treeview_store</property>
+  </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="product_hub_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkImage" id="refresh_button_image">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-media-record</property>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -94,9 +115,26 @@
                 </child>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="refresh_button">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="no_show_all">True</property>
+                <property name="image">refresh_button_image</property>
+                <property name="always_show_image">True</property>
+                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack_type">end</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -148,8 +186,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">7</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -163,8 +201,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">7</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -178,8 +216,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">7</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -193,8 +231,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">7</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -208,8 +246,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">9</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -223,8 +261,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">9</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -238,8 +276,8 @@
                 <property name="width_request">60</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="width_chars">5</property>
-                <property name="max_width_chars">5</property>
+                <property name="width_chars">8</property>
+                <property name="max_width_chars">6</property>
                 <signal name="changed" handler="search_changed" swapped="no"/>
               </object>
               <packing>
@@ -260,6 +298,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="vexpand">True</property>
+            <property name="hscrollbar_policy">never</property>
             <property name="vscrollbar_policy">always</property>
             <property name="shadow_type">in</property>
             <child>
@@ -267,7 +306,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="vexpand">True</property>
-                <property name="model">filtered_location_store</property>
+                <property name="model">sorted_location_treeview_store</property>
                 <signal name="button-release-event" handler="product_treeview_button_release" swapped="no"/>
                 <signal name="row-activated" handler="row_activate" swapped="no"/>
                 <child internal-child="selection">
@@ -275,13 +314,16 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                    <property name="resizable">True</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Product</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="product_column_sort" swapped="no"/>
+                    <property name="sort_column_id">1</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext2"/>
+                      <object class="GtkCellRendererText" id="cellrenderertext2">
+                        <property name="ellipsize">middle</property>
+                      </object>
                       <attributes>
                         <attribute name="text">1</attribute>
                       </attributes>
@@ -290,11 +332,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Aisle</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="aisle_column_sort" swapped="no"/>
+                    <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext3"/>
                       <attributes>
@@ -305,11 +348,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Rack</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="rack_column_sort" swapped="no"/>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext4"/>
                       <attributes>
@@ -320,11 +364,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Cart</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="cart_column_sort" swapped="no"/>
+                    <property name="sort_column_id">4</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5"/>
                       <attributes>
@@ -335,11 +380,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Shelf</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="shelf_column_sort" swapped="no"/>
+                    <property name="sort_column_id">5</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6"/>
                       <attributes>
@@ -350,11 +396,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Cabinet</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="cabinet_column_sort" swapped="no"/>
+                    <property name="sort_column_id">6</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext7"/>
                       <attributes>
@@ -365,11 +412,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Drawer</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="drawer_column_sort" swapped="no"/>
+                    <property name="sort_column_id">7</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext8"/>
                       <attributes>
@@ -380,11 +428,12 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                    <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="min_width">60</property>
                     <property name="title" translatable="yes">Bin</property>
                     <property name="clickable">True</property>
-                    <signal name="clicked" handler="bin_column_sort" swapped="no"/>
+                    <property name="sort_column_id">8</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext9"/>
                       <attributes>
@@ -414,19 +463,6 @@
             <property name="position">3</property>
           </packing>
         </child>
-      </object>
-    </child>
-  </object>
-  <object class="GtkMenu" id="menu1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <child>
-      <object class="GtkMenuItem" id="menuitem1">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Product hub</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="product_hub_activated" swapped="no"/>
       </object>
     </child>
   </object>
