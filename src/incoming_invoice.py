@@ -353,7 +353,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", 
 					(contact_id, self.date, total, description, 
 					self.invoice.transaction_id, self.file_data))
-		self.invoice.incoming_invoice_id = c.fetchone()[0]
+		self.invoice_id = c.fetchone()[0] # self.invoice_id is a public variable
+		self.invoice.incoming_invoice_id = self.invoice_id
 		for row in self.expense_percentage_store:
 			amount = row[1]
 			account = row[2]
