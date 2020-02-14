@@ -213,6 +213,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		po_store = self.get_object('po_store')
 		po_store.clear()
 		count = 0
+		qty = Decimal()
 		self.cursor.execute("SELECT "
 								"po.id, "
 								"date_created::text, "
@@ -230,17 +231,20 @@ class ProductHistoryGUI (Gtk.Builder):
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
+			qty += row[4]
 			po_store.append(row)
 		if count == 0:
 			self.get_object('label4').set_label('Purchase Orders')
 		else:
-			label = "<span weight='bold'>Purchase Orders (%s)</span>" % count
+			label = "<span weight='bold'>Purchase Orders (%s) [%s]</span>" \
+														% (count, qty)
 			self.get_object('label4').set_markup(label)
 
 	def populate_product_invoices (self):
 		invoice_store = self.get_object('invoice_store')
 		invoice_store.clear()
 		count = 0
+		qty = Decimal()
 		self.cursor.execute("SELECT "
 								"i.id, "
 								"dated_for::text, "
@@ -261,17 +265,20 @@ class ProductHistoryGUI (Gtk.Builder):
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
+			qty += row[5]
 			invoice_store.append(row)
 		if count == 0:
 			self.get_object('label2').set_label('Invoices')
 		else:
-			label = "<span weight='bold'>Invoices (%s)</span>" % count
+			label = "<span weight='bold'>Invoices (%s) [%s]</span>" \
+												% (count, qty)
 			self.get_object('label2').set_markup(label)
 
 	def populate_manufacturing_store (self):
 		store = self.get_object('manufacturing_store')
 		store.clear()
 		count = 0
+		qty = Decimal()
 		self.cursor.execute("SELECT "
 								"mp.id, "
 								"mp.name, "
@@ -288,10 +295,12 @@ class ProductHistoryGUI (Gtk.Builder):
 		for row in self.cursor.fetchall():
 			store.append(row) 
 			count+= 1
+			qty += row[2]
 		if count == 0:
 			self.get_object('label3').set_label('Manufacturing')
 		else:
-			label = "<span weight='bold'>Manufacturing (%s)</span>" % count
+			label = "<span weight='bold'>Manufacturing (%s) [%s]</span>" \
+													% (count, qty)
 			self.get_object('label3').set_markup(label)
 		
 	def show_message (self, message):
