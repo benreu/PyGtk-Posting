@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 from decimal import Decimal, ROUND_HALF_UP
 from subprocess import Popen
 from datetime import datetime
@@ -584,4 +584,17 @@ class GUI(Gtk.Builder):
 
 	def ep_callback (self, expense_product_gui):
 		self.populate_expense_products()
+
+	def window_key_release_event (self, widget, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if event.get_state() & Gdk.ModifierType.CONTROL_MASK: #Ctrl held down
+			if keyname == "h":
+				self.product_hub_activated (None)
+			elif keyname == "Down":
+				self.move_down_activated (None)
+			elif keyname == "Up":
+				self.move_up_activated (None)
+
+
+
 
