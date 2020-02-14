@@ -1099,11 +1099,18 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def window_key_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
-		if keyname == 'F1':
+		if event.get_state() & Gdk.ModifierType.CONTROL_MASK: #Ctrl held down
+			if keyname == "h":
+				self.product_hub_activated (None)
+			elif keyname == "Down":
+				self.move_down_activated (None)
+			elif keyname == "Up":
+				self.move_up_activated (None)
+		elif keyname == 'F1':
 			self.help_clicked (None)
-		if keyname == 'F2':
+		elif keyname == 'F2':
 			self.add_entry()
-		if keyname == 'F3':
+		elif keyname == 'F3':
 			self.delete_entry_activated ()
 
 	def barcode_entry_key_released (self, entry, event):
