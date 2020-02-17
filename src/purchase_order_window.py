@@ -203,7 +203,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"FROM purchase_order_line_items AS poli "
 							"JOIN products ON poli.product_id = products.id "
 							"WHERE (purchase_order_id, hold) = (%s, False) "
-							"ORDER BY poli.id", 
+							"ORDER BY poli.sort, poli.id", 
 							(self.purchase_order_id,))
 			for row in cursor.fetchall():
 				exportfile.writerow(row)
