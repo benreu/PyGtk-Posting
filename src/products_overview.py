@@ -35,6 +35,8 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.exists = True
 		self.treeview = self.get_object('treeview2')
 		self.product_store = self.get_object('product_store')
+		self.product_name_store = Gtk.ListStore(str) # for product suggestions
+		self.populate_product_names ()
 		self.filtered_product_store = self.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
 		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
@@ -43,17 +45,25 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.treeview.connect('drag_data_get', self.on_drag_data_get)
 		self.treeview.drag_source_set_target_list([dnd])
 		self.populate_product_store()
+		self.handler_ids = list()
+		for connection in (("products_changed", self.show_refresh_button),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window')
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
 
+	def show_refresh_button (self, broadcast):
+		self.get_object('refresh_button').set_visible(True)
+
 	def product_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
 		product_id = model[path][0]
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI()
+		pe.get_object('product_completion').set_model(self.product_name_store)
 		pe.select_product(product_id)
 		pe.window.set_transient_for(self.window)
 
@@ -112,7 +122,14 @@ class ProductsOverviewGUI (Gtk.Builder):
 		sqlite.close()
 
 	def destroy(self, window):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.window = None
+
+	def report_hub_activated (self, menuitem):
+		treeview = self.get_object('treeview2')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -134,10 +151,31 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.filter_list = filter_text.split(" ")
 		self.filtered_product_store.refilter()
 
-	def populate_product_store (self, widget = None, d = None):
+	def populate_product_names (self):
+		c = DB.cursor()
+		c.execute("SELECT name FROM products "
+					"WHERE deleted = False "
+					"ORDER BY name")
+		for row in c.fetchall():
+			self.product_name_store.append(row)
+		c.close()
+
+	def product_type_radiobutton_toggled (self, radiobutton):
+		if radiobutton.get_active() == True:
+			self.populate_product_store()
+
+	def refresh_clicked (self, button):
+		self.populate_product_store()
+		button.set_visible(False)
+
+	def populate_product_store (self, widget = None):
+		progressbar = self.get_object('progressbar')
 		c = DB.cursor()
 		model = self.treeview.get_model()
 		self.treeview.set_model(None)
+		spinner = self.get_object('spinner')
+		spinner.show()
+		spinner.start()
 		self.product_store.clear()
 		if self.get_object('radiobutton1').get_active() == True:
 			where = "WHERE (deleted, sellable) = (False, True) " 
@@ -177,12 +215,49 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"JOIN units AS u ON u.id = p.unit "
 							"%s OR p.id = %s ORDER BY p.name, p.ext_name"
 							% (where, self.product_id))
-		for row in c.fetchall():
+		p_tuple = c.fetchall()
+		rows = len(p_tuple)
+		for row_count, row in enumerate(p_tuple):
+			progressbar.set_fraction((row_count + 1) / rows)
 			self.product_store.append(row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		self.treeview.set_model(model)
+		self.treeview.set_search_column(1)
 		self.select_product()
+		spinner.hide()
+		spinner.stop()
 		c.close()
 		DB.rollback()
+
+	def append_product(self):
+		c = DB.cursor()
+		c.execute("SELECT 	p.id, "
+							"p.name, "
+							"p.ext_name, "
+							"p.description, "
+							"p.barcode, "
+							"u.name, "
+							"p.weight::text, "
+							"p.tare::text, "
+							"p.manufacturer_sku, "
+							"COALESCE ((SELECT name FROM gl_accounts "
+								"WHERE number = default_expense_account), ''), "
+							"COALESCE ((SELECT name FROM gl_accounts "
+								"WHERE number = p.inventory_account), ''), "
+							"COALESCE ((SELECT name FROM gl_accounts "
+								"WHERE number = p.revenue_account), ''), "
+							"p.sellable, "
+							"p.purchasable, "
+							"p.manufactured, "
+							"p.job, "
+							"p.stock "
+							"FROM products AS p "
+							"JOIN units AS u ON u.id = p.unit "
+							"WHERE p.id = %s ", (self.product_id,))
+		for row in c.fetchall():
+			self.product_store.append(row)
+		c.close()
 
 	def select_product (self):
 		for row in self.treeview.get_model(): 
@@ -239,12 +314,14 @@ class ProductsOverviewGUI (Gtk.Builder):
 		product_id = model[path][0]
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI()
+		pe.get_object('product_completion').set_model(self.product_name_store)
 		pe.select_product(product_id)
 		pe.window.set_transient_for(self.window)
 
 	def new_clicked (self, button):
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI(self)
+		pe.get_object('product_completion').set_model(self.product_name_store)
 		pe.new_product()
 		pe.window.set_transient_for(self.window)
 

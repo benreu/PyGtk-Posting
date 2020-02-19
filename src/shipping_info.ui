@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkListStore" id="customer_store">
+  <object class="GtkListStore" id="contact_store">
     <columns>
       <!-- column-name id -->
       <column type="gchararray"/>
@@ -12,10 +12,10 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkEntryCompletion" id="customer_completion">
-    <property name="model">customer_store</property>
+  <object class="GtkEntryCompletion" id="contact_completion">
+    <property name="model">contact_store</property>
     <property name="text_column">1</property>
-    <signal name="match-selected" handler="customer_match_selected" swapped="no"/>
+    <signal name="match-selected" handler="contact_match_selected" swapped="no"/>
     <child>
       <object class="GtkCellRendererText"/>
       <attributes>
@@ -95,8 +95,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="hexpand">True</property>
-                <property name="label" translatable="yes">Customer</property>
+                <property name="label" translatable="yes">Contact</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -127,16 +126,16 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBox" id="customer_combo">
+              <object class="GtkComboBox" id="contact_combo">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
-                <property name="model">customer_store</property>
+                <property name="model">contact_store</property>
                 <property name="has_entry">True</property>
                 <property name="entry_text_column">1</property>
                 <property name="id_column">0</property>
-                <signal name="changed" handler="customer_changed" swapped="no"/>
+                <signal name="changed" handler="contact_changed" swapped="no"/>
                 <child>
                   <object class="GtkCellRendererText"/>
                   <attributes>
@@ -146,7 +145,7 @@
                 <child internal-child="entry">
                   <object class="GtkEntry">
                     <property name="can_focus">True</property>
-                    <property name="completion">customer_completion</property>
+                    <property name="completion">contact_completion</property>
                   </object>
                 </child>
               </object>
@@ -246,7 +245,6 @@ This transaction will be linked to the shipping info.</property>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="hexpand">True</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
@@ -277,7 +275,7 @@ This transaction will be linked to the shipping info.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>

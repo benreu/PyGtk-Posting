@@ -23,9 +23,12 @@ from constants import 	broadcaster, \
 						is_admin, \
 						help_dir, \
 						template_dir
-from accounts import 	product_revenue_account, \
-						product_expense_account, \
-						product_inventory_account
+from accounts import 	product_revenue_tree, \
+						product_expense_tree, \
+						product_inventory_tree, \
+						product_revenue_list, \
+						product_expense_list, \
+						product_inventory_list
 from main import get_apsw_connection
 import spell_check, barcode_generator
 
@@ -70,9 +73,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		self.product_overview = product_overview
-		self.get_object('combobox1').set_model(product_expense_account)
-		self.get_object('combobox2').set_model(product_revenue_account)
-		self.get_object('combobox3').set_model(product_inventory_account)
+		self.set_models ()
 		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 		self.treeview = self.get_object('treeview2')
@@ -81,8 +82,21 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.set_window_layout_from_settings ()
 		self.window = self.get_object('window')
 		self.window.show_all()
-		self.window.set_keep_above(True)
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
+
+	def set_models (self):
+		self.get_object('combobox1').set_model(product_expense_tree)
+		self.get_object('combobox2').set_model(product_revenue_tree)
+		self.get_object('combobox3').set_model(product_inventory_tree)
+		comp = self.get_object('expense_completion')
+		comp.set_model(product_expense_list)
+		comp.set_match_func(self.account_match_func, product_expense_list)
+		comp = self.get_object('inventory_completion')
+		comp.set_model(product_inventory_list)
+		comp.set_match_func(self.account_match_func, product_inventory_list)
+		comp = self.get_object('revenue_completion')
+		comp.set_model(product_revenue_list)
+		comp.set_match_func(self.account_match_func, product_revenue_list)
 
 	def set_window_layout_from_settings (self):
 		sqlite = get_apsw_connection ()
@@ -112,64 +126,16 @@ class ProductEditMainGUI (Gtk.Builder):
 
 	def help_button_activated (self, menuitem):
 		subprocess.Popen(["yelp", help_dir + "/products.page"])
+	
+	def widget_focus_in (self, widget, event):
+		GLib.idle_add(widget.select_region, 0, -1)
 
-	def print_label(self, widget):
-		location_id = self.get_object('comboboxtext6').get_active_id()
-		label = Item()
-		c = DB.cursor()
-		c.execute("SELECT aisle, cart, rack, shelf, cabinet, drawer, "
-							"bin FROM product_location "
-							"WHERE (product_id, location_id) = (%s, %s)", 
-							(self.product_id, location_id))
-		for row in c.fetchall():
-			label.aisle = row[0]
-			label.cart = row[1]
-			label.rack = row[2]
-			label.shelf = row[3]
-			label.cabinet = row[4]
-			label.drawer = row[5]
-			label.bin = row[6]
-			break
-		else:
-			label.aisle = ''
-			label.cart = ''
-			label.rack = ''
-			label.shelf = ''
-			label.cabinet = ''
-			label.drawer = ''
-			label.bin = ''
-		c.execute("SELECT name, description, barcode FROM products "
-							"WHERE id = (%s)",[self.product_id])
-		for row in c.fetchall():
-			label.name= row[0]
-			label.description = row[1]
-			label.code128 = barcode_generator.makeCode128(row[2])
-			label.barcode = row[2]
-		c.execute("SELECT id FROM customer_markup_percent "
-							"WHERE standard = True")
-		default_markup_id = c.fetchone()[0]
-		c.execute("SELECT price FROM products_markup_prices "
-							"WHERE (product_id, markup_id) = (%s, %s)", 
-							(self.product_id, default_markup_id))
-		for row in c.fetchall():
-			label.price = '${:,.2f}'.format(row[0])
-			break
-		else:
-			cost = self.get_object('spinbutton1').get_value()
-			c.execute("SELECT markup_percent "
-								"FROM customer_markup_percent WHERE id = %s", 
-								(markup_id,))
-			markup = float(c.fetchone()[0])
-			margin = (markup / 100) * cost
-			label.price = '${:,.2f}'.format(margin + cost)
-		c.close()
-		DB.rollback()
-		data = dict(label = label)
-		from py3o.template import Template
-		label_file = "/tmp/product_label.odt"
-		t = Template(template_dir+"/product_label_template.odt", label_file )
-		t.render(data) #the self.data holds all the info
-		subprocess.Popen(["soffice", label_file])
+	def account_match_func(self, completion, key, tree_iter, account):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in account[tree_iter][1].lower():
+				return False
+		return True
 
 	def populate_account_combos(self):
 		c = DB.cursor()
@@ -258,7 +224,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		sell_price = margin + cost
 		sell_spin.set_value(sell_price)
 
-	def set_price_listbox_to_default (self):
+	def save_product_terms_prices (self):
 		c = DB.cursor()
 		cost = self.get_object('spinbutton1').get_value()
 		listbox = self.get_object('listbox2')
@@ -269,20 +235,17 @@ class ProductEditMainGUI (Gtk.Builder):
 			widget_list = box.get_children()
 			terms_id_label = widget_list[0]
 			terms_id = terms_id_label.get_label()
-			markup_spin = widget_list[2]
 			sell_spin = widget_list[3]
-			sell_adjustment = sell_spin.get_adjustment()
-			sell_adjustment.set_lower(cost)
-			c.execute("SELECT markup_percent "
-								"FROM customer_markup_percent WHERE id = %s", 
-								(terms_id,))
-			markup = float(c.fetchone()[0])
-			markup_spin.set_value(markup)
-			margin = (markup / 100) * cost
-			sell_price = margin + cost
-			sell_spin.set_value(sell_price)
+			sell_price = sell_spin.get_value()
+			c.execute("INSERT INTO products_markup_prices "
+						"(product_id, markup_id, price) VALUES (%s, %s, %s) "
+						"ON CONFLICT (product_id, markup_id) "
+						"DO UPDATE SET price = %s "
+						"WHERE (products_markup_prices.product_id, "
+								"products_markup_prices.markup_id) = (%s, %s)", 
+						(self.product_id, terms_id, sell_price,
+						sell_price, self.product_id, terms_id))
 		c.close()
-		DB.rollback()
 
 	def load_product_terms_prices (self):
 		c = DB.cursor()
@@ -389,9 +352,6 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.get_object('checkbutton7').set_active(row[23])
 			self.get_object('stock_checkbutton').set_active(row[24])
 		c.close()
-		#explicitly keep the prices from updating (which also saves invalid prices)
-		#self.get_object('spinbutton1').set_value(self.product_cost)
-		#now update the prices
 		self.load_product_terms_prices ()
 
 	def expense_account_combo_changed (self, combo):
@@ -400,17 +360,26 @@ class ProductEditMainGUI (Gtk.Builder):
 			return
 		self.expense_account = account_number
 
+	def expense_completion_match_selected (self, completion, model, treeiter):
+		self.expense_account = model[treeiter][0]
+
 	def revenue_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
 		if account_number == None:
 			return
 		self.revenue_account = account_number
 
+	def revenue_completion_match_selected (self, completion, model, treeiter):
+		self.revenue_account = model[treeiter][0]
+
 	def inventory_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
 		if account_number == None:
 			return
 		self.inventory_account = account_number
+
+	def inventory_completion_match_selected (self, completion, model, treeiter):
+		self.inventory_account = model[treeiter][0]
 
 	def save_clicked (self, button = None):
 		name = self.get_object('entry1').get_text()
@@ -460,18 +429,19 @@ class ProductEditMainGUI (Gtk.Builder):
 							self.revenue_account,
 							manufacturer_number, job, 
 							invoice_serial))
-				product_id = c.fetchone()[0]
+				self.product_id = c.fetchone()[0]
 				if barcode != '':
 					c.execute("UPDATE products SET barcode = %s WHERE id = %s",
-														(barcode, product_id))
+													(barcode, self.product_id))
 			except Exception as e:
 				DB.rollback()
 				self.show_message(str(e))
 				return
 			DB.commit()
 			if self.product_overview != None:
-				self.product_overview.product_id = product_id
-				self.product_overview.populate_product_store()
+				self.product_overview.product_id = self.product_id
+				self.product_overview.append_product()
+				self.product_overview.select_product()
 		else:  # just save the existing product
 			try:
 				if barcode == '':
@@ -499,6 +469,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			except Exception as e:
 				DB.rollback()
 				self.show_message(str(e))
+		self.save_product_terms_prices()
 		DB.commit()
 		c.close()
 		self.window.destroy()

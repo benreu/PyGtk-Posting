@@ -126,10 +126,10 @@ class ContactHistoryGUI (Gtk.Builder):
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
 			self.invoice_history = ih.InvoiceHistoryGUI()
-		combo = self.invoice_history.builder.get_object('combobox1')
+		combo = self.invoice_history.get_object('combobox1')
 		combo.set_active_id(self.contact_id)
-		store = self.invoice_history.builder.get_object('invoice_store')
-		selection = self.invoice_history.builder.get_object('treeview-selection1')
+		store = self.invoice_history.get_object('invoice_store')
+		selection = self.invoice_history.get_object('treeview-selection1')
 		selection.unselect_all()
 		for row in store:
 			if row[0] == invoice_id:
@@ -189,6 +189,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		self.populate_warranty_store ()
 		self.populate_incoming_invoice_store ()
 		self.populate_contact_shipping()
+		self.get_object('resource_buffer').set_text('')
 		DB.rollback()
 
 	def populate_incoming_invoice_store (self):
@@ -451,5 +452,18 @@ class ContactHistoryGUI (Gtk.Builder):
 			label = "<span weight='bold'>Shipping (%s)</span>" % count
 			self.get_object('label11').set_markup(label)
 		c.close()
+
+	def resource_selection_changed (self, selection):
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		c = DB.cursor()
+		c.execute("SELECT notes FROM "
+					"resources WHERE id = %s", (row_id,))
+		notes = c.fetchone()[0]
+		self.get_object('resource_buffer').set_text(notes)
+		c.close()
+		DB.rollback()
 
 

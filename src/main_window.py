@@ -487,7 +487,7 @@ class MainGUI :
 					"date_trunc(l.period, "
 						"CURRENT_DATE - "
 							"(l.period_amount||' '||l.period)::interval "
-					")")
+					") AND finished = False")
 		for row in c.fetchall():
 			loan_id = row[0]
 			reminder = row[1]

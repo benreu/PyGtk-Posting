@@ -18,6 +18,13 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from dateutils import calendar_to_datetime, set_calendar_from_datetime 
 from constants import ui_directory, DB
+try:
+	import holidays
+	us_holidays = holidays.US()
+except ImportError as e:
+	us_holidays = None
+	print (e, ", please install from "
+			"https://github.com/dr-prodigy/python-holidays")
 
 UI_FILE = ui_directory + "/resource_calendar.ui"
 
@@ -350,10 +357,21 @@ class ResourceCalendarGUI:
 			notes = row[0]
 			self.builder.get_object('textbuffer1').set_text(notes)
 
+	def get_holiday_description (self, date):
+		if us_holidays is None:
+			return ''
+		descriptor = us_holidays.get(date)
+		if descriptor :
+			color = '#000000ff'
+			return "<span foreground='%s' weight='bold'>%s</span>\n" % (
+															color, descriptor)
+		return ''
+
 	def calendar_func (self, calendar, year, month, day):
 		date = "%s %s %s" % (month+1, day, year)
 		date_time = datetime.strptime(date, "%m %d %Y")
 		string = str()
+		string += self.get_holiday_description (date_time)
 		self.cursor.execute("SELECT subject, red, green, blue, alpha, "
 							"COALESCE(' : ' || name, '') "
 							"FROM resources AS rm "

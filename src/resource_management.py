@@ -313,8 +313,11 @@ class ResourceManagementGUI:
 	def sort_by_combo_changed (self, combobox):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
-		id_ = model[path][0]
-		self.populate_resource_store(id_)
+		if path != []:
+			id_ = model[path][0]
+			self.populate_resource_store(id_)
+		else:
+			self.populate_resource_store()
 
 	def tag_editing_canceled (self, renderer):
 		self.editing = False

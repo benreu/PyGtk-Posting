@@ -367,19 +367,33 @@ BEGIN
         AND c.data_type <> 'bytea' 
         AND t.table_type='BASE TABLE'
   LOOP
-    EXECUTE format('SELECT ctid, cast(%I as text) FROM %I.%I WHERE lower(cast(%I as text)) ~ %L',
+    RETURN QUERY EXECUTE format('SELECT %L, %L, %L, %I::text, ctid::text FROM %I.%I WHERE cast(%I as text) ~* %L', 
+       schemaname,
+       tablename,
+       columnname,
        columnname,
        schemaname,
        tablename,
        columnname,
        search_text
-    ) INTO rowctid, rowfound;
-    IF rowctid IS NOT NULL THEN
-      RETURN NEXT;
-    END IF;
+    ) USING schemaname,tablename,columnname;
  END LOOP;
 END; 
 $$ language plpgsql;
+-- 0.5.24
+CREATE UNIQUE INDEX IF NOT EXISTS products_markup_prices_unique
+ON public.products_markup_prices (product_id, markup_id);
+--0.5.25
+ALTER TABLE purchase_order_line_items ADD COLUMN IF NOT EXISTS sort int DEFAULT 0;
+UPDATE purchase_order_line_items SET sort = 0 WHERE sort IS NULL;
+ALTER TABLE purchase_order_line_items ALTER COLUMN sort SET NOT NULL;
+ALTER TABLE invoice_items ADD COLUMN IF NOT EXISTS sort int DEFAULT 0;
+UPDATE invoice_items SET sort = 0 WHERE sort IS NULL;
+ALTER TABLE invoice_items ALTER COLUMN sort SET NOT NULL;
+--0.5.26
+ALTER TABLE incoming_invoices_gl_entry_expenses_ids ADD COLUMN IF NOT EXISTS remark varchar DEFAULT '';
+UPDATE incoming_invoices_gl_entry_expenses_ids SET remark = '' WHERE remark IS NULL;
+ALTER TABLE incoming_invoices_gl_entry_expenses_ids ALTER COLUMN remark SET NOT NULL;
 
 
 

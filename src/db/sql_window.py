@@ -22,16 +22,16 @@ from constants import ui_directory, DB
 
 UI_FILE = ui_directory + "/db/sql_window.ui"
 
-class SQLWindowGUI :
+class SQLWindowGUI(Gtk.Builder):
 	def __init__(self):
 		
-		self.builder = Gtk.Builder()
+		Gtk.Builder.__init__(self)
 		GObject.type_register(GtkSource.View)
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 
 		language_manager = GtkSource.LanguageManager()
-		self.source_view = self.builder.get_object('gtksourceview1')
+		self.source_view = self.get_object('gtksourceview1')
 		self.source_buffer = GtkSource.Buffer()
 		self.source_view.set_buffer(self.source_buffer)
 		self.source_buffer.set_language(language_manager.get_language('sql'))
@@ -40,7 +40,7 @@ class SQLWindowGUI :
 		keyword_provider.register(self.source_buffer)
 		completion.add_provider(keyword_provider)
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 		self.populate_sql_commands()
@@ -53,7 +53,7 @@ class SQLWindowGUI :
 		DB.rollback()
 
 	def sql_combo_changed (self, combobox):
-		if self.builder.get_object('comboboxtext-entry').has_focus():
+		if self.get_object('comboboxtext-entry').has_focus():
 			return #user is typing new values
 		name = combobox.get_active_text()
 		cursor = DB.cursor()
@@ -89,7 +89,7 @@ class SQLWindowGUI :
 		menu.prepend(save)
 
 	def populate_sql_commands (self):
-		combo = self.builder.get_object('comboboxtext1')
+		combo = self.get_object('comboboxtext1')
 		combo.remove_all()
 		cursor = DB.cursor()
 		cursor.execute("SELECT name FROM sql.history WHERE current IS NOT TRUE "
@@ -100,7 +100,7 @@ class SQLWindowGUI :
 		DB.rollback()
 
 	def delete_activated (self, menuitem):
-		name = self.builder.get_object('comboboxtext-entry').get_text()
+		name = self.get_object('comboboxtext-entry').get_text()
 		cursor = DB.cursor()
 		cursor.execute("DELETE FROM sql.history WHERE name = %s", (name,))
 		DB.commit()
@@ -109,7 +109,7 @@ class SQLWindowGUI :
 
 	def save_clicked (self, button):
 		cursor = DB.cursor()
-		name = self.builder.get_object('comboboxtext-entry').get_text()
+		name = self.get_object('comboboxtext-entry').get_text()
 		start = self.source_buffer.get_start_iter()
 		end = self.source_buffer.get_end_iter()
 		command = self.source_buffer.get_text(start, end, True)
@@ -122,7 +122,7 @@ class SQLWindowGUI :
 		self.populate_sql_commands()
 
 	def run_sql_clicked (self, button):
-		treeview = self.builder.get_object('treeview1')
+		treeview = self.get_object('treeview1')
 		for column in treeview.get_columns():
 			treeview.remove_column(column)
 		start_iter = self.source_buffer.get_start_iter ()
@@ -132,21 +132,21 @@ class SQLWindowGUI :
 		try:
 			cursor.execute(string)
 		except Exception as e:
-			self.builder.get_object('sql_error_buffer').set_text(str(e))
-			self.builder.get_object('textview2').set_visible(True)
-			self.builder.get_object('scrolledwindow2').set_visible(False)
+			self.get_object('sql_error_buffer').set_text(str(e))
+			self.get_object('textview2').set_visible(True)
+			self.get_object('scrolledwindow2').set_visible(False)
 			DB.rollback()
 			return
 		#create treeview columns and a liststore to store the info
 		if cursor.description == None: #probably an UPDATE, report rows affected
 			result = "%s row(s) affected" % cursor.rowcount
-			self.builder.get_object('sql_error_buffer').set_text(result)
-			self.builder.get_object('textview2').set_visible(True)
-			self.builder.get_object('scrolledwindow2').set_visible(False)
+			self.get_object('sql_error_buffer').set_text(result)
+			self.get_object('textview2').set_visible(True)
+			self.get_object('scrolledwindow2').set_visible(False)
 			DB.rollback()
 			return
-		self.builder.get_object('textview2').set_visible(False)
-		self.builder.get_object('scrolledwindow2').set_visible(True)
+		self.get_object('textview2').set_visible(False)
+		self.get_object('scrolledwindow2').set_visible(True)
 		type_list = list()
 		for index, row in enumerate(cursor.description):
 			column_name = row.name
@@ -191,16 +191,10 @@ class SQLWindowGUI :
 		DB.commit()
 		cursor.close()
 
-	def copy_for_database_utils_clicked (self, button):
-		start = self.source_buffer.get_start_iter()
-		end = self.source_buffer.get_end_iter()
-		command = '''cursor.execute("'''
-		command += self.source_buffer.get_text(start, end, True)
-		command = command.replace("\n", '''"\n               "''')
-		command += '''")'''
-		clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-		length = len(command)
-		clipboard.set_text(command, length)
+	def report_hub_clicked (self, button):
+		treeview = self.get_object('treeview1')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
 
 
-	
+

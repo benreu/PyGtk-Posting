@@ -22,7 +22,7 @@ from constants import ui_directory, DB
 UI_FILE = ui_directory + "/contact_edit_main.ui"
 
 class ContactEditMainGUI(Gtk.Builder):
-	def __init__(self, contact_id = None):
+	def __init__(self, contact_id = None, overview_class = None):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
@@ -32,12 +32,41 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_combos()
+		self.populate_zip_codes ()
 		self.contact_id = contact_id
 		if contact_id != None:
 			self.load_contact()
+		self.overview_class = overview_class
 		
 	def destroy(self, window):
 		self.cursor.close()
+
+	def populate_zip_codes (self):
+		zip_code_store = self.get_object("zip_code_store")
+		zip_code_store.clear()
+		self.cursor.execute("SELECT zip, city, state FROM contacts "
+							"WHERE deleted = False "
+							"GROUP BY zip, city, state "
+							"ORDER BY zip, city")
+		for row in self.cursor.fetchall():
+			zip_code_store.append(row)
+
+	def zip_code_match_selected (self, completion, store, _iter):
+		city = store[_iter][1]
+		state = store[_iter][2]
+		self.get_object("entry5").set_text(city)
+		self.get_object("entry6").set_text(state)
+
+	def zip_activated (self, entry):
+		zip_code = entry.get_text()
+		self.cursor.execute("SELECT city, state FROM contacts "
+							"WHERE (deleted, zip) = (False, %s) "
+							"GROUP BY city, state LIMIT 1", (zip_code,))
+		for row in self.cursor.fetchall():
+			city = row[0]
+			state = row[1]
+			self.get_object("entry5").set_text(city)
+			self.get_object("entry6").set_text(state)
 
 	def populate_combos (self):
 		store = self.get_object('terms_store')
@@ -132,8 +161,8 @@ class ContactEditMainGUI(Gtk.Builder):
 		phone = self.get_object('entry7').get_text()
 		fax = self.get_object('entry8').get_text()
 		email = self.get_object('entry9').get_text()
-		misc = self.get_object('entry10').get_text()
-		checks_payable_to = self.get_object('entry11').get_text()
+		checks_payable_to = self.get_object('entry10').get_text()
+		misc = self.get_object('entry11').get_text()
 		tax_number = self.get_object('entry12').get_text()
 		custom1 = self.get_object('entry13').get_text()
 		custom2 = self.get_object('entry14').get_text()
@@ -186,7 +215,9 @@ class ContactEditMainGUI(Gtk.Builder):
 								custom3, custom4, notes, term_id, 
 								service_provider, checks_payable_to, 
 								markup_id))
-			self.contact_id = self.cursor.fetchone()[0]
+			contact_id = self.cursor.fetchone()[0]
+			self.overview_class.append_contact(contact_id)
+			self.overview_class.select_contact(contact_id)
 		DB.commit()
 		self.window.destroy()
 

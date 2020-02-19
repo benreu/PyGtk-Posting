@@ -222,9 +222,10 @@ class VendorHistoryGUI:
 									"c.name "
 								"FROM purchase_order_line_items AS poli "
 								"JOIN products AS p ON p.id = poli.product_id "
-								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN purchase_orders AS po "
+									"ON po.id = poli.purchase_order_id "
 								"JOIN contacts AS c ON c.id = po.vendor_id "
-								"ORDER BY p.name ")
+								"ORDER BY poli.sort, poli.id")
 		else:
 			selection = self.builder.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
@@ -257,9 +258,11 @@ class VendorHistoryGUI:
 									"c.name "
 								"FROM purchase_order_line_items AS poli "
 								"JOIN products AS p ON p.id = poli.product_id "
-								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN purchase_orders AS po "
+									"ON po.id = poli.purchase_order_id "
 								"JOIN contacts AS c ON c.id = po.vendor_id "
-								"WHERE purchase_order_id IN " + args)
+								"WHERE purchase_order_id IN %s "
+								"ORDER BY poli.sort, poli.id" % args)
 		for row in self.cursor.fetchall():
 			store.append(row)
 		DB.rollback()

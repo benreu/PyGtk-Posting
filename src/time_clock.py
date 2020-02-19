@@ -22,13 +22,13 @@ from constants import ui_directory, DB, broadcaster
 UI_FILE = ui_directory + "/time_clock.ui"
 
 
-class TimeClockGUI :
+class TimeClockGUI(Gtk.Builder):
 	entry_id = 0
-	def __init__(self, parent = None):
+	def __init__(self):
 		
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
 
 		self.timeout_id = None
@@ -36,11 +36,11 @@ class TimeClockGUI :
 		for connection in (('clock_entries_changed', self.populate_employees),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.stack = self.builder.get_object('time_clock_stack')
-		self.employee_store = self.builder.get_object('employee_store')
-		self.project_store = self.builder.get_object('project_store')
+		self.stack = self.get_object('time_clock_stack')
+		self.employee_store = self.get_object('employee_store')
+		self.project_store = self.get_object('project_store')
 		self.populate_employees ()
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def delete_event (self, window, event):
@@ -67,7 +67,7 @@ class TimeClockGUI :
 		"we need to commit on a regular basis so that db polling works; "
 		"the db polling feature will then broadcast all revelant changes "
 		DB.commit()
-		return True
+		return self.window.is_active() # double check that the window is focused
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
@@ -88,7 +88,7 @@ class TimeClockGUI :
 							"ORDER BY c.name")
 		for row in self.cursor.fetchall():
 			self.employee_store.append(row)
-		selection = self.builder.get_object('employee_selection')
+		selection = self.get_object('employee_selection')
 		GLib.idle_add(selection.unselect_all)
 		DB.rollback()
 
@@ -101,7 +101,7 @@ class TimeClockGUI :
 				return
 
 	def employee_row_activated (self, treeview, path, treeviewcolumn):
-		if treeviewcolumn == self.builder.get_object('treeview_time_column'):
+		if treeviewcolumn == self.get_object('treeview_time_column'):
 			if self.employee_store[path][3] == True:
 				treeview.set_cursor(path, treeviewcolumn, True)
 				return
@@ -113,12 +113,12 @@ class TimeClockGUI :
 		if self.employee_store[path][3] == False:  # not punched in
 			self.stack.set_visible_child_name ('job_page')
 			self.populate_job_store ()
-			self.builder.get_object('employee_label').set_label(employee_name)
+			self.get_object('employee_label').set_label(employee_name)
 		else:  # punched in
 			self.entry_id = self.employee_store[path][4]
-			self.builder.get_object('employee_label1').set_label(employee_name)
+			self.get_object('employee_label1').set_label(employee_name)
 			project_name = self.employee_store[path][5]
-			self.builder.get_object('project_label1').set_label(project_name)
+			self.get_object('project_label1').set_label(project_name)
 			self.stack.set_visible_child_name ('punchout_page')
 			DB.commit()
 			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
@@ -175,11 +175,32 @@ class TimeClockGUI :
 			return
 		self.project_id = project_id
 		job_name = self.project_store[path][1]
-		self.builder.get_object('project_label').set_label(job_name)
+		self.get_object('project_label').set_label(job_name)
 		self.stack.set_visible_child_name ('punchin_page')
 		DB.commit()
 		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
 		self.clock_in_out_time = int(self.cursor.fetchone()[0])
+		c = DB.cursor()
+		c.execute("SELECT "
+						"to_char(now() - start_time, 'HH24:MI:SS'), "
+						"to_char(now() - stop_time, 'HH24:MI:SS'), "
+						"(SELECT COUNT(id)::text FROM time_clock_entries "
+							"WHERE (project_id, employee_id) = (%s, %s))"
+					"FROM time_clock_entries "
+					"WHERE (project_id, employee_id) = (%s, %s) "
+					"ORDER BY id DESC LIMIT 1", 
+					(self.project_id, self.employee_id, 
+					self.project_id, self.employee_id))
+		for row in c.fetchall():
+			self.get_object('last_punched_in_label').set_label(row[0])
+			self.get_object('last_punched_out_label').set_label(row[1])
+			self.get_object('punched_in_count_label').set_label(row[2])
+			break
+		else:
+			self.get_object('last_punched_in_label').set_label('0:00:00')
+			self.get_object('last_punched_out_label').set_label('0:00:00')
+			self.get_object('punched_in_count_label').set_label('0')
+		c.close()
 		self.show_date_from_seconds ()
 
 	def punch_in_clicked (self, button):
@@ -269,21 +290,21 @@ class TimeClockGUI :
 	def show_date_from_seconds(self):
 		date = datetime.fromtimestamp(self.clock_in_out_time)
 		date_text = datetime.strftime(date, "%b %d %Y")
-		self.builder.get_object('label2').set_label(date_text)
-		self.builder.get_object('label5').set_label(date_text)
+		self.get_object('label2').set_label(date_text)
+		self.get_object('label5').set_label(date_text)
 		date = str(date)
 		hour = int(date [11:13])
 		minute = date [14:16]
 		second = date [17:19]
 		if hour > 12:
 			hour -= 12
-			self.builder.get_object('label4').set_text(minute + " PM")
-			self.builder.get_object('label7').set_text(minute + " PM")
+			self.get_object('label4').set_text(minute + " PM")
+			self.get_object('label7').set_text(minute + " PM")
 		else:
-			self.builder.get_object('label4').set_text(minute + " AM")
-			self.builder.get_object('label7').set_text(minute + " AM")
-		self.builder.get_object('label3').set_text(str(hour))
-		self.builder.get_object('label6').set_text(str(hour))
+			self.get_object('label4').set_text(minute + " AM")
+			self.get_object('label7').set_text(minute + " AM")
+		self.get_object('label3').set_text(str(hour))
+		self.get_object('label6').set_text(str(hour))
 		self.show_punched_in_calculated_time()
 
 	def show_punched_in_calculated_time (self):
@@ -299,7 +320,7 @@ class TimeClockGUI :
 							(self.clock_in_out_time, self.entry_id))
 		for row in self.cursor.fetchall():
 			interval = row[0]
-			self.builder.get_object('time_label_manual_out').set_label(interval)
+			self.get_object('time_label_manual_out').set_label(interval)
 		DB.rollback()
 
 	def time_renderer_editing_started (self, cellrenderer, celleditable, path):

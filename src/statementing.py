@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import subprocess, psycopg2, re
+import subprocess, re
 from datetime import datetime, timedelta
 import printing
 from constants import DB, template_dir
@@ -122,13 +122,12 @@ class Setup():
 								"(CURRENT_DATE, True) WHERE id = %s", 
 								(self.statement_id,))
 		document = "/tmp/" + self.document_pdf
-		f = open(document,'rb')
-		dat = f.read()
-		binary = psycopg2.Binary(dat)
-		f.close()
-		cursor.execute("UPDATE statements SET (name, pdf) = (%s, %s) "
+		with open(document,'rb') as f:
+			data = f.read()
+			cursor.execute("UPDATE statements "
+							"SET (name, pdf) = (%s, %s) "
 							"WHERE id = %s", 
-							(self.document_name, binary, self.statement_id))
+							(self.document_name, data, self.statement_id))
 		self.close_invoices_and_payments ()
 		cursor.close()
 		

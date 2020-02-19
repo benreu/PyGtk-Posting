@@ -67,7 +67,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.credit_card_store = self.get_object('credit_card_store')
 		self.populate_stores ()
 		self.populate_service_providers ()
-		self.expense_percentage_store.append([0, Decimal('0.00'), 0, ""])
+		self.expense_percentage_store.append([0, Decimal('0.00'), 0, "", ""])
 		self.calculate_percentages ()
 	
 		self.window = self.get_object('window1')
@@ -139,7 +139,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.get_object('label14').set_label(contact_name)
 
 	def add_percentage_row_clicked (self, button):
-		self.expense_percentage_store.append([0, Decimal('0.00'), 0, ""])
+		self.expense_percentage_store.append([0, Decimal('0.00'), 0, "", ""])
 		self.calculate_percentages ()
 
 	def delete_percentage_row_clicked (self, button):
@@ -210,6 +210,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.expense_percentage_store[path][2] = int(account_number)
 		self.expense_percentage_store[path][3] = account_name
 		self.check_if_all_entries_valid ()
+
+	def remark_edited (self, cellrenderertext, path, text):
+		self.expense_percentage_store[path][4] = text
 
 	def bank_credit_card_combo_changed (self, combo):
 		if combo.get_active() == None:
@@ -292,7 +295,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def cash_payment_clicked (self, button):
 		total = self.save_incoming_invoice ()
 		cash_account = self.get_object('combobox3').get_active_id()
-		self.invoice.cash_payment (total, cash_account, self.invoice_id)
+		self.invoice.cash_payment (total, cash_account)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
@@ -304,7 +307,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		active = self.get_object('combobox1').get_active()
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
-		self.invoice.credit_card_payment (total, description, credit_card, self.invoice_id)
+		self.invoice.credit_card_payment (total, description, credit_card)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
@@ -316,7 +319,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		active = self.get_object('combobox1').get_active()
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
-		self.invoice.transfer (total, description, checking_account, self.invoice_id)
+		self.invoice.transfer (total, description, checking_account)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
@@ -327,7 +330,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		check_number = self.get_object('entry7').get_text()
 		active = self.get_object('combobox1').get_active()
 		description = self.service_provider_store[active][1]
-		self.invoice.check_payment(total, check_number, checking_account, description, self.invoice_id)
+		self.invoice.check_payment(total, check_number, checking_account, description)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
@@ -350,11 +353,13 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", 
 					(contact_id, self.date, total, description, 
 					self.invoice.transaction_id, self.file_data))
-		self.invoice_id = c.fetchone()[0]
+		self.invoice_id = c.fetchone()[0] # self.invoice_id is a public variable
+		self.invoice.incoming_invoice_id = self.invoice_id
 		for row in self.expense_percentage_store:
 			amount = row[1]
-			expense_account = row[2]
-			self.invoice.expense(amount, expense_account, self.invoice_id)
+			account = row[2]
+			remark = row[4]
+			self.invoice.expense(amount, account, remark)
 		c.close()
 		return total
 

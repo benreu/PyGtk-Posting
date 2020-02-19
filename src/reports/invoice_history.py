@@ -267,7 +267,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 								"JOIN products AS p ON p.id = ili.product_id "
 								"JOIN invoices AS i ON i.id = ili.invoice_id "
 								"JOIN contacts AS c ON c.id = i.customer_id "
-								"ORDER BY p.name ")
+								"ORDER BY ili.sort, ili.id")
 		else:
 			selection = self.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
@@ -301,7 +301,8 @@ class InvoiceHistoryGUI(Gtk.Builder):
 								"JOIN products AS p ON p.id = ili.product_id "
 								"JOIN invoices AS i ON i.id = ili.invoice_id "
 								"JOIN contacts AS c ON c.id = i.customer_id "
-								"WHERE invoice_id IN " + args)
+								"WHERE invoice_id IN %s "
+								"ORDER BY ili.sort, ili.id" % args)
 		for row in self.cursor.fetchall():
 			store.append(row)
 		DB.rollback()
