@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import psycopg2
 from gi.repository import Gtk, GLib
 from multiprocessing import Process, Queue
 from queue import Empty
@@ -36,14 +37,13 @@ class CompleteSearchGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def search_activated (self, entry):
-		self.search_text = entry.get_text().lower()
 		self.search()
 
 	def search_clicked (self, button):
-		self.search_text = self.get_object('search_entry').get_text().lower()
 		self.search()
 
 	def search (self):
+		self.search_text = self.get_object('search_entry').get_text()
 		self.treeview.set_model(None)
 		self.store.clear()
 		thread = Process(target=self.get_results)
@@ -55,15 +55,32 @@ class CompleteSearchGUI(Gtk.Builder):
 		spinner.start()
 
 	def get_results(self):
-		self.cursor.execute("SELECT * FROM complete_search(%s)", 
-											(self.search_text,))
+		try:
+			self.cursor.execute("SELECT * FROM complete_search(%s)", 
+												(self.search_text,))
+		except psycopg2.DataError as e:
+			DB.rollback()
+			self.data_queue.put(e)
+			return
 		tupl = self.cursor.fetchall()
 		self.data_queue.put(tupl)
 		DB.rollback()
 
+	def stop_spinner (self):
+		spinner = self.get_object("spinner")
+		spinner.hide()
+		spinner.stop()
+		self.get_object('search_button').set_sensitive(True)
+
 	def show_results (self):
 		try:
-			tupl = self.data_queue.get_nowait()
+			result = self.data_queue.get_nowait()
+			if type(result) == psycopg2.DataError:
+				self.show_message(str(result))
+				self.stop_spinner()
+				return False
+			else:
+				tupl = result
 		except Empty:
 			return True
 		count = len(tupl)
@@ -88,6 +105,50 @@ class CompleteSearchGUI(Gtk.Builder):
 							(schema, table, ctid))
 		for row in self.cursor.fetchall():
 			print (row)
+
+	def search_generator_clicked (self, button):
+		window = self.get_object('search_generator_window')
+		window.show_all()
+
+	def clear_all_clicked (self, button):
+		self.get_object('text_store').clear()
+
+	def delete_text_clicked (self, button):
+		model, path = self.get_object('word_selection').get_selected_rows()
+		if path == []:
+			return
+		model.remove(model.get_iter(path))
+
+	def add_text_clicked (self, button):
+		store = self.get_object('text_store')
+		iter_ = store.append([''])
+		self.get_object('word_selection').select_iter(iter_)
+
+	def text_edited (self, cellrenderertext, path, text):
+		self.get_object('text_store')[path][0] = text
+
+	def generate_clicked (self, button):
+		active = self.get_object('search_type_box').get_active_id()
+		if active == '0': # ANY partial words
+			template = "%s|"
+		elif active == '1': # ANY complete words
+			template = "^%s$|"
+		elif active == '2': # ALL partial words
+			template = "(?=.*%s)"
+		text = str()
+		for row in self.get_object('text_store'):
+			text += template % row[0]
+		if active == '0' or active == '1': # remove trailing |
+			text = "(%s)" % text[0:-1]
+		self.get_object('search_entry').set_text(text)
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

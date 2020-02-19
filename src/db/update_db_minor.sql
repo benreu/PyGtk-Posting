@@ -367,16 +367,16 @@ BEGIN
         AND c.data_type <> 'bytea' 
         AND t.table_type='BASE TABLE'
   LOOP
-    EXECUTE format('SELECT ctid, cast(%I as text) FROM %I.%I WHERE lower(cast(%I as text)) ~ %L',
+    RETURN QUERY EXECUTE format('SELECT %L, %L, %L, %I::text, ctid::text FROM %I.%I WHERE cast(%I as text) ~* %L', 
+       schemaname,
+       tablename,
+       columnname,
        columnname,
        schemaname,
        tablename,
        columnname,
        search_text
-    ) INTO rowctid, rowfound;
-    IF rowctid IS NOT NULL THEN
-      RETURN NEXT;
-    END IF;
+    ) USING schemaname,tablename,columnname;
  END LOOP;
 END; 
 $$ language plpgsql;
