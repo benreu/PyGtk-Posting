@@ -880,13 +880,16 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"(product_id, "
 							"price, "
 							"ext_price, "
-							"order_number"
+							"order_number, "
+							"expense_account "
 							") " 
 						"= "
 							"(%s, "
 							"(SELECT cost FROM p_info), "
 							"qty * (SELECT cost FROM p_info), "
-							"(SELECT vendor_sku FROM p_info)"
+							"(SELECT vendor_sku FROM p_info), "
+							"(SELECT default_expense_account "
+								"FROM products WHERE id = %s)"
 							") "
 						"WHERE id = %s RETURNING ext_price"
 						") "
@@ -898,7 +901,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"stock, "
 							"vendor_sku "
 						"FROM p_info", 
-						(self.vendor_id, product_id, product_id, row_id))
+						(self.vendor_id, product_id, 
+						product_id, product_id, row_id))
 		for row in cursor.fetchall():
 			name = row[0]
 			price = row[1]
