@@ -252,10 +252,11 @@ class GUI:
 		DB.rollback()
 
 	def on_reconciled_toggled(self, widget, path):
+		iter_ = self.bank_transaction_store.get_iter(path)
 		c = DB.cursor()
-		active = not self.bank_transaction_store[path][5]
-		self.bank_transaction_store[path][5] = active #toggle the button state
-		row_id = self.bank_transaction_store[path][0]
+		active = not self.bank_transaction_store[iter_][5]
+		self.bank_transaction_store[iter_][5] = active #toggle the button state
+		row_id = self.bank_transaction_store[iter_][0]
 		c.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
 							(active, row_id))
@@ -337,7 +338,8 @@ class GUI:
 		if result == Gtk.ResponseType.ACCEPT:
 			selection = self.builder.get_object('treeview-selection2')
 			model, path = selection.get_selected_rows()
-			expense_account_number = model[path][0]
+			iter_ = self.bank_transaction_store.get_iter(path)
+			expense_account_number = model[iter_][0]
 			transactor.bank_charge(self.account_number, 
 									self.date, self.amount, 
 									self.description, expense_account_number)
@@ -347,14 +349,15 @@ class GUI:
 			self.populate_treeview()
 
 	def number_edited (self, renderer, path, text):
-		row_id = self.bank_transaction_store[path][0]
+		iter_ = self.bank_transaction_store.get_iter(path)
+		row_id = self.bank_transaction_store[iter_][0]
 		c = DB.cursor()
 		try:
 			c.execute("UPDATE gl_entries SET check_number = %s "
 								"WHERE id = %s", (text, row_id))
 			c.close()
 			DB.commit()
-			self.bank_transaction_store[path][1] = text
+			self.bank_transaction_store[iter_][1] = text
 		except psycopg2.DataError as e:
 			DB.rollback()
 			self.builder.get_object('label10').set_label(str(e))
@@ -363,13 +366,14 @@ class GUI:
 			dialog.hide()
 
 	def description_edited (self, renderer, path, text):
+		iter_ = self.bank_transaction_store.get_iter(path)
 		c = DB.cursor()
-		row_id = self.bank_transaction_store[path][0]
+		row_id = self.bank_transaction_store[iter_][0]
 		c.execute("UPDATE gl_entries SET transaction_description = %s "
 							"WHERE id = %s", (text, row_id))
 		DB.commit()
 		c.close()
-		self.bank_transaction_store[path][4] = text
+		self.bank_transaction_store[iter_][4] = text
 
 	def date_renderer_editing_started (self, renderer, entry, path):
 		date = self.bank_transaction_store[path][3]
@@ -416,7 +420,8 @@ class GUI:
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path != []:
-			treeiter = model.get_iter(path)
+			iter_ = self.bank_transaction_store.get_iter(path)
+			treeiter = model.get_iter(iter_)
 			if model.iter_has_child(treeiter) == True:
 				button.set_label ('Expense parent account selected')
 				return # parent account selected
