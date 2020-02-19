@@ -394,7 +394,10 @@ ALTER TABLE invoice_items ALTER COLUMN sort SET NOT NULL;
 ALTER TABLE incoming_invoices_gl_entry_expenses_ids ADD COLUMN IF NOT EXISTS remark varchar DEFAULT '';
 UPDATE incoming_invoices_gl_entry_expenses_ids SET remark = '' WHERE remark IS NULL;
 ALTER TABLE incoming_invoices_gl_entry_expenses_ids ALTER COLUMN remark SET NOT NULL;
-
+--0.5.27 update complete_search function
+SELECT 1;
+--0.5.28
+ALTER TABLE settings ALTER COLUMN finance_rate TYPE numeric(12,6);
 
 
 
