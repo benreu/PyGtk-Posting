@@ -67,7 +67,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.credit_card_store = self.get_object('credit_card_store')
 		self.populate_stores ()
 		self.populate_service_providers ()
-		self.expense_percentage_store.append([0, Decimal('0.00'), 0, "", ""])
+		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", ""])
 	
 		self.window = self.get_object('window1')
 		self.window.show_all()
@@ -140,7 +140,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.get_object('label14').set_label(contact_name)
 
 	def add_percentage_row_clicked (self, button):
-		self.expense_percentage_store.append([0, Decimal('0.00'), 0, "", ""])
+		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", ""])
+		self.add_expense_totals ()
 
 	def delete_percentage_row_clicked (self, button):
 		selection = self.get_object('treeview-selection1')
@@ -148,6 +149,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if path != []:
 			tree_iter = model.get_iter(path)
 			self.expense_percentage_store.remove(tree_iter)
+		self.add_expense_totals ()
 
 	def equalize_amounts_clicked (self, button):
 		lines = self.expense_percentage_store.iter_n_children()
@@ -163,15 +165,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.add_expense_totals ()
 
 	def invoice_spinbutton_changed (self, spinbutton):
-		self.update_expense_amounts ()
-
-	def update_expense_amounts (self):
-		invoice_amount = self.get_object('spinbutton1').get_text()
-		for row in self.expense_percentage_store:
-			percentage = row[0]
-			percent = Decimal(percentage) / 100
-			split_amount = Decimal(invoice_amount) * percent
-			row[1] = split_amount
 		self.add_expense_totals ()
 
 	def expense_amount_edited (self, renderer, path, text):
@@ -249,8 +242,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if self.date == None:
 			self.set_button_message('No date selected')
 			return
-		invoice_amount = Decimal(self.get_object('spinbutton1'
-																).get_text())
+		invoice_amount = Decimal(self.get_object('spinbutton1').get_text())
 		if invoice_amount == 0.00:
 			self.set_button_message('No invoice amount')
 			return
