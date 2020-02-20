@@ -68,7 +68,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.populate_stores ()
 		self.populate_service_providers ()
 		self.expense_percentage_store.append([0, Decimal('0.00'), 0, "", ""])
-		self.calculate_percentages ()
 	
 		self.window = self.get_object('window1')
 		self.window.show_all()
@@ -140,7 +139,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def add_percentage_row_clicked (self, button):
 		self.expense_percentage_store.append([0, Decimal('0.00'), 0, "", ""])
-		self.calculate_percentages ()
 
 	def delete_percentage_row_clicked (self, button):
 		selection = self.get_object('treeview-selection1')
@@ -148,9 +146,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if path != []:
 			tree_iter = model.get_iter(path)
 			self.expense_percentage_store.remove(tree_iter)
-		self.calculate_percentages ()
 
-	def calculate_percentages (self):
+	def equalize_amounts_clicked (self, button):
 		lines = self.expense_percentage_store.iter_n_children()
 		if lines == 0:
 			return
