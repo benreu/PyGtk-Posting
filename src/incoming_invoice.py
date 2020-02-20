@@ -74,6 +74,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.file_data = None
 
 	def destroy (self, widget):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 
 	def provider_match_func(self, completion, key, iter_):
