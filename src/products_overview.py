@@ -131,6 +131,10 @@ class ProductsOverviewGUI (Gtk.Builder):
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
 
+	def print_label_activated (self, menuitem):
+		import product_print_label
+		product_print_label.ProductPrintLabelGUI(self.product_id)
+
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		product_id = model[path][0]

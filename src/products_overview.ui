@@ -56,6 +56,7 @@
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Print label</property>
         <property name="use_underline">True</property>
+        <signal name="activate" handler="print_label_activated" swapped="no"/>
       </object>
     </child>
     <child>

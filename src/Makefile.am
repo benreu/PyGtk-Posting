@@ -168,7 +168,9 @@ pygtk_posting_PYTHON = \
 	contact_edit_files.py \
 	contact_edit_files.ui \
 	complete_search.py \
-	complete_search.ui
+	complete_search.ui \
+	product_print_label.py \
+	product_print_label.ui
 
 
 EXTRA_DIST = $(ui_DATA)
