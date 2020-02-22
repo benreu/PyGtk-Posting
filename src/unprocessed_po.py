@@ -220,8 +220,10 @@ class GUI(Gtk.Builder):
 			if result == Gtk.ResponseType.CANCEL:
 				return 
 			elif result == 0:
-				if not self.attach_button_clicked():
-					return
+				import pdf_attachment
+				paw = pdf_attachment.PdfAttachmentWindow(self.window)
+				paw.connect("pdf_optimized", self.optimized_callback)
+				return
 		invoice_number = self.get_object('entry6').get_text()
 		self.cursor.execute("UPDATE purchase_orders "
 							"SET (amount_due, invoiced, total, "
@@ -560,22 +562,21 @@ class GUI(Gtk.Builder):
 
 	def attach_button_clicked (self, button = None):
 		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			pdf_data = dialog.get_pdf ()
-			self.cursor.execute("UPDATE purchase_orders "
-								"SET attached_pdf = %s "
-								"WHERE id = %s", 
-								(pdf_data, self.purchase_order_id))
-			DB.commit()
-			# update the attachment status for this po
-			active = self.get_object("combobox1").get_active()
-			self.po_store[active][3] = True
-			self.get_object("button15").set_sensitive(True)
-			self.attachment = True
-			return True
-		return False
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback)
+
+	def optimized_callback (self, pdf_attachment_window):
+		pdf_data = pdf_attachment_window.get_pdf ()
+		self.cursor.execute("UPDATE purchase_orders "
+							"SET attached_pdf = %s "
+							"WHERE id = %s", 
+							(pdf_data, self.purchase_order_id))
+		DB.commit()
+		# update the attachment status for this po
+		active = self.get_object("combobox1").get_active()
+		self.po_store[active][3] = True
+		self.get_object("button15").set_sensitive(True)
+		self.attachment = True
 
 	def expense_products_clicked (self, button):
 		import expense_products

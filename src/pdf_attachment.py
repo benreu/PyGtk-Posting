@@ -18,7 +18,8 @@
 import gi
 gi.require_version('Vte', '2.91')
 gi.require_version('EvinceView', '3.0')
-from gi.repository import Gtk, GLib, Vte, EvinceView, EvinceDocument
+from gi.repository import Gtk, GLib, GObject, Gdk
+from gi.repository import Vte, EvinceView, EvinceDocument
 from multiprocessing import Queue, Process
 from queue import Empty
 from subprocess import call
@@ -26,34 +27,59 @@ import os, sane
 
 UI_FILE = "src/pdf_attachment.ui"
 
-class Dialog :
+def sizeof_file(num, suffix='B'):
+	"https://stackoverflow.com/questions/1094841/"
+	for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+		if abs(num) < 1024.0:
+			return "%3.1f %s%s" % (num, unit, suffix)
+		num /= 1024.0
+	return "%.1f %s%s" % (num, 'Yi', suffix)
+
+class PdfAttachmentWindow (Gtk.Builder):
 	device = None
+	__gsignals__ = { 
+	'pdf_optimized': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())
+	}
+	"""the pdf_optimized signal is used to send a message to the parent 
+		window that the pdf is now optimized"""
 	def __init__ (self, parent_window):
 		
 		self.parent_window = parent_window
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
-		dialog = self.builder.get_object("scan_dialog")
-		dialog.set_transient_for(parent_window)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		
 		self.terminal = Vte.Terminal()
 		self.terminal.show()
 		self.terminal.set_scroll_on_output(True)
-		self.builder.get_object('scrolledwindow3').add(self.terminal)
+		self.terminal.connect("child-exited", self.terminal_child_exited)
+		self.get_object('scrolledwindow3').add(self.terminal)
 
 		self.data_queue = Queue()
-		self.scanner_store = self.builder.get_object("scanner_store")
+		self.scanner_store = self.get_object("scanner_store")
 		thread = Process(target=self.get_scanners)
 		thread.start()
 		
 		GLib.timeout_add(100, self.populate_scanners)
+		style_provider = Gtk.CssProvider()
+		css_data = b'''
+		#red-background {
+		background-color: #FF2A2A;
+		}
+		'''
+		style_provider.load_from_data(css_data)
+		Gtk.StyleContext.add_provider_for_screen(
+							Gdk.Screen.get_default(), 
+							style_provider,
+							Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 		
 		EvinceDocument.init()
 		self.view = EvinceView.View()
-		self.builder.get_object('pdf_view_scrolled_window').add(self.view)
-
-		self.dialog = self.builder.get_object('scan_dialog')
+		self.get_object('pdf_view_scrolled_window').add(self.view)
+		
+		self.window = self.get_object("window")
+		self.window.set_transient_for(parent_window)
+		self.window.show_all()
 
 	def populate_scanners(self):
 		try:
@@ -74,49 +100,81 @@ class Dialog :
 		self.data_queue.put(devices)
 
 	def view_file (self):
+		v_adjust = self.get_object('v_adjustment').get_value()
+		try:
+			f = "file://" + self.file
+			doc = EvinceDocument.Document.factory_get_document(f)
+			self.get_object('button8').set_sensitive (True)
+			self.get_object('notify_revealer').set_reveal_child(False)
+		except Exception as e: # show in app error notify bar
+			print (e)
+			self.get_object('error_label').set_text(str(e))
+			self.get_object('notify_revealer').set_reveal_child(True)
+			self.get_object('button8').set_sensitive (False)
+			return
+		# create model to load the pdf from after validating the pdf
 		self.model = EvinceView.DocumentModel()
-		doc = EvinceDocument.Document.factory_get_document("file:///tmp/opt.pdf")
 		self.model.set_document(doc)
 		self.view.set_model(self.model)
-		self.builder.get_object('button8').set_sensitive (True)
-		self.builder.get_object('stack1').set_visible_child_name('view_page')
-		self.dialog.show_all()
-		self.parent_window.present()
+		GLib.idle_add(self.get_object('v_adjustment').set_value, v_adjust)
 
 	def get_pdf (self):
-		return self.pdf_data
+		with open (self.file, 'rb') as f:
+			pdf_data = f.read()
+		return pdf_data
 	
-	def run (self):
-		result = self.dialog.run()
-		self.pdf_data = None
-		if result == Gtk.ResponseType.ACCEPT:
-			self.load_file_from_disk()
-		self.dialog.hide()
+	def destroy (self, window):
 		if self.device:
 			self.device.close()
-		return result
+
+	def cancel_clicked (self, button):
+		self.window.destroy ()
+
+	def attach_clicked (self, button):
+		self.emit("pdf_optimized")
+		self.window.destroy ()
+
+	def original_file_clicked (self, button):
+		if not button.get_active():
+			return
+		self.file = '/tmp/original.pdf'
+		self.view_file ()
+
+	def optimized_file_clicked (self, button):
+		if not button.get_active():
+			return
+		self.file = '/tmp/optimized.pdf'
+		self.view_file ()
+	
+	def notify_close_button_clicked (self, button):
+		self.get_object('notify_revealer').set_reveal_child(False)
 
 	def scanner_combo_changed (self, combo):
 		if self.device:
 			self.device.close()
 		self.device = sane.open(combo.get_active_id())
-		self.builder.get_object('scan_button').set_sensitive (True)
+		self.get_object('scan_button').set_sensitive (True)
 
 	def filechooser_file_set (self, chooser):
-		if os.path.exists("/tmp/opt.pdf"):
-			os.remove("/tmp/opt.pdf")
-		self.spinner = self.builder.get_object('spinner1')
+		file_name = chooser.get_filename()
+		call(["cp", file_name, '/tmp/original.pdf'])
+		self.optimize_file()
+
+	def optimize_file (self):
+		if os.path.exists('/tmp/optimized.pdf'):
+			os.remove('/tmp/optimized.pdf')
+		self.terminal.reset(True, True)
+		self.spinner = self.get_object('spinner1')
 		self.spinner.start()
 		self.spinner.set_visible(True)
-		self.file_name = chooser.get_filename()
 		commands = ['gs',
 					'-sDEVICE=pdfwrite',
 					'-dCompatibilityLevel=1.4',
 					'-dPDFSETTINGS=/screen',
 					'-dNOPAUSE',
 					'-dBATCH',
-					'-sOutputFile=/tmp/opt.pdf',
-					self.file_name]
+					'-sOutputFile=/tmp/optimized.pdf',
+					'/tmp/original.pdf']
 		self.terminal.spawn_sync(   Vte.PtyFlags.DEFAULT,
 									'/usr/bin',
 									commands,
@@ -125,36 +183,40 @@ class Dialog :
 									None,
 									None,
 									)
-		self.handler_id = self.terminal.connect("child-exited", self.callback)
 
-	def callback (self, terminal, error):
-		terminal.disconnect(self.handler_id)
-		button = self.builder.get_object('button8')
+	def terminal_child_exited (self, terminal, error):
 		self.spinner.stop()
 		self.spinner.set_visible(False)
-		label = self.builder.get_object('label20')
-		if os.path.exists("/tmp/opt.pdf"):
-			label.set_visible(False)
-			button.set_label("Attach")
-		else:
+		orig_size = os.path.getsize('/tmp/original.pdf')
+		new_size = os.path.getsize('/tmp/optimized.pdf')
+		label = self.get_object('label20')
+		if error > 0: # optimizing failed, may not be fatal, so we continue
+			self.file = '/tmp/original.pdf'
 			label.set_visible(True)
 			label.show()
-			button.set_label("Attach without optimization")
-			call(["cp", self.file_name, "/tmp/opt.pdf"])
+			self.get_object('optimized_file_radiobutton').set_sensitive(False)
+			self.get_object('original_file_radiobutton').set_active(True)
+		else: # optimizing is fine, decide which file is smaller
+			self.get_object('optimized_file_radiobutton').set_sensitive(True)
+			label.set_visible(False)
+			if orig_size > new_size:
+				self.file = '/tmp/optimized.pdf'
+				self.get_object('optimized_file_radiobutton').set_active(True)
+			else:
+				self.file = '/tmp/original.pdf'
+				self.get_object('original_file_radiobutton').set_active(True)
+		self.get_object('label_before').set_text(sizeof_file(orig_size))
+		self.get_object('label_after').set_text(sizeof_file(new_size))
+		self.get_object('stack_switcher').set_sensitive (True)
+		self.get_object('stack1').set_visible_child_name('page1')
 		self.view_file ()
+		self.parent_window.present()
 
 	def scan_clicked (self, button):
-		if os.path.exists("/tmp/opt.pdf"):
-			os.remove("/tmp/opt.pdf")
 		document = self.device.scan()
-		document.save("/tmp/opt.pdf")
-		self.view_file ()
-
-	def load_file_from_disk (self):
-		with open("/tmp/opt.pdf",'rb') as f:
-			self.pdf_data = f.read ()
-
-	
+		document.save('/tmp/original.pdf')
+		self.optimize_file ()
 
 
-		
+
+

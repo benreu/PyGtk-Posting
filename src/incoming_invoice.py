@@ -384,10 +384,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def attach_button_clicked (self, button):
 		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			self.file_data = dialog.get_pdf ()
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback)
+
+	def optimized_callback (self, pdf_attachment_window):
+		self.file_data = pdf_attachment_window.get_pdf ()
 
 
 

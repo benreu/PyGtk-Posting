@@ -83,13 +83,16 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result != Gtk.ResponseType.ACCEPT:
-			return
-		binary = dialog.get_pdf ()
 		exemption_id = model[path][0]
+		import pdf_attachment
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.window.set_modal(True)
+		paw.connect("pdf_optimized", self.optimized_callback, exemption_id)
+	
+	def optimized_callback (self, pdf_attachment_window, exemption_id):
+		binary = pdf_attachment_window.get_pdf ()
+		selection = self.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
 		if model[path][3] == False:
 			self.cursor.execute("INSERT INTO customer_tax_exemptions "
 								"(pdf_data, customer_id, tax_rate_id, "

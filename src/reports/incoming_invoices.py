@@ -69,14 +69,15 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			break
 		else: # no pdf found, give the user the option to attach one
 			import pdf_attachment
-			dialog = pdf_attachment.Dialog(self.window)
-			result = dialog.run()
-			if result == Gtk.ResponseType.ACCEPT:
-				file_data = dialog.get_pdf ()
-				self.cursor.execute("UPDATE incoming_invoices "
-									"SET attached_pdf = %s "
-									"WHERE id = %s", (file_data, file_id))
-				DB.commit()
+			paw = pdf_attachment.PdfAttachmentWindow(self.window)
+			paw.connect("pdf_optimized", self.optimized_callback, file_id)
+
+	def optimized_callback (self, pdf_attachment_window, file_id):
+		file_data = pdf_attachment_window.get_pdf ()
+		self.cursor.execute("UPDATE incoming_invoices "
+							"SET attached_pdf = %s "
+							"WHERE id = %s", (file_data, file_id))
+		DB.commit()
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()

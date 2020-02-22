@@ -311,13 +311,14 @@ class VendorHistoryGUI:
 
 	def run_attach_dialog (self, po_id):
 		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			file_data = dialog.get_pdf ()
-			self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
-								"WHERE id = %s", (file_data, po_id))
-			DB.commit()
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback, po_id)
+
+	def optimized_callback (self, pdf_attachment_window, po_id):
+		file_data = pdf_attachment_window.get_pdf ()
+		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
+							"WHERE id = %s", (file_data, po_id))
+		DB.commit()
 
 
 
