@@ -180,10 +180,6 @@ class MainGUI :
 		from reports import deposits
 		deposits.DepositsGUI()
 
-	def contact_product_view_clicked (self, button):
-		import contact_product_view
-		contact_product_view.ContactProductViewGUI()
-
 	def fiscal_year_activated (self, menuitem):
 		import fiscal_years
 		fiscal_years.FiscalYearGUI()
