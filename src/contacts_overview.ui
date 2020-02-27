@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkListStore" id="contact_store">
+  <object class="GtkTreeStore" id="contact_store">
     <columns>
       <!-- column-name contact_id -->
       <column type="gint"/>
@@ -234,6 +234,7 @@
                     <property name="can_focus">True</property>
                     <property name="model">contact_sort</property>
                     <property name="search_column">1</property>
+                    <property name="level_indentation">4</property>
                     <property name="enable_grid_lines">horizontal</property>
                     <signal name="row-activated" handler="contact_activated" swapped="no"/>
                     <child internal-child="selection">
