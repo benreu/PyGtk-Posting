@@ -433,21 +433,21 @@ class ContactHistoryGUI (Gtk.Builder):
 		c.execute("SELECT "
 						"si.id, "
 						"si.tracking_number, "
-						"i.id, "
+						"COALESCE(si.invoice_id::text, 'N/A'), "
 						"COALESCE(ii.amount, 0.00), "
 						"COALESCE(ii.amount::text, 'N/A') "
 					"FROM shipping_info AS si "
-					"JOIN invoices AS i ON i.id = si.invoice_id "
 					"LEFT JOIN incoming_invoices AS ii "
 						"ON ii.id = si.incoming_invoice_id "
-					"WHERE customer_id = %s"
-					"ORDER BY dated_for", 
+					"WHERE si.contact_id = %s"
+					"ORDER BY date_shipped", 
 					(self.contact_id,))
 		for row in c.fetchall():
 			count += 1
 			shipping_store.append(row)
+		print ("shipping", self.contact_id)
 		if count == 0:
-			self.get_object('label11').set_label('Invoices')
+			self.get_object('label11').set_label('Shipping')
 		else:
 			label = "<span weight='bold'>Shipping (%s)</span>" % count
 			self.get_object('label11').set_markup(label)

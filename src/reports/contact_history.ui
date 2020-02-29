@@ -153,7 +153,7 @@
       <!-- column-name tracking_number -->
       <column type="gchararray"/>
       <!-- column-name invoice -->
-      <column type="gint"/>
+      <column type="gchararray"/>
       <!-- column-name amount_sort -->
       <column type="gfloat"/>
       <!-- column-name amount_formatted -->
@@ -202,7 +202,7 @@
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Contact History</property>
     <property name="window_position">center</property>
-    <property name="default_width">900</property>
+    <property name="default_width">1000</property>
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
