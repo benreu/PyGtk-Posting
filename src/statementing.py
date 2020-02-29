@@ -86,12 +86,20 @@ class Setup():
 		for i in split_name:
 			name_str = name_str + i[0:3]
 		name = name_str.lower()
-		
-		cursor.execute("INSERT INTO statements (date_inserted, "
+
+		cursor.execute("SELECT id FROM statements "
+						"WHERE (customer_id, printed) = (%s, False)",
+						(self.customer_id, ))
+		for row in cursor.fetchall():
+			self.statement_id = row[0]
+			break
+		else:
+			cursor.execute("INSERT INTO statements (date_inserted, "
 							"customer_id, amount, printed) "
 							"VALUES (%s, %s, %s, False) RETURNING id", 
 							(self.date, self.customer_id, total))
-		self.statement_id = cursor.fetchone()[0]
+			self.statement_id = cursor.fetchone()[0]
+		DB.commit()
 		text = "Sta_" + str(self.statement_id) + "_"  + name + "_" + date_text
 		document.name = re.sub(" ", "_", text)
 		self.document_name = document.name
@@ -109,7 +117,6 @@ class Setup():
 
 	def view (self):
 		subprocess.Popen(["soffice", self.statement_file])
-		DB.rollback ()  # we are only viewing the statement, so remove the id again
 		
 	def print_dialog (self, window):
 		cursor = DB.cursor()
