@@ -55,7 +55,8 @@ class MainGUI :
 													"Jonathan Groff"])
 		self.populate_menu_features ()
 		self.populate_modules ()
-		self.check_db_version ()
+		# run version upgrade later to prevent rollback when showing main window
+		GLib.idle_add(self.check_db_version) 
 		import traceback_handler
 		traceback_handler.Log()
 
@@ -505,7 +506,6 @@ class MainGUI :
 			rgba.alpha = row[5]
 			store.append([subject, id_, self.resource_window, rgba])
 		c.close()
-		DB.rollback()
 
 	def resource_window (self, id_):
 		import resource_management
