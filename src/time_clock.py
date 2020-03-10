@@ -120,6 +120,7 @@ class TimeClockGUI(Gtk.Builder):
 			project_name = self.employee_store[path][5]
 			self.get_object('project_label1').set_label(project_name)
 			self.stack.set_visible_child_name ('punchout_page')
+			self.get_object('punchout_button').grab_focus()
 			DB.commit()
 			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
 			self.clock_in_out_time = int(self.cursor.fetchone()[0])
@@ -177,6 +178,7 @@ class TimeClockGUI(Gtk.Builder):
 		job_name = self.project_store[path][1]
 		self.get_object('project_label').set_label(job_name)
 		self.stack.set_visible_child_name ('punchin_page')
+		self.get_object('punchin_button').grab_focus()
 		DB.commit()
 		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
 		self.clock_in_out_time = int(self.cursor.fetchone()[0])
