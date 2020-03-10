@@ -101,11 +101,11 @@ class ProductEditMainGUI (Gtk.Builder):
 	def set_window_layout_from_settings (self):
 		sqlite = get_apsw_connection ()
 		c = sqlite.cursor()
-		c.execute("SELECT size FROM widget_size "
-					"WHERE widget_id = 'product_window_width'")
+		c.execute("SELECT size FROM product_edit "
+					"WHERE widget_id = 'window_width'")
 		width = c.fetchone()[0]
-		c.execute("SELECT size FROM widget_size "
-					"WHERE widget_id = 'product_window_height'")
+		c.execute("SELECT size FROM product_edit "
+					"WHERE widget_id = 'window_height'")
 		height = c.fetchone()[0]
 		self.get_object('window').resize(width, height)
 		sqlite.close()
@@ -114,10 +114,10 @@ class ProductEditMainGUI (Gtk.Builder):
 		sqlite = get_apsw_connection ()
 		c = sqlite.cursor()
 		width, height = self.window.get_size()
-		c.execute("REPLACE INTO widget_size (widget_id, size) "
-					"VALUES ('product_window_width', ?)", (width,))
-		c.execute("REPLACE INTO widget_size (widget_id, size) "
-					"VALUES ('product_window_height', ?)", (height,))
+		c.execute("REPLACE INTO product_edit (widget_id, size) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO product_edit (widget_id, size) "
+					"VALUES ('window_height', ?)", (height,))
 		sqlite.close()
 
 	def destroy(self, window):

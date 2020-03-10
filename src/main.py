@@ -57,6 +57,13 @@ def update_apsw_tables(connection):
 	cursor.execute("CREATE TABLE IF NOT EXISTS widget_size "
 											"(widget_id text UNIQUE NOT NULL, "
 											"size integer NOT NULL)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS product_edit "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO product_edit VALUES "
+					"('window_width', 900)")
+	cursor.execute("INSERT OR IGNORE INTO product_edit VALUES "
+					"('window_height', 500)")
 	# product window layout
 	cursor.execute("CREATE TABLE IF NOT EXISTS product_overview "
 											"(widget_id text UNIQUE NOT NULL, "
