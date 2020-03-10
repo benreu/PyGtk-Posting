@@ -285,7 +285,7 @@ CREATE OR REPLACE FUNCTION payroll.pay_stubs_employee_info_update_func ()
 $func$
 BEGIN
 	UPDATE payroll.employee_info SET active = False 
-		WHERE (id, active) = (SELECT NEW.employee_info_id, True);
+		WHERE (id, active) = (SELECT NEW.id, True);
 	RETURN NEW;
 END
 $func$  LANGUAGE plpgsql;
