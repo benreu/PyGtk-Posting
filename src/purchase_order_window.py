@@ -507,20 +507,25 @@ class PurchaseOrderGUI(Gtk.Builder):
 			result = purchase_order.print_dialog(self.window)
 		purchase_order.post(self.purchase_order_id, self.vendor_id,
 												self.datetime)
-		old_purchase_id = self.purchase_order_id
-		self.purchase_order_id = None
-		self.check_po_id ()
-		cursor.execute ("UPDATE purchase_order_line_items "
+		hold = False
+		for row in self.p_o_store:
+			if row[14] == True:
+				hold = True
+				break
+		if hold == True: # create new po and show it
+			old_purchase_id = self.purchase_order_id
+			self.purchase_order_id = None
+			self.check_po_id ()
+			cursor.execute ("UPDATE purchase_order_line_items "
 							"SET (purchase_order_id, hold) = (%s, False) "
 							"WHERE (purchase_order_id, hold) = "
 							"(%s, True) RETURNING id", 
 							(self.purchase_order_id, old_purchase_id))
-		if cursor.fetchone() == None: #no products held
-			DB.rollback()
-			self.window.destroy ()
-		else:								#new po created; show it
 			DB.commit()
 			self.products_from_existing_po ()
+		else: #no products held
+			DB.commit()
+			self.window.destroy ()
 		cursor.close()
 
 	def vendor_match_selected(self, completion, model, iter):
