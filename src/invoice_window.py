@@ -207,12 +207,18 @@ class InvoiceGUI:
 		entry.select_region(0,-1)
 		if barcode == "":
 			return # blank barcode
-		self.cursor.execute("SELECT process_invoice_barcode(%s, %s)", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT process_invoice_barcode(%s, %s)", 
 							(barcode, self.invoice_id))
-		for row in self.cursor.fetchall():
+		DB.commit()
+		for row in cursor.fetchall():
 			if row[0] != 0:
-				self.populate_invoice_items()
 				row_id = row[0]
+				cursor.execute("UPDATE invoice_items SET (price, tax_rate_id) = "
+								"(customer_product_price(%s, product_id), %s) "
+								"WHERE id = %s", 
+								(self.customer_id, self.tax_rate_id, row_id))
+				self.populate_invoice_items()
 			else:            #barcode not found
 				for row in self.barcodes_not_found_store:
 					if row[2] == barcode:
@@ -232,7 +238,8 @@ class InvoiceGUI:
 				c = treeview.get_column(0)
 				#path = self.invoice_store.get_path(row.path)
 				treeview.set_cursor(row.path, c, False)
-		DB.rollback()
+		DB.commit()
+		cursor.close()
 
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
@@ -552,10 +559,10 @@ class InvoiceGUI:
 		'''if tax_rate_id is NULL, trigger will use default tax rate'''
 		if self.populating == True:
 			return
-		tax_rate_id = combo.get_active_id()
+		self.tax_rate_id = combo.get_active_id()
 		self.cursor.execute("UPDATE invoice_items SET tax_rate_id = %s "
 							"WHERE invoice_id = %s", 
-							(tax_rate_id, self.invoice_id))
+							(self.tax_rate_id, self.invoice_id))
 		DB.commit()
 		self.populate_invoice_items ()
 		self.calculate_totals ()

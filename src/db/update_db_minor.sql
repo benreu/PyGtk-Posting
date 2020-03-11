@@ -398,6 +398,28 @@ ALTER TABLE incoming_invoices_gl_entry_expenses_ids ALTER COLUMN remark SET NOT 
 SELECT 1;
 --0.5.28
 ALTER TABLE settings ALTER COLUMN finance_rate TYPE numeric(12,6);
+--0.5.29
+CREATE OR REPLACE FUNCTION public.customer_product_price (_customer_id bigint, _product_id bigint, OUT _price numeric(12, 2)) RETURNS numeric(12, 2)
+    LANGUAGE plpgsql
+    AS 
+$BODY$ 
+	DECLARE _cost numeric(12, 2); _markup_percent numeric(12, 2); 
+	BEGIN 
+	SELECT pmp.price INTO _price FROM products_markup_prices AS pmp 
+		JOIN contacts AS c ON c.markup_percent_id = pmp.markup_id
+		WHERE (c.id, pmp.product_id) = (_customer_id, _product_id); 
+	IF NOT FOUND THEN 
+		SELECT cost INTO _cost FROM products WHERE id = _product_id;
+		SELECT markup_percent INTO _markup_percent FROM customer_markup_percent AS cmp
+		JOIN contacts AS c ON c.markup_percent_id = cmp.id 
+		WHERE c.id = _customer_id;
+		SELECT _cost * _markup_percent / 100 INTO _price; 
+	END IF; 
+	RETURN; 
+	END ;
+$BODY$ ;
+
+ALTER TABLE public.invoice_items ALTER COLUMN qty SET DEFAULT 1;
 
 
 
