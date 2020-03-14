@@ -306,7 +306,8 @@ class CreditMemoGUI:
 								"COALESCE(-total, -0.00)::money, "
 								"COALESCE(-tax, -0.00)::money, "
 								"COALESCE(-amount_owed, -0.00)::money, "
-								"COALESCE(dated_for, now())"
+								"COALESCE(dated_for, now()), "
+								"COALESCE(comments, '') "
 							"FROM contacts AS c "
 							"LEFT JOIN credit_memos AS cm "
 							"ON cm.customer_id = c.id AND cm.posted = False "
@@ -319,16 +320,19 @@ class CreditMemoGUI:
 			tax = row[3]
 			total = row[4]
 			self.date = row[5] 
+			comments = row[6]
 			self.builder.get_object('address_entry').set_text(address)
 			self.builder.get_object('subtotal_entry').set_text(subtotal)
 			self.builder.get_object('tax_entry').set_text(tax)
 			self.builder.get_object('total_entry').set_text(total)
 			self.date_calendar.set_date (self.date)
+			self.builder.get_object('comments_buffer').set_text(comments)
 		self.populate_credit_memo ()
 		self.populate_product_store ()
 		self.builder.get_object('menuitem2').set_sensitive(True)
 		self.builder.get_object('button1').set_sensitive(True)
 		self.builder.get_object('button2').set_sensitive(True)
+		self.builder.get_object('comments_textview').set_sensitive(True)
 
 	def populate_credit_memo (self):
 		c = DB.cursor()
@@ -529,6 +533,7 @@ class CreditMemoGUI:
 								"VALUES ('Credit Memo', %s, now(), 0.00) "
 								"RETURNING id", (self.customer_id,))
 			self.credit_memo_id = self.cursor.fetchone()[0]
+			DB.commit()
 
 	def post_credit_memo_clicked (self, button):
 		import credit_memo_template as cmt

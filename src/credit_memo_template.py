@@ -85,7 +85,8 @@ class Setup :
 								"format_date(dated_for), "
 								"(-total)::money, "
 								"(-tax)::money, "
-								"(-amount_owed)::money "
+								"(-amount_owed)::money, "
+								"comments "
 							"FROM credit_memos WHERE id = %s ", 
 							(self.credit_memo_id,))
 		for row in cursor.fetchall():
@@ -93,10 +94,12 @@ class Setup :
 			subtotal = row[1]
 			tax = row[2]
 			total = row[3]
+			comment = row[4]
 		document.date = date_text
 		document.subtotal = subtotal
 		document.tax = tax
 		document.total = total
+		document.comment = comment
 		
 		split_name = name.split(' ')
 		name_str = ""
