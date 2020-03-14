@@ -136,8 +136,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 			where = "WHERE (employee, deleted) = (True, False)"
 		elif self.get_object('radiobutton4').get_active() == True:
 			where = "WHERE (service_provider, deleted) = (True, False)"
-		else: # all contacts
-			where = ""
+		else: # all contacts not deleted
+			where = "WHERE deleted = False"
 		c.execute("SELECT id, "
 						"name, "
 						"ext_name, "
