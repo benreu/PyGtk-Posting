@@ -421,5 +421,13 @@ $BODY$ ;
 
 ALTER TABLE public.invoice_items ALTER COLUMN qty SET DEFAULT 1;
 
+--0.5.30
+ALTER TABLE contact_individuals ADD COLUMN IF NOT EXISTS ext_name varchar DEFAULT '';
+UPDATE contact_individuals SET ext_name = '' WHERE ext_name IS NULL;
+ALTER TABLE contact_individuals ALTER COLUMN ext_name SET NOT NULL;
+ALTER TABLE contact_individuals ADD COLUMN IF NOT EXISTS notes varchar DEFAULT '';
+UPDATE contact_individuals SET notes = '' WHERE notes IS NULL;
+ALTER TABLE contact_individuals ALTER COLUMN notes SET NOT NULL;
+
 
 
