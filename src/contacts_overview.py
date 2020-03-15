@@ -154,7 +154,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 		rows = len(c_tuple)
 		for row_count, row in enumerate(c_tuple):
 			progressbar.set_fraction((row_count + 1) / rows)
-			self.contact_store.append(None, row)
+			self.contact_store.append(row)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 		DB.rollback()
@@ -180,7 +180,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 					"FROM contacts "
 					"WHERE id = %s" , (contact_id,))
 		for row in c.fetchall():
-			self.contact_store.append(None, row)
+			self.contact_store.append(row)
 		c.close()
 
 	def select_contact (self, contact_id = None):
@@ -194,40 +194,18 @@ class ContactsOverviewGUI(Gtk.Builder):
 				break
 
 	def contact_selection_changed (self, treeselection):
-		"populate contact individuals as children when a contact is selected"
+		"populate contact individuals when a contact is selected"
 		model, path = treeselection.get_selected_rows()
 		if path == []:
 			return
 		self.contact_id = model[path][0]
-		# locate the iter of the root TreeStore
-		for row in self.contact_store:
-			if row[0] == self.contact_id:
-				iter_ = row.iter
-				break
-		# remove existing children
-		while self.contact_store.iter_has_child(iter_):
-			child_iter = self.contact_store.iter_children (iter_)
-			self.contact_store.remove(child_iter)
-		# add individual contacts for that 'corporation'
-		c = DB.cursor()
-		c.execute("SELECT id, "
-						"name, "
-						"'' AS ext_name, "
-						"address, "
-						"city, "
-						"state, "
-						"zip, "
-						"fax, "
-						"phone, "
-						"email "
-					"FROM contact_individuals WHERE contact_id = %s "
-					"ORDER BY name, ext_name", 
-					(self.contact_id,))
-		for row in c.fetchall():
-			self.contact_store.append(iter_, row)
-		self.treeview.expand_row(path[0], False)
-		c.close()
-		DB.rollback()
+		self.populate_contact_individuals()
+
+	def contact_individuals_clicked (self, button):
+		self.get_object('stack1').set_visible_child_name('individuals_page')
+
+	def go_back_to_contacts_clicked (self, button):
+		self.get_object('stack1').set_visible_child_name('contacts_page')
 
 	def contact_activated (self, treeview, treepath, treeviewcolumn):
 		model, path = treeview.get_selection().get_selected_rows()
@@ -385,6 +363,61 @@ class ContactsOverviewGUI(Gtk.Builder):
 		c.close()
 		DB.rollback()
 
+################   contact individuals
+
+	def populate_contact_individuals (self):
+		store = self.get_object('contact_individuals_store')
+		store.clear()
+		button = self.get_object('contact_individuals_button')
+		c = DB.cursor()
+		c.execute("SELECT id, "
+						"name, "
+						"ext_name, "
+						"address, "
+						"city, "
+						"state, "
+						"zip, "
+						"phone, "
+						"fax, "
+						"email "
+					"FROM contact_individuals WHERE contact_id = %s "
+					"ORDER BY name, ext_name", 
+					(self.contact_id,))
+		tupl = c.fetchall()
+		if tupl == []: # only show the individuals button when individuals exist
+			button.hide()
+		else:
+			button.show()
+		for row in tupl:
+			store.append(row)
+		c.close()
+		DB.rollback()
+
+	def new_individual_clicked (self, button):
+		if self.contact_id == 0:
+			return
+		import contact_edit_individual
+		ced_gui = contact_edit_individual.ContactEditIndividualGUI(self)
+		ced_gui.window.set_transient_for(self.window)
+		ced_gui.contact_id = self.contact_id
+
+	def individual_row_activated (self, treeview, path, treeviewcolumn):
+		model = self.get_object('contact_individuals_store')
+		individual_id = model[path][0]
+		self.edit_contact_individual (individual_id)
+
+	def edit_individual_clicked (self, button):
+		selection = self.get_object('treeview-selection3')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		individual_id = model[path][0]
+		self.edit_contact_individual (individual_id)
+
+	def edit_contact_individual (self, individual_id):
+		import contact_edit_individual as ced
+		ced_gui = ced.ContactEditIndividualGUI(self, individual_id)
+		ced_gui.window.set_transient_for(self.window)
 
 
 
