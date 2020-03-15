@@ -45,6 +45,12 @@ class ProductHubGUI:
 
 	def edit_product_clicked (self, button):
 		import products_overview
+		p_gui = products_overview.ProductsOverviewGUI(self.product_id)
+		p_gui.edit_product (self.product_id)
+		self.window.destroy()
+
+	def product_overview_clicked (self, button):
+		import products_overview
 		products_overview.ProductsOverviewGUI(self.product_id)
 		self.window.destroy()
 

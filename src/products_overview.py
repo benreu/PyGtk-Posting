@@ -61,11 +61,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 	def product_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
 		product_id = model[path][0]
-		import product_edit_main
-		pe = product_edit_main.ProductEditMainGUI()
-		pe.get_object('product_completion').set_model(self.product_name_store)
-		pe.select_product(product_id)
-		pe.window.set_transient_for(self.window)
+		self.edit_product (product_id)
 
 	def set_window_layout_from_settings(self):
 		sqlite = get_apsw_connection()
@@ -316,6 +312,9 @@ class ProductsOverviewGUI (Gtk.Builder):
 		if path == []:
 			return
 		product_id = model[path][0]
+		self.edit_product (product_id)
+
+	def edit_product (self, product_id):
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI()
 		pe.get_object('product_completion').set_model(self.product_name_store)
