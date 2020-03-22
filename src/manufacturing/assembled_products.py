@@ -19,7 +19,7 @@ from gi.repository import Gtk, Gdk, GLib
 import os, sys
 from constants import ui_directory, DB, broadcaster
 
-UI_FILE = ui_directory + "/assembled_products.ui"
+UI_FILE = ui_directory + "/manufacturing/assembled_products.ui"
 
 
 class AssembledProductsGUI:

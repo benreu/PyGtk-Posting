@@ -23,7 +23,6 @@ pygtk_posting_PYTHON = \
 	statementing.py \
 	customer_tax_exemptions.py \
 	product_location.py \
-	manufacturing.py \
 	documenting.py \
 	time_clock.py \
 	view_log.py \
@@ -56,7 +55,6 @@ pygtk_posting_PYTHON = \
 	job_sheet.ui \
 	customer_tax_exemptions.ui \
 	product_location.ui \
-	manufacturing.ui \
 	time_clock.ui \
 	view_log.ui \
 	invoice_window.ui \
@@ -81,8 +79,6 @@ pygtk_posting_PYTHON = \
 	resource_diary.ui \
 	employee_payment.py \
 	employee_payment.ui \
-	assembled_products.ui \
-	assembled_products.py \
 	double_entry_transaction.py \
 	double_entry_transaction.ui \
 	credit_card_merchant.py \
@@ -190,4 +186,5 @@ SUBDIRS = \
 	reports \
 	admin \
 	payroll \
-	modules
+	modules \
+	manufacturing

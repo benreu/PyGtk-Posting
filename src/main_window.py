@@ -307,7 +307,7 @@ class MainGUI :
 		documents_window.DocumentGUI()
 
 	def assembled_products_clicked (self, button):
-		import assembled_products
+		from manufacturing import assembled_products
 		assembled_products.AssembledProductsGUI()
 
 	def invoice_amounts_activated (self, menuitem):
@@ -319,8 +319,8 @@ class MainGUI :
 		vendor_history.VendorHistoryGUI()
 
 	def manufacturing_window (self, widget):
-		import manufacturing
-		manufacturing.ManufacturingGUI()
+		from manufacturing import projects
+		projects.ManufacturingProjectsGUI()
 
 	def accounts_overview_activated (self, menuitem):
 		import accounts_overview
