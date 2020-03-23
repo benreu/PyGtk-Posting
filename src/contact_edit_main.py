@@ -197,6 +197,7 @@ class ContactEditMainGUI(Gtk.Builder):
 								custom1, custom2, custom3, custom4, notes, 
 								term_id, service_provider, checks_payable_to,
 								markup_id, self.contact_id))
+			DB.commit()
 		else:
 			self.cursor.execute("INSERT INTO contacts " 
 								"(name, ext_name, address, city, state, zip, "
@@ -216,9 +217,9 @@ class ContactEditMainGUI(Gtk.Builder):
 								service_provider, checks_payable_to, 
 								markup_id))
 			contact_id = self.cursor.fetchone()[0]
+			DB.commit()
 			self.overview_class.append_contact(contact_id)
 			self.overview_class.select_contact(contact_id)
-		DB.commit()
 		self.window.destroy()
 
 	def show_message (self, message):
