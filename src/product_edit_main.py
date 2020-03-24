@@ -1,4 +1,4 @@
-# products.py
+# product_edit_main.py
 # Copyright (C) 2016 reuben
 # 
 # products.py is free software: you can redistribute it and/or modify it
@@ -297,6 +297,9 @@ class ProductEditMainGUI (Gtk.Builder):
 			if keyname == "q":
 				window.destroy()
 		
+	def product_name_changed (self, editable):
+		self.window.set_title(editable.get_text())
+
 	def select_product (self, product_id):
 		self.product_id = product_id
 		c = DB.cursor()
@@ -381,6 +384,12 @@ class ProductEditMainGUI (Gtk.Builder):
 	def inventory_completion_match_selected (self, completion, model, treeiter):
 		self.inventory_account = model[treeiter][0]
 
+	def window_focus_out (self, widget, event):
+		self.window.set_urgency_hint(True)
+
+	def window_focus_in (self, widget, event):
+		self.window.set_urgency_hint(False)
+
 	def save_clicked (self, button = None):
 		name = self.get_object('entry1').get_text()
 		ext_name = self.get_object('entry10').get_text()
@@ -438,10 +447,9 @@ class ProductEditMainGUI (Gtk.Builder):
 				self.show_message(str(e))
 				return
 			DB.commit()
-			if self.product_overview != None:
-				self.product_overview.product_id = self.product_id
-				self.product_overview.append_product()
-				self.product_overview.select_product()
+			self.product_overview.product_id = self.product_id
+			self.product_overview.append_product()
+			self.product_overview.select_product()
 		else:  # just save the existing product
 			try:
 				if barcode == '':

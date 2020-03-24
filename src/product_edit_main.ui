@@ -119,14 +119,15 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
-    <property name="title" translatable="yes">    </property>
+    <property name="title" translatable="yes">New product</property>
     <property name="modal">True</property>
     <property name="window_position">center-always</property>
     <property name="default_width">600</property>
     <property name="default_height">300</property>
     <property name="icon_name">pygtk-posting</property>
-    <property name="skip_taskbar_hint">True</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
+    <signal name="focus-in-event" handler="window_focus_in" swapped="no"/>
+    <signal name="focus-out-event" handler="window_focus_out" swapped="no"/>
     <signal name="key-press-event" handler="window_key_press_event" swapped="no"/>
     <child>
       <placeholder/>
@@ -621,6 +622,7 @@
                                         <property name="text" translatable="yes">New product</property>
                                         <property name="placeholder_text" translatable="yes">Product name</property>
                                         <property name="completion">product_completion</property>
+                                        <signal name="changed" handler="product_name_changed" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
