@@ -26,12 +26,12 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, store, customer_id, date, total, comment = ""):
+	def __init__(self, store, customer_id, total,end_date, comment = ""):
 		
 		self.customer_id = customer_id
 		self.store = store
 		self.comment = comment
-		self.date = date	
+		self.end_date = end_date
 		cursor = DB.cursor()
 		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",[customer_id])
 		customer = Item()
@@ -75,11 +75,15 @@ class Setup():
 			items.append(item)
 		
 		document = Item() 
-		document.total = '${:,.2f}'.format(total)
+		document.total = total
 		document.comment = self.comment
-		cursor.execute("SELECT format_date(%s)", (date.date(),))
+		cursor.execute("SELECT format_date(CURRENT_DATE)")
 		date_text = cursor.fetchone()[0]
 		document.date = date_text
+		cursor.execute("SELECT format_date(%s)", (self.end_date,))
+		end_date_text = cursor.fetchone()[0]
+		document.end_date = end_date_text
+
 		
 		split_name = name.split(' ') 
 		name_str = ""
@@ -97,13 +101,14 @@ class Setup():
 			cursor.execute("INSERT INTO statements (date_inserted, "
 							"customer_id, amount, printed) "
 							"VALUES (%s, %s, %s, False) RETURNING id", 
-							(self.date, self.customer_id, total))
+							(self.end_date, self.customer_id, total))
 			self.statement_id = cursor.fetchone()[0]
 		DB.commit()
-		text = "Sta_" + str(self.statement_id) + "_"  + name + "_" + date_text
+		text = "Sta_" + str(self.statement_id) + "_"  + name + "_" + end_date_text
 		document.name = re.sub(" ", "_", text)
 		self.document_name = document.name
 		document.number = str(self.statement_id)
+		document.copy_status = self.comment
 		self.document_number = document.number
 		self.document_odt = document.name + ".odt"
 		self.document_pdf = document.name + ".pdf"
@@ -131,10 +136,11 @@ class Setup():
 		document = "/tmp/" + self.document_pdf
 		with open(document,'rb') as f:
 			data = f.read()
+			document_name = 'Balance forward on ' + self.document_name
 			cursor.execute("UPDATE statements "
 							"SET (name, pdf) = (%s, %s) "
 							"WHERE id = %s", 
-							(self.document_name, data, self.statement_id))
+							(document_name, data, self.statement_id))
 		self.close_invoices_and_payments ()
 		cursor.close()
 		
@@ -148,18 +154,18 @@ class Setup():
 							"WHERE (canceled, active, posted) = "
 							"(False, True, True) "
 							"AND customer_id = %s "
-							"AND statement_id IS NULL", 
-							(self.statement_id, self.customer_id))
+							"AND statement_id IS NULL AND dated_for<= %s", 
+							(self.statement_id, self.customer_id,self.end_date))
 		cursor.execute("UPDATE payments_incoming "
 							"SET (closed, statement_id) = (True, %s) "
 							"WHERE statement_id IS NULL "
-							"AND customer_id = %s", 
-							(self.statement_id, self.customer_id))
+							"AND customer_id = %s AND dated_for<= %s", 
+							(self.statement_id, self.customer_id,self.end_date))
 		cursor.execute("UPDATE credit_memos "
 							"SET statement_id = %s "
 							"WHERE statement_id IS NULL "
-							"AND customer_id = %s", 
-							(self.statement_id, self.customer_id))
+							"AND customer_id = %s AND date_inserted<= %s", 
+							(self.statement_id, self.customer_id,self.end_date))
 		DB.commit()
 		cursor.close()
 
