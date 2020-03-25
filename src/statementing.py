@@ -130,17 +130,19 @@ class Setup():
 		p.set_file_to_print("/tmp/" + self.document_pdf)
 		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
-			cursor.execute("UPDATE statements SET (print_date, printed) = "
-								"(CURRENT_DATE, True) WHERE id = %s", 
+			cursor.execute("UPDATE statements SET print_date = "
+								"CURRENT_DATE WHERE id = %s", 
 								(self.statement_id,))
 		document = "/tmp/" + self.document_pdf
 		with open(document,'rb') as f:
 			data = f.read()
 			document_name = 'Balance forward on ' + self.document_name
 			cursor.execute("UPDATE statements "
-							"SET (name, pdf) = (%s, %s) "
+							"SET (name, pdf, printed, amount) = "
+							"(%s, %s, True, %s) "
 							"WHERE id = %s", 
-							(document_name, data, self.statement_id))
+							(document_name, data, self.total, 
+							self.statement_id))
 		self.close_invoices_and_payments ()
 		cursor.close()
 		
