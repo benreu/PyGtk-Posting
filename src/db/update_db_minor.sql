@@ -428,6 +428,9 @@ ALTER TABLE contact_individuals ALTER COLUMN ext_name SET NOT NULL;
 ALTER TABLE contact_individuals ADD COLUMN IF NOT EXISTS notes varchar DEFAULT '';
 UPDATE contact_individuals SET notes = '' WHERE notes IS NULL;
 ALTER TABLE contact_individuals ALTER COLUMN notes SET NOT NULL;
+--0.5.31
+UPDATE document_items SET remark = '' WHERE remark IS NULL;
+ALTER TABLE public.document_items ALTER COLUMN remark SET NOT NULL;
 
 
 
