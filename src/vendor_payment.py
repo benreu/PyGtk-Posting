@@ -305,7 +305,7 @@ class GUI:
 		t = Template(template_dir+"/vendor_check_template.odt", self.tmp_file, True)
 		t.render(data)
 		subprocess.call(["odt2pdf", self.tmp_file])
-		p = printing.Operation(settings_file = 'Vendor check')
+		p = printing.Operation(settings_file = 'Vendor_check')
 		p.set_file_to_print(self.tmp_file_pdf)
 		p.set_parent(self.window)
 		result = p.print_dialog()
