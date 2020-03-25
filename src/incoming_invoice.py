@@ -21,8 +21,13 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
-from constants import ui_directory, DB, broadcaster
+from constants import ui_directory, DB, broadcaster, template_dir
 import accounts
+import subprocess, printing
+
+
+class Item(object):#this is used by py3o library see their example for more info
+	pass
 
 UI_FILE = ui_directory + "/incoming_invoice.ui"
 
@@ -126,8 +131,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		contacts_overview.ContactsOverviewGUI()
 		
 	def provider_match_selected(self, completion, model, iter_):
-		provider_id = model[iter_][0]
-		self.get_object('combobox1').set_active_id(provider_id)
+		self.provider_id = model[iter_][0]
+		self.get_object('combobox1').set_active_id(self.provider_id)
 
 	def service_provider_combo_changed (self, combo):
 		if self.populating == True:
@@ -315,7 +320,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
 
-	def print_check_clicked (self, button):
+	def post_only_clicked (self,button):
+		self.perform_payment()
+		button.set_sensitive(False)
+
+	def perform_payment(self):
 		total = self.save_incoming_invoice ()
 		checking_account = self.get_object('combobox2').get_active_id()
 		check_number = self.get_object('entry7').get_text()
@@ -323,8 +332,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		description = self.service_provider_store[active][1]
 		self.invoice.check_payment(total, check_number, checking_account, description)
 		DB.commit()
-		button.set_sensitive(False)
 		self.emit('invoice_applied')
+		check_number = get_check_number(checking_account)
+		self.get_object('entry7').set_text(str(check_number))
+
 
 	def save_incoming_invoice (self):
 		c = DB.cursor()
@@ -389,6 +400,60 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def optimized_callback (self, pdf_attachment_window):
 		self.file_data = pdf_attachment_window.get_pdf ()
+
+	def print_and_post_clicked (self, button):
+		total = Decimal(self.get_object('spinbutton1').get_text())
+		check_number = self.get_object('entry7').get_text()
+		bank_account = self.get_object('combobox2').get_active_id()
+		self.cursor.execute("SELECT "
+								"name, "
+								"checks_payable_to, "
+								"address, "
+								"city, "
+								"state, "
+								"zip, "
+								"phone "
+							"FROM contacts WHERE id = %s",(self.provider_id,))
+		provider = Item()
+		for line in self.cursor.fetchall():
+			provider.name = line[0]
+			provider.pay_to = line[1]
+			provider.street = line[2]
+			provider.city = line[3]
+			provider.state = line[4]
+			provider.zip = line[5]
+			provider.phone = line[6]
+			pay_to = line[1].split()[0]
+		items = list()
+		'''for row in self.provider_invoice_store:
+			if row[3] == True:'''
+				
+		item = Item()
+		item.po_number = ''#row[0] 
+		item.amount = ''#row[2]
+		item.date = ''#row[4]
+		items.append(item)
+		check = Item()
+		check.check_number = check_number
+		check.checking_account = bank_account
+		check.date = self.date
+		check.amount = total 
+		check.amount_text = get_written_check_amount_text (total)
+		from py3o.template import Template
+		data = dict(contact = provider, check = check, items = items )#- kept this
+		#in case we ever wish to list the accountbreakdown on the check stubs
+		self.tmp_file = "/tmp/check" + pay_to +".odt"
+		self.tmp_file_pdf = "/tmp/check" + pay_to + ".pdf"
+		t = Template(template_dir+"/vendor_check_template.odt", self.tmp_file, True)
+		t.render(data)
+		subprocess.call(["odt2pdf", self.tmp_file])
+		p = printing.Operation(settings_file = 'Vendor_check')
+		p.set_file_to_print(self.tmp_file_pdf)
+		p.set_parent(self.window)
+		result = p.print_dialog()
+		if result != "user canceled":
+			self.perform_payment()
+
 
 
 
