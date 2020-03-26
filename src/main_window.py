@@ -616,12 +616,16 @@ class MainGUI :
 			self.unpaid_invoices_window.present()
 
 	def destroy(self, widget):
-		broadcaster.emit("shutdown")
-		c = DB.cursor()
-		c.execute("UNLISTEN products")
-		c.execute("UNLISTEN contacts")
-		c.close()
-		DB.close ()
+		try: # in case DB is closed from previous error
+			c = DB.cursor()
+			c.execute("UNLISTEN products")
+			c.execute("UNLISTEN contacts")
+			c.close()
+			broadcaster.emit("shutdown")
+			DB.close ()
+		except Exception as e:
+			print (e)
+			pass
 		Gtk.main_quit()
 
 	def statement_window(self, widget = None):
