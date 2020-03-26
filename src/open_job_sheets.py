@@ -182,7 +182,7 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		selection.select_path(path)
 
 	def show_invoice_exists_message (self, message):
-		dialog = Gtk.Dialog(title = "", parent = self.window, flag = 0)
+		dialog = Gtk.Dialog(title = "", parent = self.window)
 		dialog.add_button("Cancel", 1)
 		dialog.add_button("Append items", 2)
 		label = Gtk.Label(label = message)
