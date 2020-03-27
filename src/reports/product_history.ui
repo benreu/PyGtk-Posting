@@ -215,6 +215,21 @@
                 <property name="position">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkButton" id="report_hub_button">
+                <property name="label" translatable="yes">Export hub</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="export_hub_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -359,6 +374,7 @@
                 </child>
               </object>
               <packing>
+                <property name="menu_label">Invoices</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
                 <property name="detachable">True</property>
@@ -478,6 +494,7 @@
                 </child>
               </object>
               <packing>
+                <property name="menu_label">Purchase Orders</property>
                 <property name="position">1</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
@@ -582,6 +599,7 @@
                 </child>
               </object>
               <packing>
+                <property name="menu_label">Warranty</property>
                 <property name="position">2</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
@@ -671,6 +689,7 @@
                 </child>
               </object>
               <packing>
+                <property name="menu_label">Manufacturing</property>
                 <property name="position">3</property>
                 <property name="tab_expand">True</property>
                 <property name="reorderable">True</property>
