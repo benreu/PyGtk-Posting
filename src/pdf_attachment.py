@@ -157,6 +157,8 @@ class PdfAttachmentWindow (Gtk.Builder):
 
 	def filechooser_file_set (self, chooser):
 		file_name = chooser.get_filename()
+		if os.path.exists('/tmp/original.pdf'):
+			os.remove('/tmp/original.pdf')
 		call(["cp", file_name, '/tmp/original.pdf'])
 		self.optimize_file()
 
