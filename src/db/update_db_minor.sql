@@ -431,6 +431,8 @@ ALTER TABLE contact_individuals ALTER COLUMN notes SET NOT NULL;
 --0.5.31
 UPDATE document_items SET remark = '' WHERE remark IS NULL;
 ALTER TABLE public.document_items ALTER COLUMN remark SET NOT NULL;
+--0.5.32
+ALTER TABLE public.resources ALTER COLUMN diary DROP DEFAULT;
 
 
 
