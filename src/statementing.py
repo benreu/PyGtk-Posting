@@ -17,7 +17,6 @@
 
 from gi.repository import Gtk
 import subprocess, re
-from datetime import datetime, timedelta
 import printing
 from constants import DB, template_dir
 
@@ -26,19 +25,19 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class Setup():
-	def __init__(self, store, customer_id, total,end_date, comment = ""):
+	def __init__(self, store, customer_id, total, end_date, comment = ""):
 		
-		self.customer_id = customer_id
 		self.store = store
-		self.comment = comment
+		self.customer_id = customer_id
+		self.total = total
 		self.end_date = end_date
+		self.comment = comment
 		cursor = DB.cursor()
 		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",[customer_id])
 		customer = Item()
 		
 		for row in cursor.fetchall():
 			customer.name = row[1]
-			self.customer_id = row[0]
 			name = row[1]
 			customer.ext_name = row[2]
 			customer.street = row[3]
@@ -69,9 +68,10 @@ class Setup():
 		items = list()
 		for i in self.store:
 			item = Item()
-			item.description = i[1]
-			item.date = i[3]
-			item.amount = '${:,.2f}'.format(i[4])
+			item.type = i[1]
+			item.description = i[2]
+			item.date = i[4]
+			item.amount = '${:,.2f}'.format(i[5])
 			items.append(item)
 		
 		document = Item() 
@@ -84,7 +84,6 @@ class Setup():
 		end_date_text = cursor.fetchone()[0]
 		document.end_date = end_date_text
 
-		
 		split_name = name.split(' ') 
 		name_str = ""
 		for i in split_name:
@@ -148,7 +147,6 @@ class Setup():
 		
 	def post_as_unprinted(self):
 		self.close_invoices_and_payments ()
-		
 
 	def close_invoices_and_payments (self):
 		cursor = DB.cursor()
@@ -156,17 +154,17 @@ class Setup():
 							"WHERE (canceled, active, posted) = "
 							"(False, True, True) "
 							"AND customer_id = %s "
-							"AND statement_id IS NULL AND dated_for<= %s", 
+							"AND statement_id IS NULL AND dated_for <= %s", 
 							(self.statement_id, self.customer_id,self.end_date))
 		cursor.execute("UPDATE payments_incoming "
 							"SET (closed, statement_id) = (True, %s) "
 							"WHERE statement_id IS NULL "
-							"AND customer_id = %s AND dated_for<= %s", 
+							"AND customer_id = %s AND date_inserted <= %s", 
 							(self.statement_id, self.customer_id,self.end_date))
 		cursor.execute("UPDATE credit_memos "
 							"SET statement_id = %s "
 							"WHERE statement_id IS NULL "
-							"AND customer_id = %s AND date_inserted<= %s", 
+							"AND customer_id = %s AND dated_for <= %s", 
 							(self.statement_id, self.customer_id,self.end_date))
 		DB.commit()
 		cursor.close()
@@ -175,6 +173,3 @@ class Setup():
 
 
 
-
-		
-		
