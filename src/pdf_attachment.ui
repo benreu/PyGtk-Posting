@@ -4,9 +4,9 @@
   <requires lib="gtk+" version="3.20"/>
   <!-- interface-css-provider-path custom.css -->
   <object class="GtkFileFilter" id="filefilter1">
-    <patterns>
-      <pattern>*.pdf</pattern>
-    </patterns>
+    <mime-types>
+      <mime-type>application/pdf</mime-type>
+    </mime-types>
   </object>
   <object class="GtkFileChooserDialog" id="filechooserdialog1">
     <property name="can_focus">False</property>
