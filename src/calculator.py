@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# modified by Reuben Rissler for Python3 by using operator.truediv
+
 import ast
 import operator
 
@@ -21,7 +23,7 @@ _OP_MAP = {
 	ast.Add: operator.add,
 	ast.Sub: operator.sub,
 	ast.Mult: operator.mul,
-	ast.Div: operator.div,
+	ast.Div: operator.truediv,
 	ast.Invert: operator.neg,
 }
 
