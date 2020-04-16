@@ -612,6 +612,7 @@ def post_voided_check (bank_account, date, cheque_number):
 
 class DoubleEntryTransaction :
 	def __init__(self, date, description):
+		self.date = date
 		self.desc = description
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_transactions "
@@ -623,19 +624,21 @@ class DoubleEntryTransaction :
 	def post_credit_entry (self, amount, account_number):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(credit_account, amount, "
+					"(credit_account, amount, date_inserted, "
 					"transaction_description, gl_transaction_id) "
-					"VALUES (%s, %s, %s, %s)", 
-					(account_number, amount, self.desc, self.trans_id))
+					"VALUES (%s, %s, %s, %s, %s)", 
+					(account_number, amount, self.date, 
+					self.desc, self.trans_id))
 		c.close()
 
 	def post_debit_entry (self, amount, account_number):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(debit_account, amount, "
+					"(debit_account, amount, date_inserted, "
 					"transaction_description, gl_transaction_id) "
-					"VALUES (%s, %s, %s, %s)", 
-					(account_number, amount, self.desc, self.trans_id))
+					"VALUES (%s, %s, %s, %s, %s)", 
+					(account_number, amount, self.date, 
+					self.desc, self.trans_id))
 		c.close()
 
 def post_misc_check_payment (date, amount, payment_id, revenue_account):
