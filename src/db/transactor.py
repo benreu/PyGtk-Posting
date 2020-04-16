@@ -541,19 +541,19 @@ def vendor_check_payment(date, amount, checking_account_number,
 				customer_name))
 	cursor.close()
 
-def vendor_debit_payment (date, amount, checking_account_number,
-															transaction_number):
+def vendor_debit_payment (date, amount, checking_account, transaction_number):
 	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
 				"INSERT INTO gl_entries "
-				"(credit_account, debit_account, amount, "
+				"(credit_account, debit_account, amount, date_inserted, "
 				"transaction_description, gl_transaction_id) "
-				"VALUES (%s, (SELECT account FROM gl_account_flow "
-				"WHERE function = 'post_purchase_order'), %s, %s, "
-					"(SELECT id FROM new_row))", 
-				(date, checking_account_number, amount, transaction_number))
+				"VALUES (%s, " 
+					"(SELECT account FROM gl_account_flow "
+					"WHERE function = 'post_purchase_order'), "
+				"%s, %s, %s, (SELECT id FROM new_row))", 
+				(date, checking_account, amount, date, transaction_number))
 	cursor.close()
 
 def bank_to_credit_card_transfer(bank_account, credit_card_account, amount, 
