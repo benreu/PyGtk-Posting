@@ -108,6 +108,14 @@
         <signal name="activate" handler="hide_rows_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <signal name="activate" handler="product_hub_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="product_store">
     <columns>
@@ -527,6 +535,7 @@
                     <property name="model">product_store</property>
                     <property name="enable_search">False</property>
                     <property name="rubber_banding">True</property>
+                    <signal name="button-release-event" handler="product_treeview_button_release_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="product_selection">
                         <property name="mode">multiple</property>

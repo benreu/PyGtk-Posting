@@ -93,7 +93,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			return
 		import contact_hub
 		contact_hub.ContactHubGUI(self.contact_id)
-		
+
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
@@ -161,6 +161,20 @@ class ContactHistoryGUI (Gtk.Builder):
 		treeview = scrolled_window.get_child()
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
+		
+	def product_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('product_menu')
+			menu.popup_at_pointer()
+
+	def product_hub_activated (self, menuitem):
+		selection = self.get_object('product_selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][2]
+		import product_hub
+		product_hub.ProductHubGUI(product_id)
 
 	def product_selection_changed (self, selection):
 		rows = len(selection.get_selected_rows()[1])
@@ -445,7 +459,6 @@ class ContactHistoryGUI (Gtk.Builder):
 		for row in c.fetchall():
 			count += 1
 			shipping_store.append(row)
-		print ("shipping", self.contact_id)
 		if count == 0:
 			self.get_object('label11').set_label('Shipping')
 		else:
