@@ -157,9 +157,15 @@ class OpenJobSheetsGUI (Gtk.Builder):
 					"SELECT qty, product_id, remark, %s "
 					"FROM job_sheet_line_items AS jsli "
 						"WHERE jsli.job_sheet_id = %s; "
+					"UPDATE invoice_items AS ii SET price = "
+					"customer_product_price(%s, ii.product_id) "
+					"WHERE ii.invoice_id = %s; "
+					"UPDATE invoice_items AS ii SET ext_price = (price * qty) "
+					"WHERE ii.invoice_id = %s; "
 					"UPDATE job_sheets SET (invoiced, completed) "
 						"= (True, True) WHERE id = %s", 
-					(invoice_id, job_sheet_id, job_sheet_id))
+					(invoice_id, job_sheet_id, customer_id, invoice_id, 
+					invoice_id, job_sheet_id))
 		DB.commit()
 		self.populate_job_store ()
 
@@ -182,7 +188,8 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		selection.select_path(path)
 
 	def show_invoice_exists_message (self, message):
-		dialog = Gtk.Dialog(title = "", parent = self.window)
+		dialog = Gtk.Dialog(title = "")
+		dialog.set_transient_for(self.window)
 		dialog.add_button("Cancel", 1)
 		dialog.add_button("Append items", 2)
 		label = Gtk.Label(label = message)
