@@ -89,6 +89,15 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.get_object('combobox2').set_active_id(row[0])
 		DB.rollback()
 
+	def window_focus_out (self, widget, event):
+		self.window.set_urgency_hint(True)
+
+	def window_focus_in (self, widget, event):
+		self.window.set_urgency_hint(False)
+		
+	def contact_name_changed (self, editable):
+		self.window.set_title(editable.get_text())
+
 	def load_contact (self):
 		try:
 			self.cursor.execute("SELECT "
@@ -124,6 +133,7 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.window.destroy()
 			return
 		for row in self.cursor.fetchall():
+			self.get_object('id_label').set_label(str(self.contact_id))
 			self.get_object('entry1').set_text(row[0])
 			self.get_object('entry2').set_text(row[1])
 			self.get_object('entry3').set_text(row[2])
