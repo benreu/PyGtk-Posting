@@ -328,6 +328,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.window.destroy()
 			return False
 		for row in c.fetchall():
+			self.get_object('id_label').set_label(str(self.product_id))
 			self.get_object('entry1').set_text(row[0])
 			self.get_object("textbuffer1").set_text(row[1])
 			self.get_object('entry2').set_text(row[2])
