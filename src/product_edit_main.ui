@@ -617,6 +617,8 @@
                                       <object class="GtkEntry" id="entry1">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
+                                        <property name="has_focus">True</property>
+                                        <property name="is_focus">True</property>
                                         <property name="can_default">True</property>
                                         <property name="hexpand">True</property>
                                         <property name="text" translatable="yes">New product</property>
@@ -827,6 +829,7 @@
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <property name="label" translatable="yes">N/A</property>
+                                        <property name="selectable">True</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
