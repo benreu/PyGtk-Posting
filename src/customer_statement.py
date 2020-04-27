@@ -140,7 +140,7 @@ class GUI (Gtk.Builder):
 					"'Account Balance ' || "
 						"(invoices_total - payments_total)::money "
 					"FROM table2 "
-					"WHERE (invoices_total-payments_total) > 0 "
+					"WHERE (invoices_total-payments_total) <> 0 "
 					"GROUP BY id, name, invoices_total, payments_total, "
 						"ext_name, invoices_total_to_end_date, "
 						"ending_payments_total "
