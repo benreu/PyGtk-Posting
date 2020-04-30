@@ -162,6 +162,31 @@ class ContactHistoryGUI (Gtk.Builder):
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
 		
+	def statement_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('statement_menu')
+			menu.popup_at_pointer()
+
+	def view_pdf_activated (self, menuitem):
+		selection = self.get_object('statement_selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		c = DB.cursor()
+		c.execute("SELECT name, pdf FROM statements "
+					"WHERE id = %s AND pdf IS NOT NULL", (row_id,))
+		for row in c.fetchall():
+			file_name = row[0]
+			if file_name == None:
+				break
+			pdf_data = row[1]
+			with open(file_name,'wb') as f:
+				f.write(pdf_data)
+			subprocess.call(["xdg-open", file_name])
+		c.close()
+		DB.rollback()
+
 	def product_treeview_button_release_event (self, widget, event):
 		if event.button == 3:
 			menu = self.get_object('product_menu')
