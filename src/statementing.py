@@ -71,11 +71,11 @@ class Setup():
 			item.type = i[1]
 			item.description = i[2]
 			item.date = i[4]
-			item.amount = '${:,.2f}'.format(i[5])
+			item.amount = i[6]
 			items.append(item)
 		
 		document = Item() 
-		document.total = total
+		document.total = '${:,.2f}'.format(total)
 		document.comment = self.comment
 		cursor.execute("SELECT format_date(CURRENT_DATE)")
 		date_text = cursor.fetchone()[0]
