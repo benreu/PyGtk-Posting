@@ -30,7 +30,27 @@
       </attributes>
     </child>
   </object>
-  <object class="GtkTreeStore" id="statement_store">
+  <object class="GtkListStore" id="statement_items_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name type -->
+      <column type="gchararray"/>
+      <!-- column-name description -->
+      <column type="gchararray"/>
+      <!-- column-name date -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
+      <column type="gchararray"/>
+      <!-- column-name amount -->
+      <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
+      <!-- column-name printed -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="statement_store">
     <columns>
       <!-- column-name row_id -->
       <column type="gint"/>
@@ -45,7 +65,9 @@
       <!-- column-name statement_name -->
       <column type="gchararray"/>
       <!-- column-name amount -->
-      <column type="PyObject"/>
+      <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
       <!-- column-name printed -->
       <column type="gboolean"/>
     </columns>
@@ -130,155 +152,224 @@
           </packing>
         </child>
         <child>
-          <object class="GtkScrolledWindow" id="scrolledwindow1">
+          <object class="GtkPaned">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="hscrollbar_policy">never</property>
-            <property name="shadow_type">in</property>
+            <property name="orientation">vertical</property>
+            <property name="position">150</property>
+            <property name="position_set">True</property>
+            <property name="wide_handle">True</property>
             <child>
-              <object class="GtkTreeView" id="treeview1">
+              <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">statement_store</property>
-                <property name="enable_grid_lines">horizontal</property>
-                <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection1"/>
-                </child>
+                <property name="hscrollbar_policy">never</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Number</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">0</property>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext5"/>
-                      <attributes>
-                        <attribute name="text">0</attribute>
-                      </attributes>
+                  <object class="GtkTreeView" id="treeview1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="model">statement_store</property>
+                    <property name="search_column">2</property>
+                    <property name="enable_grid_lines">horizontal</property>
+                    <signal name="cursor-changed" handler="statement_cursor_changed" swapped="no"/>
+                    <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection" id="treeview-selection1"/>
                     </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Date</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">1</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
-                      <attributes>
-                        <attribute name="text">2</attribute>
-                      </attributes>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Number</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext5"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
                     </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn2">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Customer</property>
-                    <property name="expand">True</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">4</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                      <attributes>
-                        <attribute name="text">4</attribute>
-                      </attributes>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Date</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">1</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                          <attributes>
+                            <attribute name="text">2</attribute>
+                          </attributes>
+                        </child>
+                      </object>
                     </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Description</property>
-                    <property name="expand">True</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">5</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext3"/>
-                      <attributes>
-                        <attribute name="text">5</attribute>
-                      </attributes>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Customer</property>
+                        <property name="expand">True</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">4</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext2"/>
+                          <attributes>
+                            <attribute name="text">4</attribute>
+                          </attributes>
+                        </child>
+                      </object>
                     </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn4">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Amount</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">6</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext4">
-                        <property name="xalign">1</property>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Description</property>
+                        <property name="expand">True</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">5</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext3"/>
+                          <attributes>
+                            <attribute name="text">5</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Amount</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">6</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext4">
+                            <property name="xalign">1</property>
+                          </object>
+                          <attributes>
+                            <attribute name="text">7</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Printed</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">8</property>
+                        <child>
+                          <object class="GtkCellRendererToggle" id="cellrenderertoggle1"/>
+                          <attributes>
+                            <attribute name="active">8</attribute>
+                          </attributes>
+                        </child>
                       </object>
                     </child>
                   </object>
                 </child>
+              </object>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn5">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Printed</property>
-                    <property name="reorderable">True</property>
-                    <property name="sort_column_id">7</property>
+                  <object class="GtkTreeView">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="model">statement_items_store</property>
+                    <property name="search_column">0</property>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
                     <child>
-                      <object class="GtkCellRendererToggle" id="cellrenderertoggle1"/>
-                      <attributes>
-                        <attribute name="active">7</attribute>
-                      </attributes>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Type</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">1</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Description</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">2</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">2</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Date</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">3</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">4</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Amount</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">5</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">6</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Printed</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">7</property>
+                        <child>
+                          <object class="GtkCellRendererToggle"/>
+                          <attributes>
+                            <attribute name="active">7</attribute>
+                          </attributes>
+                        </child>
+                      </object>
                     </child>
                   </object>
                 </child>
               </object>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">False</property>
+              </packing>
             </child>
           </object>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="box3">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="homogeneous">True</property>
-            <child>
-              <object class="GtkButton" id="button1">
-                <property name="label" translatable="yes">View Statement</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="view_statement_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="checkbutton2">
-                <property name="label" translatable="yes">Populate treeview with parents</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="active">True</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="treeview_parent_togglebutton_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
           </packing>
         </child>
       </object>

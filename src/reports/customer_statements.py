@@ -1,4 +1,4 @@
-# statements.py
+# customer_statements.py
 #
 # Copyright (C) 2017 - reuben
 #
@@ -38,27 +38,21 @@ class StatementsGUI:
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
-		price_column = self.builder.get_object ('treeviewcolumn4')
-		price_renderer = self.builder.get_object ('cellrenderertext4')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
-
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def populate_customer_store (self):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT customer_id::text, contacts.name, contacts.ext_name "
-							"FROM statements JOIN contacts "
-							"ON contacts.id = statements.customer_id "
-							"GROUP BY contacts.name, customer_id, contacts.ext_name "
-							"ORDER BY contacts.name ")
-		for row in self.cursor.fetchall():
+		c = DB.cursor()
+		c.execute("SELECT customer_id::text, contacts.name, contacts.ext_name "
+					"FROM statements JOIN contacts "
+					"ON contacts.id = statements.customer_id "
+					"GROUP BY contacts.name, customer_id, contacts.ext_name "
+					"ORDER BY contacts.name ")
+		for row in c.fetchall():
 			self.customer_store.append(row)
+		c.close()
 		DB.rollback()
-
-	def price_cell_func(self, column, cellrenderer, model, iter1, data):
-		price = model.get_value(iter1, 6)
-		cellrenderer.set_property("text" , str(price))
 
 	def customer_match_selected (self, completion, model, iter):
 		customer_id = model[iter][0]
@@ -75,13 +69,6 @@ class StatementsGUI:
 		statement_id = self.statement_store[path][0]
 		self.view_statement (statement_id)
 
-	def view_statement_clicked (self, button):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		if path != []:
-			statement_id = model[path][0]
-			self.view_statement (statement_id)
-
 	def view_statement (self, statement_id):
 		self.cursor.execute("SELECT name, pdf FROM statements "
 							"WHERE id = %s", (statement_id,))
@@ -91,10 +78,9 @@ class StatementsGUI:
 				return
 			statement_file = "/tmp/%s.pdf" % file_name
 			file_data = row[1]
-			f = open(statement_file,'wb')
-			f.write(file_data)
-			subprocess.call("xdg-open %s" % statement_file, shell = True)
-			f.close()
+			with open(statement_file,'wb') as f:
+				f.write(file_data)
+			subprocess.call(["xdg-open", statement_file])
 
 	def view_all_toggled (self, togglebutton):
 		self.populate_statement_store ()
@@ -107,57 +93,102 @@ class StatementsGUI:
 		self.customer_id = customer_id
 		self.populate_statement_store ()
 
-	def treeview_parent_togglebutton_toggled (self, togglebutton):
-		self.populate_statement_store()
-
 	def populate_statement_store (self):
 		self.statement_store.clear()
+		self.builder.get_object('statement_items_store').clear()
+		c = DB.cursor()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT s.id, date_inserted::text, "
-								"format_date(date_inserted), contacts.id, "
-								"contacts.name, s.name, amount, printed "
-								"FROM statements AS s "
-								"JOIN contacts "
-								"ON contacts.id = s.customer_id "
-								"ORDER BY date_inserted, s.id")
+			c.execute("SELECT s.id, date_inserted::text, "
+						"format_date(date_inserted), contacts.id, "
+						"contacts.name, s.name, amount, amount::text, printed "
+						"FROM statements AS s "
+						"JOIN contacts "
+						"ON contacts.id = s.customer_id "
+						"ORDER BY date_inserted, s.id")
 		else:
 			if self.customer_id == None:
 				return # no customer selected
-			self.cursor.execute("SELECT s.id, date_inserted::text, "
-								"format_date(date_inserted), contacts.id, "
-								"contacts.name, s.name, amount, printed "
-								"FROM statements AS s "
-								"JOIN contacts "
-								"ON contacts.id = s.customer_id "
-								"WHERE customer_id = %s "
-								"ORDER BY date_inserted, s.id", 
-								(self.customer_id, ))
-		for row in self.cursor.fetchall():
-			row_id = row[0]
-			customer_id = row[3]
-			parent = self.statement_store.append(None, row)
-			if self.builder.get_object('checkbutton2').get_active() == False:
-				parent = None
-			self.cursor.execute("SELECT * FROM (SELECT pi.id, date_inserted::text, "
-								"format_date(date_inserted), c.id, "
-								"c.name, payment_info(pi.id), "
-								"amount, False FROM payments_incoming AS pi "
-								"JOIN contacts AS c ON c.id = pi.customer_id "
-								"WHERE (customer_id, statement_id) = (%s, %s)) p "
-								"UNION "
-								"(SELECT i.id, date_created::text, "
-								"format_date(date_created), c.id, "
-								"c.name, i.name, "
-								"amount_due, (date_printed IS NOT NULL) "
-								"FROM invoices AS i "
-								"JOIN contacts AS c ON c.id = i.customer_id "
-								"WHERE (customer_id, statement_id) = (%s, %s) ) "
-								"ORDER BY 2", 
-								(customer_id, row_id, customer_id, row_id))
-			for row in self.cursor.fetchall():
-				self.statement_store.append(parent, row)
+			c.execute("SELECT s.id, date_inserted::text, "
+						"format_date(date_inserted), contacts.id, "
+						"contacts.name, s.name, amount, amount::text, printed "
+						"FROM statements AS s "
+						"JOIN contacts "
+						"ON contacts.id = s.customer_id "
+						"WHERE customer_id = %s "
+						"ORDER BY date_inserted, s.id", 
+						(self.customer_id, ))
+		for row in c.fetchall():
+			self.statement_store.append(row)
 		DB.rollback()
+		c.close()
+
+	def statement_cursor_changed (self, treeview):
+		selection = treeview.get_selection()
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		customer_id = model[path][3]
+		store = self.builder.get_object('statement_items_store')
+		store.clear()
+		c = DB.cursor()
+		c.execute("SELECT * FROM "
+					"(SELECT "
+						"pi.id, "
+						"payment_info(pi.id), "
+						"payment_text, "
+						"date_inserted::text AS date, "
+						"format_date(date_inserted), "
+						"amount, "
+						"amount::text, "
+						"False "
+					"FROM payments_incoming AS pi "
+					"WHERE statement_id = %s) p "
+					"UNION "
+					"(SELECT "
+						"i.id, "
+						"'Invoice', "
+						"id::text, "
+						"date_created::text AS date, "
+						"format_date(date_created), "
+						"amount_due, "
+						"amount_due::text, "
+						"(date_printed IS NOT NULL) "
+					"FROM invoices AS i "
+					"WHERE statement_id = %s) "
+					"UNION "
+					"(SELECT "
+						"id, "
+						"'Credit Memo', "
+						"id::text, "
+						"date_created::text AS date, "
+						"format_date(date_created), "
+						"(-amount_owed), "
+						"(-amount_owed)::text, "
+						"(date_printed IS NOT NULL) "
+					"FROM credit_memos "
+					"WHERE statement_id = %s) "
+					"UNION "
+					"(SELECT "
+						"id, "
+						"'Statement', "
+						"'Balance forward', "
+						"date_inserted::text AS date, "
+						"format_date(date_inserted), "
+						"amount, "
+						"amount::text, "
+						"printed "
+					"FROM statements " 
+					"WHERE id ="
+						"(SELECT MAX(id) FROM statements "
+						"WHERE id < %s AND customer_id = %s)"
+					") "
+					"ORDER BY date", 
+					(row_id, row_id, row_id, row_id, customer_id))
+		for row in c.fetchall():
+			store.append(row)
+		DB.rollback()
+		c.close()
 
 
 
-		
