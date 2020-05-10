@@ -92,10 +92,6 @@ class InvoiceGUI:
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
-		qty_column = self.builder.get_object ('treeviewcolumn1')
-		qty_renderer = self.builder.get_object ('cellrenderertext2')
-		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
-
 		price_column = self.builder.get_object ('treeviewcolumn4')
 		price_renderer = self.builder.get_object ('cellrenderertext5')
 		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
@@ -671,16 +667,14 @@ class InvoiceGUI:
 		DB.rollback()
 
 	################## start qty
-	
-	def qty_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		if model.get_value(iter_, 12) == True:
-			qty = int(model.get_value(iter_, 1))
-			cellrenderer.set_property("text" , str(qty))
 
 	def qty_edited(self, widget, path, text):
 		if self.invoice_store[path][12] == True:
-			text = int(text) # only allow whole numbers for inventory
+			try:
+				text = int(text) # only allow whole numbers for inventory
+			except Exception as e:
+				self.show_error_dialog (str(e))
+				return False
 		iter_ = self.invoice_store.get_iter (path)
 		self.check_invoice_item_id (iter_)
 		line_id = self.invoice_store[iter_][0]
