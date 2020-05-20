@@ -6,4 +6,6 @@ python_PYTHON = assembled_products.py \
 	project_edit_main.py \
 	project_edit_main.ui \
 	projects.py \
-	projects.ui
+	projects.ui \
+	serial_numbers.py \
+	serial_numbers.ui
