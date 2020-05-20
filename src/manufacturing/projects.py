@@ -67,6 +67,55 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 		meg = project_edit_main.ProjectEditGUI(self, project_id)
 		meg.window.set_transient_for(self.window)
 
+	def serial_numbers_clicked (self, button):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		project_id = model[path][0]
+		serial_qty = model[path][3]
+		from manufacturing import serial_numbers
+		sn = serial_numbers.SerialNumbersGUI(self, project_id, serial_qty)
+		sn.window.set_transient_for(self.window)
 
+	def post_project_clicked (self, button):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		project_id = model[path][0]
+		project_qty = model[path][3]
+		serial_qty = model[path][5]
+		cursor = DB.cursor()
+		if serial_qty < project_qty:
+			cursor.execute("SELECT invoice_serial_numbers FROM products AS p "
+							"JOIN manufacturing_projects AS mp "
+							"ON mp.product_id = p.id "
+							"WHERE mp.id = %s", (project_id,))
+			if cursor.fetchone()[0] == True:
+				self.show_message ("Missing serial numbers!")
+				cursor.close()
+				DB.rollback()
+				return
+		cursor.execute("UPDATE time_clock_projects "
+						"SET (active, stop_date) = "
+						"(False, CURRENT_DATE) "
+						"WHERE id = "
+							"(SELECT time_clock_projects_id "
+							"FROM manufacturing_projects WHERE id = %s);"
+						"UPDATE manufacturing_projects "
+						"SET active = False WHERE id = %s",
+						(project_id, project_id))
+		DB.commit()
+		cursor.close()
+		self.populate_projects()
+
+	def show_message (message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
