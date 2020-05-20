@@ -61,15 +61,11 @@ class ProjectEditGUI(Gtk.Builder):
 
 	def product_match_selected(self, completion, model, iter_):
 		self.product_id = model[iter_][0]
-		self.get_object('combobox2').set_active_id(self.product_id)
+		self.get_object('product_combo').set_active_id(self.product_id)
 		return True
-
-	def on_combobox_entry_changed (self, editable):
-		print (editable.get_text())
 
 	def product_combo_changed(self, combo):
 		product_id = combo.get_active_id()
-		print (product_id)
 		if product_id != None:
 			self.product_id = product_id
 			self.get_object('save_button').set_sensitive(True)
@@ -120,7 +116,10 @@ class ProjectEditGUI(Gtk.Builder):
 		DB.rollback()
 		
 	def focus_out_event (self, widget, event):
-		self.parent_class.window.set_urgency_hint(True)
+		self.window.set_urgency_hint(True)
+		
+	def focus_in_event (self, widget, event):
+		self.window.set_urgency_hint(False)
 
 	def save_clicked (self, button):
 		cursor = DB.cursor()
@@ -155,6 +154,7 @@ class ProjectEditGUI(Gtk.Builder):
 		DB.commit()
 		cursor.close()
 		self.window.destroy ()
+		self.parent_class.populate_projects()
 
 	def get_time_clock_id (self, project_name):
 		if self.get_object('time_clock_checkbutton').get_active() == False:
