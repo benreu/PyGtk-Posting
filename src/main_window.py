@@ -186,7 +186,7 @@ class MainGUI :
 		fiscal_years.FiscalYearGUI()
 
 	def resource_search_activated (self, menuitem):
-		import resource_search
+		from resources import resource_search
 		resource_search.ResourceSearchGUI()
 
 	def incoming_invoice_report_activated(self, menuitem):
@@ -202,7 +202,7 @@ class MainGUI :
 		duplicate_contact.DuplicateContactGUI()
 
 	def resource_diary_activated (self, menuitem):
-		import resource_diary
+		from resources import resource_diary
 		resource_diary.ResourceDiaryGUI ()
 
 	def miscellaneous_revenue_activated (self, button):
@@ -235,9 +235,9 @@ class MainGUI :
 		from payroll import employee_info
 		employee_info.EmployeeInfoGUI()
 
-	def resource_tags (self, widget):
-		import resource_management_tags
-		resource_management_tags.ResourceManagementTagsGUI ()
+	def resource_categories_activated (self, widget):
+		from resources import resource_categories
+		resource_categories.ResourceCategoriesGUI ()
 
 	def resource_type_activated (self, menuitem):
 		from resources import resource_types
@@ -264,7 +264,7 @@ class MainGUI :
 		credit_memo.CreditMemoGUI()
 
 	def resource_management (self, widget):
-		import resource_management
+		from resources import resource_management
 		resource_management.ResourceManagementGUI()
 
 	def invoice_history (self, widget):
@@ -378,7 +378,7 @@ class MainGUI :
 		vendor_payment.GUI()
 
 	def resource_calendar (self, button):
-		import resource_calendar
+		from resources import resource_calendar
 		resource_calendar.ResourceCalendarGUI ()
 
 	def open_invoices (self, widget):
@@ -512,7 +512,7 @@ class MainGUI :
 		c.close()
 
 	def resource_window (self, id_):
-		import resource_management
+		from resources import resource_management
 		resource_management.ResourceManagementGUI(id_)
 		
 	def focus (self, widget = None, d = None):

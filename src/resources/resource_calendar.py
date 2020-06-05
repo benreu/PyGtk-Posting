@@ -1,12 +1,12 @@
 # resource_calendar.py
 # Copyright (C) 2017 reuben 
 # 
-# pygtk-calendar is free software: you can redistribute it and/or modify it
+# resource_calendar is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 # 
-# pygtk-calendar is distributed in the hope that it will be useful, but
+# resource_calendar is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
@@ -18,6 +18,7 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 from dateutils import calendar_to_datetime, set_calendar_from_datetime 
 from constants import ui_directory, DB
+from main import get_apsw_connection
 try:
 	import holidays
 	us_holidays = holidays.US()
@@ -26,7 +27,7 @@ except ImportError as e:
 	print (e, ", please install from "
 			"https://github.com/dr-prodigy/python-holidays")
 
-UI_FILE = ui_directory + "/resource_calendar.ui"
+UI_FILE = ui_directory + "/resources/resource_calendar.ui"
 
 
 class ResourceCalendarGUI:
@@ -39,34 +40,69 @@ class ResourceCalendarGUI:
 
 		self.date_time = datetime.today ()
 		self.day_detail_store = self.builder.get_object('day_detail_store')
-		self.tag_store = self.builder.get_object('tag_store')
+		self.category_store = self.builder.get_object('category_store')
 		self.contact_store = self.builder.get_object('contact_store')
 		self.contact_completion = self.builder.get_object('contact_completion')
 		self.contact_completion.set_match_func(self.contact_match_func)
+		
+		self.window = self.builder.get_object('window')
+		self.window.maximize()
+		self.window.show_all()
 
-		box = self.builder.get_object('box2')
-		self.popover = Gtk.Popover()
-		self.popover.add(box)
+		self.popover = self.builder.get_object('popover1')
 		self.populate_stores ()
 		calendar = self.builder.get_object('calendar1')
 		calendar.set_detail_func(self.calendar_func)
 		today = datetime.today()
 		set_calendar_from_datetime(calendar, today)
 		
-		window = self.builder.get_object('window')
-		window.show_all()
-		window.maximize()
+		GLib.idle_add(self.set_widget_sizes)
+
+	def set_widget_sizes (self):
+		rectangle = self.builder.get_object('pane1').get_allocated_size()[0]
+		width = rectangle.width/70
+		height = rectangle.height/60
+		calendar = self.builder.get_object('calendar1')
+		calendar.set_detail_width_chars(width)
+		calendar.set_detail_height_rows(height)
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'pane1'")
+		self.builder.get_object('pane1').set_position(c.fetchone()[0])
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'pane2'")
+		self.builder.get_object('pane2').set_position(c.fetchone()[0])
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'show_details_checkbutton'")
+		active = bool(c.fetchone()[0])
+		self.builder.get_object('show_detail_checkbutton').set_active(active)
+		sqlite.close()
+
+	def save_window_layout_activated (self, menuitem):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		position = self.builder.get_object('pane1').get_position()
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('pane1', ?)", (position,))
+		position = self.builder.get_object('pane2').get_position()
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('pane2', ?)", (position,))
+		active = self.builder.get_object('show_detail_checkbutton').get_active()
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('show_details_checkbutton', ?)", (active,))
+		sqlite.close()
 
 	def destroy (self, widget):
 		self.cursor.close()
 
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
-		self.tag_store.clear()
+		self.category_store.clear()
 		self.cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"ORDER BY tag")
@@ -78,64 +114,12 @@ class ResourceCalendarGUI:
 			rgba.green = row[3]
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
-			self.tag_store.append([tag_id, tag_name])
+			self.category_store.append([tag_id, tag_name])
 		DB.rollback()
 
-	def treeview_button_release_event (self, treeview, event):
-		if event.button == 3:
-			menu = self.builder.get_object('menu1')
-			menu.popup_at_pointer()
-
-	def convert_to_diary_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection')
-		model, path = selection.get_selected_rows()
-		if path == []:
-			return # nothing selected
-		date = self.date_time.date()
-		new_diary_id = model[path][0]
-		new_diary_text = model[path][1]
-		self.cursor.execute("SELECT id, subject FROM resources "
-							"WHERE (dated_for, diary) = (%s, True)", 
-							(date,))
-		for row in self.cursor.fetchall():
-			self.builder.get_object('edit_window').set_keep_above(False)
-			existing_diary_id = row[0]
-			existing_text = row[1]
-			if existing_text == None:
-				existing_text = ''
-			self.builder.get_object('textbuffer2').set_text(new_diary_text)
-			self.builder.get_object('textbuffer3').set_text(existing_text)
-			dialog = self.builder.get_object('diary_exists_dialog')
-			result = dialog.run()
-			if result == Gtk.ResponseType.ACCEPT:
-				self.merge_existing_and_new_diary (new_diary_id, 
-															existing_diary_id)
-			dialog.hide()
-			break 
-		else:
-			self.cursor.execute("UPDATE resources "
-								"SET (diary, contact_id) = (True, NULL) "
-								"WHERE id = %s", 
-								(new_diary_id,))
-		self.populate_day_detail_store ()
-		DB.commit()
-
-	def merge_existing_and_new_diary (self, new_id, existing_id):
-		existing_buffer = self.builder.get_object('textbuffer2')
-		start = existing_buffer.get_start_iter()
-		end = existing_buffer.get_end_iter()
-		existing_text = existing_buffer.get_text(start, end, True)
-		
-		new_buffer = self.builder.get_object('textbuffer3')
-		start = new_buffer.get_start_iter()
-		end = new_buffer.get_end_iter()
-		new_text = new_buffer.get_text(start, end, True)
-
-		text = existing_text + new_text
-		self.cursor.execute("UPDATE resources SET subject = %s "
-							"WHERE id = %s; "
-							"DELETE FROM resources WHERE id = %s;",
-							(text, existing_id, new_id))
+	def details_toggled (self, togglebutton):
+		visible = togglebutton.get_active()
+		self.builder.get_object('details_box').set_visible(visible)
 
 	def calendar_button_release_event (self, calendar, event):
 		rect = Gdk.Rectangle()
@@ -153,39 +137,6 @@ class ResourceCalendarGUI:
 	def edit_window_delete (self, window, event):
 		window.hide_on_delete ()
 		return True
-
-	def load_resource_edit_store (self, date_time):
-		return
-		self.resource_edit_store.clear ()
-		self.cursor.execute("SELECT rm.id, subject, c.id, c.name, rmt.id, "
-							"rmt.tag, red, green, blue, alpha, tag_id "
-							"FROM resources AS rm "
-							"LEFT JOIN contacts AS c "
-							"ON rm.contact_id = c.id "
-							"LEFT JOIN resource_tags AS rmt "
-							"ON rm.tag_id = rmt.id "
-							"WHERE dated_for = %s", 
-							(date_time,))
-		for row in self.cursor.fetchall():
-			row_id = row[0]
-			subject = row[1]
-			contact_id = row[2]
-			contact_name = row[3]
-			tag_id = row[4]
-			tag_name = row[5]
-			red = row[6]
-			green = row[7]
-			blue = row[8]
-			alpha = row[9]
-			tag_id = row[10]
-			if tag_id == None or tag_id == 0:
-				rgba = Gdk.RGBA(1, 1, 1, 0)
-			else:
-				rgba = Gdk.RGBA(red, green, blue, alpha)
-			self.resource_edit_store.append([row_id, subject, contact_id, 
-											contact_name, tag_id, tag_name, 
-											rgba])
-		DB.rollback()
 
 	def save_resource_edit_store_path (self, path):
 		date = self.builder.get_object('calendar1').get_date()
@@ -219,7 +170,7 @@ class ResourceCalendarGUI:
 		self.save_resource_edit_store_path (path)
 
 	def tag_combo_changed (self, combo, path, tree_iter):
-		tag_id = self.tag_store[tree_iter][0]
+		tag_id = self.category_store[tree_iter][0]
 		self.cursor.execute("SELECT tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"WHERE id = %s", (tag_id,))
@@ -239,20 +190,6 @@ class ResourceCalendarGUI:
 		import resource_management_tags
 		resource_management_tags.ResourceManagementTagsGUI ()
 
-	def textview_focus_out_event (self, textview, event):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		if path == []:
-			return # nothing selected
-		resource_id = model[path][0]
-		notes_buffer = self.builder.get_object ('textbuffer1')
-		start = notes_buffer.get_start_iter()
-		end = notes_buffer.get_end_iter()
-		notes = notes_buffer.get_text(start,end,True)
-		self.cursor.execute("UPDATE resources SET notes = %s"
-							"WHERE id = %s", (notes, resource_id))
-		DB.commit()
-
 	def edit_calendar_day_selected (self, calendar):
 		selection = self.builder.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()
@@ -263,7 +200,7 @@ class ResourceCalendarGUI:
 		self.cursor.execute ("UPDATE resources SET dated_for = %s "
 							"WHERE id = %s", (date, resource_id))
 		DB.commit()
-		self.builder.get_object('calendar1').emit('day-selected')
+		calendar.emit('day-selected')
 
 	def contact_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -317,7 +254,6 @@ class ResourceCalendarGUI:
 		self.populate_day_detail_store ()
 
 	def populate_day_detail_store (self):
-		self.builder.get_object('textbuffer1').set_text('')
 		self.day_detail_store.clear()
 		self.cursor.execute("SELECT rm.id, subject, c.id, c.name, rmt.id, "
 							"rmt.tag, red, green, blue, alpha, tag_id "
@@ -348,14 +284,6 @@ class ResourceCalendarGUI:
 											contact_name, tag_id, tag_name, 
 											rgba])
 		DB.rollback()
-		
-	def day_detail_activated (self, treeview, path, treeviewcolumn):
-		self.resource_id = self.day_detail_store[path][0]
-		self.cursor.execute("SELECT notes FROM resources "
-							"WHERE id = %s", (self.resource_id,))
-		for row in self.cursor.fetchall():
-			notes = row[0]
-			self.builder.get_object('textbuffer1').set_text(notes)
 
 	def get_holiday_description (self, date):
 		if us_holidays is None:
@@ -397,7 +325,7 @@ class ResourceCalendarGUI:
 		DB.rollback()
 		return string
 
-	def resource_management_clicked (self,button):
+	def resource_management_activated (self,button):
 		import resource_management
 		resource_management.ResourceManagementGUI()
 

@@ -20,7 +20,7 @@ import re
 from dateutils import DateTimeCalendar
 from constants import ui_directory, DB
 
-UI_FILE = ui_directory + "/resource_search.ui"
+UI_FILE = ui_directory + "/resources/resource_search.ui"
 
 class ResourceSearchGUI:
 	def __init__ (self):

@@ -21,7 +21,7 @@ from dateutils import DateTimeCalendar
 import spell_check
 from constants import ui_directory, DB, broadcaster
 
-UI_FILE = ui_directory + "/resource_management.ui"
+UI_FILE = ui_directory + "/resources/resource_management.ui"
 
 class ResourceManagementGUI:
 	timeout_id = None

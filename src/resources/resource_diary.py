@@ -22,7 +22,7 @@ from dateutils import DateTimeCalendar
 import spell_check
 from constants import ui_directory, DB
 
-UI_FILE = ui_directory + "/resource_diary.ui"
+UI_FILE = ui_directory + "/resources/resource_diary.ui"
 
 class ResourceDiaryGUI:
 	def __init__(self):

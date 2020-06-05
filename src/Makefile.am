@@ -187,4 +187,7 @@ SUBDIRS = \
 	admin \
 	payroll \
 	modules \
-	manufacturing
+	manufacturing \
+	resources
+
+python_PYTHON = 

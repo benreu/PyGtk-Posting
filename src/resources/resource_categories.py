@@ -1,4 +1,4 @@
-# resource_management_tags.py
+# resource_categories.py
 #
 # Copyright (C) 2017 - reuben
 #
@@ -19,9 +19,9 @@ from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
 from constants import ui_directory, DB
 
-UI_FILE = ui_directory + "/resource_management_tags.ui"
+UI_FILE = ui_directory + "/resources/resource_categories.ui"
 
-class ResourceManagementTagsGUI(Gtk.Builder):
+class ResourceCategoriesGUI(Gtk.Builder):
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
@@ -29,8 +29,8 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 		self.connect_signals(self)
 		self.cursor = DB.cursor()
 		
-		self.tag_edit_store = self.get_object('tag_edit_store')
-		self.populate_edit_tag_store()
+		self.category_store = self.get_object('category_store')
+		self.populate_category_store()
 		self.create_new_tag ()
 		
 		self.window = self.get_object('window1')
@@ -39,8 +39,8 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 	def destroy (self, widget):
 		self.cursor.close()
 
-	def populate_edit_tag_store (self):
-		self.tag_edit_store.clear()
+	def populate_category_store (self):
+		self.category_store.clear()
 		self.cursor.execute("SELECT id, tag, red, green, blue, alpha, finished "
 							"FROM resource_tags "
 							"ORDER BY tag")
@@ -53,7 +53,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 			alpha = row[5]
 			finished = row[6]
 			rgba = Gdk.RGBA(red, green, blue, alpha)
-			self.tag_edit_store.append([tag_id, tag_name, rgba, finished])
+			self.category_store.append([tag_id, tag_name, rgba, finished])
 		DB.rollback()
 
 	def save_tag_clicked (self, button):
@@ -76,7 +76,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 								(tag_name, red, green, blue, alpha, 
 								self.tag_id))
 		DB.commit()
-		self.populate_edit_tag_store ()
+		self.populate_category_store ()
 
 	def new_tag_clicked (self, button):
 		self.create_new_tag()
@@ -89,7 +89,7 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 		self.get_object('colorbutton1').set_rgba(rgba)
 
 	def row_activated (self, treeview, path, treeviewcolumn):
-		self.tag_id = self.tag_edit_store[path][0]
+		self.tag_id = self.category_store[path][0]
 		self.cursor.execute("SELECT tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"WHERE id = %s", (self.tag_id,))
@@ -106,8 +106,8 @@ class ResourceManagementTagsGUI(Gtk.Builder):
 
 	def finished_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
-		self.tag_edit_store[path][3] = active
-		row_id = self.tag_edit_store[path][0]
+		self.category_store[path][3] = active
+		row_id = self.category_store[path][0]
 		self.cursor.execute("UPDATE resource_tags "
 									"SET finished = %s "
 									"WHERE id = %s",(active, row_id))

@@ -130,11 +130,23 @@ def update_apsw_tables(connection):
 					"('phone_column', 125)")
 	cursor.execute("INSERT OR IGNORE INTO contact_overview VALUES "
 					"('email_column', 125)")
+	# keybindings
 	cursor.execute("CREATE TABLE IF NOT EXISTS keybindings "
 											"(widget_id text UNIQUE NOT NULL, "
 											"keybinding text NOT NULL)")
 	cursor.execute("INSERT OR IGNORE INTO keybindings VALUES "
 					"('Main window', 'F9')")
+	# resource calendar window layout
+	cursor.execute("CREATE TABLE IF NOT EXISTS resource_calendar "
+											"(widget_id text UNIQUE NOT NULL, "
+											"size integer NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('pane1', 500)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('pane2', 100)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('show_details_checkbutton', 1)")
+	
 
 
 def connect_to_db (name):

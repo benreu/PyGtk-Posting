@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkListStore" id="tag_edit_store">
+  <object class="GtkListStore" id="category_store">
     <columns>
       <!-- column-name tag_id -->
       <column type="gint"/>
@@ -17,7 +17,7 @@
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
-    <property name="title" translatable="yes">Resource Management Tags</property>
+    <property name="title" translatable="yes">Resource Categories</property>
     <property name="window_position">center</property>
     <property name="default_width">440</property>
     <property name="default_height">250</property>
@@ -40,7 +40,7 @@
               <object class="GtkTreeView" id="treeview2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">tag_edit_store</property>
+                <property name="model">category_store</property>
                 <property name="activate_on_single_click">True</property>
                 <signal name="row-activated" handler="row_activated" swapped="no"/>
                 <child internal-child="selection">

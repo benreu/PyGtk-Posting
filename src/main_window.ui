@@ -719,6 +719,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem62">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Resource categories</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="resource_categories_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem63">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -743,15 +752,6 @@
                         <property name="label" translatable="yes">Resource search</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="resource_search_activated" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="menuitem62">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Resource tags</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="resource_tags" swapped="no"/>
                       </object>
                     </child>
                     <child>
