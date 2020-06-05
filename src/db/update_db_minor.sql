@@ -433,6 +433,9 @@ UPDATE document_items SET remark = '' WHERE remark IS NULL;
 ALTER TABLE public.document_items ALTER COLUMN remark SET NOT NULL;
 --0.5.32
 ALTER TABLE public.resources ALTER COLUMN diary DROP DEFAULT;
+--0.5.33
+CREATE TABLE IF NOT EXISTS public.resource_types (id serial PRIMARY KEY, name varchar NOT NULL UNIQUE);
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS resource_type_id bigint REFERENCES resource_types ON DELETE RESTRICT;
 
 
 

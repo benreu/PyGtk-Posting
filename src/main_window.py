@@ -239,6 +239,10 @@ class MainGUI :
 		import resource_management_tags
 		resource_management_tags.ResourceManagementTagsGUI ()
 
+	def resource_type_activated (self, menuitem):
+		from resources import resource_types
+		resource_types.ResourceTypesGUI ()
+
 	def customer_terms_clicked (self, menuitem):
 		import customer_terms
 		customer_terms.CustomerTermsGUI()
