@@ -67,23 +67,14 @@ pygtk_posting_PYTHON = \
 	incoming_invoice.ui \
 	product_search.py \
 	product_search.ui \
-	resource_management.py \
-	resource_management.ui \
-	resource_management_tags.ui \
-	resource_management_tags.py \
-	resource_calendar.py \
-	resource_calendar.ui \
 	open_invoices.py \
 	open_invoices.ui \
-	resource_diary.py \
-	resource_diary.ui \
 	employee_payment.py \
 	employee_payment.ui \
 	double_entry_transaction.py \
 	double_entry_transaction.ui \
 	credit_card_merchant.py \
 	credit_card_merchant.ui \
-	resource_search.py \
 	payment_receipt.py \
 	payment_receipt.ui \
 	spell_check.py \
@@ -95,7 +86,6 @@ pygtk_posting_PYTHON = \
 	catalog_creator.ui \
 	product_serial_numbers.py \
 	product_serial_numbers.ui \
-	resource_search.ui \
 	fiscal_years.py \
 	fiscal_years.ui \
 	open_purchase_orders.py \
