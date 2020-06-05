@@ -92,18 +92,6 @@ class InvoiceGUI:
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
 
-		price_column = self.builder.get_object ('treeviewcolumn4')
-		price_renderer = self.builder.get_object ('cellrenderertext5')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
-
-		tax_column = self.builder.get_object ('treeviewcolumn5')
-		tax_renderer = self.builder.get_object ('cellrenderertext6')
-		tax_column.set_cell_data_func(tax_renderer, self.tax_cell_func)
-
-		ext_price_column = self.builder.get_object ('treeviewcolumn6')
-		ext_price_renderer = self.builder.get_object ('cellrenderertext7')
-		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
-
 		self.document_type = "Invoice"
 		self.populate_location_store ()
 		self.populate_customer_store ()
@@ -440,6 +428,7 @@ class InvoiceGUI:
 		self.update_invoice_name (text)
 		self.cursor.execute("UPDATE invoices SET doc_type = %s "
 							"WHERE id = %s", (text, self.invoice_id))
+		DB.commit()
 		self.populate_document_list()
 		
 	def contacts_window(self, widget):
@@ -473,9 +462,12 @@ class InvoiceGUI:
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
 			self.invoice = invoice_create.Setup(self.invoice_store, 
-												self.customer_id, comment, 
-												self.datetime, self.invoice_id, 
-												self, self.document_type)
+												self.customer_id, 
+												comment, 
+												self.datetime, 
+												self.invoice_id, 
+												self, 
+												self.document_type)
 		self.invoice.view()
 
 	def post_invoice(self, widget):
@@ -484,18 +476,21 @@ class InvoiceGUI:
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
+			if os.path.exists(self.invoice.lock_file):
+				dialog = self.builder.get_object('dialog1')
+				response = dialog.run()
+				dialog.hide()
+				if response != Gtk.ResponseType.ACCEPT:
+					return
 			self.invoice = invoice_create.Setup(self.invoice_store, 
-												self.customer_id, comment, 
-												self.datetime, self.invoice_id,
-												self, self.document_type)
+												self.customer_id, 
+												comment, 
+												self.datetime, 
+												self.invoice_id,
+												self, 
+												self.document_type)
 		else:
 			self.invoice.save()
-		if os.path.exists(self.invoice.lock_file):
-			dialog = self.builder.get_object('dialog1')
-			response = dialog.run()
-			dialog.hide()
-			if response != Gtk.ResponseType.ACCEPT:
-				return
 		if self.builder.get_object('menuitem1').get_active() == True:
 			self.invoice.print_directly(self.window)
 		else:
@@ -711,13 +706,9 @@ class InvoiceGUI:
 		self.cursor.execute("UPDATE invoice_items SET remark = %s "
 							"WHERE id = %s", (text, line_id))
 		DB.commit()
+		self.invoice = None
 
 	################## start price
-
-	def price_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		price = '{:,.2f}'.format(model.get_value(iter_, 6))
-		cellrenderer.set_property("text" , price)
 		
 	def price_edited(self, widget, path, text):
 		iter_ = self.invoice_store.get_iter(path)
@@ -743,18 +734,6 @@ class InvoiceGUI:
 		self.calculate_totals()
 
 	################## end price
-
-	def tax_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		tax = '{:,.2f}'.format(model.get_value(iter_, 7))
-		cellrenderer.set_property("text" , tax)
-
-	def ext_price_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		ext_price = '{:,.2f}'.format(model.get_value(iter_, 8))
-		cellrenderer.set_property("text" , ext_price)
-		
-	################## start product
 	
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -1024,6 +1003,7 @@ class InvoiceGUI:
 		self.builder.get_object('entry3').set_text(subtotal)
 		self.builder.get_object('entry4').set_text(tax)
 		self.builder.get_object('entry5').set_text(total)
+		self.invoice = None
 
 	def check_invoice_item_id (self, iter_):
 		id = self.invoice_store[iter_][0]
