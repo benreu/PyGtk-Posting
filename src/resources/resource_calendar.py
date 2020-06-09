@@ -31,6 +31,7 @@ UI_FILE = ui_directory + "/resources/resource_calendar.ui"
 
 
 class ResourceCalendarGUI:
+	where_clause = ''
 	def __init__(self):
 
 		self.builder = Gtk.Builder()
@@ -42,6 +43,7 @@ class ResourceCalendarGUI:
 		self.day_detail_store = self.builder.get_object('day_detail_store')
 		self.category_store = self.builder.get_object('category_store')
 		self.contact_store = self.builder.get_object('contact_store')
+		self.type_store = self.builder.get_object('type_store')
 		self.contact_completion = self.builder.get_object('contact_completion')
 		self.contact_completion.set_match_func(self.contact_match_func)
 		
@@ -49,22 +51,16 @@ class ResourceCalendarGUI:
 		self.window.maximize()
 		self.window.show_all()
 
-		self.popover = self.builder.get_object('popover1')
+		self.popover = self.builder.get_object('popover_window')
 		self.populate_stores ()
-		calendar = self.builder.get_object('calendar1')
-		calendar.set_detail_func(self.calendar_func)
+		self.calendar = self.builder.get_object('calendar1')
+		self.calendar.set_detail_func(self.calendar_func)
 		today = datetime.today()
-		set_calendar_from_datetime(calendar, today)
+		set_calendar_from_datetime(self.calendar, today)
 		
 		GLib.idle_add(self.set_widget_sizes)
 
 	def set_widget_sizes (self):
-		rectangle = self.builder.get_object('pane1').get_allocated_size()[0]
-		width = rectangle.width/70
-		height = rectangle.height/60
-		calendar = self.builder.get_object('calendar1')
-		calendar.set_detail_width_chars(width)
-		calendar.set_detail_height_rows(height)
 		sqlite = get_apsw_connection()
 		c = sqlite.cursor()
 		c.execute("SELECT size FROM resource_calendar "
@@ -77,7 +73,22 @@ class ResourceCalendarGUI:
 					"WHERE widget_id = 'show_details_checkbutton'")
 		active = bool(c.fetchone()[0])
 		self.builder.get_object('show_detail_checkbutton').set_active(active)
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'row_height_value'")
+		value = c.fetchone()[0]
+		self.builder.get_object('row_height_spinbutton').set_value(value)
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'row_width_value'")
+		value = c.fetchone()[0]
+		self.builder.get_object('row_width_spinbutton').set_value(value)
 		sqlite.close()
+		GLib.timeout_add(20, self.center_calendar_horizontal_scroll)
+
+	def center_calendar_horizontal_scroll (self):
+		adjustment = self.builder.get_object('calendar_width_scroll_adjustment')
+		upper = adjustment.get_upper()
+		page_size = adjustment.get_page_size()
+		adjustment.set_value ((upper - page_size) / 2)
 
 	def save_window_layout_activated (self, menuitem):
 		sqlite = get_apsw_connection()
@@ -91,6 +102,12 @@ class ResourceCalendarGUI:
 		active = self.builder.get_object('show_detail_checkbutton').get_active()
 		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
 					"VALUES ('show_details_checkbutton', ?)", (active,))
+		value = self.builder.get_object('row_height_spinbutton').get_value()
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('row_height_value', ?)", (value,))
+		value = self.builder.get_object('row_width_spinbutton').get_value()
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('row_width_value', ?)", (value,))
 		sqlite.close()
 
 	def destroy (self, widget):
@@ -104,7 +121,7 @@ class ResourceCalendarGUI:
 			self.contact_store.append(row)
 		self.category_store.clear()
 		self.cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
-							"FROM resource_tags "
+							"FROM resource_tags WHERE finished = False "
 							"ORDER BY tag")
 		for row in self.cursor.fetchall():
 			tag_id = row[0]
@@ -115,61 +132,63 @@ class ResourceCalendarGUI:
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
 			self.category_store.append([tag_id, tag_name])
+		self.type_store.clear()
+		self.cursor.execute("SELECT id::text, name FROM resource_types "
+							"ORDER BY name")
+		for row in self.cursor.fetchall():
+			self.type_store.append(row)
 		DB.rollback()
+
+	def row_height_value_changed (self, spinbutton):
+		value = spinbutton.get_value_as_int()
+		self.calendar.set_detail_height_rows(value)
+		self.calendar.queue_resize()
+
+	def row_width_value_changed (self, spinbutton):
+		value = spinbutton.get_value_as_int()
+		self.calendar.set_detail_width_chars(value)
+		self.calendar.queue_resize()
 
 	def details_toggled (self, togglebutton):
 		visible = togglebutton.get_active()
 		self.builder.get_object('details_box').set_visible(visible)
 
-	def calendar_button_release_event (self, calendar, event):
-		rect = Gdk.Rectangle()
-		allocation = calendar.get_allocation()
-		rect.x = event.x - allocation.x
-		rect.y = event.y - allocation.y
-		rect.width = 1
-		rect.heigth = 1
-		if event.button == 3:
-			self.populate_stores ()
-			self.popover.set_pointing_to (rect)
-			self.popover.set_relative_to (calendar)
-			self.popover.show_all ()
-
-	def edit_window_delete (self, window, event):
-		window.hide_on_delete ()
+	def calendar_scroll_event (self, widget, event):
+		# explicitly redirect scroll events to the calendar scrolled window
+		event.window = self.builder.get_object('scrolled_window').get_window()
+		event.put()
 		return True
 
-	def save_resource_edit_store_path (self, path):
-		date = self.builder.get_object('calendar1').get_date()
-		dated_for = calendar_to_datetime(date)
-		line = self.day_detail_store[path]
-		resource_id = line[0]
-		subject = line[1]
-		contact_id = line[2]
-		tag_id = line[4]
-		if contact_id == 0:
-			contact_id = None
-		if tag_id == 0:
-			tag_id = None
-		if resource_id == 0:
-			self.cursor.execute("INSERT INTO resources "
-								"(subject, contact_id, tag_id, "
-								"date_created, dated_for) "
-								"VALUES (%s, %s, %s, %s, %s)", 
-								(subject, contact_id, tag_id, 
-								datetime.today(), dated_for))
-		else:
-			self.cursor.execute("UPDATE resources "
-								"SET (subject, contact_id, tag_id) = "
-								"(%s, %s, %s) WHERE id = %s", 
-								(subject, contact_id, tag_id, resource_id))
-		DB.commit()
-		self.builder.get_object('calendar1').emit('day-selected')
+	def calendar_button_release_event (self, calendar, event):
+		if event.button == 3:
+			self.popover.show_all ()
 
 	def subject_edited (self, renderer, path, text):
+		row_id = self.day_detail_store[path][0]
 		self.day_detail_store[path][1] = text
-		self.save_resource_edit_store_path (path)
+		self.cursor.execute("UPDATE resources SET subject = %s "
+							"WHERE id = %s", (text, row_id))
+		DB.commit()
+
+	def qty_edited (self, cellrenderertext, path, text):
+		row_id = self.day_detail_store[path][0]
+		self.day_detail_store[path][2] = int(text)
+		self.cursor.execute("UPDATE resources SET qty = %s "
+							"WHERE id = %s", (text, row_id))
+		DB.commit()
+
+	def type_changed (self, cellrenderercombo, path, treeiter):
+		row_id = self.day_detail_store[path][0]
+		type_id = self.type_store[treeiter][0]
+		type_name = self.type_store[treeiter][1]
+		self.day_detail_store[path][3] = int(type_id)
+		self.day_detail_store[path][4] = type_name
+		self.cursor.execute("UPDATE resources SET resource_type_id = %s "
+							"WHERE id = %s", (type_id, row_id))
+		DB.commit()
 
 	def tag_combo_changed (self, combo, path, tree_iter):
+		row_id = self.day_detail_store[path][0]
 		tag_id = self.category_store[tree_iter][0]
 		self.cursor.execute("SELECT tag, red, green, blue, alpha "
 							"FROM resource_tags "
@@ -181,14 +200,12 @@ class ResourceCalendarGUI:
 			blue = row[3]
 			alpha = row[4]
 			rgba = Gdk.RGBA(red, green, blue, alpha)
-			self.day_detail_store[path][4] = int(tag_id)
-			self.day_detail_store[path][5] = tag_name
-			self.day_detail_store[path][6] = rgba
-		self.save_resource_edit_store_path (path)
-
-	def tags_clicked (self, button):
-		import resource_management_tags
-		resource_management_tags.ResourceManagementTagsGUI ()
+			self.day_detail_store[path][7] = int(tag_id)
+			self.day_detail_store[path][8] = tag_name
+			self.day_detail_store[path][9] = rgba
+		self.cursor.execute("UPDATE resources SET tag_id = %s "
+							"WHERE id = %s", (tag_id, row_id))
+		DB.commit()
 
 	def edit_calendar_day_selected (self, calendar):
 		selection = self.builder.get_object('treeview-selection')
@@ -226,18 +243,35 @@ class ResourceCalendarGUI:
 	def contact_selected (self, contact_id, contact_name):
 		selection = self.builder.get_object ('treeview-selection')
 		model, path = selection.get_selected_rows ()
-		model[path][2] = int(contact_id)
-		model[path][3] = contact_name
-		self.save_resource_edit_store_path (path)
+		row_id = model[path][0]
+		model[path][5] = int(contact_id)
+		model[path][6] = contact_name
+		self.cursor.execute ("UPDATE resources SET contact_id = %s "
+							"WHERE id = %s", (contact_id, row_id))
+		DB.commit()
 
 	def new_resource_clicked (self, button):
 		black = Gdk.RGBA(0, 0, 0, 1)
-		self.day_detail_store.append([0, 'New Subject', 0, '', 0, '', black])
-		last = self.day_detail_store.iter_n_children ()
-		last -= 1 #iter_n_children starts at 1 ; set_cursor starts at 0
+		self.cursor.execute("INSERT INTO resources "
+							"(subject, dated_for, diary) "
+							"VALUES ('New subject', %s, False) "
+							"RETURNING id", (self.date_time,))
+		row_id = self.cursor.fetchone()[0]
+		DB.commit()
+		iter = self.day_detail_store.append([row_id, 
+											'New Subject', 
+											0, 
+											0, 
+											'', 
+											0, 
+											'', 
+											0, 
+											'', 
+											black])
+		path = self.day_detail_store.get_path(iter)
 		treeview = self.builder.get_object('treeview2')
 		c = treeview.get_column(0)
-		treeview.set_cursor(last , c, True)	#set the cursor to the last appended item
+		treeview.set_cursor(path, c, True)
 
 	def delete_resource_clicked (self, button):
 		selection = self.builder.get_object ('treeview-selection')
@@ -247,42 +281,166 @@ class ResourceCalendarGUI:
 			self.cursor.execute("DELETE FROM resources "
 								"WHERE id = %s", (resource_id,))
 			DB.commit ()
-		self.builder.get_object('calendar1').emit('day-selected')
+		self.calendar.emit('day-selected')
 		
 	def day_selected (self, calendar):
 		self.date_time = calendar_to_datetime (calendar.get_date())
 		self.populate_day_detail_store ()
+		self.populate_day_statistics ()
 
 	def populate_day_detail_store (self):
 		self.day_detail_store.clear()
-		self.cursor.execute("SELECT rm.id, subject, c.id, c.name, rmt.id, "
-							"rmt.tag, red, green, blue, alpha, tag_id "
+		self.cursor.execute("SELECT "
+							"rm.id, "
+							"rm.subject, "
+							"rm.qty, "
+							"ry.id, "
+							"ry.name, "
+							"c.id, "
+							"c.name, "
+							"rt.id, "
+							"rt.tag, "
+							"red, "
+							"green, "
+							"blue, "
+							"alpha, "
+							"tag_id "
 							"FROM resources AS rm "
 							"LEFT JOIN contacts AS c "
 							"ON rm.contact_id = c.id "
-							"LEFT JOIN resource_tags AS rmt "
-							"ON rm.tag_id = rmt.id "
+							"LEFT JOIN resource_tags AS rt "
+							"ON rm.tag_id = rt.id "
+							"LEFT JOIN resource_types AS ry "
+							"ON ry.id = rm.resource_type_id "
 							"WHERE dated_for = %s", 
 							(self.date_time,))
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			subject = row[1]
-			contact_id = row[2]
-			contact_name = row[3]
-			tag_id = row[4]
-			tag_name = row[5]
-			red = row[6]
-			green = row[7]
-			blue = row[8]
-			alpha = row[9]
-			tag_id = row[10]
+			qty = row[2]
+			type_id = row[3]
+			type_name = row[4]
+			contact_id = row[5]
+			contact_name = row[6]
+			tag_id = row[7]
+			tag_name = row[8]
+			red = row[9]
+			green = row[10]
+			blue = row[11]
+			alpha = row[12]
+			tag_id = row[13]
 			if tag_id == None or tag_id == 0:
 				rgba = Gdk.RGBA(1, 1, 1, 0)
 			else:
 				rgba = Gdk.RGBA(red, green, blue, alpha)
-			self.day_detail_store.append([row_id, subject, contact_id, 
+			self.day_detail_store.append([row_id, subject, qty, type_id,
+											type_name, contact_id, 
 											contact_name, tag_id, tag_name, 
 											rgba])
+		DB.rollback()
+
+	def populate_day_statistics (self):
+		c = DB.cursor()
+		listbox = self.builder.get_object('listbox')
+		listbox_width = listbox.get_allocated_size()[0].width
+		for child in listbox.get_children():
+			listbox.remove(child)
+		section_label = Gtk.Label(xalign = 0)
+		section_label.set_markup('<b>Total</b>')
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, 
+						margin_start = 5,
+						margin_top = 5)
+		hbox.pack_start(section_label, False, False, 0)
+		listbox.add(hbox)
+		c.execute("SELECT COALESCE(SUM(qty), 0)::text "
+					"FROM resources "
+					"WHERE dated_for = %s ", 
+					(self.date_time,))
+		for row in c.fetchall():
+			hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, 
+							spacing=10, 
+							margin_start = 15)
+			qty_label = Gtk.Label(label = row[0], xalign = 1)
+			hbox.pack_start(qty_label, False, False, 0)
+			listbox.add(hbox)
+		listbox.show_all()
+		while Gtk.events_pending(): # get the allocated size of the qty label
+			Gtk.main_iteration()
+		qty_label_width = qty_label.get_allocated_size()[0].width
+		section_label = Gtk.Label(xalign = 0)
+		section_label.set_markup('<b>Group by Category</b>')
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, margin_start = 5)
+		hbox.pack_start(section_label, False, False, 0)
+		listbox.add(hbox)
+		c.execute("SELECT COALESCE(SUM(qty), 0)::text, "
+					"rt.tag::text "
+					"FROM resources AS r "
+					"JOIN resource_tags AS rt ON rt.id = r.tag_id "
+					"AND dated_for = %s WHERE finished = False "
+					"GROUP BY rt.id ORDER BY rt.tag", 
+					(self.date_time,))
+		for row in c.fetchall():
+			hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, 
+							spacing=10, 
+							margin_start = 15)
+			qty_label = Gtk.Label(label = row[0], xalign = 1)
+			qty_label.set_size_request(qty_label_width, -1)
+			name_label = Gtk.Label(label = row[1])
+			hbox.pack_start(qty_label, False, False, 0)
+			hbox.pack_start(name_label, False, False, 0)
+			listbox.add(hbox)
+		section_label = Gtk.Label(xalign = 0)
+		section_label.set_markup('<b>Group by Type</b>')
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, margin_start = 5)
+		hbox.pack_start(section_label, False, False, 0)
+		listbox.add(hbox)
+		c.execute("SELECT COALESCE(SUM(qty), 0)::text, "
+					"rt.name::text "
+					"FROM resources AS r "
+					"JOIN resource_types AS rt "
+					"ON rt.id = r.resource_type_id "
+					"AND dated_for = %s GROUP BY rt.id ORDER BY rt.name", 
+					(self.date_time,))
+		for row in c.fetchall():
+			hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, 
+							spacing=10, 
+							margin_start = 15)
+			qty_label = Gtk.Label(label = row[0], xalign = 1)
+			qty_label.set_size_request(qty_label_width, -1)
+			name_label = Gtk.Label(label = row[1])
+			hbox.pack_start(qty_label, False, False, 0)
+			hbox.pack_start(name_label, False, False, 0)
+			listbox.add(hbox)
+		section_label = Gtk.Label(xalign = 0)
+		section_label.set_markup('<b>Group by Category and Type</b>')
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, margin_start = 5)
+		hbox.pack_start(section_label, False, False, 0)
+		listbox.add(hbox)
+		c.execute("SELECT COALESCE(SUM(qty), 0)::text, "
+					"rt.name::text, "
+					"rc.tag::text "
+					"FROM resources AS r "
+					"JOIN resource_types AS rt "
+					"ON rt.id = r.resource_type_id "
+					"JOIN resource_tags AS rc ON rc.id = r.tag_id "
+					"WHERE dated_for = %s AND finished = False "
+					"GROUP BY rt.id, rc.id ORDER BY rt.name, rc.tag", 
+					(self.date_time,))
+		for row in c.fetchall():
+			hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, 
+							spacing=10, 
+							margin_start = 15)
+			qty_label = Gtk.Label(label = row[0], xalign = 1)
+			qty_label.set_size_request(qty_label_width, -1)
+			type_label = Gtk.Label(label = row[1], xalign = 0)
+			type_label.set_size_request(listbox_width * .4, -1)
+			category_label = Gtk.Label(label = row[2])
+			hbox.pack_start(qty_label, False, False, 0)
+			hbox.pack_start(type_label, False, False, 0)
+			hbox.pack_start(category_label, False, False, 0)
+			listbox.add(hbox)
+		listbox.show_all()
+		c.close()
 		DB.rollback()
 
 	def get_holiday_description (self, date):
@@ -306,9 +464,9 @@ class ResourceCalendarGUI:
 							"LEFT JOIN contacts "
 							"ON contacts.id = rm.contact_id "
 							"JOIN resource_tags AS rmt "
-							"ON rm.tag_id = rmt.id WHERE dated_for = %s "
-							"AND finished != True", 
-							(date_time, ))
+							"ON rm.tag_id = rmt.id WHERE dated_for = '%s' "
+							"AND finished != True %s" % 
+							(date_time, self.where_clause))
 		for row in self.cursor.fetchall():
 			subject = row[0]
 			red = row[1]
@@ -326,10 +484,18 @@ class ResourceCalendarGUI:
 		return string
 
 	def resource_management_activated (self,button):
-		import resource_management
+		from resources import resource_management
 		resource_management.ResourceManagementGUI()
 
-	def window_key_press_event (self, window, event):
+	def resource_categories_activated (self, menuitem):
+		from resources import resource_categories
+		resource_categories.ResourceCategoriesGUI()
+
+	def window_focus_in_event (self, window, event):
+		self.builder.get_object('popover_window').hide()
+		self.populate_day_statistics()
+
+	def popover_key_press_event (self, window, event):
 		treeview = self.builder.get_object('treeview2')
 		keyname = Gdk.keyval_name(event.keyval)
 		path, col = treeview.get_cursor()
@@ -348,6 +514,42 @@ class ResourceCalendarGUI:
 					next_column = columns[0]
 			GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
 
+	# filtering tools
 
-			
+	def type_combo_filter_changed (self, combobox):
+		self.generate_where_clause ()
+
+	def contact_combo_filter_changed (self, combobox):
+		self.generate_where_clause ()
+
+	def category_combo_filter_changed (self, combobox):
+		self.generate_where_clause ()
+
+	def generate_where_clause (self):
+		type_id = self.builder.get_object('type_combo').get_active_id()
+		contact_id = self.builder.get_object('contact_combo').get_active_id()
+		category_id = self.builder.get_object('category_combo').get_active_id()
+		self.where_clause = ''
+		if type_id != None:
+			self.where_clause += 'AND resource_type_id = %s' % type_id
+		if contact_id != None:
+			self.where_clause += 'AND contact_id = %s' % contact_id
+		if category_id != None:
+			self.where_clause += 'AND tag_id = %s' % category_id
+		self.calendar.queue_resize()
+
+	def type_filter_match_selected (self, completion, treemodel, treeiter):
+		active_id = treemodel[treeiter][0]
+		self.builder.get_object('type_combo').set_active_id(active_id)
+
+	def contact_filter_selected (self, completion, treemodel, treeiter):
+		active_id = treemodel[treeiter][0]
+		self.builder.get_object('contact_combo').set_active_id(active_id)
+
+	def category_filter_match_selected (self, completion, treemodel, treeiter):
+		active_id = treemodel[treeiter][0]
+		self.builder.get_object('category_combo').set_active_id(active_id)
+
+
+
 

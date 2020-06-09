@@ -146,6 +146,10 @@ def update_apsw_tables(connection):
 					"('pane2', 100)")
 	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
 					"('show_details_checkbutton', 1)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('row_height_value', 3)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('row_width_value', 10)")
 	
 
 
