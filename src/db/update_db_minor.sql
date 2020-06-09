@@ -436,6 +436,7 @@ ALTER TABLE public.resources ALTER COLUMN diary DROP DEFAULT;
 --0.5.33
 CREATE TABLE IF NOT EXISTS public.resource_types (id serial PRIMARY KEY, name varchar NOT NULL UNIQUE);
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS resource_type_id bigint REFERENCES resource_types ON DELETE RESTRICT;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS qty bigint;
 
 
 
