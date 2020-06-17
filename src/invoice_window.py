@@ -476,12 +476,6 @@ class InvoiceGUI:
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
-			if os.path.exists(self.invoice.lock_file):
-				dialog = self.builder.get_object('dialog1')
-				response = dialog.run()
-				dialog.hide()
-				if response != Gtk.ResponseType.ACCEPT:
-					return
 			self.invoice = invoice_create.Setup(self.invoice_store, 
 												self.customer_id, 
 												comment, 
@@ -490,6 +484,12 @@ class InvoiceGUI:
 												self, 
 												self.document_type)
 		else:
+			if os.path.exists(self.invoice.lock_file):
+				dialog = self.builder.get_object('dialog1')
+				response = dialog.run()
+				dialog.hide()
+				if response != Gtk.ResponseType.ACCEPT:
+					return
 			self.invoice.save()
 		if self.builder.get_object('menuitem1').get_active() == True:
 			self.invoice.print_directly(self.window)

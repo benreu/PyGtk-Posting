@@ -1297,12 +1297,12 @@
           <object class="GtkLabel" id="label13">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">This invoice document is still being viewed and/or edited; please close
- that Libreoffice window before changing or regenerating the invoice.
+            <property name="label" translatable="yes">This invoice document is still being viewed and/or edited; Libreoffice
+will generate the invoice exactly as shown in the window currently open.
+If you want to generate the default invoice, close the Libreoffice window,
+click Cancel, and then click Post Invoice again.
 
-If you are sure this message is wrong, you can click Continue.
-If you click Continue and Libreoffice is accessing the invoice document,
-the invoice will not be correctly printed or stored and it is your problem.
+If you have custom changes you wish to save, you can click Continue.
 
 If this message shows up and all Libreoffice windows are closed,
 it probably means Libreoffice crashed or was improperly shut down.</property>
