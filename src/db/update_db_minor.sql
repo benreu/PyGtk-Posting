@@ -437,6 +437,21 @@ ALTER TABLE public.resources ALTER COLUMN diary DROP DEFAULT;
 CREATE TABLE IF NOT EXISTS public.resource_types (id serial PRIMARY KEY, name varchar NOT NULL UNIQUE);
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS resource_type_id bigint REFERENCES resource_types ON DELETE RESTRICT;
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS qty bigint;
+--0.5.34
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS gl_entries_payment_id bigint REFERENCES gl_entries ON DELETE RESTRICT;
+WITH cte AS (SELECT po.amount_due AS amount, 
+			check_number, po.id AS po_id, 
+			po.date_created AS po_date, 
+			ge.id AS ge_id, 
+			ge.date_inserted AS gl_date 
+	FROM purchase_orders AS po 
+	JOIN gl_entries AS ge ON ge.amount = po.amount_due
+	WHERE date_reconciled IS NOT NULL AND credit_account IS NOT NULL ORDER BY amount_due) ,
+cte2 AS (SELECT * FROM cte AS c_outer WHERE 
+	(SELECT COUNT(po_id) FROM cte AS c_inner 
+	WHERE c_inner.po_id = c_outer.po_id) = 1)
+UPDATE purchase_orders SET gl_entries_payment_id = cte2.ge_id FROM cte2 
+	WHERE purchase_orders.id = cte2.po_id AND purchase_orders.gl_entries_payment_id IS NULL;
 
 
 
