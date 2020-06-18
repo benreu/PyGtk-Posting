@@ -827,8 +827,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		DB.rollback()
 
 	def product_widget_removed (self, combo, path):
-		if self.p_o_store[path][4] == True:
-			return
 		_iter = self.p_o_store.get_iter(path)
 		entry = combo.get_child()
 		product_text = entry.get_text()
