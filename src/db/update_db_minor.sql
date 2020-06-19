@@ -439,21 +439,50 @@ ALTER TABLE resources ADD COLUMN IF NOT EXISTS resource_type_id bigint REFERENCE
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS qty bigint;
 --0.5.34
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS gl_transaction_payment_id bigint REFERENCES gl_transactions ON DELETE RESTRICT;
+
 WITH cte AS (SELECT 
 			po.amount_due AS amount, 
-			check_number, 
+			po.invoice_description,
 			po.id AS po_id, 
-			po.date_created AS po_date,
-			ge.date_inserted AS gl_date,
-			ge.gl_transaction_id AS gl_transaction_id
+			po.date_created,
+			po.date_paid,
+			ge.date_inserted AS ge_date,
+			ge.gl_transaction_id AS gl_transaction_id,
+			ge.transaction_description,
+			ge.id AS ge_id,
+			ge.check_number
 	FROM purchase_orders AS po 
-	JOIN gl_entries AS ge ON ge.amount = po.amount_due
-	WHERE date_reconciled IS NOT NULL AND credit_account IS NOT NULL ORDER BY amount_due) ,
+	JOIN gl_entries AS ge ON ge.amount = po.amount_due 
+		AND po.invoice_description = ge.transaction_description
+		AND credit_account IS NOT NULL
+	WHERE gl_transaction_payment_id IS NULL) ,
 cte2 AS (SELECT * FROM cte AS c_outer WHERE 
 	(SELECT COUNT(po_id) FROM cte AS c_inner 
 	WHERE c_inner.po_id = c_outer.po_id) = 1)
 UPDATE purchase_orders SET gl_transaction_payment_id = cte2.gl_transaction_id FROM cte2 
-	WHERE purchase_orders.id = cte2.po_id AND purchase_orders.gl_transaction_payment_id IS NULL;
+	WHERE purchase_orders.id = cte2.po_id RETURNING cte2.*; 
 
+WITH cte AS (SELECT
+            po.amount_due AS amount,
+            po.invoice_description,
+            po.id AS po_id,
+            po.date_created,
+            po.date_paid,
+            ge.date_inserted AS ge_date,
+            ge.gl_transaction_id AS gl_transaction_id,
+            ge.transaction_description,
+            ge.id AS ge_id,
+            check_number
+    FROM purchase_orders AS po
+    JOIN gl_entries AS ge ON ge.amount = po.amount_due
+        AND credit_account IS NOT NULL
+        AND date_reconciled IS NOT NULL
+        AND check_number IS NOT NULL
+    WHERE gl_transaction_payment_id IS NULL) ,
+cte2 AS (SELECT * FROM cte AS c_outer WHERE
+    (SELECT COUNT(po_id) FROM cte AS c_inner
+    WHERE c_inner.po_id = c_outer.po_id) = 1)
+UPDATE purchase_orders SET gl_transaction_payment_id = cte2.gl_transaction_id FROM cte2
+    WHERE purchase_orders.id = cte2.po_id RETURNING cte2.*; 
 
 
