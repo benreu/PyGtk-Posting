@@ -118,9 +118,11 @@ class MainReportsGUI:
 		from reports import net_worth
 		net_worth.NetWorthGUI()
 
+	def po_payment_matching_clicked (self, button):
+		from reports import po_payment_matching
+		po_payment_matching.PoPaymentMatchingGUI()
 
 
-		
 
-		
-		
+
+
