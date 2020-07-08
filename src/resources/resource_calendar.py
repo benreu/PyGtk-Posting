@@ -16,7 +16,9 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
-from dateutils import calendar_to_datetime, set_calendar_from_datetime 
+from dateutils import calendar_to_datetime, \
+						set_calendar_from_datetime, \
+						calendar_to_text
 from constants import ui_directory, DB
 from main import get_apsw_connection
 try:
@@ -81,6 +83,27 @@ class ResourceCalendarGUI:
 					"WHERE widget_id = 'row_width_value'")
 		value = c.fetchone()[0]
 		self.builder.get_object('row_width_spinbutton').set_value(value)
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'edit_window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT size FROM resource_calendar "
+					"WHERE widget_id = 'edit_window_height'")
+		height = c.fetchone()[0]
+		self.builder.get_object('popover_window').resize(width, height)
+		c.execute("SELECT widget_id, size FROM resource_calendar WHERE "
+					"widget_id IN "
+						"('subject_column', "
+						"'qty_column', "
+						"'type_column', "
+						"'contact_column', " 
+						"'category_column')")
+		for row in c.fetchall():
+			width = row[1]
+			column = self.builder.get_object(row[0])
+			if width == 0:
+				column.set_visible(False)
+			else:
+				column.set_fixed_width(width)
 		sqlite.close()
 		GLib.timeout_add(20, self.center_calendar_horizontal_scroll)
 
@@ -108,6 +131,23 @@ class ResourceCalendarGUI:
 		value = self.builder.get_object('row_width_spinbutton').get_value()
 		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
 					"VALUES ('row_width_value', ?)", (value,))
+		width, height = self.builder.get_object('popover_window').get_size()
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('edit_window_width', ?)", (width,))
+		c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+					"VALUES ('edit_window_height', ?)", (height,))
+		for column in ['subject_column', 
+						'qty_column', 
+						'type_column', 
+						'contact_column', 
+						'category_column']:
+			try:
+				width = self.builder.get_object(column).get_width()
+			except Exception as e:
+				self.show_message("On column %s\n %s" % (column, str(e)))
+				continue
+			c.execute("REPLACE INTO resource_calendar (widget_id, size) "
+						"VALUES (?, ?)", (column, width))
 		sqlite.close()
 
 	def destroy (self, widget):
@@ -154,6 +194,8 @@ class ResourceCalendarGUI:
 		self.builder.get_object('details_box').set_visible(visible)
 
 	def calendar_scroll_event (self, widget, event):
+		if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
+			return False # let the calendar change the month, else
 		# explicitly redirect scroll events to the calendar scrolled window
 		event.window = self.builder.get_object('scrolled_window').get_window()
 		event.put()
@@ -282,9 +324,27 @@ class ResourceCalendarGUI:
 								"WHERE id = %s", (resource_id,))
 			DB.commit ()
 		self.calendar.emit('day-selected')
-		
+	
+	def previous_month_clicked (self, button):
+		date = self.calendar.get_date()
+		if date.month == 0: # switch to December of previous year
+			self.calendar.select_month (11, date.year - 1)
+		else:
+			self.calendar.select_month (date.month - 1, date.year)
+		self.calendar.emit('day-selected')
+
+	def following_month_clicked (self, button):
+		date = self.calendar.get_date()
+		if date.month == 11: # switch to January of following year
+			self.calendar.select_month (0, date.year + 1)
+		else:
+			self.calendar.select_month (date.month + 1, date.year)
+		self.calendar.emit('day-selected')
+	
 	def day_selected (self, calendar):
 		self.date_time = calendar_to_datetime (calendar.get_date())
+		date_formatted = datetime.strftime(self.date_time, "%B %Y")
+		self.builder.get_object('date_label').set_text(date_formatted)
 		self.populate_day_detail_store ()
 		self.populate_day_statistics ()
 
@@ -495,6 +555,10 @@ class ResourceCalendarGUI:
 		self.builder.get_object('popover_window').hide()
 		self.populate_day_statistics()
 
+	def popover_window_delete_event (self, window, event):
+		window.hide()
+		return True
+
 	def popover_key_press_event (self, window, event):
 		treeview = self.builder.get_object('treeview2')
 		keyname = Gdk.keyval_name(event.keyval)
@@ -549,6 +613,14 @@ class ResourceCalendarGUI:
 	def category_filter_match_selected (self, completion, treemodel, treeiter):
 		active_id = treemodel[treeiter][0]
 		self.builder.get_object('category_combo').set_active_id(active_id)
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

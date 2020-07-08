@@ -150,6 +150,20 @@ def update_apsw_tables(connection):
 					"('row_height_value', 3)")
 	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
 					"('row_width_value', 10)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('edit_window_width', 600)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('edit_window_height', 200)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('subject_column', 200)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('qty_column', 50)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('type_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('contact_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
+					"('category_column', 100)")
 	
 
 
