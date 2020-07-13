@@ -420,9 +420,8 @@ class GUI:
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path != []:
-			iter_ = self.bank_transaction_store.get_iter(path)
-			treeiter = model.get_iter(iter_)
-			if model.iter_has_child(treeiter) == True:
+			iter_ = model.get_iter(path)
+			if model.iter_has_child(iter_) == True:
 				button.set_label ('Expense parent account selected')
 				return # parent account selected
 		else:
