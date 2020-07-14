@@ -378,7 +378,7 @@ class ResourceManagementGUI:
 				"ON rm.contact_id = contacts.id "
 				"WHERE date_created <= '%s' "
 				"AND (finished != %s OR finished = False) "
-				"AND diary != True ORDER BY %s, rm.id "
+				"ORDER BY %s, rm.id "
 				"LIMIT %s" % (self.older_than_date, finished, 
 				sort, row_limit))
 		for row in c.fetchall():
