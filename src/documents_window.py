@@ -742,8 +742,8 @@ class DocumentGUI:
 								"ext_price "
 							"FROM document_items WHERE document_id = %s)", 
 							(self.document_id, self.contact_id, old_id))
-		self.populate_document_store ()
 		DB.commit()
+		self.populate_document_store ()
 		dh.window.destroy()
 
 	def help_clicked (self, widget):
