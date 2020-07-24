@@ -113,6 +113,7 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		exemption_selection = self.get_object('treeview-selection2')
 		model, path = exemption_selection.get_selected_rows ()
 		if model[path][4] == False:
+			self.show_message("No exemption file scanned yet")
 			return # no exemption file available
 		customer_exemption_id = model[path][2]
 		self.cursor.execute("SELECT pdf_data FROM customer_tax_exemptions "
