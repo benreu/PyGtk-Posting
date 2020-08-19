@@ -191,7 +191,7 @@ class GUI (Gtk.Builder):
 								"(SELECT "
 									"id, "
 									"'', "
-									"'Balance forward', "
+									"'Balance forward' AS description, "
 									"date_inserted::text AS date, "
 									"format_date(date_inserted), "
 									"amount, "
@@ -242,7 +242,7 @@ class GUI (Gtk.Builder):
 								"(%s, False) AND date_inserted <= %s "
 								" AND statement_id IS NULL"
 								") "
-							"ORDER BY date", 
+							"ORDER BY date ASC, description DESC", 
 							(c_id, c_id, self.statement_end_date, c_id,
 							self.statement_end_date, c_id, 
 							self.statement_end_date))
