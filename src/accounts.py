@@ -19,7 +19,8 @@ from gi.repository import Gtk
 from constants import DB
 
 expense_account = Gtk.TreeStore(int, str)
-revenue_account = Gtk.TreeStore(int, str)
+revenue_account = Gtk.TreeStore(int, str, str)
+revenue_list = Gtk.ListStore(int, str, str)
 product_expense_tree = Gtk.TreeStore(str, str)
 product_inventory_tree = Gtk.TreeStore(str, str)
 product_revenue_tree = Gtk.TreeStore(str, str)
@@ -30,6 +31,7 @@ product_revenue_list = Gtk.ListStore(str, str, str)
 def populate_accounts():
 	global  expense_account, \
 			revenue_account, \
+			revenue_list, \
 			product_expense_tree, \
 			product_inventory_tree, \
 			product_revenue_tree, \
@@ -62,16 +64,19 @@ def populate_accounts():
 					product_inventory_tree.remove(p)
 		return show
 		
-	def populate_child_revenue ( number, parent):
+	def populate_child_revenue (number, parent, path):
 		show = False
-		cursor.execute("SELECT number, name, is_parent "
+		cursor.execute("SELECT number, name, ' / '||name, is_parent "
 							"FROM gl_accounts WHERE parent_number = %s "
 							"ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
-			p = revenue_account.append(parent,[number, name])
-			populate_child_revenue(number, p)
+			account_path = path + row[2]
+			if row[3] != True:
+				revenue_list.append([number, name, account_path])
+			p = revenue_account.append(parent,[number, name, account_path])
+			populate_child_revenue(number, p, account_path)
 
 	def populate_child_product_revenue ( number, parent, account_path):
 		show = False
@@ -173,13 +178,15 @@ def populate_accounts():
 			product_revenue_tree.remove(parent)
 	##################################################
 	revenue_account.clear()
-	cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 4 "
+	cursor.execute("SELECT number, name, ' / '||name "
+						"FROM gl_accounts WHERE type = 4 "
 						"AND parent_number IS NULL ORDER BY name")
 	for row in cursor.fetchall():
 		number = row[0]
 		name = row[1]
-		parent = revenue_account.append(None,[number, name])
-		populate_child_revenue (number, parent)
+		path = row[2]
+		parent = revenue_account.append(None,[number, name, path])
+		populate_child_revenue (number, parent, path)
 	##################################################
 	product_inventory_tree.clear()
 	product_inventory_list.clear()
