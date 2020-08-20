@@ -192,7 +192,7 @@ class LoanPaymentGUI:
 		bank_account = self.builder.get_object('combobox4').get_active_id()
 		check_number = self.builder.get_object('entry7').get_text()
 		active = self.builder.get_object('combobox1').get_active()
-		contact_name = self.loan_store[active][2]
+		contact_name = self.loan_store[active][3]
 		self.total_id = self.loan_payment.bank_check (bank_account, check_number, contact_name)
 		self.update_loan_payment_ids ()
 		DB.commit()
