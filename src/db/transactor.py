@@ -646,56 +646,64 @@ class DoubleEntryTransaction :
 					self.desc, self.trans_id))
 		c.close()
 
-def post_misc_check_payment (date, amount, payment_id, revenue_account):
-	cursor = DB.cursor()
-	cursor.execute("WITH new_row AS "
-						"(INSERT INTO gl_transactions "
-						"(date_inserted) VALUES (%s) RETURNING id) "
-				"INSERT INTO gl_entries "
-				"(gl_transaction_id, debit_account, credit_account, amount) "
-				"VALUES ((SELECT id FROM new_row), "
-					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'check_payment'), %s, %s) RETURNING id", 
-				(date, revenue_account, amount))
-	pi_id = cursor.fetchone()[0]
-	cursor.execute("UPDATE payments_incoming "
-				"SET gl_entries_id = %s "
-				"WHERE id = %s", (pi_id, payment_id))
-	cursor.close()
+class MiscRevenueTransaction :
+	def __init__ (self, date):
+		self.date = date
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_transactions "
+					"(date_inserted) VALUES (now()) RETURNING id")
+		self.trans_id = c.fetchone()[0]
+		c.close()
 
-def post_misc_cash_payment (date, amount, payment_id, revenue_account):
-	cursor = DB.cursor()
-	cursor.execute("WITH new_row AS "
-						"(INSERT INTO gl_transactions "
-						"(date_inserted) VALUES (%s) RETURNING id) "
-				"INSERT INTO gl_entries "
-				"(gl_transaction_id, debit_account, credit_account, amount) "
-				"VALUES ((SELECT id FROM new_row), "
+	def post_misc_check_payment (self, amount, payment_id):
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+				"(date_inserted, gl_transaction_id, debit_account, amount) "
+				"VALUES (%s, %s, "
 					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'cash_payment'), %s, %s) RETURNING id", 
-				(date, revenue_account, amount))
-	pi_id = cursor.fetchone()[0]
-	cursor.execute("UPDATE payments_incoming "
-				"SET gl_entries_id = %s "
-				"WHERE id = %s", (pi_id, payment_id))
-	cursor.close()
+					"WHERE function = 'check_payment'), %s) RETURNING id", 
+				(self.date, self.trans_id, amount))
+		pi_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
+					"SET gl_entries_id = %s "
+					"WHERE id = %s", (pi_id, payment_id))
+		c.close()
 
-def post_misc_credit_card_payment (date, amount, payment_id, revenue_account):
-	cursor = DB.cursor()
-	cursor.execute("WITH new_row AS "
-						"(INSERT INTO gl_transactions "
-						"(date_inserted) VALUES (%s) RETURNING id) "
-				"INSERT INTO gl_entries "
-				"(gl_transaction_id, debit_account, credit_account, amount) "
-				"VALUES ((SELECT id FROM new_row), "
-				"(SELECT account FROM gl_account_flow "
-				"WHERE function = 'credit_card_payment'), %s, %s) RETURNING id", 
-				(date, revenue_account, amount))
-	pi_id = cursor.fetchone()[0]
-	cursor.execute("UPDATE payments_incoming "
-				"SET gl_entries_id = %s "
-				"WHERE id = %s", (pi_id, payment_id))
-	cursor.close()
+	def post_misc_cash_payment (self, amount, payment_id):
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+				"(date_inserted, gl_transaction_id, debit_account, amount) "
+				"VALUES (%s, %s, "
+					"(SELECT account FROM gl_account_flow "
+					"WHERE function = 'cash_payment'), %s) RETURNING id", 
+				(self.date, self.trans_id, amount))
+		pi_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
+					"SET gl_entries_id = %s "
+					"WHERE id = %s", (pi_id, payment_id))
+		c.close()
+
+	def post_misc_credit_card_payment (self, amount, payment_id):
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+				"(date_inserted, gl_transaction_id, debit_account, amount) "
+				"VALUES (%s, %s, "
+					"(SELECT account FROM gl_account_flow "
+					"WHERE function = 'credit_card_payment'), %s) RETURNING id", 
+				(self.date, self.trans_id, amount))
+		pi_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
+					"SET gl_entries_id = %s "
+					"WHERE id = %s", (pi_id, payment_id))
+		c.close()
+
+	def post_credit_entry (self, revenue_account, amount):
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+				"(date_inserted, gl_transaction_id, credit_account, amount) "
+				"VALUES (%s, %s, %s, %s)", 
+				(self.date, self.trans_id, revenue_account, amount))
+		c.close()
 
 def switch_to_accrual_based ():
 	cursor = DB.cursor()
