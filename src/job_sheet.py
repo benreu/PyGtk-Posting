@@ -41,6 +41,16 @@ class JobSheetGUI(Gtk.Builder):
 						   ("products_changed", self.populate_product_store )):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
+
+		enforce_target = Gtk.TargetEntry.new('text/plain', 
+												Gtk.TargetFlags(1),
+												129)
+		treeview = self.get_object('treeview1')
+		treeview.drag_dest_set(Gtk.DestDefaults.ALL, 
+								[enforce_target], 
+								Gdk.DragAction.COPY)
+		treeview.connect("drag-data-received", self.on_drag_data_received)
+		treeview.drag_dest_set_target_list([enforce_target])
 		
 		self.customer_id = 0
 		self.job_id = 0
@@ -61,6 +71,26 @@ class JobSheetGUI(Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
+	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
+		list_ = data.get_text().split(' ')
+		if len(list_) != 2:
+			raise Exception("invalid drag data received")
+			return
+		if self.job_id == 0:
+			return
+		qty, product_id = list_[0], list_[1]
+		self.cursor.execute("SELECT 0, %s::float, id, name, '' FROM products "
+							"WHERE id = %s", (qty, product_id))
+		for row in self.cursor.fetchall():
+			iter_ = self.job_store.append(row)
+		line = self.job_store[iter_]
+		self.save_line(line)
+		path = self.job_store.get_path(iter_)
+		treeview = self.get_object('treeview1')
+		column = treeview.get_column(0)
+		treeview.set_cursor(path, column, False)
+		DB.rollback()
+		
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
