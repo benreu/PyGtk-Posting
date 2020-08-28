@@ -10,6 +10,56 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Collapse all</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="collapse_all_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Expand all</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="expand_all_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Report hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="report_hub_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkListStore" id="reconcile_date_store">
+    <columns>
+      <!-- column-name date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="reconcile_date_completion">
+    <property name="model">reconcile_date_store</property>
+    <property name="text_column">0</property>
+    <signal name="match-selected" handler="reconcile_date_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkTreeStore" id="statement_store">
     <columns>
       <!-- column-name id -->
@@ -24,6 +74,10 @@
       <column type="gchararray"/>
       <!-- column-name reconciled -->
       <column type="gboolean"/>
+      <!-- column-name date_reconciled -->
+      <column type="gchararray"/>
+      <!-- column-name date_reconciled_formatted -->
+      <column type="gchararray"/>
       <!-- column-name debit -->
       <column type="gchararray"/>
       <!-- column-name debit_float -->
@@ -32,6 +86,8 @@
       <column type="gchararray"/>
       <!-- column-name credit_float -->
       <column type="gfloat"/>
+      <!-- column-name gl_transaction_id -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -78,19 +134,107 @@
               </packing>
             </child>
             <child>
-              <object class="GtkCheckButton" id="checkbutton1">
-                <property name="label" translatable="yes">Grouped</property>
+              <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="tooltip_text" translatable="yes">This groups transactions by date reconciled</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="grouped_checkbutton_toggled" swapped="no"/>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Filter by reconciled date</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="reconcile_date_combo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="model">reconcile_date_store</property>
+                <property name="has_entry">True</property>
+                <property name="entry_text_column">1</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="reconcile_date_combo_changed" swapped="no"/>
+                <child internal-child="entry">
+                  <object class="GtkEntry" id="reconcile_date_combo_entry">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="completion">reconcile_date_completion</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="radiobutton_single">
+                <property name="label" translatable="yes">Single</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">List transactions by single lines</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+                <signal name="toggled" handler="radiobutton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="radiobutton_grouped">
+                <property name="label" translatable="yes">Grouped</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">List transactions grouped by date reconciled</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+                <property name="group">radiobutton_single</property>
+                <signal name="toggled" handler="radiobutton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="radiobutton_linked">
+                <property name="label" translatable="yes">Linked</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">List transactions with children from the other entries</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">True</property>
+                <property name="group">radiobutton_single</property>
+                <signal name="toggled" handler="radiobutton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="popup">menu1</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
               </packing>
             </child>
           </object>
@@ -111,6 +255,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">statement_store</property>
+                <property name="expander_column">treeviewcolumn2</property>
                 <property name="search_column">0</property>
                 <property name="enable_grid_lines">both</property>
                 <child internal-child="selection">
@@ -120,7 +265,6 @@
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Number</property>
-                    <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">1</property>
                     <child>
@@ -137,7 +281,6 @@
                   <object class="GtkTreeViewColumn" id="treeviewcolumn2">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Date</property>
-                    <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">2</property>
                     <child>
@@ -155,12 +298,12 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Description</property>
                     <property name="expand">True</property>
-                    <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">4</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext3">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">4</attribute>
@@ -172,7 +315,6 @@
                   <object class="GtkTreeViewColumn" id="treeviewcolumn4">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Reconciled</property>
-                    <property name="clickable">True</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">5</property>
                     <child>
@@ -184,18 +326,31 @@
                   </object>
                 </child>
                 <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Date reconciled</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">6</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">7</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn5">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Debit</property>
-                    <property name="clickable">True</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">7</property>
+                    <property name="sort_column_id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext4">
                         <property name="xalign">1</property>
                       </object>
                       <attributes>
-                        <attribute name="text">6</attribute>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -204,15 +359,14 @@
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Credit</property>
-                    <property name="clickable">True</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">9</property>
+                    <property name="sort_column_id">11</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6">
                         <property name="xalign">1</property>
                       </object>
                       <attributes>
-                        <attribute name="text">8</attribute>
+                        <attribute name="text">10</attribute>
                       </attributes>
                     </child>
                   </object>
