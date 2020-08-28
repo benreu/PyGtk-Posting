@@ -94,6 +94,8 @@
       <column type="gchararray"/>
       <!-- column-name payment_text -->
       <column type="gchararray"/>
+      <!-- column-name misc -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkMenu" id="product_menu">
@@ -154,11 +156,29 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="shipping_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="menuitem2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Invoice history</property>
+        <signal name="activate" handler="shipping_invoice_history_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="shipping_store">
     <columns>
       <!-- column-name row_id -->
       <column type="gint"/>
       <!-- column-name tracking_number -->
+      <column type="gchararray"/>
+      <!-- column-name description -->
+      <column type="gchararray"/>
+      <!-- column-name date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
       <column type="gchararray"/>
       <!-- column-name invoice -->
       <column type="gchararray"/>
@@ -360,7 +380,7 @@
                     <signal name="button-release-event" handler="invoice_treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="invoice_row_activated" swapped="no"/>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection4">
+                      <object class="GtkTreeSelection" id="invoice-selection">
                         <property name="mode">multiple</property>
                       </object>
                     </child>
@@ -461,6 +481,7 @@
               <object class="GtkScrolledWindow" id="scrolledwindow2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
                 <property name="shadow_type">in</property>
                 <child>
                   <object class="GtkTreeView" id="treeview2">
@@ -511,6 +532,21 @@
                           <object class="GtkCellRendererText" id="cellrenderertext12"/>
                           <attributes>
                             <attribute name="text">5</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Misc revenue</property>
+                        <property name="reorderable">True</property>
+                        <child>
+                          <object class="GtkCellRendererToggle">
+                            <property name="xalign">0</property>
+                          </object>
+                          <attributes>
+                            <attribute name="active">6</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -1069,8 +1105,9 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">shipping_store</property>
+                    <signal name="button-release-event" handler="shipping_treeview_button_release_event" swapped="no"/>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
+                      <object class="GtkTreeSelection" id="shipping-selection"/>
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn">
@@ -1089,7 +1126,7 @@
                     <child>
                       <object class="GtkTreeViewColumn">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Invoice</property>
+                        <property name="title" translatable="yes">Description</property>
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">2</property>
                         <child>
@@ -1103,13 +1140,41 @@
                     <child>
                       <object class="GtkTreeViewColumn">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Amount</property>
+                        <property name="title" translatable="yes">Date shipped</property>
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">3</property>
                         <child>
                           <object class="GtkCellRendererText"/>
                           <attributes>
                             <attribute name="text">4</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Invoice</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">5</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">5</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Amount</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">6</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">7</attribute>
                           </attributes>
                         </child>
                       </object>

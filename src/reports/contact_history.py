@@ -110,8 +110,26 @@ class ContactHistoryGUI (Gtk.Builder):
 			f.close()
 		DB.rollback()
 
+	def shipping_treeview_button_release_event (self, treeview, event):
+		selection = treeview.get_selection()
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		if event.button == 3:
+			menu = self.get_object('shipping_menu')
+			menu.popup_at_pointer()
+
+	def shipping_invoice_history_activated (self, menuitem):
+		selection = self.get_object('shipping-selection')
+		model, path = selection.get_selected_rows()
+		invoice_id = model[path][5]
+		if invoice_id == 'N/A':
+			return
+		invoice_id = int(invoice_id)
+		self.show_invoice_history (invoice_id)
+
 	def invoice_treeview_button_release_event (self, treeview, event):
-		selection = self.get_object('treeview-selection4')
+		selection = treeview.get_selection()
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -120,9 +138,12 @@ class ContactHistoryGUI (Gtk.Builder):
 			menu.popup_at_pointer()
 
 	def invoice_history_activated (self, menuitem):
-		selection = self.get_object('treeview-selection4')
+		selection = self.get_object('invoice-selection')
 		model, path = selection.get_selected_rows()
 		invoice_id = model[path][0]
+		self.show_invoice_history (invoice_id)
+
+	def show_invoice_history (self, invoice_id):
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
 			self.invoice_history = ih.InvoiceHistoryGUI()
@@ -130,10 +151,12 @@ class ContactHistoryGUI (Gtk.Builder):
 		combo.set_active_id(self.contact_id)
 		store = self.invoice_history.get_object('invoice_store')
 		selection = self.invoice_history.get_object('treeview-selection1')
+		treeview = self.invoice_history.get_object('treeview1')
 		selection.unselect_all()
 		for row in store:
 			if row[0] == invoice_id:
 				selection.select_iter(row.iter)
+				treeview.scroll_to_cell(row.path, None, False)
 				break
 		self.invoice_history.present()
 
@@ -424,7 +447,8 @@ class ContactHistoryGUI (Gtk.Builder):
 								"format_date(date_inserted), "
 								"amount, "
 								"amount::text, "
-								"payment_info(id) "
+								"payment_info(id), "
+								"misc_income "
 							"FROM payments_incoming "
 							"WHERE customer_id = %s "
 							"ORDER BY date_inserted;", (self.contact_id,))
@@ -472,6 +496,9 @@ class ContactHistoryGUI (Gtk.Builder):
 		c.execute("SELECT "
 						"si.id, "
 						"si.tracking_number, "
+						"si.reason, "
+						"si.date_shipped::text, "
+						"format_date(si.date_shipped), "
 						"COALESCE(si.invoice_id::text, 'N/A'), "
 						"COALESCE(ii.amount, 0.00), "
 						"COALESCE(ii.amount::text, 'N/A') "
