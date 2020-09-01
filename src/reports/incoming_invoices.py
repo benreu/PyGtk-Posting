@@ -81,7 +81,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM contacts "
+		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE service_provider = True ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.service_provider_store.append(row)

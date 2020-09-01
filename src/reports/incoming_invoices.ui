@@ -49,9 +49,11 @@
   </object>
   <object class="GtkListStore" id="service_provider_store">
     <columns>
-      <!-- column-name service_provider_store -->
+      <!-- column-name id -->
       <column type="gchararray"/>
-      <!-- column-name service_provider_name -->
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name ext_name -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -63,6 +65,12 @@
       <object class="GtkCellRendererText" id="cellrenderertext1"/>
       <attributes>
         <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
       </attributes>
     </child>
   </object>
@@ -117,6 +125,12 @@
                     <property name="entry_text_column">1</property>
                     <property name="id_column">0</property>
                     <signal name="changed" handler="service_provider_combo_changed" swapped="no"/>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
                     <child internal-child="entry">
                       <object class="GtkEntry" id="combobox-entry">
                         <property name="visible">True</property>
