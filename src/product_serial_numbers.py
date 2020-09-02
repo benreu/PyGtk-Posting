@@ -19,10 +19,14 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
-from constants import ui_directory, DB, broadcaster
-import constants
+import subprocess
+import barcode_generator
+from constants import ui_directory, DB, broadcaster, template_dir
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
+
+class Item (object):
+	pass
 
 class ProductSerialNumbersGUI(Gtk.Builder):
 	def __init__(self):
@@ -282,6 +286,19 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def event_description_changed (self, entry):
 		self.get_object('button4').set_sensitive(True)
+
+	def reprint_serial_number_clicked (self, button):
+		barcode = self.get_object('reprint_spinbutton').get_value_as_int()
+		label = Item()
+		label.code128 = barcode_generator.makeCode128(str(barcode))
+		label.barcode = barcode
+		from py3o.template import Template
+		label_file = "/tmp/manufacturing_serial_label.odt"
+		t = Template(template_dir+"/manufacturing_serial_template.odt", 
+															label_file )
+		data = dict(label = label)
+		t.render(data) 
+		subprocess.call(["soffice", "--headless", "-p", label_file])
 
 
 
