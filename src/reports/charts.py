@@ -33,7 +33,8 @@ class ChartsGUI (Gtk.Builder):
 		c = DB.cursor()
 		self.product_store = self.get_object('product_store')
 		c.execute("SELECT id::text, name, ext_name "
-					"FROM products WHERE deleted = False")
+					"FROM products WHERE deleted = False "
+					"ORDER BY name, ext_name")
 		for row in c.fetchall():
 			self.product_store.append(row)
 		c.close()
@@ -110,12 +111,11 @@ class ChartsGUI (Gtk.Builder):
 		c = DB.cursor()
 		c.execute("WITH cte AS "
 						"(SELECT SUM(qty) AS amount, "
-							"date_trunc(%s, date_printed) AS date_group "
+							"date_trunc(%s, date_created) AS date_group "
 						"FROM purchase_order_line_items AS poli "
 						"JOIN purchase_orders AS po "
 							"ON po.id = poli.purchase_order_id "
 						"WHERE (poli.canceled, po.canceled) = (False, False) "
-						"AND date_printed IS NOT NULL "
 						"AND poli.product_id = %s "
 						"GROUP BY date_group ORDER BY date_group) "
 					"SELECT amount, date_group::date FROM cte", 
