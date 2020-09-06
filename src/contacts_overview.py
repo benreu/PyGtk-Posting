@@ -209,10 +209,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 
 	def contact_activated (self, treeview, treepath, treeviewcolumn):
 		model, path = treeview.get_selection().get_selected_rows()
-		contact_id = model[path][0]
-		import contact_edit_main
-		ce = contact_edit_main.ContactEditMainGUI(contact_id)
-		ce.window.set_transient_for(self.window)
+		self.contact_id = model[path][0]
+		self.edit_contact()
 
 	def new_clicked (self, button):
 		import contact_edit_main
@@ -223,9 +221,12 @@ class ContactsOverviewGUI(Gtk.Builder):
 		model, path = self.get_object('treeview-selection2').get_selected_rows()
 		if path == []:
 			return
-		contact_id = model[path][0]
+		self.contact_id = model[path][0]
+		self.edit_contact()
+
+	def edit_contact (self):
 		import contact_edit_main
-		ce = contact_edit_main.ContactEditMainGUI(contact_id)
+		ce = contact_edit_main.ContactEditMainGUI(self.contact_id)
 		ce.window.set_transient_for(self.window)
 
 	def contact_exemptions_clicked (self, button):
