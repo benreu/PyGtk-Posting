@@ -407,6 +407,7 @@ class InvoiceGUI:
 			self.calendar.set_date(date)
 		self.document_type = self.document_list_store[path][2]
 		self.populate_invoice_items()
+		self.calculate_totals()
 		DB.rollback()
 
 	def update_invoice_name (self, document_prefix):
