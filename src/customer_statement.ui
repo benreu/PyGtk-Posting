@@ -111,7 +111,7 @@
                 <child>
                   <object class="GtkCellRendererText" id="cellrenderertext9"/>
                   <attributes>
-                    <attribute name="text">6</attribute>
+                    <attribute name="text">5</attribute>
                   </attributes>
                 </child>
                 <child internal-child="entry">
