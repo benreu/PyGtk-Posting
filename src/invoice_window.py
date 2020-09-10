@@ -804,6 +804,11 @@ class InvoiceGUI:
 		self.check_serial_numbers ()
 		self.populate_serial_numbers ()
 		self.calculate_totals()
+		# retrieve path again after all sorting has happened for the updates
+		path = self.invoice_store.get_path(iter_)
+		treeview = self.builder.get_object('treeview2')
+		c = treeview.get_column(3)
+		treeview.set_cursor(path, c, True)
 
 	def populate_serial_numbers (self):
 		serial_number_store = self.builder.get_object('serial_number_store')

@@ -860,6 +860,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 			DB.rollback() # remove row lock, see editing_canceled
 			return # duplicate product, skip the rest of the code
 		self.save_product_without_duplicate_check (_iter, product_id)
+		# retrieve path again after all sorting has happened for the updates
+		path = self.p_o_store.get_path(_iter)
+		treeview = self.get_object('treeview2')
+		c = treeview.get_column(5)
+		treeview.set_cursor(path, c, True)
 
 	def save_product_without_duplicate_check(self, _iter, product_id):
 		cursor = DB.cursor()
