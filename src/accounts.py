@@ -178,6 +178,7 @@ def populate_accounts():
 			product_revenue_tree.remove(parent)
 	##################################################
 	revenue_account.clear()
+	revenue_list.clear()
 	cursor.execute("SELECT number, name, ' / '||name "
 						"FROM gl_accounts WHERE type = 4 "
 						"AND parent_number IS NULL ORDER BY name")
