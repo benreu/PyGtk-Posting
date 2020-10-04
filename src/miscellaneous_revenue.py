@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
+from decimal import Decimal
 from db.transactor import MiscRevenueTransaction
 from dateutils import DateTimeCalendar
 from constants import ui_directory, DB, broadcaster
@@ -154,6 +155,25 @@ class MiscellaneousRevenueGUI:
 	def revenue_account_treeview_activated (self, treeview, path, column):
 		self.check_if_all_entries_valid ()
 
+	def treeview_button_release_event (self, widget, event):
+		if event.button != 3:
+			return
+		menu = self.builder.get_object('menu1')
+		menu.popup_at_pointer()
+
+	def balance_this_row_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		amount = Decimal()
+		for row in model:
+			if row.path != path[0]:
+				amount += Decimal(row[3])
+		total = self.builder.get_object('spinbutton1').get_text()
+		model[path][3] = str(Decimal(total) - amount)
+		self.check_if_all_entries_valid()
+
 	def post_revenue_clicked (self, button):
 		comments = self.builder.get_object('entry5').get_text()
 		total = self.builder.get_object('spinbutton1').get_text()
@@ -249,6 +269,18 @@ class MiscellaneousRevenueGUI:
 	def revenue_amount_editing_started (self, cellrenderer, editable, path):
 		editable.set_numeric(True)
 	
+	def equalize_clicked (self, button):
+		model = self.builder.get_object('revenue_store')
+		lines = model.iter_n_children()
+		if lines == 0:
+			return
+		revenue_amount = self.builder.get_object('spinbutton1').get_text()
+		split_amount = Decimal(revenue_amount) / lines
+		split_amount = Decimal(split_amount).quantize(Decimal('0.01'))
+		for row in model:
+			row[3] = str(split_amount)
+		self.check_if_all_entries_valid ()
+
 	def delete_row_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
@@ -259,7 +291,11 @@ class MiscellaneousRevenueGUI:
 	def add_row_clicked (self, button):
 		treeview = self.builder.get_object('treeview1')
 		model = treeview.get_model()
-		iter_ = model.append([0, '', '', '0.00'])
+		if len(model) == 0:
+			amount = self.builder.get_object('spinbutton1').get_text()
+		else:
+			amount = '0.00'
+		iter_ = model.append([0, '', '', amount])
 		path = model.get_path(iter_)
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, True)
