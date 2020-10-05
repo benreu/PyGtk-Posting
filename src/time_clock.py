@@ -24,6 +24,7 @@ UI_FILE = ui_directory + "/time_clock.ui"
 
 class TimeClockGUI(Gtk.Builder):
 	entry_id = 0
+	employee_id = 0
 	def __init__(self):
 		
 		Gtk.Builder.__init__(self)
