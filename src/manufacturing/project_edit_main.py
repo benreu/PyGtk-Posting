@@ -147,10 +147,10 @@ class ProjectEditGUI(Gtk.Builder):
 			for row in cursor.fetchall():
 				time_clock_projects_id = row[0]
 				cursor.execute("UPDATE time_clock_projects "
-								"SET (active, stop_date) = "
-								"(%s, CURRENT_DATE) "
+								"SET (name, active, stop_date) = "
+								"(%s, %s, CURRENT_DATE) "
 								"WHERE id = %s",
-								(active, time_clock_projects_id))
+								(name, active, time_clock_projects_id))
 		DB.commit()
 		cursor.close()
 		self.window.destroy ()
