@@ -43,6 +43,7 @@ class Calc(ast.NodeVisitor):
 
 	@classmethod
 	def evaluate(cls, expression):
+		expression = '0' + expression
 		tree = ast.parse(expression)
 		calc = cls()
 		return calc.visit(tree.body[0])
