@@ -32,10 +32,14 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.cursor = DB.cursor()
 
 		self.service_provider_store = self.get_object('service_provider_store')
-		self.incoming_invoice_store = self.get_object('incoming_invoice_store')
+		self.incoming_invoice_store = self.get_object('incoming_invoices_store')
 		self.invoice_items_store = self.get_object('invoice_items_store')
 		sp_completion = self.get_object('service_provider_completion')
 		sp_completion.set_match_func(self.sp_match_func)
+
+		self.search_desc_text = ''
+		self.filter = self.get_object ('incoming_invoices_filter')
+		self.filter.set_visible_func(self.filter_func)
 
 		self.populate_service_provider_store ()
 
@@ -49,6 +53,16 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if event.button == 3:
 			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
+
+	def search_description_entry_changed (self, searchentry):
+		self.search_desc_text = searchentry.get_text().lower()
+		self.filter.refilter()
+
+	def filter_func(self, model, tree_iter, r):
+		for text in self.search_desc_text.split():
+			if text not in model[tree_iter][4].lower():
+				return False
+		return True
 
 	def view_attachment_activated (self, menuitem):
 		selection = self.get_object('treeview-selection1')

@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkListStore" id="incoming_invoice_store">
+  <object class="GtkListStore" id="incoming_invoices_store">
     <columns>
       <!-- column-name id -->
       <column type="gint"/>
@@ -19,6 +19,12 @@
       <!-- column-name amount_formatted -->
       <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkTreeModelFilter" id="incoming_invoices_filter">
+    <property name="child_model">incoming_invoices_store</property>
+  </object>
+  <object class="GtkTreeModelSort" id="incoming_invoices_sort">
+    <property name="model">incoming_invoices_filter</property>
   </object>
   <object class="GtkListStore" id="invoice_items_store">
     <columns>
@@ -160,6 +166,22 @@
                     <property name="position">2</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkSearchEntry">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="primary_icon_name">edit-find-symbolic</property>
+                    <property name="primary_icon_activatable">False</property>
+                    <property name="primary_icon_sensitive">False</property>
+                    <property name="placeholder_text" translatable="yes">Search description</property>
+                    <signal name="search-changed" handler="search_description_entry_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -177,7 +199,7 @@
                   <object class="GtkTreeView" id="treeview1">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="model">incoming_invoice_store</property>
+                    <property name="model">incoming_invoices_sort</property>
                     <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection1">
