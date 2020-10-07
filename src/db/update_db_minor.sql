@@ -484,5 +484,14 @@ cte2 AS (SELECT * FROM cte AS c_outer WHERE
     WHERE c_inner.po_id = c_outer.po_id) = 1)
 UPDATE purchase_orders SET gl_transaction_payment_id = cte2.gl_transaction_id FROM cte2
     WHERE purchase_orders.id = cte2.po_id RETURNING cte2.*; 
+--0.5.35
+ALTER TABLE job_sheet_line_items ALTER COLUMN product_id SET NOT NULL;
+UPDATE job_sheet_line_items SET qty = 1 WHERE qty IS NULL;
+ALTER TABLE job_sheet_line_items ALTER COLUMN qty SET NOT NULL;
+ALTER TABLE job_sheet_line_items ALTER COLUMN qty SET DEFAULT 1;
+UPDATE job_sheet_line_items SET remark = '' WHERE remark IS NULL;
+ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET NOT NULL;
+ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET DEFAULT '';
+
 
 
