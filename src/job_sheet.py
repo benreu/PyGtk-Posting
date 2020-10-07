@@ -83,13 +83,18 @@ class JobSheetGUI(Gtk.Builder):
 							"WHERE id = %s", (qty, product_id))
 		for row in self.cursor.fetchall():
 			iter_ = self.job_store.append(row)
-		line = self.job_store[iter_]
-		self.save_line(line)
+		self.cursor.execute("INSERT INTO job_sheet_line_items "
+							"(job_sheet_id, qty, product_id) "
+							"VALUES (%s, %s, %s) RETURNING id, qty", 
+							(self.job_id, qty, product_id))
+		for row in self.cursor.fetchall():
+			self.job_store[iter_][0] = row[0] #set the line id
+			self.job_store[iter_][1] = row[1] #set the formatted qty
 		path = self.job_store.get_path(iter_)
 		treeview = self.get_object('treeview1')
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, False)
-		DB.rollback()
+		DB.commit()
 		
 	def destroy (self, window):
 		for handler in self.handler_ids:
@@ -114,60 +119,57 @@ class JobSheetGUI(Gtk.Builder):
 		product_name = model[iter_][1]
 		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
-		self.job_store[path][2] = int(product_id)
-		self.job_store[path][3] = product_name
-		line = self.job_store[path]
-		self.save_line (line)
+		self.product_selected(path, product_id, product_name)
+
+	def product_combo_changed (self, combo, path, tree_iter):
+		product_id = self.product_store.get_value (tree_iter, 0)
+		product_name = self.product_store.get_value (tree_iter, 1)
+		self.product_selected(path, product_id, product_name)
+
+	def product_selected (self, path, product_id, product_name):
+		iter_ = self.job_store.get_iter(path)
+		self.job_store[iter_][2] = int(product_id)
+		self.job_store[iter_][3] = product_name
+		line_id = self.job_store[iter_][0]
+		self.cursor.execute("UPDATE job_sheet_line_items "
+							"SET product_id = %s WHERE id = %s", 
+							(product_id, line_id))
+		DB.commit()
+		# retrieve path again after all sorting has happened for the updates
+		path = self.job_store.get_path(iter_)
+		treeview = self.get_object('treeview1')
+		c = treeview.get_column(2)
+		GLib.idle_add(treeview.set_cursor, path, c, True)
 
 	def qty_edited (self, spin, path, text):
-		qty = float(text)
-		self.job_store[path][1] = qty
-		line = self.job_store[path]
-		self.save_line (line)
-			
-	def remark_edited(self, widget, path, text): 
-		self.job_store[path][4] = text
-		line = self.job_store[path]
-		self.save_line (line)
-
-	def set_sticky_text(self, widget):
-		self.edited_renderer_text = widget.get_chars(0, -1)
+		iter_ = self.job_store.get_iter(path) 
+		line_id = self.job_store[iter_][0]
+		self.cursor.execute("UPDATE job_sheet_line_items "
+							"SET qty = %s WHERE id = %s; "
+							"SELECT qty FROM job_sheet_line_items "
+							"WHERE id = %s", 
+							(text, line_id, line_id))
+		DB.commit()
+		self.job_store[iter_][1] = self.cursor.fetchone()[0]
+		
+	def remark_edited(self, widget, path, text):
+		iter_ = self.job_store.get_iter(path) 
+		line_id = self.job_store[iter_][0]
+		self.job_store[iter_][4] = text
+		self.cursor.execute("UPDATE job_sheet_line_items "
+							"SET remark = %s WHERE id = %s", 
+							(text, line_id))
+		DB.commit()
 
 	def job_window(self, widget):
 		import job_types
 		job_types.GUI()
 
-	def product_combo_changed (self, combo, path, tree_iter):
-		product_id = self.product_store.get_value (tree_iter, 0)
-		product_name = self.product_store.get_value (tree_iter, 1)
-		self.job_store[path][2] = int(product_id)
-		self.job_store[path][3] = product_name
-		line = self.job_store[path]
-		self.save_line (line)
-
-	def save_line (self, line):
-		row_id = line[0]
-		qty = line[1]
-		product_id = line[2]
-		remark = line[4]
-		if row_id == 0:
-			self.cursor.execute("INSERT INTO job_sheet_line_items "
-								"(job_sheet_id, qty, product_id, remark) "
-								"VALUES (%s, %s, %s, %s) RETURNING id", 
-								(self.job_id, qty, product_id, remark))
-			line[0] = self.cursor.fetchone()[0] #set the line id to the new id
-		else:
-			self.cursor.execute("UPDATE job_sheet_line_items "
-								"SET (job_sheet_id, qty, product_id, remark) "
-								"= (%s, %s, %s, %s) WHERE id = %s", 
-								(self.job_id, qty, product_id, remark, row_id))
-		DB.commit()
-
-	def contacts_window(self, widget):
+	def contacts_window (self, widget):
 		import contacts_overview
 		contacts_overview.ContactsOverviewGUI()
 
-	def product_window(self, column):
+	def product_window_activated (self, menuitem):
 		import products_overview
 		products_overview.ProductsOverviewGUI()
 
@@ -195,7 +197,8 @@ class JobSheetGUI(Gtk.Builder):
 
 	def populate_product_store (self, m=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM products "
+		self.cursor.execute("SELECT id::text, "
+							"name || ' {' || ext_name || '}' FROM products "
 							"WHERE (deleted, stock, sellable) = "
 							"(False, True, True) ORDER BY name")
 		for row in self.cursor.fetchall():
@@ -373,7 +376,12 @@ class JobSheetGUI(Gtk.Builder):
 		self.get_object('comboboxtext2').set_active_id(str(self.job_id))
 		self.get_object('button7').set_sensitive(False)
 
-	def delete_line(self, widget = None):
+	def treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('right_click_menu')
+			menu.popup_at_pointer()
+
+	def delete_item (self, widget = None):
 		selection = self.get_object("treeview-selection1")
 		store, path = selection.get_selected_rows ()
 		if path != []: # a row is selected
@@ -384,17 +392,25 @@ class JobSheetGUI(Gtk.Builder):
 			self.populate_job_treeview ()
 			
 	def new_line (self, widget = None):
-		self.cursor.execute("SELECT 0, 1, id, name, '' FROM products "
-							"WHERE deleted = False LIMIT 1")
+		self.cursor.execute("INSERT INTO job_sheet_line_items "
+							"(job_sheet_id, qty, product_id) "
+							"VALUES (%s, 1, (SELECT id FROM products "
+								"WHERE deleted = False LIMIT 1)) "
+							"RETURNING job_sheet_line_items.id ",
+							(self.job_id,))
+		line_id = self.cursor.fetchone()[0]
+		self.cursor.execute("SELECT jsli.id, qty, p.id, p.name, remark "
+							"FROM job_sheet_line_items AS jsli "
+							"JOIN products AS p ON p.id = jsli.product_id "
+							"WHERE jsli.id = %s", 
+							(line_id,))
 		for row in self.cursor.fetchall():
 			iter_ = self.job_store.append(row)
-		line = self.job_store[iter_]
-		self.save_line(line)
+		DB.commit()
 		path = self.job_store.get_path(iter_)
 		treeview = self.get_object('treeview1')
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, True)
-		DB.rollback()
 
 	def post_job_to_invoice_clicked (self, widget):
 		c = DB.cursor()
@@ -492,8 +508,8 @@ class JobSheetGUI(Gtk.Builder):
 				titer = tmodel.iter_next(tmodel.get_iter(path))
 				if titer is None:
 					titer = tmodel.get_iter_first()
-					path = tmodel.get_path(titer)
-					next_column = columns[0]
+				path = tmodel.get_path(titer)
+				next_column = columns[0]
 			GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
 
 	def show_invoice_exists_message (self, message):

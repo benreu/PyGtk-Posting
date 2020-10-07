@@ -57,6 +57,19 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Products</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="product_window_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="product_store">
     <columns>
       <!-- column-name product_id -->
@@ -316,13 +329,17 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">job_store</property>
+                <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <signal name="key-release-event" handler="treeview_key_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Qty</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">1</property>
                     <child>
                       <object class="GtkCellRendererSpin" id="cellrendererspin1">
                         <property name="editable">True</property>
@@ -338,9 +355,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Product</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="product_window" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                         <property name="editable">True</property>
@@ -357,7 +375,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Remark</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">4</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2">
                         <property name="editable">True</property>
@@ -385,12 +406,15 @@
             <property name="margin_top">10</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkButton" id="button6">
-                <property name="label" translatable="yes">Delete</property>
+              <object class="GtkMenuButton">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="delete_line" swapped="no"/>
+                <property name="popup">menu1</property>
+                <property name="direction">up</property>
+                <child>
+                  <placeholder/>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -434,6 +458,19 @@
             <property name="position">3</property>
           </packing>
         </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="right_click_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Delete item</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="delete_item" swapped="no"/>
       </object>
     </child>
   </object>
