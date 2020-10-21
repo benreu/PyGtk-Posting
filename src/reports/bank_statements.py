@@ -16,7 +16,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
+from queue import Queue
+from threading import Thread
+import time
 from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/reports/bank_statements.ui"
@@ -28,33 +31,37 @@ class BankStatementsGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.cursor = DB.cursor()
+		self.progressbar = self.builder.get_object('progressbar')
 
 		self.date_filter = ''
+		self.account_number = None
 		self.bank_account_store = self.builder.get_object('bank_account_store')
 		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE deposits = True")
 		for row in self.cursor.fetchall():
 			self.bank_account_store.append(row)
 		self.reconcile_date_store = self.builder.get_object('reconcile_date_store')
+		self.reconcile_date_store.append(['0', 'No filter'])
+		self.reconcile_date_store.append(['1', 'All reconciled'])
+		self.reconcile_date_store.append(['2', 'All unreconciled'])
 		self.cursor.execute("WITH bank_accounts AS "
 							"(SELECT number FROM gl_accounts "
 							"WHERE deposits = True) "
 							"SELECT date_reconciled::text AS date_sort, "
 							"format_date(date_reconciled) AS date_format "
 							"FROM gl_entries AS ge "
-							"WHERE ge.debit_account IN "
+							"WHERE (ge.debit_account IN "
 							"(SELECT number FROM bank_accounts) "
 							"OR ge.credit_account IN "
-							"(SELECT number FROM bank_accounts) "
-							"UNION "
-							"SELECT '0' AS date_sort, 'All'  AS date_format "
-							"GROUP BY date_sort "
+							"(SELECT number FROM bank_accounts)) "
+							"AND date_reconciled IS NOT NULL "
+							"GROUP BY date_reconciled "
 							"ORDER BY date_sort")
 		for row in self.cursor.fetchall():
 			self.reconcile_date_store.append(row)
+		self.builder.get_object('reconcile_date_combo').set_active(0)
 		DB.rollback()
 		self.statement_store = self.builder.get_object('statement_store')
-		self.account_number = None
 
 		window = self.builder.get_object('window1')
 		window.show_all()
@@ -75,10 +82,7 @@ class BankStatementsGUI:
 
 	def reconcile_date_match_selected (self, completion, model, treeiter):
 		date_filter = model[treeiter][0]
-		if date_filter == '0':
-			self.date_filter = ""
-		else:
-			self.date_filter = "AND date_reconciled = '%s'" % date_filter
+		self.generate_date_filter (date_filter)
 		text = model[treeiter][1]
 		self.builder.get_object('reconcile_date_combo_entry').set_text(text)
 		self.populate_bank_statement_store()
@@ -90,11 +94,18 @@ class BankStatementsGUI:
 			return
 		model = combobox.get_model()
 		date_filter = model[treeiter][0]
+		self.generate_date_filter (date_filter)
+		self.populate_bank_statement_store()
+
+	def generate_date_filter (self, date_filter):
 		if date_filter == '0':
 			self.date_filter = ""
+		elif date_filter == '1':
+			self.date_filter = "WHERE date_reconciled IS NOT NULL"
+		elif date_filter == '2':
+			self.date_filter = "WHERE date_reconciled IS NULL"
 		else:
-			self.date_filter = "AND date_reconciled = '%s'" % date_filter
-		self.populate_bank_statement_store()
+			self.date_filter = "WHERE date_reconciled = '%s'" % date_filter
 
 	def radiobutton_toggled (self, radiobutton):
 		# only load one time (filter by the radiobutton being active)
@@ -136,17 +147,32 @@ class BankStatementsGUI:
 	def populate_bank_statement_store (self):
 		if not self.account_number:
 			return
+		start = time.time()
 		treeview = self.builder.get_object('treeview1')
 		treeview.set_model(None)
+		self.builder.get_object('tools_box').set_sensitive(False)
+		self.progressbar.show()
+		spinner = self.builder.get_object("spinner1")
+		spinner.start()
+		spinner.show()
 		self.statement_store.clear()
 		if self.builder.get_object('radiobutton_single').get_active():
-			self.populate_statement ()
+			rows = self.populate_statement()
 		elif self.builder.get_object('radiobutton_grouped').get_active():
-			self.populate_statement_grouped ()
+			rows = self.populate_statement_grouped ()
 		elif self.builder.get_object('radiobutton_linked').get_active():
-			self.populate_statement_linked ()
+			rows = self.populate_statement_linked ()
 		DB.rollback()
-		treeview.set_model(self.statement_store)
+		self.builder.get_object('treeview1').set_model(self.statement_store)
+		spinner = self.builder.get_object("spinner1")
+		spinner.stop()
+		spinner.hide()
+		self.progressbar.hide()
+		self.builder.get_object('infobar').set_revealed(True)
+		time_string = "%s seconds" % '{:,.2f}'.format(time.time()-start)
+		self.builder.get_object('time_label').set_label(time_string)
+		self.builder.get_object('rows_label').set_label('%d rows' % rows)
+		self.builder.get_object('tools_box').set_sensitive(True)
 
 	def populate_statement (self):
 		c = DB.cursor()
@@ -170,15 +196,24 @@ class BankStatementsGUI:
 					"ON ge.id = pi.gl_entries_id "
 					"LEFT JOIN contacts ON contacts.id = "
 					"pi.customer_id "
-					"WHERE date_reconciled IS NOT NULL %s "
+					" %s "
 					"ORDER BY date_inserted" % 
 					(self.date_filter,))
-		for row in c.fetchall():
+		tupl = c.fetchall()
+		rows = len(tupl)
+		for index, row in enumerate(tupl):
+			if index == 0:
+				index = 0.01
+			progress = index/rows
+			self.progressbar.set_fraction(progress)
 			self.statement_store.append(None, row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		c.close()
+		return rows
 
 	def populate_statement_grouped (self):
-		previous_date = None
+		previous_date = 0 # current_date may be None, so use 0 to force mismatch
 		c = DB.cursor()
 		c.execute("SELECT ge.id, "
 					"COALESCE(ge.check_number::text, ''), "
@@ -200,10 +235,16 @@ class BankStatementsGUI:
 					"ON ge.id = pi.gl_entries_id "
 					"LEFT JOIN contacts ON contacts.id = "
 					"pi.customer_id "
-					"WHERE date_reconciled IS NOT NULL %s "
+					" %s "
 					"ORDER BY date_reconciled, date_inserted" %
 					(self.date_filter,))
-		for row in c.fetchall():
+		tupl = c.fetchall()
+		rows = len(tupl)
+		for index, row in enumerate(tupl):
+			if index == 0:
+				index = 0.01
+			progress = index/rows
+			self.progressbar.set_fraction(progress)
 			current_date = row[6]
 			if current_date != previous_date:
 				parent = self.statement_store.append(None, [0, 
@@ -221,10 +262,17 @@ class BankStatementsGUI:
 															0])
 				previous_date = current_date
 			self.statement_store.append(parent, row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 		c.close()
+		return rows
 
 	def populate_statement_linked (self):
 		c = DB.cursor()
+		db_queue = Queue()
+		model_queue = Queue()
+		t = Thread(target=self.db_query, args=(db_queue, model_queue))
+		t.start()
 		c.execute("SELECT ge.id, "
 					"COALESCE(ge.check_number::text, ''), "
 					"ge.date_inserted::text, "
@@ -245,13 +293,42 @@ class BankStatementsGUI:
 					"ON ge.id = pi.gl_entries_id "
 					"LEFT JOIN contacts ON contacts.id = "
 					"pi.customer_id "
-					"WHERE date_reconciled IS NOT NULL %s "
+					" %s "
 					"ORDER BY date_inserted" %
 					(self.date_filter,))
-		for row in c.fetchall():
+		tupl = c.fetchall()
+		rows = len(tupl)
+		for index, row in enumerate(tupl):
+			if index == 0:
+				index = 0.01
+			progress = index/rows
+			self.progressbar.set_fraction(progress)
 			parent = self.statement_store.append(None, row)
 			entry_id = row[0]
 			tx_id = row[12]
+			db_queue.put([parent, entry_id, tx_id, progress])
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+		db_queue.put('End')
+		c.close()
+		while True:
+			list_ = model_queue.get()
+			if list_ == 'End':
+				break
+			parent, progress, row = list_
+			self.progressbar.set_fraction(progress)
+			self.statement_store.append(parent, row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+		return rows
+
+	def db_query (self, db_queue, model_queue):
+		c = DB.cursor()
+		while True:
+			list_ = db_queue.get()
+			if list_ == 'End':
+				break
+			parent, entry_id, tx_id, progress = list_
 			c.execute("SELECT ge.id, "
 						"COALESCE(ge.check_number::text, ''), "
 						"ge.date_inserted::text, "
@@ -301,8 +378,16 @@ class BankStatementsGUI:
 						"ORDER BY date_inserted",
 						(entry_id, tx_id, tx_id))
 			for row in c.fetchall():
-				self.statement_store.append(parent, row)
+				model_queue.put((parent, progress, row))
+		model_queue.put('End')
 		c.close()
+
+	def info_bar_close (self, infobar):
+		infobar.set_revealed(False)
+
+	def info_bar_response (self, infobar, response):
+		if response == -7:
+			infobar.set_revealed(False)
 
 
 
