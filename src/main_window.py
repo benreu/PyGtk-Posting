@@ -44,15 +44,6 @@ class MainGUI :
 		self.window.show_all()
 		self.window.set_default_icon_name("pygtk-posting") # app-wide icon
 		self.set_admin_menus(dev_mode)
-		about_window = self.builder.get_object('aboutdialog1')
-		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
-		about_window.add_credit_section("Suggestions/advice from (in no particular order)", 
-													["Marvin Stauffer", 
-													"Melvin Stauffer", 
-													"Roy Horst", 
-													"Daniel Witmer", 
-													"Alvin Witmer",
-													"Jonathan Groff"])
 		self.populate_menu_features ()
 		self.populate_modules ()
 		# run version upgrade later to prevent rollback when showing main window
@@ -101,9 +92,8 @@ class MainGUI :
 			self.keybinding.show_window()
 
 	def check_db_version (self):
-		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
-		version.CheckVersion(self, posting_version)
+		version.CheckVersion(self)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -603,10 +593,8 @@ class MainGUI :
 		self.open_po.window.present()
 
 	def about_window(self, widget):
-		about_window = self.builder.get_object('aboutdialog1')
-		about_window.set_keep_above(True)
-		about_window.run()
-		about_window.hide()
+		import about_window
+		about_window.AboutWindowGUI(self.window)
 
 	def main_reports_window (self, menuitem):
 		from reports import main_reports_window

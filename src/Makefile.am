@@ -156,7 +156,9 @@ pygtk_posting_PYTHON = \
 	product_print_label.py \
 	product_print_label.ui \
 	contact_edit_individual.py \
-	contact_edit_individual.ui
+	contact_edit_individual.ui \
+	about_window.py \
+	about_window.ui
 
 
 EXTRA_DIST = $(ui_DATA)

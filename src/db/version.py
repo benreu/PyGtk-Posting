@@ -20,9 +20,11 @@ from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/db/version.ui"
 
+VERSION_MAJOR = 5
+VERSION_MINOR = 35
 
 class CheckVersion :
-	def __init__ (self, main, version):
+	def __init__ (self, main):
 
 		from db import database_tools
 		d = database_tools.GUI()
@@ -40,13 +42,11 @@ class CheckVersion :
 		c = DB.cursor()
 		c.execute("SELECT "
 					"major_version::text, "	
-					"minor_version::text, "
-					"version "
+					"minor_version::text "
 					"FROM settings")
 		for row in c.fetchall():
 			major_db_version = row[0]
 			minor_db_version = row[1]
-			old_version = row[2]
 		upgrade = True
 		if major_db_version <= '4' and minor_db_version < '6':
 			self.populate_liabilities_store ()
@@ -85,7 +85,7 @@ class CheckVersion :
 				GLib.idle_add(Gtk.main_quit)
 			dialog.hide()
 		if upgrade == True:
-			self.run_updates (d, version, major_db_version, minor_db_version)
+			self.run_updates (d, major_db_version, minor_db_version)
 		d.window.destroy()
 
 	def populate_liabilities_store (self):
@@ -98,11 +98,9 @@ class CheckVersion :
 			store.append (row)
 		c.close()
 
-	def run_updates (self, d, version, major_db_version, minor_db_version):
+	def run_updates (self, d, major_db_version, minor_db_version):
 		c = DB.cursor()
-		major_posting_version = int(version[2:3])
-		minor_posting_version = int(version[4:6])
-		if int(major_db_version) < major_posting_version:  # major version upgrade 
+		if int(major_db_version) < VERSION_MAJOR:  # major version upgrade 
 			dialog = self.builder.get_object('db_major_upgrade')
 			result = dialog.run()
 			dialog.hide()
@@ -111,28 +109,28 @@ class CheckVersion :
 				d.update_tables_minor ()
 				c.execute("UPDATE settings "
 							"SET (major_version, minor_version) = (%s, %s)", 
-							(major_posting_version, minor_posting_version))
+							(VERSION_MAJOR, VERSION_MINOR))
 			else:
 				DB.rollback()
 				GLib.idle_add(Gtk.main_quit)
-		elif int(major_db_version) > major_posting_version:  # major version behind
+		elif int(major_db_version) > VERSION_MAJOR:  # major version behind
 			dialog = self.builder.get_object('db_newer_dialog')
 			result = dialog.run()
 			dialog.hide()
 			if result == Gtk.ResponseType.DELETE_EVENT:
 				GLib.idle_add(Gtk.main_quit)
-		elif int(minor_db_version) < minor_posting_version:   # minor version upgrade
+		elif int(minor_db_version) < VERSION_MINOR:   # minor version upgrade
 			dialog = self.builder.get_object('db_minor_upgrade')
 			result = dialog.run()
 			dialog.hide()
 			if result == Gtk.ResponseType.ACCEPT:
 				d.update_tables_minor ()
 				c.execute("UPDATE settings "
-							"SET minor_version = %s", (minor_posting_version,))
+							"SET minor_version = %s", (VERSION_MINOR,))
 			else:
 				DB.rollback()
 				GLib.idle_add(Gtk.main_quit)
-		elif int(minor_db_version) > minor_posting_version:  # minor version behind
+		elif int(minor_db_version) > VERSION_MINOR:  # minor version behind
 			dialog = self.builder.get_object('db_newer_dialog')
 			result = dialog.run()
 			dialog.hide()

@@ -1609,52 +1609,6 @@
       </object>
     </child>
   </object>
-  <object class="GtkAboutDialog" id="aboutdialog1">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">About</property>
-    <property name="window_position">center</property>
-    <property name="icon_name">pygtk-posting</property>
-    <property name="type_hint">normal</property>
-    <property name="transient_for">main_window</property>
-    <property name="has_resize_grip">True</property>
-    <property name="program_name">PyGtk Posting</property>
-    <property name="version">0.5.35 (alpha)</property>
-    <property name="copyright" translatable="yes">Copyleft Reuben Rissler 2015-2020</property>
-    <property name="comments" translatable="yes">Accounting and business management for Linux</property>
-    <property name="authors">Reuben Rissler &lt;pygtk.posting@gmail.com&gt;
-Eli Sauder
-Anson Betts &lt;ansyncconsultingltd@gmail.com&gt;
-</property>
-    <property name="documenters">Reuben Rissler</property>
-    <property name="artists">Reuben Rissler</property>
-    <property name="logo_icon_name">pygtk-posting</property>
-    <property name="license_type">gpl-3-0</property>
-    <child>
-      <placeholder/>
-    </child>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="aboutdialog-vbox">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="aboutdialog-action_area">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <placeholder/>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkDialog" id="admin_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Admin login</property>
