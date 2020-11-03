@@ -232,6 +232,24 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.overview_class.select_contact(contact_id)
 		self.window.destroy()
 
+	def name_entry_focus_out_event (self, entry, event):
+		name = entry.get_text().lower()
+		store = self.get_object('duplicate_contact_store')
+		store.clear()
+		self.cursor.execute("SELECT id, name, ext_name, address, deleted "
+							"FROM contacts WHERE LOWER(name) = %s", (name,))
+		for row in self.cursor.fetchall():
+			store.append(row)
+		if len(store) > 0 and self.contact_id == None:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
+		else:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
+		self.get_object('duplicate_popover').set_relative_to(entry)
+
+	def name_entry_icon_release (self, entry, pos, event):
+		self.get_object('duplicate_popover').show()
+		self.get_object('treeview-selection3').unselect_all()
+
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
 									buttons = Gtk.ButtonsType.CLOSE)
