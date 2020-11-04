@@ -123,92 +123,127 @@
           </packing>
         </child>
         <child>
-          <object class="GtkOverlay">
+          <object class="GtkPaned">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
+            <property name="orientation">vertical</property>
+            <property name="position">500</property>
+            <property name="position_set">True</property>
+            <property name="wide_handle">True</property>
+            <child>
+              <object class="GtkOverlay">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkScrolledWindow">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">search_store</property>
+                        <property name="enable_grid_lines">horizontal</property>
+                        <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Schema</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Table</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Column</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">2</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">2</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Found</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">3</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">3</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="index">-1</property>
+                  </packing>
+                </child>
+                <child type="overlay">
+                  <object class="GtkSpinner" id="spinner">
+                    <property name="can_focus">False</property>
+                    <property name="no_show_all">True</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">False</property>
+              </packing>
+            </child>
             <child>
               <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTreeView" id="treeview">
+                  <object class="GtkTreeView" id="record_treeview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="model">search_store</property>
-                    <property name="enable_grid_lines">horizontal</property>
-                    <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
+                    <property name="no_show_all">True</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection"/>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Schema</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">0</property>
-                        <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">0</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Table</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">1</property>
-                        <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Column</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">2</property>
-                        <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">2</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Found</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">3</property>
-                        <child>
-                          <object class="GtkCellRendererText"/>
-                          <attributes>
-                            <attribute name="text">3</attribute>
-                          </attributes>
-                        </child>
-                      </object>
                     </child>
                   </object>
                 </child>
               </object>
               <packing>
-                <property name="index">-1</property>
+                <property name="resize">False</property>
+                <property name="shrink">False</property>
               </packing>
-            </child>
-            <child type="overlay">
-              <object class="GtkSpinner" id="spinner">
-                <property name="can_focus">False</property>
-                <property name="no_show_all">True</property>
-              </object>
             </child>
           </object>
           <packing>
@@ -234,6 +269,7 @@
     <property name="default_height">250</property>
     <property name="icon_name">pygtk-posting</property>
     <property name="transient_for">window</property>
+    <signal name="delete-event" handler="search_generator_window_delete" swapped="no"/>
     <child>
       <placeholder/>
     </child>
@@ -293,6 +329,7 @@
                 <property name="can_focus">True</property>
                 <property name="model">text_store</property>
                 <property name="reorderable">True</property>
+                <property name="enable_grid_lines">horizontal</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="word_selection"/>
                 </child>

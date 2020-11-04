@@ -103,12 +103,45 @@ class CompleteSearchGUI(Gtk.Builder):
 		ctid = self.store[path][4]
 		self.cursor.execute("SELECT * FROM %s.%s WHERE ctid = '%s'"% 
 							(schema, table, ctid))
+		record_treeview = self.get_object('record_treeview')
+		for column in record_treeview.get_columns():
+			record_treeview.remove_column(column)
+		type_list = list()
+		for index, row in enumerate(self.cursor.description):
+			column_name = row.name
+			type_ = row.type_code
+			if type_ == 23:
+				type_list.append(int)
+				renderer = Gtk.CellRendererText()
+				column = Gtk.TreeViewColumn(column_name, renderer, text=index)
+			elif type_ == 16:
+				type_list.append(bool)
+				renderer = Gtk.CellRendererToggle()
+				column = Gtk.TreeViewColumn(column_name, renderer, active=index)
+			else:
+				type_list.append(str)
+				renderer = Gtk.CellRendererText()
+				column = Gtk.TreeViewColumn(column_name, renderer, text=index)
+			record_treeview.append_column(column)
+			column.set_sort_column_id(index)
+			column.set_reorderable(True)
+			column.set_resizable(True)
+		store = Gtk.ListStore()
+		store.set_column_types(type_list)
 		for row in self.cursor.fetchall():
-			print (row)
+			# do a convert, cell by cell, to make sure types are correct
+			store_row = list()
+			for index, value in enumerate(row):
+				if value == None and type_list[index] == int:
+					value = 0
+				store_row.append(type_list[index](value))
+			store.append (store_row)
+		DB.rollback()
+		record_treeview.set_model(store)
+		record_treeview.show_all()
 
 	def search_generator_clicked (self, button):
-		window = self.get_object('search_generator_window')
-		window.show_all()
+		self.get_object('search_generator_window').show_all()
 
 	def clear_all_clicked (self, button):
 		self.get_object('text_store').clear()
@@ -141,6 +174,11 @@ class CompleteSearchGUI(Gtk.Builder):
 		if active == '0' or active == '1': # remove trailing |
 			text = "(%s)" % text[0:-1]
 		self.get_object('search_entry').set_text(text)
+		self.get_object('search_generator_window').hide()
+
+	def search_generator_window_delete (self, window, event):
+		window.hide()
+		return True
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
