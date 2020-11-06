@@ -492,6 +492,11 @@ ALTER TABLE job_sheet_line_items ALTER COLUMN qty SET DEFAULT 1;
 UPDATE job_sheet_line_items SET remark = '' WHERE remark IS NULL;
 ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET NOT NULL;
 ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET DEFAULT '';
+--0.5.36
+ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS date_created date;
+UPDATE manufacturing_projects SET date_created = tcp.start_date FROM (SELECT id, start_date FROM time_clock_projects) AS tcp WHERE manufacturing_projects.time_clock_projects_id = tcp.id AND manufacturing_projects.date_created IS NULL;
+ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET NOT NULL;
+ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET DEFAULT now();
 
 
 
