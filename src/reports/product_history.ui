@@ -53,6 +53,10 @@
       <column type="gchararray"/>
       <!-- column-name employees -->
       <column type="gint"/>
+      <!-- column-name date_sorted -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkMenu" id="p_o_menu">
@@ -681,6 +685,20 @@
                           <object class="GtkCellRendererText" id="cellrenderertext24"/>
                           <attributes>
                             <attribute name="text">4</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Date created</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">5</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">6</attribute>
                           </attributes>
                         </child>
                       </object>

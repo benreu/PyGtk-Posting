@@ -235,7 +235,7 @@ class ProductHistoryGUI (Gtk.Builder):
 							"JOIN purchase_order_line_items AS poli "
 							"ON poli.purchase_order_id = po.id "
 							"JOIN contacts ON contacts.id = po.vendor_id "
-							"WHERE product_id = %s", 
+							"WHERE product_id = %s ORDER by date_created", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
@@ -292,14 +292,17 @@ class ProductHistoryGUI (Gtk.Builder):
 								"mp.name, "
 								"qty, "
 								"SUM(stop_time - start_time)::text, "
-								"COUNT(DISTINCT(employee_id)) "
+								"COUNT(DISTINCT(employee_id)), "
+								"date_created::text, "
+								"format_date(date_created) "
 							"FROM manufacturing_projects AS mp "
 							"JOIN time_clock_projects AS tcp "
 								"ON tcp.id = mp.time_clock_projects_id "
 							"JOIN time_clock_entries AS tce "
 								"ON tce.project_id = tcp.id "
 							"WHERE product_id = %s "
-							"GROUP BY mp.id, mp.name, qty", (self.product_id,))
+							"GROUP BY mp.id, mp.name, qty "
+							"ORDER BY date_created", (self.product_id,))
 		for row in self.cursor.fetchall():
 			store.append(row) 
 			count+= 1
