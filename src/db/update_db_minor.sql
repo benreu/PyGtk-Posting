@@ -497,6 +497,32 @@ ALTER TABLE manufacturing_projects ADD COLUMN IF NOT EXISTS date_created date;
 UPDATE manufacturing_projects SET date_created = tcp.start_date FROM (SELECT id, start_date FROM time_clock_projects) AS tcp WHERE manufacturing_projects.time_clock_projects_id = tcp.id AND manufacturing_projects.date_created IS NULL;
 ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET NOT NULL;
 ALTER TABLE job_sheet_line_items ALTER COLUMN remark SET DEFAULT now();
+--0.5.37
+--CREATE FUNCTION public.invoice_item_updated
+CREATE OR REPLACE FUNCTION public.invoice_item_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS 
+$BODY$  
+	BEGIN 
+		IF NEW.invoice_id != OLD.invoice_id
+			THEN PERFORM pg_notify('invoices', OLD.invoice_id::text);
+		END IF; 
+		PERFORM pg_notify('invoices', NEW.invoice_id::text); 
+		RETURN NEW; 
+	END;
+$BODY$ ;
+--CREATE FUNCTION public.invoice_item_inserted
+CREATE OR REPLACE FUNCTION public.invoice_item_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS 
+$BODY$  
+	BEGIN 
+		PERFORM pg_notify('invoices', NEW.invoice_id::text); 
+		RETURN NEW; 
+	END;
+$BODY$ ;
+CREATE TRIGGER invoice_item_update_trigger AFTER UPDATE ON public.invoice_items FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE public.invoice_item_updated();
+CREATE TRIGGER invoice_item_insert_trigger AFTER INSERT ON public.invoice_items FOR EACH ROW EXECUTE PROCEDURE public.invoice_item_inserted();
 
 
 

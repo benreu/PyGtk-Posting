@@ -20,6 +20,7 @@ import os, shutil
 
 dev_mode = False
 DB = None
+DB_PROCESS_ID = 0
 cursor = None
 broadcaster = None
 ACCOUNTS = None
@@ -33,22 +34,26 @@ def start_broadcaster ():
 
 class Broadcast (GObject.GObject):
 	__gsignals__ = { 
-	'products_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'contacts_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ()) , 
-	'shutdown': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())
+	'products_changed': (GObject.SignalFlags.RUN_FIRST, None, ()) , 
+	'contacts_changed': (GObject.SignalFlags.RUN_FIRST, None, ()) , 
+	'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, None, ()) , 
+	'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)) ,
+	'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
 	}
-	global DB, ACCOUNTS
 	def __init__ (self):
+		global DB_PROCESS_ID
 		GObject.GObject.__init__(self)
 		GLib.timeout_add_seconds(1, self.poll_connection)
 		c = DB.cursor()
-		c.execute("LISTEN products")
-		c.execute("LISTEN contacts")
-		c.execute("LISTEN accounts")
-		c.execute("LISTEN time_clock_entries")
+		c.execute(	"LISTEN products;"
+					"LISTEN contacts;"
+					"LISTEN accounts;"
+					"LISTEN time_clock_entries;"
+					"LISTEN invoices;"
+					"LISTEN purchase_orders;")
 		c.close()
 		DB.commit()
+		DB_PROCESS_ID = DB.get_backend_pid()
 		
 	def poll_connection (self):
 		if DB.closed == 1:
@@ -56,14 +61,18 @@ class Broadcast (GObject.GObject):
 		DB.poll()
 		while DB.notifies:
 			notify = DB.notifies.pop(0)
-			if "product" in notify.payload:
+			if notify.channel == "products":
 				self.emit('products_changed')
-			elif "contact" in notify.payload:
+			elif notify.channel == "contacts":
 				self.emit('contacts_changed')
-			elif "account" in notify.payload:
+			elif notify.channel == "accounts":
 				ACCOUNTS.populate_accounts()
-			elif "clock_entry" in notify.payload:
+			elif notify.channel == "time_clock_entries":
 				self.emit('clock_entries_changed')
+			elif notify.channel == "invoices":
+				invoice_id = notify.payload
+				if notify.pid != DB_PROCESS_ID:
+					self.emit("invoices_changed", int(invoice_id))
 		return True
 
 help_dir = ''

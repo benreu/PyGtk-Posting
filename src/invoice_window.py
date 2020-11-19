@@ -76,7 +76,8 @@ class InvoiceGUI:
 		
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store ), 
-						   ("products_changed", self.populate_product_store )):
+						   ("products_changed", self.populate_product_store ), 
+						   ("invoices_changed", self.show_reload_infobar )):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.customer_id = 0
@@ -1124,5 +1125,21 @@ class InvoiceGUI:
 	def calendar(self, widget, icon, event):
 		self.calendar.show()
 
+	def show_reload_infobar (self, broadcaster, invoice_id):
+		if invoice_id == self.invoice_id:
+			infobar = self.builder.get_object('invoice_changed_infobar')
+			infobar.set_revealed(True)
+			infobar.set_visible(True)
 
-	 
+	def info_bar_close (self, infobar):
+		infobar.set_revealed(False)
+		infobar.set_visible(False)
+
+	def info_bar_response (self, infobar, response):
+		if response == Gtk.ResponseType.APPLY:
+			self.populate_invoice_items ()
+		infobar.set_revealed(False)
+		infobar.set_visible(False)
+
+
+
