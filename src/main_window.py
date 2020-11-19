@@ -551,8 +551,8 @@ class MainGUI :
 			open_invoices = "Open invoices\n         (%s)" % row[0]
 		self.builder.get_object('button17').set_label(open_invoices)
 		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
-					"LATERAL (SELECT product_id FROM purchase_order_line_items "
-						"WHERE purchase_order_line_items.purchase_order_id = "
+					"LATERAL (SELECT product_id FROM purchase_order_items "
+						"WHERE purchase_order_items.purchase_order_id = "
 						"purchase_orders.id LIMIT 1) ILI "
 					"WHERE (purchase_orders.canceled, closed) = (False, False)")
 		for row in c.fetchall():

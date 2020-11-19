@@ -56,7 +56,7 @@ def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 
 def add_expense_to_po (po_id, product_id, expense_amount ):
 	cursor = DB.cursor ()
-	cursor.execute("INSERT INTO purchase_order_line_items "
+	cursor.execute("INSERT INTO purchase_order_items "
 					"(purchase_order_id, product_id, qty, remark, price, "
 					"ext_price, canceled, expense_account) "
 					"VALUES (%s, %s, 1, '', %s, %s, False, "
@@ -200,7 +200,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"order_number, "
 								"price, "
 								"ext_price "
-							"FROM purchase_order_line_items AS poli "
+							"FROM purchase_order_items AS poli "
 							"JOIN products ON poli.product_id = products.id "
 							"WHERE (purchase_order_id, hold) = (%s, False) "
 							"ORDER BY poli.sort, poli.id", 
@@ -220,9 +220,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor = DB.cursor()
 		row_id = self.p_o_store[path][0]
 		try:
-			cursor.execute("UPDATE purchase_order_line_items "
+			cursor.execute("UPDATE purchase_order_items "
 							"SET hold = NOT "
-								"(SELECT hold FROM purchase_order_line_items "
+								"(SELECT hold FROM purchase_order_items "
 								"WHERE id = %s FOR UPDATE NOWAIT) "
 							"WHERE id = %s RETURNING hold", (row_id, row_id))
 		except psycopg2.OperationalError as e:
@@ -259,7 +259,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"c.name, "
 								"po.id, "
 								"poli.hold "
-							"FROM purchase_order_line_items AS poli "
+							"FROM purchase_order_items AS poli "
 							"JOIN products ON products.id = poli.product_id "
 							"JOIN purchase_orders AS po "
 							"ON po.id = poli.purchase_order_id "
@@ -288,7 +288,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"c.name, "
 								"po.id, "
 								"poli.hold "
-							"FROM purchase_order_line_items AS poli "
+							"FROM purchase_order_items AS poli "
 							"JOIN products ON products.id = poli.product_id "
 							"JOIN purchase_orders AS po "
 							"ON po.id = poli.purchase_order_id "
@@ -392,7 +392,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def save_row_ordering (self):
 		for row_count, row in enumerate (self.p_o_store):
 			row_id = row[0]
-			self.cursor.execute("UPDATE purchase_order_line_items "
+			self.cursor.execute("UPDATE purchase_order_items "
 								"SET sort = %s WHERE id = %s", 
 								(row_count, row_id))
 		DB.commit()
@@ -433,7 +433,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.p_o_store[_iter][11] = int(vendor_id)
 		self.p_o_store[_iter][12] = vendor_name
 		self.p_o_store[_iter][13] = purchase_order_id
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET purchase_order_id = %s "
 							"WHERE id = %s", (purchase_order_id, row_id))
 		DB.commit()
@@ -516,7 +516,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			old_purchase_id = self.purchase_order_id
 			self.purchase_order_id = None
 			self.check_po_id ()
-			cursor.execute ("UPDATE purchase_order_line_items "
+			cursor.execute ("UPDATE purchase_order_items "
 							"SET (purchase_order_id, hold) = (%s, False) "
 							"WHERE (purchase_order_id, hold) = "
 							"(%s, True) RETURNING id", 
@@ -606,7 +606,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = self.p_o_store[path][0]
 		cursor = DB.cursor()
 		try:
-			cursor.execute("SELECT qty::text FROM purchase_order_line_items "
+			cursor.execute("SELECT qty::text FROM purchase_order_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
 			DB.rollback()
@@ -625,7 +625,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.check_po_item_id (_iter)
 		line_id = self.p_o_store[_iter][0]
 		try:
-			cursor.execute("UPDATE purchase_order_line_items "
+			cursor.execute("UPDATE purchase_order_items "
 								"SET (qty, ext_price) = (%s, %s * price) "
 								"WHERE id = %s "
 								"RETURNING qty::text, ext_price::text", 
@@ -648,7 +648,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = self.p_o_store[path][0]
 		cursor = DB.cursor()
 		try:
-			cursor.execute("SELECT order_number FROM purchase_order_line_items "
+			cursor.execute("SELECT order_number FROM purchase_order_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
 			DB.rollback()
@@ -678,7 +678,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		else:
 			return # order number not updated
 		self.p_o_store[path][3] = order_number
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET order_number = %s WHERE id = %s",
 							(order_number, row_id))
 		DB.commit()
@@ -724,7 +724,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.p_o_store[_iter][7] = text
 		row_id = self.p_o_store[_iter][0] 
 		cursor = DB.cursor()
-		cursor.execute("UPDATE purchase_order_line_items SET remark = %s "
+		cursor.execute("UPDATE purchase_order_items SET remark = %s "
 							"WHERE id = %s", (text, row_id))
 		cursor.close()
 		DB.commit()
@@ -733,7 +733,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		row_id = self.p_o_store[path][0]
 		cursor = DB.cursor()
 		try:
-			cursor.execute("SELECT remark FROM purchase_order_line_items "
+			cursor.execute("SELECT remark FROM purchase_order_items "
 							"WHERE id = %s FOR UPDATE NOWAIT", (row_id,))
 		except psycopg2.OperationalError as e:
 			DB.rollback()
@@ -760,7 +760,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor = DB.cursor()
 		try:
 			cursor.execute("SELECT p.name "
-							"FROM purchase_order_line_items AS poi "
+							"FROM purchase_order_items AS poi "
 							"JOIN products AS p ON p.id = poi.product_id "
 							"WHERE poi.id = %s "
 							"FOR UPDATE OF poi NOWAIT", (row_id,))
@@ -883,7 +883,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"ON vpn.product_id = p.id AND vendor_id = %s"
 							"WHERE p.id = %s), "
 						"poi_update AS "
-						"(UPDATE purchase_order_line_items "
+						"(UPDATE purchase_order_items "
 						"SET "
 							"(product_id, "
 							"price, "
@@ -960,7 +960,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 				if result == Gtk.ResponseType.ACCEPT :
 					row_id = row[0]
 					qty = qty_spinbutton.get_text()
-					self.cursor.execute("UPDATE purchase_order_line_items "
+					self.cursor.execute("UPDATE purchase_order_items "
 										"SET qty = %s WHERE id = %s", 
 										(qty, row_id))
 					DB.commit()
@@ -986,7 +986,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		ext_price = line[9]
 		line[10] = False
 		purchase_order_id = line[13]
-		cursor.execute("INSERT INTO purchase_order_line_items "
+		cursor.execute("INSERT INTO purchase_order_items "
 							"(purchase_order_id, "
 							"qty, "
 							"product_id, "
@@ -1026,7 +1026,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def calculate_totals(self):
 		cursor = DB.cursor()
 		cursor.execute("SELECT COALESCE(SUM(ext_price), 0.0)::money "
-						"FROM purchase_order_line_items "
+						"FROM purchase_order_items "
 						"WHERE purchase_order_id = %s", 
 						(self.purchase_order_id,))
 		for row in cursor.fetchall():
@@ -1083,7 +1083,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows ()
 		if path != []:
 			line_id = model[path][0]
-			self.cursor.execute("DELETE FROM purchase_order_line_items "
+			self.cursor.execute("DELETE FROM purchase_order_items "
 								"WHERE id = %s", (line_id,))
 			DB.commit()
 			self.products_from_existing_po ()

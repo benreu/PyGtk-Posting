@@ -141,7 +141,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"ON snh.serial_number_id = sn.id "
 							"LEFT JOIN invoice_items AS ili "
 								"ON ili.id = sn.invoice_item_id "
-							"LEFT JOIN purchase_order_line_items AS poli "
+							"LEFT JOIN purchase_order_items AS poli "
 								"ON poli.id = purchase_order_line_item_id "
 							"GROUP BY sn.id, p.name, sn.serial_number, "
 								"sn.date_inserted, invoice_id, poli.id, "

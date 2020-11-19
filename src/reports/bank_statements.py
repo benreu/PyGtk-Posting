@@ -367,7 +367,7 @@ class BankStatementsGUI:
 						"SUM(ge.amount), "
 						"0 "
 						"FROM purchase_orders AS po "
-						"JOIN purchase_order_line_items AS poli "
+						"JOIN purchase_order_items AS poli "
 							"ON poli.purchase_order_id = po.id "
 						"JOIN gl_entries AS ge "
 							"ON ge.id = poli.gl_entries_id "

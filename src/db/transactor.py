@@ -545,7 +545,7 @@ def post_purchase_order_accounts (po_id, date):
 					"WHERE purchase_orders.id = %s", (po_id,))
 	gl_transaction_id = cursor.fetchone()[0]
 	cursor.execute("SELECT id, ext_price, expense_account "
-							"FROM purchase_order_line_items "
+							"FROM purchase_order_items "
 							"WHERE purchase_order_id = %s ", (po_id,))
 	for row in cursor.fetchall():
 		row_id = row[0]
@@ -555,7 +555,7 @@ def post_purchase_order_accounts (po_id, date):
 						"(amount, debit_account, gl_transaction_id, "
 						"date_inserted) VALUES "
 						"(%s, %s, %s, %s) RETURNING id) "
-						"UPDATE purchase_order_line_items SET gl_entries_id = "
+						"UPDATE purchase_order_items SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s",
 						(amount, expense_account_number, 
 						gl_transaction_id, date, row_id))

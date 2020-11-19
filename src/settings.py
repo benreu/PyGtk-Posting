@@ -96,10 +96,10 @@ class GUI():
 			self.cursor.execute("UPDATE settings.purchase_order "
 								"SET (qty_prec, price_prec) = (%s, %s)", 
 								(qty_prec, price_prec))
-			self.cursor.execute("ALTER TABLE public.purchase_order_line_items "
+			self.cursor.execute("ALTER TABLE public.purchase_order_items "
 								"ALTER COLUMN qty "
 								"TYPE numeric(12,"+ str(qty_prec) +");")
-			self.cursor.execute("ALTER TABLE public.purchase_order_line_items "
+			self.cursor.execute("ALTER TABLE public.purchase_order_items "
 								"ALTER COLUMN price "
 								"TYPE numeric(12,"+ str(price_prec) +");")
 			DB.commit()

@@ -92,7 +92,7 @@ class OpenPurchaseOrderGUI:
 								"COUNT(pli.id) "
 							"FROM purchase_orders AS p JOIN contacts AS c "
 							"ON p.vendor_id = c.id "
-							"JOIN purchase_order_line_items AS pli "
+							"JOIN purchase_order_items AS pli "
 							"ON pli.purchase_order_id = p.id "
 							"WHERE (p.canceled, closed) "
 							"= (False, False) "

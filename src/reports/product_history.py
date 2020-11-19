@@ -232,7 +232,7 @@ class ProductHistoryGUI (Gtk.Builder):
 								"price::text, "
 								"order_number "
 							"FROM purchase_orders AS po "
-							"JOIN purchase_order_line_items AS poli "
+							"JOIN purchase_order_items AS poli "
 							"ON poli.purchase_order_id = po.id "
 							"JOIN contacts ON contacts.id = po.vendor_id "
 							"WHERE product_id = %s ORDER by date_created", 

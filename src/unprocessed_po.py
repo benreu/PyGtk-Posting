@@ -130,7 +130,7 @@ class GUI(Gtk.Builder):
 	def save_row_ordering (self):
 		for row_count, row in enumerate (self.purchase_order_items_store):
 			row_id = row[0]
-			self.cursor.execute("UPDATE purchase_order_line_items "
+			self.cursor.execute("UPDATE purchase_order_items "
 								"SET sort = %s WHERE id = %s", 
 								(row_count, row_id))
 		DB.commit()
@@ -187,18 +187,18 @@ class GUI(Gtk.Builder):
 		self.get_object('spinbutton2').set_value(0.00)
 
 	def calculate_cost_clicked (self, button):
-		self.cursor.execute("SELECT SUM(price) FROM purchase_order_line_items "
+		self.cursor.execute("SELECT SUM(price) FROM purchase_order_items "
 							"JOIN products "
-							"ON purchase_order_line_items.product_id "
+							"ON purchase_order_items.product_id "
 							"= products.id "
 							"WHERE purchase_order_id = %s AND expense = True",
 							(self.purchase_order_id,))
 		expense = self.cursor.fetchone()[0]
 		if expense == None:
 			return
-		self.cursor.execute("SELECT SUM(qty) FROM purchase_order_line_items "
+		self.cursor.execute("SELECT SUM(qty) FROM purchase_order_items "
 							"JOIN products "
-							"ON purchase_order_line_items.product_id "
+							"ON purchase_order_items.product_id "
 							"= products.id "
 							"WHERE purchase_order_id = %s AND expense = False",
 							(self.purchase_order_id,))
@@ -300,7 +300,7 @@ class GUI(Gtk.Builder):
 						"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
 						"expense, "
 						"order_number "
-					"FROM purchase_order_line_items AS poli "
+					"FROM purchase_order_items AS poli "
 					"JOIN products AS p ON p.id = poli.product_id "
 					"LEFT JOIN gl_accounts AS a "
 					"ON a.number = poli.expense_account "
@@ -383,7 +383,7 @@ class GUI(Gtk.Builder):
 		price = line[5]
 		ext_price = line[6]
 		expense_account_id = line[7]
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET (qty, remark, price, ext_price) = "
 							"(%s, %s, %s, %s) WHERE id = %s", 
 							(qty, remarks, price, ext_price, row_id))
@@ -419,7 +419,7 @@ class GUI(Gtk.Builder):
 		self.purchase_order_items_store[path][7] = int(account_number)
 		self.purchase_order_items_store[path][8] = account_name
 		row_id = self.purchase_order_items_store[path][0]
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET expense_account = %s WHERE id = %s", 
 							(account_number, row_id))
 		DB.commit()

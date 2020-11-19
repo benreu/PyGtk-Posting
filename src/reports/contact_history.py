@@ -329,7 +329,7 @@ class ContactHistoryGUI (Gtk.Builder):
 					"remark, "
 					"'Purchase order' "
 					"FROM products AS p "
-					"JOIN purchase_order_line_items AS poli ON poli.product_id = p.id "
+					"JOIN purchase_order_items AS poli ON poli.product_id = p.id "
 					"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
 					"WHERE vendor_id = %s "
 					"GROUP BY p.id, p.name, remark) "

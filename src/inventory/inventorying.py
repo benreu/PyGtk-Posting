@@ -61,7 +61,7 @@ def receive (po_id, location_id):
 							"poli.price, "
 							"%s::int, "
 							"CURRENT_DATE "
-						"FROM purchase_order_line_items AS poli "
+						"FROM purchase_order_items AS poli "
 						"JOIN products AS p ON p.id = poli.product_id "
 						"WHERE (poli.purchase_order_id, p.inventory_enabled) = "
 						"(%s, True) "

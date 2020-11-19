@@ -112,7 +112,7 @@ class ChartsGUI (Gtk.Builder):
 		c.execute("WITH cte AS "
 						"(SELECT SUM(qty) AS amount, "
 							"date_trunc(%s, date_created) AS date_group "
-						"FROM purchase_order_line_items AS poli "
+						"FROM purchase_order_items AS poli "
 						"JOIN purchase_orders AS po "
 							"ON po.id = poli.purchase_order_id "
 						"WHERE (poli.canceled, po.canceled) = (False, False) "

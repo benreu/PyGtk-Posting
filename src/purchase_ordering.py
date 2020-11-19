@@ -100,7 +100,7 @@ class Setup():
 								"products.name, "
 								"products.ext_name, "
 								"poi.qty*poi.price "
-							"FROM purchase_order_line_items AS poi "
+							"FROM purchase_order_items AS poi "
 							"JOIN products ON products.id = poi.product_id "
 							"JOIN purchase_orders AS po "
 							"ON po.id = poi.purchase_order_id "
