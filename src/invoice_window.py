@@ -1129,17 +1129,14 @@ class InvoiceGUI:
 		if invoice_id == self.invoice_id:
 			infobar = self.builder.get_object('invoice_changed_infobar')
 			infobar.set_revealed(True)
-			infobar.set_visible(True)
 
 	def info_bar_close (self, infobar):
 		infobar.set_revealed(False)
-		infobar.set_visible(False)
 
 	def info_bar_response (self, infobar, response):
 		if response == Gtk.ResponseType.APPLY:
 			self.populate_invoice_items ()
 		infobar.set_revealed(False)
-		infobar.set_visible(False)
 
 
 
