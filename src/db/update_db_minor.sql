@@ -498,7 +498,6 @@ UPDATE manufacturing_projects SET date_created = tcp.start_date FROM (SELECT id,
 ALTER TABLE manufacturing_projects ALTER COLUMN date_created SET DEFAULT now();
 ALTER TABLE manufacturing_projects ALTER COLUMN date_created SET NOT NULL;
 --0.5.37
---CREATE FUNCTION public.invoice_item_updated
 CREATE OR REPLACE FUNCTION public.invoice_item_updated() RETURNS trigger
     LANGUAGE plpgsql
     AS 
@@ -521,8 +520,22 @@ $BODY$
 		RETURN NEW; 
 	END;
 $BODY$ ;
-CREATE TRIGGER invoice_item_update_trigger AFTER UPDATE ON public.invoice_items FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE public.invoice_item_updated();
-CREATE TRIGGER invoice_item_insert_trigger AFTER INSERT ON public.invoice_items FOR EACH ROW EXECUTE PROCEDURE public.invoice_item_inserted();
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'invoice_item_update_trigger') THEN
+		CREATE TRIGGER invoice_item_update_trigger AFTER UPDATE ON public.invoice_items 
+		FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE public.invoice_item_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'invoice_item_insert_trigger') THEN
+		CREATE TRIGGER invoice_item_insert_trigger AFTER INSERT ON public.invoice_items 
+		FOR EACH ROW EXECUTE PROCEDURE public.invoice_item_inserted();
+	END IF;
+END
+$$;
 
 
 
