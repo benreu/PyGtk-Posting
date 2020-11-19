@@ -181,5 +181,3 @@ SUBDIRS = \
 	modules \
 	manufacturing \
 	resources
-
-python_PYTHON = 
