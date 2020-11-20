@@ -83,7 +83,7 @@ class JobSheetGUI(Gtk.Builder):
 							"WHERE id = %s", (qty, product_id))
 		for row in self.cursor.fetchall():
 			iter_ = self.job_store.append(row)
-		self.cursor.execute("INSERT INTO job_sheet_line_items "
+		self.cursor.execute("INSERT INTO job_sheet_items "
 							"(job_sheet_id, qty, product_id) "
 							"VALUES (%s, %s, %s) RETURNING id, qty", 
 							(self.job_id, qty, product_id))
@@ -131,7 +131,7 @@ class JobSheetGUI(Gtk.Builder):
 		self.job_store[iter_][2] = int(product_id)
 		self.job_store[iter_][3] = product_name
 		line_id = self.job_store[iter_][0]
-		self.cursor.execute("UPDATE job_sheet_line_items "
+		self.cursor.execute("UPDATE job_sheet_items "
 							"SET product_id = %s WHERE id = %s", 
 							(product_id, line_id))
 		DB.commit()
@@ -144,9 +144,9 @@ class JobSheetGUI(Gtk.Builder):
 	def qty_edited (self, spin, path, text):
 		iter_ = self.job_store.get_iter(path) 
 		line_id = self.job_store[iter_][0]
-		self.cursor.execute("UPDATE job_sheet_line_items "
+		self.cursor.execute("UPDATE job_sheet_items "
 							"SET qty = %s WHERE id = %s; "
-							"SELECT qty FROM job_sheet_line_items "
+							"SELECT qty FROM job_sheet_items "
 							"WHERE id = %s", 
 							(text, line_id, line_id))
 		DB.commit()
@@ -156,7 +156,7 @@ class JobSheetGUI(Gtk.Builder):
 		iter_ = self.job_store.get_iter(path) 
 		line_id = self.job_store[iter_][0]
 		self.job_store[iter_][4] = text
-		self.cursor.execute("UPDATE job_sheet_line_items "
+		self.cursor.execute("UPDATE job_sheet_items "
 							"SET remark = %s WHERE id = %s", 
 							(text, line_id))
 		DB.commit()
@@ -386,23 +386,23 @@ class JobSheetGUI(Gtk.Builder):
 		store, path = selection.get_selected_rows ()
 		if path != []: # a row is selected
 			job_line_id = store[path][0]
-			self.cursor.execute("DELETE FROM job_sheet_line_items "
+			self.cursor.execute("DELETE FROM job_sheet_items "
 								"WHERE id = %s", (job_line_id,))
 			DB.commit()
 			self.populate_job_treeview ()
 			
 	def new_line (self, widget = None):
-		self.cursor.execute("INSERT INTO job_sheet_line_items "
+		self.cursor.execute("INSERT INTO job_sheet_items "
 							"(job_sheet_id, qty, product_id) "
 							"VALUES (%s, 1, (SELECT id FROM products "
 								"WHERE deleted = False LIMIT 1)) "
-							"RETURNING job_sheet_line_items.id ",
+							"RETURNING job_sheet_items.id ",
 							(self.job_id,))
 		line_id = self.cursor.fetchone()[0]
-		self.cursor.execute("SELECT jsli.id, qty, p.id, p.name, remark "
-							"FROM job_sheet_line_items AS jsli "
-							"JOIN products AS p ON p.id = jsli.product_id "
-							"WHERE jsli.id = %s", 
+		self.cursor.execute("SELECT jsi.id, qty, p.id, p.name, remark "
+							"FROM job_sheet_items AS jsi "
+							"JOIN products AS p ON p.id = jsi.product_id "
+							"WHERE jsi.id = %s", 
 							(line_id,))
 		for row in self.cursor.fetchall():
 			iter_ = self.job_store.append(row)
@@ -436,8 +436,8 @@ class JobSheetGUI(Gtk.Builder):
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
 					"SELECT qty, product_id, remark, %s "
-					"FROM job_sheet_line_items AS jsli "
-						"WHERE jsli.job_sheet_id = %s; "
+					"FROM job_sheet_items AS jsi "
+						"WHERE jsi.job_sheet_id = %s; "
 					"UPDATE job_sheets SET (invoiced, completed) "
 						"= (True, True) WHERE id = %s; "
 					"UPDATE time_clock_projects "
@@ -458,9 +458,9 @@ class JobSheetGUI(Gtk.Builder):
 		treeselection = self.get_object('treeview-selection1')
 		model, path = treeselection.get_selected_rows ()
 		self.job_store.clear()
-		self.cursor.execute("SELECT jsli.id, qty, p.id, p.name, remark "
-							"FROM job_sheet_line_items AS jsli "
-							"JOIN products AS p ON p.id = jsli.product_id "
+		self.cursor.execute("SELECT jsi.id, qty, p.id, p.name, remark "
+							"FROM job_sheet_items AS jsi "
+							"JOIN products AS p ON p.id = jsi.product_id "
 							"WHERE job_sheet_id = %s", (self.job_id ,))
 		for row in self.cursor.fetchall():
 			self.job_store.append(row)

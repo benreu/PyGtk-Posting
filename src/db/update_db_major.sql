@@ -39,5 +39,6 @@ BEGIN
 END $$;
 --0.6.0
 ALTER TABLE IF EXISTS purchase_order_line_items RENAME to purchase_order_items;
+ALTER TABLE IF EXISTS job_sheet_line_items RENAME to job_sheet_items;
 
 

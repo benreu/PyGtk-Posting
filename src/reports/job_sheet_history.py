@@ -76,7 +76,7 @@ class JobSheetHistoryGUI(Gtk.Builder):
 	def remark_edited(self, widget, path, text):
 		_id_ = self.job_sheet_line_item_store[path][0]
 		self.job_sheet_line_item_store[path][3] = text
-		self.cursor.execute("UPDATE job_sheet_line_items "
+		self.cursor.execute("UPDATE job_sheet_items "
 							"SET remark = %s WHERE id = %s", (text, _id_))
 		DB.commit()
 
@@ -104,10 +104,10 @@ class JobSheetHistoryGUI(Gtk.Builder):
 
 	def populate_job_sheet_line_item_treeview (self, job_sheet_id):
 		self.job_sheet_line_item_store.clear()
-		self.cursor.execute("SELECT jsli.id, qty, qty::text, p.name, remark "
-							"FROM job_sheet_line_items AS jsli "
+		self.cursor.execute("SELECT jsi.id, qty, qty::text, p.name, remark "
+							"FROM job_sheet_items AS jsi "
 							"JOIN products AS p ON p.id = "
-							"jsli.product_id "
+							"jsi.product_id "
 							"WHERE job_sheet_id = %s ORDER BY id",
 							(job_sheet_id,))
 		for row in self.cursor.fetchall():

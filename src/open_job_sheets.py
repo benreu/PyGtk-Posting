@@ -105,13 +105,13 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		store.clear()
 		c = DB.cursor()
 		c.execute("SELECT "
-					"jsli.id, "
-					"jsli.qty::text, "
+					"jsi.id, "
+					"jsi.qty::text, "
 					"p.name, "
-					"jsli.remark "
-					"FROM job_sheet_line_items AS jsli "
-					"JOIN products AS p ON p.id = jsli.product_id "
-					"WHERE jsli.job_sheet_id = %s", (job_id,))
+					"jsi.remark "
+					"FROM job_sheet_items AS jsi "
+					"JOIN products AS p ON p.id = jsi.product_id "
+					"WHERE jsi.job_sheet_id = %s", (job_id,))
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
@@ -155,8 +155,8 @@ class OpenJobSheetsGUI (Gtk.Builder):
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
 					"SELECT qty, product_id, remark, %s "
-					"FROM job_sheet_line_items AS jsli "
-						"WHERE jsli.job_sheet_id = %s; "
+					"FROM job_sheet_items AS jsi "
+						"WHERE jsi.job_sheet_id = %s; "
 					"UPDATE invoice_items AS ii SET price = "
 					"customer_product_price(%s, ii.product_id) "
 					"WHERE ii.invoice_id = %s; "

@@ -353,8 +353,8 @@ class ContactHistoryGUI (Gtk.Builder):
 					"remark, "
 					"'Job Sheet' "
 					"FROM products AS p "
-					"JOIN job_sheet_line_items AS jsli ON jsli.product_id = p.id "
-					"JOIN job_sheets AS js ON js.id = jsli.job_sheet_id "
+					"JOIN job_sheet_items AS jsi ON jsi.product_id = p.id "
+					"JOIN job_sheets AS js ON js.id = jsi.job_sheet_id "
 					"WHERE contact_id = %s "
 					"GROUP BY p.id, p.name, remark) "
 					"ORDER BY name", 
