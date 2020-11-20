@@ -95,7 +95,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		vendor_completion.set_match_func(self.vendor_match_func)
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_vendor_store ), 
-						   ("products_changed", self.populate_product_store )):
+						   ("products_changed", self.populate_product_store ), 
+						   ("purchase_orders_changed", self.show_reload_infobar )):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		
@@ -126,7 +127,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.get_object('menuitem5').set_sensitive(True)
 			self.get_object('menuitem2').set_sensitive(True)
 			self.purchase_order_id = int(edit_po_id)
-			self.products_from_existing_po ()
+			self.populate_purchase_order_items ()
 
 		self.cursor.execute("SELECT print_direct FROM settings")
 		self.get_object('menuitem1').set_active(self.cursor.fetchone()[0]) #set the direct print checkbox
@@ -214,7 +215,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		subprocess.Popen(["yelp", help_dir + "/purchase_order.page"])
 
 	def view_all_toggled (self, checkbutton):
-		self.products_from_existing_po ()
+		self.populate_purchase_order_items ()
 
 	def hold_togglebutton_toggled (self, togglebutton, path):
 		cursor = DB.cursor()
@@ -238,7 +239,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.calculate_totals ()
 		cursor.close()
 
-	def products_from_existing_po (self):
+	def populate_purchase_order_items (self):
 		cursor = DB.cursor()
 		self.p_o_store.clear()
 		if self.get_object ('checkbutton1').get_active() == True:
@@ -522,7 +523,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"(%s, True) RETURNING id", 
 							(self.purchase_order_id, old_purchase_id))
 			DB.commit()
-			self.products_from_existing_po ()
+			self.populate_purchase_order_items ()
 		else: #no products held
 			DB.commit()
 			self.window.destroy ()
@@ -576,7 +577,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.datetime = row[1]
 				self.get_object('entry1').set_text(row[2])
 				self.get_object('entry8').set_text(row[3])
-				self.products_from_existing_po ()
+				self.populate_purchase_order_items ()
 				break
 			else:
 				self.cursor.execute("SELECT "
@@ -1086,7 +1087,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.cursor.execute("DELETE FROM purchase_order_items "
 								"WHERE id = %s", (line_id,))
 			DB.commit()
-			self.products_from_existing_po ()
+			self.populate_purchase_order_items ()
 
 	def key_tree_tab(self, treeview, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -1200,4 +1201,17 @@ class PurchaseOrderGUI(Gtk.Builder):
 		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
+
+	def show_reload_infobar (self, broadcaster, po_id):
+		if po_id == self.purchase_order_id:
+			infobar = self.get_object('po_changed_infobar')
+			infobar.set_revealed(True)
+
+	def info_bar_close (self, infobar):
+		infobar.set_revealed(False)
+
+	def info_bar_response (self, infobar, response):
+		if response == Gtk.ResponseType.APPLY:
+			self.populate_purchase_order_items ()
+		infobar.set_revealed(False)
 

@@ -536,6 +536,44 @@ BEGIN
 	END IF;
 END
 $$;
+CREATE OR REPLACE FUNCTION public.purchase_order_item_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS 
+$BODY$  
+	BEGIN 
+		IF NEW.purchase_order_id != OLD.purchase_order_id
+			THEN PERFORM pg_notify('purchase_orders', OLD.purchase_order_id::text);
+		END IF; 
+		PERFORM pg_notify('purchase_orders', NEW.purchase_order_id::text); 
+		RETURN NEW; 
+	END;
+$BODY$ ;
+--CREATE FUNCTION public.purchase_order_item_inserted
+CREATE OR REPLACE FUNCTION public.purchase_order_item_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS 
+$BODY$  
+	BEGIN 
+		PERFORM pg_notify('purchase_orders', NEW.purchase_order_id::text); 
+		RETURN NEW; 
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'purchase_order_item_update') THEN
+		CREATE TRIGGER purchase_order_item_update AFTER UPDATE ON public.purchase_order_items 
+		FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE public.purchase_order_item_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'purchase_order_item_insert') THEN
+		CREATE TRIGGER purchase_order_item_insert AFTER INSERT ON public.purchase_order_items 
+		FOR EACH ROW EXECUTE PROCEDURE public.purchase_order_item_inserted();
+	END IF;
+END
+$$;
 
 
 

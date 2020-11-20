@@ -413,7 +413,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
@@ -429,6 +429,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">purchase_order_store</property>
+                <property name="reorderable">True</property>
+                <property name="search_column">1</property>
                 <property name="enable_grid_lines">both</property>
                 <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <signal name="drag-data-received" handler="on_drag_data_received" swapped="no"/>
@@ -622,7 +624,74 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkInfoBar" id="po_changed_infobar">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="show_close_button">True</property>
+            <property name="revealed">False</property>
+            <signal name="close" handler="info_bar_close" swapped="no"/>
+            <signal name="response" handler="info_bar_response" swapped="no"/>
+            <child internal-child="action_area">
+              <object class="GtkButtonBox">
+                <property name="can_focus">False</property>
+                <property name="spacing">6</property>
+                <property name="layout_style">end</property>
+                <child>
+                  <object class="GtkButton" id="button14">
+                    <property name="label" translatable="yes">Refresh</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child internal-child="content_area">
+              <object class="GtkBox">
+                <property name="can_focus">False</property>
+                <property name="spacing">16</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">There are changes on this PO</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <action-widgets>
+              <action-widget response="-10">button14</action-widget>
+            </action-widgets>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -697,7 +766,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -783,7 +852,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>

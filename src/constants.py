@@ -38,6 +38,7 @@ class Broadcast (GObject.GObject):
 	'contacts_changed': (GObject.SignalFlags.RUN_FIRST, None, ()) , 
 	'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, None, ()) , 
 	'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)) ,
+	'purchase_orders_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)) ,
 	'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
 	}
 	def __init__ (self):
@@ -73,6 +74,10 @@ class Broadcast (GObject.GObject):
 				invoice_id = notify.payload
 				if notify.pid != DB_PROCESS_ID:
 					self.emit("invoices_changed", int(invoice_id))
+			elif notify.channel == "purchase_orders":
+				po_id = notify.payload
+				if notify.pid != DB_PROCESS_ID:
+					self.emit("purchase_orders_changed", int(po_id))
 		return True
 
 help_dir = ''
