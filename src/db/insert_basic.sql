@@ -41,8 +41,11 @@ VALUES
 	('Sales Tax Collected', 5, 5210, 5200),
 	('Credit Cards', 5, 5300, 5000),
 	('Mastercard', 5, 5310, 5300),
-	('Visa', 5, 5320, 5000)
+	('Visa', 5, 5320, 5000),
+	('Credit Memos', 5, 5110, 5100),
+	('Credit Memo Taxes', 5, 5120, 5100)
 ;
+INSERT INTO units (name) VALUES ('Piece'), ('Hour'), ('Minute'), ('Foot'), ('Inch'), ('Ounce'), ('Pound'), ('Ton'), ('Acre');
 --set bank account
 UPDATE gl_accounts SET 
 	(bank_account, deposits, check_writing) = (True, True, True)
@@ -88,9 +91,9 @@ VALUES
 
 --Insert example terms and discounts
 INSERT INTO terms_and_discounts 
-	(name, cash_only, discount_percent, pay_in_days_active, pay_in_days, pay_by_day_of_month_active, pay_by_day_of_month, standard, markup_percent, plus_date) 
+	(name, cash_only, discount_percent, pay_in_days_active, pay_in_days, pay_by_day_of_month_active, pay_by_day_of_month, standard, plus_date) 
 VALUES 
-	('Net 30', False, 5, True, 30, False, 0, True, 0, 30)
+	('Net 30', False, 5, True, 30, False, 0, True, 30)
 ;
 --Insert customer markup percent
 INSERT INTO customer_markup_percent 
@@ -102,7 +105,7 @@ VALUES
 INSERT INTO settings 
 	(print_direct, enforce_exact_payment, refresh_documents_price_on_import, email_when_possible, version, accrual_based, statement_finish_date, cost_decrease_alert, last_backup, backup_frequency_days, statement_day_of_month, date_format, timestamp_format, request_po_attachment, major_version, minor_version) 
 VALUES 
-	(False, False, False, False, '132', False, now(), 0.25, now(), 7, 1, 'FMMon DD YYYY', 'FMMon DD YYYY HH12:MI:SS AM ', True, 3, 4)
+	(False, False, False, False, '132', False, now(), 0.25, now(), 7, 1, 'FMMon DD YYYY', 'FMMon DD YYYY HH12:MI:SS AM ', True, 6, 0)
 ;
 --Insert account_flow
 INSERT INTO gl_account_flow 
@@ -113,7 +116,9 @@ VALUES
 	('cash_payment', 1400), 
 	('post_purchase_order', 5100), 
 	('sales_tax', 5210), 
-	('post_invoice', 1100)
+	('post_invoice', 1100),
+	('post_credit_memo', 5110),
+	('credit_memo_returned_taxes', 5120)
 ;
 --Insert blank company info
 INSERT INTO company_info 

@@ -22,7 +22,7 @@ DO $$
 BEGIN
   IF EXISTS(SELECT *
     FROM information_schema.columns
-    WHERE table_name='employee_info' and column_name='current')
+    WHERE table_name='employee_info' AND column_name='current')
   THEN
       ALTER TABLE payroll.employee_info RENAME COLUMN current TO active;
   END IF;
@@ -32,13 +32,14 @@ DO $$
 BEGIN
   IF EXISTS(SELECT *
     FROM information_schema.columns
-    WHERE table_name='employee_info' and column_name='payment_frequency')
+    WHERE table_name='employee_info' AND column_name='payment_frequency')
   THEN
       ALTER TABLE payroll.employee_info RENAME COLUMN payment_frequency TO payments_per_year;
   END IF;
 END $$;
 --0.6.0
-ALTER TABLE IF EXISTS purchase_order_line_items RENAME to purchase_order_items;
-ALTER TABLE IF EXISTS job_sheet_line_items RENAME to job_sheet_items;
+ALTER TABLE IF EXISTS purchase_order_line_items RENAME TO purchase_order_items;
+ALTER TABLE IF EXISTS job_sheet_line_items RENAME TO job_sheet_items;
+
 
 

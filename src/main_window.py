@@ -17,7 +17,7 @@
 
 import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
-import os, subprocess, re
+import os, subprocess, re, psycopg2
 from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
 						is_admin, help_dir, broadcaster
 
@@ -506,8 +506,15 @@ class MainGUI :
 		resource_management.ResourceManagementGUI(id_)
 		
 	def focus (self, widget = None, d = None):
+		try:
+			self.populate_to_do_treeview()
+			self.load_statistics()
+		except psycopg2.Error as e:
+			DB.rollback()
+			print(e)
+
+	def load_statistics (self):
 		c = DB.cursor()
-		self.populate_to_do_treeview()
 		c.execute("SELECT COUNT(id) FROM invoices "
 					"WHERE (canceled, paid, posted) = (False, False, True)")
 		unpaid_invoices = 0

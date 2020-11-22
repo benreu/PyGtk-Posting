@@ -257,7 +257,6 @@ class GUI:
 				dialog.run()
 				dialog.hide()
 				cursor.close()
-				raise Exception(e)
 				return False
 		cursor.close()
 		return True

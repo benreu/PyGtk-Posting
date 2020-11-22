@@ -48,6 +48,10 @@ class CheckVersion :
 			major_db_version = row[0]
 			minor_db_version = row[1]
 		upgrade = True
+		if major_db_version <= '5' and minor_db_version < '36':
+			dialog = self.builder.get_object('version_too_old_dialog')
+			dialog.run()
+			GLib.idle_add(Gtk.main_quit)
 		if major_db_version <= '4' and minor_db_version < '6':
 			self.populate_liabilities_store ()
 			dialog = self.builder.get_object('credit_memo_dialog')
