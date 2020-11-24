@@ -50,7 +50,9 @@ class GUI:
 
 	def populate_project_store (self):
 		self.project_store.clear()
-		self.cursor.execute("SELECT time_clock_projects.id::text, name, "
+		self.cursor.execute("SELECT "
+							"time_clock_projects.id::text, "
+							"name, "
 							"SUM(stop_time-start_time)::text "
 							"FROM time_clock_projects "
 							"JOIN time_clock_entries "
@@ -180,8 +182,8 @@ class GUI:
 		time_file_pdf = "/tmp/employee_time.pdf"
 		t = Template(template_dir+"/employee_time.odt", time_file, True)
 		t.render(data) #the self.data holds all the info of the invoice
-		subprocess.call('odt2pdf ' + time_file, shell = True)
-		subprocess.Popen('soffice ' + time_file, shell = True)
+		subprocess.call(['odt2pdf', time_file])
+		subprocess.Popen(['soffice', time_file])
 		DB.rollback()
 		c.close()
 
@@ -208,9 +210,13 @@ class GUI:
 		c.execute("SELECT "
 						"time_clock_entries.id::text, "
 						"name, "
+						"ext_name, "
 						"format_timestamp(start_time), "
+						"start_time::text, "
 						"format_timestamp(stop_time), "
-						"make_interval(secs => adjusted_seconds)::text "
+						"stop_time::text, "
+						"make_interval(secs => adjusted_seconds)::text, "
+						"adjusted_seconds "
 					"FROM time_clock_entries "
 					"JOIN contacts "
 					"ON time_clock_entries.employee_id = contacts.id "
