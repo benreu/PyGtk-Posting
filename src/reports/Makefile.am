@@ -59,8 +59,6 @@ python_PYTHON = time_clock_project.ui \
 	document_history.ui \
 	shipping_history.py \
 	shipping_history.ui \
-	manufacturing_reports.py \
-	manufacturing_reports.ui \
 	charts.py \
 	charts.ui \
 	po_payment_matching.py \
