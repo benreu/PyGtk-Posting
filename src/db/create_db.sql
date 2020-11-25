@@ -513,7 +513,8 @@ CREATE TABLE public.incoming_invoices (
     description character varying,
     amount numeric(12,2),
     attached_pdf bytea,
-    gl_entry_id bigint REFERENCES public.gl_entries (id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT
+    gl_entry_id bigint REFERENCES public.gl_entries (id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT,
+    gl_transaction_id bigint REFERENCES public.gl_transactions (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE RESTRICT
 );
 
 --CREATE TABLE public.locations
