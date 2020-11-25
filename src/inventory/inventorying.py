@@ -67,7 +67,7 @@ def receive (po_id, location_id):
 						"(%s, True) "
 						") "
 					"INSERT INTO inventory_transactions "
-					"(purchase_order_line_id, qty_in, product_id, "
+					"(purchase_order_item_id, qty_in, product_id, "
 					"price, location_id, date_inserted"
 					") "
 					"SELECT * FROM cte", 
