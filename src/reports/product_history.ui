@@ -205,13 +205,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="refresh_button">
-                <property name="label" translatable="yes">Refresh</property>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">New window</property>
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+                <property name="tooltip_text" translatable="yes">Open a new product history window</property>
+                <signal name="clicked" handler="new_window_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -220,13 +220,53 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="report_hub_button">
-                <property name="label" translatable="yes">Export hub</property>
+              <object class="GtkBox" id="button_box">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="export_hub_clicked" swapped="no"/>
+                <property name="can_focus">False</property>
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">Product hub</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="product_hub_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="refresh_button">
+                    <property name="label" translatable="yes">Refresh</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="report_hub_button">
+                    <property name="label" translatable="yes">Export hub</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="export_hub_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>

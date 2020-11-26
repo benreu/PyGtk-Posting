@@ -47,6 +47,14 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
+	def product_hub_clicked (self, button):
+		import product_hub
+		product_hub.ProductHubGUI(self.product_id)
+
+	def new_window_clicked (self, button):
+		from reports import product_history
+		product_history.ProductHistoryGUI()
+
 	def destroy (self, window):
 		self.cursor.close()
 
@@ -180,8 +188,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.populate_product_stores ()
 
 	def populate_product_stores (self):
-		self.get_object('refresh_button').set_sensitive(True)
-		self.get_object('report_hub_button').set_sensitive(True)
+		self.get_object('button_box').set_sensitive(True)
 		self.populate_product_invoices ()
 		self.populate_purchase_orders ()
 		self.populate_warranty_store ()
