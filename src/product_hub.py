@@ -57,7 +57,7 @@ class ProductHubGUI:
 	def product_location_clicked (self, button):
 		import product_location
 		p = product_location.ProductLocationGUI()
-		p.builder.get_object('searchentry1').set_text(self.name)
+		p.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
 	def product_search_clicked (self, button):
