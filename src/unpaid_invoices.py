@@ -47,7 +47,7 @@ class GUI (Gtk.Builder):
 		amount = model.get_value(iter1, 6)
 		cellrenderer.set_property("text" , str(amount))
 
-	def destroy(self, window):
+	def window_delete_event (self, window, event):
 		window.hide()
 		return True
 	

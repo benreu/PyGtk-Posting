@@ -610,7 +610,7 @@ class MainGUI :
 	def unpaid_invoices(self, widget):
 		if self.unpaid_invoices_window == None:
 			import unpaid_invoices
-			unpaid_invoices.GUI()
+			self.unpaid_invoices_window = unpaid_invoices.GUI()
 		else:
 			self.unpaid_invoices_window.present()
 
