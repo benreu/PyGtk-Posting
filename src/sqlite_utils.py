@@ -56,6 +56,9 @@ def create_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE IF NOT EXISTS resource_calendar "
 										"(widget_id TEXT UNIQUE NOT NULL, "
 										"size INTEGER NOT NULL)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS open_invoices "
+										"(widget_id TEXT UNIQUE NOT NULL, "
+										"value INTEGER NOT NULL)")
 
 def update_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO postgres_conn VALUES "
@@ -155,3 +158,22 @@ def update_apsw_tables(cursor):
 					"('contact_column', 100)")
 	cursor.execute("INSERT OR IGNORE INTO resource_calendar VALUES "
 					"('category_column', 100)")
+	# open invoices window layout
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('window_width', 550)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('window_height', 400)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('sort_column', 0)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('sort_type', 0)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('number_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('invoice_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('contact_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('date_created_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO open_invoices VALUES "
+					"('items_column', 100)")
