@@ -18,6 +18,7 @@ from db import transactor
 from dateutils import DateTimeCalendar
 import subprocess
 from constants import ui_directory, DB
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/unpaid_invoices.ui"
 
@@ -31,21 +32,80 @@ class GUI (Gtk.Builder):
 
 		self.store = self.get_object('unpaid_invoice_store')
 		self.window = self.get_object('window')
+		self.set_window_layout_from_settings()
 		self.window.show_all()
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect("day-selected", self.date_selected)
-		
-		amount_column = self.get_object ('treeviewcolumn3')
-		amount_renderer = self.get_object ('cellrenderertext3')
-		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
+
+	def set_window_layout_from_settings(self):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		c.execute("SELECT value FROM unpaid_invoices "
+					"WHERE widget_id = 'window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT value FROM unpaid_invoices "
+					"WHERE widget_id = 'window_height'")
+		height = c.fetchone()[0]
+		self.window.resize(width, height)
+		c.execute("SELECT value FROM unpaid_invoices "
+					"WHERE widget_id = 'sort_column'")
+		sort_column = c.fetchone()[0]
+		c.execute("SELECT value FROM unpaid_invoices "
+					"WHERE widget_id = 'sort_type'")
+		sort_type = Gtk.SortType(c.fetchone()[0])
+		store = self.get_object('unpaid_invoice_store')
+		store.set_sort_column_id(sort_column, sort_type)
+		c.execute("SELECT widget_id, value FROM unpaid_invoices WHERE "
+					"widget_id IN ('number_column', "
+									"'invoice_column', "
+									"'customer_column', "
+									"'date_column', "
+									"'amount_column')")
+		for row in c.fetchall():
+			column = self.get_object(row[0])
+			width = row[1]
+			if width == 0:
+				column.set_visible(False)
+			else:
+				column.set_fixed_width(width)
+		sqlite.close()
+
+	def save_window_layout_activated (self, menuitem):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		width, height = self.window.get_size()
+		c.execute("REPLACE INTO unpaid_invoices (widget_id, value) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO unpaid_invoices (widget_id, value) "
+					"VALUES ('window_height', ?)", (height,))
+		tuple_ = self.get_object('unpaid_invoice_store').get_sort_column_id()
+		sort_column = tuple_[0]
+		if sort_column == None:
+			sort_column = 0
+			sort_type = 0
+		else:
+			sort_type = tuple_[1].numerator
+		c.execute("REPLACE INTO unpaid_invoices (widget_id, value) "
+					"VALUES ('sort_column', ?)", (sort_column,))
+		c.execute("REPLACE INTO unpaid_invoices (widget_id, value) "
+					"VALUES ('sort_type', ?)", (sort_type,))
+		for column in ['number_column', 
+						'invoice_column', 
+						'customer_column', 
+						'date_column', 
+						'amount_column']:
+			try:
+				width = self.get_object(column).get_width()
+			except Exception as e:
+				self.show_message("On column %s\n %s" % (column, str(e)))
+				continue
+			c.execute("REPLACE INTO unpaid_invoices (widget_id, value) "
+						"VALUES (?, ?)", (column, width))
+		sqlite.close()
 
 	def present (self):
 		self.window.present()
-
-	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
-		amount = model.get_value(iter1, 6)
-		cellrenderer.set_property("text" , str(amount))
 
 	def window_delete_event (self, window, event):
 		window.hide()
@@ -141,7 +201,7 @@ class GUI (Gtk.Builder):
 								"WHERE invoice_id = %s)", 
 								(self.invoice_id, self.invoice_id))
 			DB.commit()
-			self.treeview_populate ()
+			self.populate_unpaid_invoices ()
 		
 		
 	def view_invoice(self, widget):
@@ -162,9 +222,9 @@ class GUI (Gtk.Builder):
 			DB.rollback()
 
 	def focus(self, window, event):
-		self.treeview_populate()
+		self.populate_unpaid_invoices()
 
-	def treeview_populate(self):
+	def populate_unpaid_invoices(self):
 		treeview_selection = self.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
 		model.clear()
@@ -174,9 +234,10 @@ class GUI (Gtk.Builder):
 						"i.name, "
 						"c.id, "
 						"c.name, "
-						"dated_for::text, "
 						"format_date(dated_for), "
-						"amount_due "
+						"dated_for::text, "
+						"amount_due::text, "
+						"amount_due::float "
 					"FROM invoices AS i "
 					"JOIN contacts AS c ON i.customer_id = c.id "
 					"WHERE (canceled, paid, posted) = "
@@ -218,4 +279,12 @@ class GUI (Gtk.Builder):
 
 	def new_statement (self, widget):
 		new_statement.GUI()
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
