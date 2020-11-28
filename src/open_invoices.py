@@ -20,16 +20,16 @@ from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/open_invoices.ui"
 
-class OpenInvoicesGUI:
+class OpenInvoicesGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
-		self.open_invoice_store = self.builder.get_object('open_invoice_store')
+		self.open_invoice_store = self.get_object('open_invoice_store')
 		self.populate_store ()
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 
@@ -49,7 +49,7 @@ class OpenInvoicesGUI:
 		c.execute("SELECT value FROM open_invoices "
 					"WHERE widget_id = 'sort_type'")
 		sort_type = Gtk.SortType(c.fetchone()[0])
-		store = self.builder.get_object('open_invoice_store')
+		store = self.get_object('open_invoice_store')
 		store.set_sort_column_id(sort_column, sort_type)
 		c.execute("SELECT widget_id, value FROM open_invoices WHERE "
 					"widget_id IN ('number_column', "
@@ -58,7 +58,7 @@ class OpenInvoicesGUI:
 									"'date_created_column', "
 									"'items_column')")
 		for row in c.fetchall():
-			column = self.builder.get_object(row[0])
+			column = self.get_object(row[0])
 			width = row[1]
 			if width == 0:
 				column.set_visible(False)
@@ -78,7 +78,7 @@ class OpenInvoicesGUI:
 		self.populate_store()
 		
 	def contact_hub_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -88,7 +88,7 @@ class OpenInvoicesGUI:
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
 
 	def new_invoice_clicked (self, button):
@@ -102,11 +102,11 @@ class OpenInvoicesGUI:
 	def open_invoice (self, invoice_id):
 		import invoice_window
 		invoice_window.InvoiceGUI(invoice_id)
-		if self.builder.get_object('hide_checkbutton').get_active():
+		if self.get_object('hide_checkbutton').get_active():
 			self.window.hide()
 
 	def populate_store (self):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.open_invoice_store.clear()
 		self.cursor.execute("SELECT "
@@ -132,7 +132,7 @@ class OpenInvoicesGUI:
 		DB.rollback()
 
 	def open_invoice_clicked (self, button):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -147,7 +147,7 @@ class OpenInvoicesGUI:
 					"VALUES ('window_width', ?)", (width,))
 		c.execute("REPLACE INTO open_invoices (widget_id, value) "
 					"VALUES ('window_height', ?)", (height,))
-		tuple_ = self.builder.get_object('open_invoice_store').get_sort_column_id()
+		tuple_ = self.get_object('open_invoice_store').get_sort_column_id()
 		sort_column = tuple_[0]
 		if sort_column == None:
 			sort_column = 0
@@ -164,7 +164,7 @@ class OpenInvoicesGUI:
 						'date_created_column', 
 						'items_column']:
 			try:
-				width = self.builder.get_object(column).get_width()
+				width = self.get_object(column).get_width()
 			except Exception as e:
 				self.show_message("On column %s\n %s" % (column, str(e)))
 				continue
