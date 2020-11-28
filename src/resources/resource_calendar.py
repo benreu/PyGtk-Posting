@@ -20,7 +20,7 @@ from dateutils import calendar_to_datetime, \
 						set_calendar_from_datetime, \
 						calendar_to_text
 from constants import ui_directory, DB
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 try:
 	import holidays
 	us_holidays = holidays.US()

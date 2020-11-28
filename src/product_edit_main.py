@@ -29,7 +29,7 @@ from accounts import 	product_revenue_tree, \
 						product_revenue_list, \
 						product_expense_list, \
 						product_inventory_list
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 import spell_check, barcode_generator
 
 

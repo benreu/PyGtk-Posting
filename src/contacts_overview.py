@@ -17,7 +17,7 @@
 from gi.repository import Gtk, GLib
 import subprocess
 from constants import ui_directory, DB, template_dir, broadcaster
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/contacts_overview.ui"
 

@@ -20,7 +20,7 @@ gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Gdk, Vte
 import time
 from constants import DB, ui_directory, db_name
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/backup_restore.ui"
 

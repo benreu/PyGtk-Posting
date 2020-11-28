@@ -19,7 +19,7 @@ import gi
 gi.require_version('Keybinder', '3.0')
 from gi.repository import Gtk, Gdk, Keybinder
 from constants import ui_directory
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/keybindings.ui"
 

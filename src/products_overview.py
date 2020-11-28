@@ -17,7 +17,7 @@
 from gi.repository import Gtk, Gdk, GLib
 import subprocess
 from constants import broadcaster, DB, ui_directory
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/products_overview.ui"
 

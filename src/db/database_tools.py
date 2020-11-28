@@ -24,7 +24,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db import database_utils
 from constants import DB, ui_directory, sql_dir
 from constants import log_file as LOG_FILE
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -90,7 +90,7 @@ class GUI:
 		
 	def set_active_database (self ):
 		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT db_name FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT db_name FROM postgres_conn;"):
 			sql_database = row[0]
 		self.builder.get_object('combobox1').set_active_id(sql_database)
 		self.builder.get_object('label10').set_text("Current database : " + sql_database)
@@ -101,7 +101,8 @@ class GUI:
 		sqlite = get_apsw_connection()
 		db_name_store = self.builder.get_object('db_name_store')
 		db_name_store.clear()
-		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT user, password, host, port "
+											"FROM postgres_conn;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -152,7 +153,8 @@ class GUI:
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			sqlite = get_apsw_connection()
-			sqlite.cursor().execute("UPDATE connection SET db_name = '%s'" % (selected))
+			sqlite.cursor().execute("UPDATE postgres_conn SET db_name = '%s'" 
+																% (selected))
 			self.error = False
 			self.window.close()
 			subprocess.Popen(["./src/main.py", 
@@ -181,7 +183,8 @@ class GUI:
 			self.status_update("No database name!")
 			return
 		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT user, password, host, port "
+											"FROM postgres_conn;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -217,7 +220,7 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		sqlite.cursor().execute("UPDATE connection SET db_name = ?", (db_name,))
+		sqlite.cursor().execute("UPDATE postgres_conn SET db_name = ?", (db_name,))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
@@ -311,7 +314,8 @@ class GUI:
 	def get_postgre_settings(self, widget):
 		sqlite = get_apsw_connection()
 		cursor = sqlite.cursor()
-		for row in cursor.execute("SELECT * FROM connection;"):
+		for row in cursor.execute("SELECT user, password, host, port "
+									"FROM postgres_conn;"):
 			self.builder.get_object("entry2").set_text(row[0])
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
@@ -340,7 +344,7 @@ class GUI:
 			self.builder.get_object("grid2").set_sensitive(False)
 			return
 		sqlite = get_apsw_connection()
-		sqlite.cursor().execute("UPDATE connection SET "
+		sqlite.cursor().execute("UPDATE postgres_conn SET "
 						"(user, password, host, port) = "
 						"(?, ?, ?, ?)", 
 						(sql_user, sql_password, sql_host, sql_port))
