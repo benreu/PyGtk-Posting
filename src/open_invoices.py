@@ -70,12 +70,12 @@ class OpenInvoicesGUI:
 		self.window.present()
 
 	def delete_event (self, window, event):
+		self.set_window_layout_from_settings ()
 		window.hide()
 		return True
 
 	def focus_in_event (self, window, event):
 		self.populate_store()
-		self.set_window_layout_from_settings ()
 		
 	def contact_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
