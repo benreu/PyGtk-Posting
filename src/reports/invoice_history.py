@@ -52,7 +52,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
 							"FROM contacts AS c "
 							"JOIN invoices ON invoices.customer_id = c.id "
-							"WHERE (customer, deleted) = (True, False) "
+							"WHERE deleted = False "
 							"GROUP BY c.id, c.name ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.customer_store.append(row)
@@ -200,6 +200,8 @@ class InvoiceHistoryGUI(Gtk.Builder):
 									"'Comments: ' || comments, "
 									"COALESCE(total, 0.00), "
 									"COALESCE(total, 0.00)::text, "
+									"date_created::text, "
+									"format_date(date_created), "
 									"date_printed::text, "
 									"format_date(date_printed)"
 								"FROM invoices AS i "
@@ -216,6 +218,8 @@ class InvoiceHistoryGUI(Gtk.Builder):
 									"'Comments: ' || comments, "
 									"COALESCE(total, 0.00), "
 									"COALESCE(total, 0.00)::text, "
+									"date_created::text, "
+									"format_date(date_created), "
 									"date_printed::text, "
 									"format_date(date_printed)"
 								"FROM invoices AS i "
