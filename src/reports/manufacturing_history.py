@@ -56,6 +56,8 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 
 	def manufacturing_history_row_activated (self, treeview, path, column):
 		store = treeview.get_model()
+		batch_notes = store[path][10]
+		self.get_object('batch_notes_buffer').set_text(batch_notes)
 		manufacturing_id = store[path][0]
 		serial_number_store = self.get_object('serial_number_store')
 		serial_number_store.clear()
@@ -86,7 +88,8 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 					"COUNT(DISTINCT(employee_id)), "
 					"active, "
 					"format_date(date_created), "
-					"date_created::text "
+					"date_created::text, "
+					"batch_notes "
 				"FROM manufacturing_projects AS m "
 				"JOIN products AS p ON p.id = m.product_id "
 				"JOIN time_clock_entries AS tce "

@@ -2,6 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkTextBuffer" id="batch_notes_buffer"/>
   <object class="GtkListStore" id="manufacturing_jobs_store">
     <columns>
       <!-- column-name manufacturing_id -->
@@ -23,6 +24,8 @@
       <!-- column-name date_format -->
       <column type="gchararray"/>
       <!-- column-name date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name batch_notes -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -152,6 +155,7 @@
                     <property name="can_focus">True</property>
                     <property name="position">600</property>
                     <property name="position_set">True</property>
+                    <property name="wide_handle">True</property>
                     <child>
                       <object class="GtkBox" id="box1">
                         <property name="visible">True</property>
@@ -262,6 +266,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">manufacturing_jobs_sort</property>
+                                <property name="tooltip_column">10</property>
                                 <property name="activate_on_single_click">True</property>
                                 <signal name="row-activated" handler="manufacturing_history_row_activated" swapped="no"/>
                                 <child internal-child="selection">
@@ -399,53 +404,88 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkScrolledWindow" id="scrolledwindow2">
-                        <property name="width_request">50</property>
+                      <object class="GtkPaned">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="shadow_type">in</property>
+                        <property name="orientation">vertical</property>
+                        <property name="position">250</property>
+                        <property name="position_set">True</property>
+                        <property name="wide_handle">True</property>
                         <child>
-                          <object class="GtkTreeView" id="treeview2">
+                          <object class="GtkScrolledWindow" id="scrolledwindow2">
+                            <property name="width_request">50</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="model">serial_number_store</property>
-                            <child internal-child="selection">
-                              <object class="GtkTreeSelection" id="treeview-selection2"/>
-                            </child>
+                            <property name="shadow_type">in</property>
                             <child>
-                              <object class="GtkTreeViewColumn" id="treeviewcolumn6">
-                                <property name="resizable">True</property>
-                                <property name="title" translatable="yes">Serial</property>
-                                <property name="reorderable">True</property>
-                                <property name="sort_column_id">1</property>
-                                <child>
-                                  <object class="GtkCellRendererText" id="cellrenderertext6"/>
-                                  <attributes>
-                                    <attribute name="text">1</attribute>
-                                  </attributes>
+                              <object class="GtkTreeView" id="treeview2">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="model">serial_number_store</property>
+                                <child internal-child="selection">
+                                  <object class="GtkTreeSelection" id="treeview-selection2"/>
                                 </child>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkTreeViewColumn" id="treeviewcolumn7">
-                                <property name="resizable">True</property>
-                                <property name="title" translatable="yes">Customer</property>
-                                <property name="reorderable">True</property>
-                                <property name="sort_column_id">2</property>
                                 <child>
-                                  <object class="GtkCellRendererText" id="cellrenderertext7"/>
-                                  <attributes>
-                                    <attribute name="text">2</attribute>
-                                  </attributes>
+                                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                                    <property name="resizable">True</property>
+                                    <property name="title" translatable="yes">Serial</property>
+                                    <property name="reorderable">True</property>
+                                    <property name="sort_column_id">1</property>
+                                    <child>
+                                      <object class="GtkCellRendererText" id="cellrenderertext6"/>
+                                      <attributes>
+                                        <attribute name="text">1</attribute>
+                                      </attributes>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                                    <property name="resizable">True</property>
+                                    <property name="title" translatable="yes">Customer</property>
+                                    <property name="reorderable">True</property>
+                                    <property name="sort_column_id">2</property>
+                                    <child>
+                                      <object class="GtkCellRendererText" id="cellrenderertext7"/>
+                                      <attributes>
+                                        <attribute name="text">2</attribute>
+                                      </attributes>
+                                    </child>
+                                  </object>
                                 </child>
                               </object>
                             </child>
                           </object>
+                          <packing>
+                            <property name="resize">True</property>
+                            <property name="shrink">False</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScrolledWindow">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="shadow_type">in</property>
+                            <child>
+                              <object class="GtkTextView" id="batch_notes_textview">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="tooltip_text" translatable="yes">Batch notes</property>
+                                <property name="editable">False</property>
+                                <property name="buffer">batch_notes_buffer</property>
+                                <property name="accepts_tab">False</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="resize">True</property>
+                            <property name="shrink">True</property>
+                          </packing>
                         </child>
                       </object>
                       <packing>
-                        <property name="resize">True</property>
-                        <property name="shrink">False</property>
+                        <property name="resize">False</property>
+                        <property name="shrink">True</property>
                       </packing>
                     </child>
                   </object>
