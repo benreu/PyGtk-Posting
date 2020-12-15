@@ -470,9 +470,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		c.get_object('radiobutton2').set_active(True)
 	
 	def vendor_match_func(self, completion, key, iter):
-		if key in self.vendor_store[iter][1].lower(): 
-			return True# it's a hit!
-		return False # no match
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.vendor_store[iter][1].lower(): 
+				return False
+		return True
 
 	def view_purchase_order(self, widget):
 		comment = self.get_object('entry2').get_text()
