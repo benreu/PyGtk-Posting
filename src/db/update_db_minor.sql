@@ -93,6 +93,8 @@ BEGIN
 	END IF;
 END
 $$;
+--0.6.1
+ALTER TABLE public.files ALTER COLUMN date_inserted SET DEFAULT now();
 
 
 
