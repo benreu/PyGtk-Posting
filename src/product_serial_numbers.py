@@ -77,10 +77,10 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def filter_func (self, model, tree_iter, r):
 		for i in self.product_name.split():
-			if i not in model[tree_iter][1].lower():
+			if i not in model[tree_iter][2].lower():
 				return False
 		for i in self.serial_number.split():
-			if i not in model[tree_iter][2].lower():
+			if i not in model[tree_iter][3].lower():
 				return False
 		return True
 
@@ -123,32 +123,45 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		DB.rollback()
 
 	def populate_serial_number_history (self):
+		treeview = self.get_object('serial_number_treeview')
+		treeview.set_model(None)
 		store = self.get_object('serial_number_treeview_store')
 		store.clear()
 		self.cursor.execute("SELECT "
 								"sn.id, "
+								"COALESCE(manufacturing_id::text, ''), "
 								"p.name, "
 								"sn.serial_number, "
 								"sn.date_inserted::text, "
 								"format_date(sn.date_inserted), "
 								"COALESCE(COUNT(snh.id)::text, ''), "
+								"COALESCE(ili.invoice_id, 0), "
 								"COALESCE(ili.invoice_id::text, ''), "
+								"COALESCE(i.dated_for::text, ''), "
+								"COALESCE(format_date(i.dated_for), ''), "
 								"COALESCE(poli.purchase_order_id::text, ''), "
-								"COALESCE(manufacturing_id::text, '') "
+								"COALESCE(po.date_printed::text, ''), "
+								"COALESCE(format_date(po.date_printed), '') "
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh "
 								"ON snh.serial_number_id = sn.id "
 							"LEFT JOIN invoice_items AS ili "
 								"ON ili.id = sn.invoice_item_id "
+							"LEFT JOIN invoices AS i "
+								"ON i.id = ili.invoice_id "
 							"LEFT JOIN purchase_order_items AS poli "
 								"ON poli.id = sn.purchase_order_item_id "
+							"LEFT JOIN purchase_orders AS po "
+								"ON po.id = poli.purchase_order_id "
 							"GROUP BY sn.id, p.name, sn.serial_number, "
 								"sn.date_inserted, invoice_id, poli.id, "
-								"manufacturing_id "
+								"manufacturing_id, i.dated_for, "
+								"po.date_printed "
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		treeview.set_model(store)
 		DB.rollback()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
