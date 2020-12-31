@@ -301,7 +301,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.get_object('button4').set_sensitive(True)
 
 	def reprint_serial_number_clicked (self, button):
-		barcode = self.get_object('reprint_spinbutton').get_value_as_int()
+		barcode = self.get_object('reprint_spinbutton').get_value()
 		label = Item()
 		label.code128 = barcode_generator.makeCode128(str(barcode))
 		label.barcode = barcode
@@ -313,6 +313,32 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		t.render(data) 
 		subprocess.call(["soffice", "--headless", "-p", label_file])
 
+	def treeview_button_release_event (self, widget, event):
+		if event.button != 3:
+			return
+		menu = self.get_object('right_click_menu')
+		menu.popup_at_pointer()
+
+	def invoice_hub_activated (self, menuitem):
+		selection = self.get_object('serial_number_treeselection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_number = model[path][8]
+		if invoice_number == "":
+			return
+		import invoice_hub
+		invoice_hub.InvoiceHubGUI(invoice_number)
+
+	def select_serial_number_activated (self, menuitem):
+		selection = self.get_object('serial_number_treeselection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		serial_number = model[path][3]
+		spinbutton = self.get_object('reprint_spinbutton')
+		spinbutton.set_text(serial_number)
+		spinbutton.update()
 
 
 
