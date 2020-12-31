@@ -160,13 +160,10 @@ pygtk_posting_PYTHON = \
 	about_window.py \
 	about_window.ui \
 	sqlite_utils.py \
-<<<<<<< HEAD
 	admin_utils.py \
 	admin_utils.ui
-=======
 	invoice_hub.py \
 	invoice_hub.ui
->>>>>>> add invoice_hub files
 
 
 EXTRA_DIST = $(ui_DATA)
