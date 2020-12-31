@@ -159,7 +159,9 @@ pygtk_posting_PYTHON = \
 	contact_edit_individual.ui \
 	about_window.py \
 	about_window.ui \
-	sqlite_utils.py
+	sqlite_utils.py \
+	admin_utils.py \
+	admin_utils.ui
 
 
 EXTRA_DIST = $(ui_DATA)

@@ -19,7 +19,8 @@ import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re, psycopg2
 from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
-						is_admin, help_dir, broadcaster
+						help_dir, broadcaster
+import admin_utils
 
 UI_FILE = ui_directory + "/main_window.ui"
 
@@ -43,7 +44,8 @@ class MainGUI :
 		self.window.set_title('%s - PyGtk Posting' % db_name)
 		self.window.show_all()
 		self.window.set_default_icon_name("pygtk-posting") # app-wide icon
-		self.set_admin_menus(dev_mode)
+		admin_utils.main_class = self
+		admin_utils.set_admin(dev_mode)
 		self.populate_menu_features ()
 		self.populate_modules ()
 		# run version upgrade later to prevent rollback when showing main window
@@ -127,9 +129,6 @@ class MainGUI :
 		import customer_finance_charge
 		customer_finance_charge.CustomerFinanceChargeGUI()
 
-	def password_entry_activated (self, dialog):
-		dialog.response(-3)
-
 	def credit_card_merchant_activated (self, menuitem):
 		global ccm
 		if ccm == None or ccm.exists == False:
@@ -139,26 +138,7 @@ class MainGUI :
 			ccm.window.present()
 
 	def admin_login_clicked (self, menuitem):
-		if is_admin == True:
-			self.set_admin_menus (False)
-			menuitem.set_label("Admin login")
-		else:
-			self.check_admin (False)
-
-	def set_admin_menus (self, value):
-		self.builder.get_object('menuitem10').set_sensitive(value)
-		self.builder.get_object('menuitem67').set_sensitive(value)
-		self.builder.get_object('menuitem21').set_sensitive(value)
-		self.builder.get_object('menuitem45').set_sensitive(value)
-		self.builder.get_object('menuitem55').set_sensitive(value)
-		self.builder.get_object('menuitem50').set_sensitive(value)
-		self.builder.get_object('menuitem74').set_sensitive(value)
-		self.builder.get_object('menuitem76').set_sensitive(value)
-		self.builder.get_object('menuitem64').set_sensitive(value)
-		self.builder.get_object('menuitem49').set_sensitive(value)
-		self.builder.get_object('menuitem80').set_sensitive(value)
-		import constants
-		constants.is_admin = value
+		admin_utils.AdminDialogGUI()
 
 	def blank_clicked (self, button):
 		pass
@@ -397,22 +377,6 @@ class MainGUI :
 	def receive_orders_clicked (self, button):
 		import receive_orders
 		receive_orders.ReceiveOrdersGUI()
-
-	def check_admin (self, external = True):
-		"check for admin, external option to show extra alert for not being admin"
-		if is_admin == False:
-			dialog = self.builder.get_object('admin_dialog')
-			self.builder.get_object('label21').set_visible(external)
-			result = dialog.run()
-			dialog.hide()
-			text = self.builder.get_object('entry2').get_text().lower()
-			self.builder.get_object('entry2').set_text('')
-			self.builder.get_object('menuitem35').set_label("Admin logout")
-			if result == Gtk.ResponseType.ACCEPT and text == 'admin':
-				self.set_admin_menus (True)
-				return True #updated to admin
-			return False #not admin, and not updated
-		return True #admin already to begin with
 
 	def employee_time (self, widget):
 		import employee_payment
