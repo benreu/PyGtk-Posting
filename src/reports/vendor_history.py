@@ -20,6 +20,7 @@ from gi.repository import Gtk, Gdk
 from decimal import Decimal
 import subprocess
 from constants import ui_directory, DB
+import admin_utils
 
 UI_FILE = ui_directory + "/reports/vendor_history.ui"
 
@@ -66,6 +67,7 @@ class VendorHistoryGUI:
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		print(admin_utils.is_admin)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -319,6 +321,26 @@ class VendorHistoryGUI:
 		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
 							"WHERE id = %s", (file_data, po_id))
 		DB.commit()
+
+	def name_edited (self, cellrenderertext, path, text):
+		if not admin_utils.is_admin:
+			return
+		self.po_id = self.po_store[path][0]
+		self.cursor.execute("UPDATE purchase_orders "
+							"SET name = %s "
+							"WHERE id = %s", (text, self.po_id))
+		DB.commit()
+		self.po_store[path][3] = text
+
+	def description_edited (self, cellrenderertext, path, text):
+		if not admin_utils.is_admin:
+			return
+		self.po_id = self.po_store[path][0]
+		self.cursor.execute("UPDATE purchase_orders "
+							"SET invoice_description = %s "
+							"WHERE id = %s", (text, self.po_id))
+		DB.commit()
+		self.po_store[path][4] = text
 
 
 

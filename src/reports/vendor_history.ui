@@ -298,7 +298,10 @@
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">3</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext2"/>
+                          <object class="GtkCellRendererText" id="cellrenderertext2">
+                            <property name="editable">True</property>
+                            <signal name="edited" handler="name_edited" swapped="no"/>
+                          </object>
                           <attributes>
                             <attribute name="text">3</attribute>
                           </attributes>
@@ -316,6 +319,7 @@
                           <object class="GtkCellRendererText" id="cellrenderertext4">
                             <property name="editable">True</property>
                             <property name="ellipsize">middle</property>
+                            <signal name="edited" handler="description_edited" swapped="no"/>
                           </object>
                           <attributes>
                             <attribute name="text">4</attribute>
