@@ -138,7 +138,7 @@ class MainGUI :
 			ccm.window.present()
 
 	def admin_login_clicked (self, menuitem):
-		admin_utils.AdminDialogGUI()
+		admin_utils.toggle_admin()
 
 	def blank_clicked (self, button):
 		pass

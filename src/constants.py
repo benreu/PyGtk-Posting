@@ -39,7 +39,8 @@ class Broadcast (GObject.GObject):
 	'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, None, ()) , 
 	'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)) ,
 	'purchase_orders_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)) ,
-	'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
+	'admin_changed': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+	'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ()) 
 	}
 	def __init__ (self):
 		global DB_PROCESS_ID

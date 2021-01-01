@@ -1,4 +1,4 @@
-# admin_dialog.py
+# admin_utils.py
 #
 # Copyright (C) 2020 - reuben
 #
@@ -16,18 +16,18 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-from constants import ui_directory
+from constants import ui_directory, broadcaster
 
 UI_FILE = ui_directory + "/admin_utils.ui"
 
 main_window = None
 is_admin = False
 
-def get_admin (prompt = False):
-	"check for admin, prompt option to show extra alert for not being admin"
+def check_admin (window):
+	"check for admin, and show alert for not being admin"
 	if is_admin == False:
-		if prompt == True:
-			pass
+		AdminDialogGUI(window)
+	return is_admin 
 
 def set_admin (value):
 	main_class.builder.get_object('menuitem10').set_sensitive(value)
@@ -47,25 +47,30 @@ def set_admin (value):
 		main_class.builder.get_object('menuitem35').set_label("Admin login")
 	global is_admin
 	is_admin = value
+	broadcaster.emit("admin_changed", value)
+
+def toggle_admin():
+	if is_admin == False:
+		AdminDialogGUI(main_class.window)
+	else:
+		set_admin (False)
 
 class AdminDialogGUI (Gtk.Builder):
-	def __init__(self):
+	def __init__(self, window):
 		
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		if is_admin == True:
-			set_admin (False)
-		else:
-			dialog = self.get_object('admin_dialog')
-			dialog.set_transient_for(main_class.window)
-			#self.builder.get_object('label21').set_visible(external)
-			result = dialog.run()
-			dialog.hide()
-			text = self.get_object('entry2').get_text().lower()
-			self.get_object('entry2').set_text('')
-			if result == Gtk.ResponseType.ACCEPT and text == 'admin':
-				set_admin (True)
+		
+		dialog = self.get_object('admin_dialog')
+		dialog.set_transient_for(window)
+		self.get_object('label21').set_visible(True)
+		result = dialog.run()
+		dialog.hide()
+		text = self.get_object('entry2').get_text().lower()
+		self.get_object('entry2').set_text('')
+		if result == Gtk.ResponseType.ACCEPT and text == 'admin':
+			set_admin (True)
 
 	def password_entry_activated (self, dialog):
 		dialog.response(-3)
