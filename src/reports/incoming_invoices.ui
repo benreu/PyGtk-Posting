@@ -28,7 +28,7 @@
   </object>
   <object class="GtkListStore" id="invoice_items_store">
     <columns>
-      <!-- column-name row_id -->
+      <!-- column-name gl_entry_id -->
       <column type="gint"/>
       <!-- column-name price -->
       <column type="gfloat"/>
@@ -36,7 +36,9 @@
       <column type="gchararray"/>
       <!-- column-name account -->
       <column type="gchararray"/>
-      <!-- column-name remark -->
+      <!-- column-name iige_link_id -->
+      <column type="gint"/>
+      <!-- column-name description -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -167,6 +169,21 @@
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">Refresh</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Reload incoming invoices</property>
+                    <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkSearchEntry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -179,7 +196,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">3</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
               </object>
@@ -246,6 +263,7 @@
                           <object class="GtkCellRendererText" id="cellrenderertext5">
                             <property name="editable">True</property>
                             <property name="ellipsize">end</property>
+                            <signal name="edited" handler="incoming_invoice_description_edited" swapped="no"/>
                           </object>
                           <attributes>
                             <attribute name="text">4</attribute>
@@ -329,13 +347,14 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Remark</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">4</property>
+                    <property name="sort_column_id">5</property>
                     <child>
                       <object class="GtkCellRendererText">
                         <property name="editable">True</property>
+                        <signal name="edited" handler="incoming_item_description_edited" swapped="no"/>
                       </object>
                       <attributes>
-                        <attribute name="text">4</attribute>
+                        <attribute name="text">5</attribute>
                       </attributes>
                     </child>
                   </object>

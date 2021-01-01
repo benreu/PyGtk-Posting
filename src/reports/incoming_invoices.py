@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 import subprocess
 from constants import ui_directory, DB
+import admin_utils
 
 UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
 
@@ -122,6 +123,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def view_all_toggled (self, checkbutton):
 		self.populate_incoming_invoice_store()
 
+	def refresh_clicked (self, button):
+		self.populate_incoming_invoice_store()
+
 	def populate_incoming_invoice_store (self):
 		self.incoming_invoice_store.clear()
 		self.invoice_items_store.clear()
@@ -164,10 +168,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.invoice_items_store.clear()
 		row_id = model[path][0]
 		self.cursor.execute("SELECT "
-								"iige.id, "
+								"ge.id, "
 								"ge.amount, "
 								"ge.amount::text, "
 								"ga.name, "
+								"iige.id, "
 								"iige.remark "
 							"FROM "
 							"incoming_invoices_gl_entry_expenses_ids AS iige "
@@ -180,6 +185,32 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			self.invoice_items_store.append(row)
 		DB.rollback()
+
+	########## admin section
+
+	def incoming_invoice_description_edited (self, cellrenderer, path, text):
+		if not admin_utils.is_admin:
+			return
+		store = self.get_object('incoming_invoices_store')
+		incoming_invoice_id = store[path][0]
+		c = DB.cursor()
+		c.execute("UPDATE incoming_invoices "
+					"SET description = %s WHERE id = %s",
+					(text, incoming_invoice_id))
+		DB.commit()
+		store[path][4] = text
+
+	def incoming_item_description_edited (self, cellrenderer, path, text):
+		if not admin_utils.is_admin:
+			return
+		store = self.get_object('invoice_items_store')
+		incoming_invoice_link_id = store[path][4]
+		c = DB.cursor()
+		c.execute("UPDATE incoming_invoices_gl_entry_expenses_ids "
+					"SET remark = %s WHERE id = %s",
+					(text, incoming_invoice_link_id))
+		DB.commit()
+		store[path][5] = text
 
 
 
