@@ -51,15 +51,13 @@ class CreditCardStatementGUI:
 		self.cursor.close()
 
 	def focus (self, window, event):
-		return
-		self.populate_accounts_combo()
+		pass
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def populate_accounts_combo(self):
 		credit_card_store = self.builder.get_object('credit_card_store')
-		#cc_id = credit_card_combo.get_active_id()
 		credit_card_store.clear()
 		self.cursor.execute("SELECT number, name, "
 							"(SELECT COALESCE(SUM(amount), 0.00) FROM gl_entries "
