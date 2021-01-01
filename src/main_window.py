@@ -171,6 +171,10 @@ class MainGUI :
 		from admin import duplicate_contact
 		duplicate_contact.DuplicateContactGUI()
 
+	def credit_card_statements_report_clicked (self, menuitem):
+		from reports import credit_card_statement_history
+		credit_card_statement_history.CreditCardHistoryGUI()
+
 	def resource_diary_activated (self, menuitem):
 		from resources import resource_diary
 		resource_diary.ResourceDiaryGUI ()

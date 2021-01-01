@@ -625,6 +625,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Credit card statements</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="credit_card_statements_report_clicked" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem18">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>

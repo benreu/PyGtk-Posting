@@ -62,6 +62,8 @@ python_PYTHON = time_clock_project.ui \
 	charts.py \
 	charts.ui \
 	po_payment_matching.py \
-	po_payment_matching.ui
+	po_payment_matching.ui \
+	credit_card_statement_history.py \
+	credit_card_statement_history.ui
 
 uidir = $(pkgdatadir)/reports/ui

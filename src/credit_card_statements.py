@@ -36,7 +36,8 @@ class CreditCardStatementGUI:
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
 									'fees_rewards_description_store')
-		
+
+		self.credit_card_account = None
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
@@ -162,7 +163,15 @@ class CreditCardStatementGUI:
 		date = self.transactions_store[path][1]
 		entry.set_text(date)
 
-	def populate_statement_treeview (self, widget = None):
+	def credit_card_statement_history_clicked (self, button):
+		from reports import credit_card_statement_history
+		credit_card_statement_history.CreditCardHistoryGUI()
+
+	def refresh_clicked (self, button):
+		if self.credit_card_account:
+			self.populate_statement_treeview()
+
+	def populate_statement_treeview (self):
 		self.transactions_store.clear()
 		self.cursor.execute("SELECT "
 								"id, "
