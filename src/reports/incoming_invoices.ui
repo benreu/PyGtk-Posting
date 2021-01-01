@@ -55,6 +55,34 @@
       </object>
     </child>
   </object>
+  <object class="GtkMenu" id="menu2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkCheckMenuItem" id="edit_mode_checkbutton">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Edit mode</property>
+        <property name="use_underline">True</property>
+        <signal name="toggled" handler="edit_mode_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Refresh</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="refresh_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="service_provider_store">
     <columns>
       <!-- column-name id -->
@@ -97,6 +125,7 @@
       <object class="GtkPaned">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
+        <property name="border_width">10</property>
         <property name="orientation">vertical</property>
         <property name="position">225</property>
         <property name="position_set">True</property>
@@ -105,7 +134,6 @@
           <object class="GtkBox" id="box1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="border_width">10</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkBox" id="box2">
@@ -169,21 +197,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton">
-                    <property name="label" translatable="yes">Refresh</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_text" translatable="yes">Reload incoming invoices</property>
-                    <signal name="clicked" handler="refresh_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">3</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkSearchEntry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -197,6 +210,22 @@
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkMenuButton">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="popup">menu2</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
               </object>
@@ -213,13 +242,13 @@
                 <property name="hscrollbar_policy">never</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTreeView" id="treeview1">
+                  <object class="GtkTreeView" id="incoming_invoices_treeview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">incoming_invoices_sort</property>
                     <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection1">
+                      <object class="GtkTreeSelection" id="incoming_invoices_tree_selection">
                         <signal name="changed" handler="incoming_invoice_selection_changed" swapped="no"/>
                       </object>
                     </child>
@@ -304,15 +333,14 @@
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="border_width">10</property>
             <property name="shadow_type">in</property>
             <child>
-              <object class="GtkTreeView">
+              <object class="GtkTreeView" id="invoice_items_treeview">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">invoice_items_store</property>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
+                  <object class="GtkTreeSelection" id="invoice_items_tree_selection"/>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">

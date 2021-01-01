@@ -18,7 +18,7 @@
 
 from gi.repository import Gtk
 import subprocess
-from constants import ui_directory, DB
+from constants import ui_directory, DB, broadcaster
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
@@ -43,12 +43,21 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.filter.set_visible_func(self.filter_func)
 
 		self.populate_service_provider_store ()
+		self.handler_ids = list()
+		for connection in (("admin_changed", self.admin_changed), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, widget):
 		self.cursor.close()
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+
+	def admin_changed (self, broadcast_object, value):
+		self.get_object('edit_mode_checkbutton').set_active(False)
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -66,7 +75,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		return True
 
 	def view_attachment_activated (self, menuitem):
-		selection = self.get_object('treeview-selection1')
+		selection = self.get_object('incoming_invoices_tree_selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -123,7 +132,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def view_all_toggled (self, checkbutton):
 		self.populate_incoming_invoice_store()
 
-	def refresh_clicked (self, button):
+	def refresh_activated (self, button):
 		self.populate_incoming_invoice_store()
 
 	def populate_incoming_invoice_store (self):
@@ -188,22 +197,36 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	########## admin section
 
+	def edit_mode_toggled (self, checkmenuitem):
+		if checkmenuitem.get_active() == False:
+			return # Warning, only check for admin when toggling to True
+		if not admin_utils.check_admin(self.window):
+			checkmenuitem.set_active(False)
+			return True
+		'''some wierdness going on with showing a dialog without letting the
+		checkmenuitem update its state'''
+		checkmenuitem.set_active(True)
+
 	def incoming_invoice_description_edited (self, cellrenderer, path, text):
-		if not admin_utils.is_admin:
+		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
-		store = self.get_object('incoming_invoices_store')
+		store = self.get_object('incoming_invoices_sort')
+		if text == store[path][4]:
+			return
 		incoming_invoice_id = store[path][0]
 		c = DB.cursor()
 		c.execute("UPDATE incoming_invoices "
 					"SET description = %s WHERE id = %s",
 					(text, incoming_invoice_id))
 		DB.commit()
-		store[path][4] = text
+		self.populate_incoming_invoice_store()
 
 	def incoming_item_description_edited (self, cellrenderer, path, text):
-		if not admin_utils.is_admin:
+		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
 		store = self.get_object('invoice_items_store')
+		if text == store[path][5]:
+			return
 		incoming_invoice_link_id = store[path][4]
 		c = DB.cursor()
 		c.execute("UPDATE incoming_invoices_gl_entry_expenses_ids "
