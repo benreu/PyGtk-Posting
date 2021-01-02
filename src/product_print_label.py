@@ -101,6 +101,7 @@ class ProductPrintLabelGUI (Gtk.Builder):
 	def print_label_clicked (self, button):
 		self.generate_label()
 		subprocess.Popen(["soffice", "-p", self.label_file])
+		self.window.destroy()
 
 	def view_label_clicked (self, button):
 		self.generate_label()

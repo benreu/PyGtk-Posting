@@ -43,6 +43,11 @@ class ProductHubGUI:
 	def cancel_clicked (self, button):
 		self.window.destroy()
 
+	def print_label_clicked (self, button):
+		import product_print_label
+		product_print_label.ProductPrintLabelGUI(self.product_id)
+		self.window.destroy()
+
 	def edit_product_clicked (self, button):
 		import products_overview
 		p_gui = products_overview.ProductsOverviewGUI(self.product_id)
