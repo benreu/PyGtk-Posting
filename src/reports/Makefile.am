@@ -2,8 +2,6 @@
 
 python_PYTHON = time_clock_project.ui \
 	time_clock_project.py \
-	inventory_count.py \
-	inventory_count.ui \
 	job_sheet_history.ui \
 	job_sheet_history.py \
 	time_clock_history.ui \
