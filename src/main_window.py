@@ -48,8 +48,7 @@ class MainGUI :
 		admin_utils.set_admin(dev_mode)
 		self.populate_menu_features ()
 		self.populate_modules ()
-		# run version upgrade later to prevent rollback when showing main window
-		GLib.idle_add(self.check_db_version) 
+		self.check_db_version() 
 		import traceback_handler
 		traceback_handler.Log()
 
@@ -96,6 +95,9 @@ class MainGUI :
 	def check_db_version (self):
 		from db import version
 		version.CheckVersion(self)
+		# avoid rollbacks during upgrade process by connecting focus afterwards
+		self.window.connect("focus-in-event", self.focus)
+		self.focus()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -417,16 +419,12 @@ class MainGUI :
 		red = Gdk.RGBA(1, 0, 0, 1)
 		orange = Gdk.RGBA(1, 0.5, 0, 1)
 		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
-		try:
-			c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
-						"(SELECT statement_finish_date FROM settings) "
-						"+ INTERVAL'1 month') "
-						"+ ((SELECT statement_day_of_month FROM settings) "
-							"* INTERVAL '1 day') "
-						"- INTERVAL '1 day'")
-		except Exception as e:
-			DB.rollback()
-			return
+		c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
+					"(SELECT statement_finish_date FROM settings) "
+					"+ INTERVAL'1 month') "
+					"+ ((SELECT statement_day_of_month FROM settings) "
+						"* INTERVAL '1 day') "
+					"- INTERVAL '1 day'")
 		if c.fetchone()[0] == True:
 			store.append(["Print statements", 0, self.statement_window, orange])
 		c.execute("SELECT "
@@ -478,8 +476,8 @@ class MainGUI :
 			self.populate_to_do_treeview()
 			self.load_statistics()
 		except psycopg2.Error as e:
-			DB.rollback()
 			print(e)
+		DB.rollback()
 
 	def load_statistics (self):
 		c = DB.cursor()
@@ -534,7 +532,6 @@ class MainGUI :
 			open_invoices = "Open POs\n         (%s)" % row[0]
 		self.builder.get_object('button13').set_label(open_invoices)
 		c.close()
-		DB.rollback()
 
 	def inventory_history_report (self, widget):
 		from inventory import inventory_history
