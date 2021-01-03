@@ -8,4 +8,8 @@ python_PYTHON = __init__.py \
 	inventorying.py \
 	PyGtk_Posting.svg \
 	inventory_adjustment.ui \
-	invoiced.py
+	invoiced.py \
+	inventory_summaries.py \
+	inventory_summaries.ui \
+	inventory_count.py \
+	inventory_count.ui

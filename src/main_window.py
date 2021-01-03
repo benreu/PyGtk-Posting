@@ -274,7 +274,7 @@ class MainGUI :
 		payment_receipt.PaymentReceiptGUI()
 
 	def count_inventory_activated (self, menuitem):
-		from reports import inventory_count
+		from inventory import inventory_count
 		inventory_count.InventoryCountGUI()
 
 	def user_manual_help (self, widget):
@@ -690,10 +690,6 @@ class MainGUI :
 	def time_clock_history (self, button):
 		from reports import time_clock_history
 		time_clock_history.TimeClockHistoryGUI ()
-
-	def count_inventory_clicked (self, button):
-		from reports import inventory_count
-		inventory_count.InventoryCountGUI()
 
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history
