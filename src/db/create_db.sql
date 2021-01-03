@@ -1131,7 +1131,11 @@ END
 $func$ LANGUAGE plpgsql;
 
 --CREATE FUNCTION public.customer_product_price
-CREATE FUNCTION public.customer_product_price (_customer_id bigint, _product_id bigint, OUT _price numeric(12, 2)) RETURNS numeric(12, 2)
+CREATE FUNCTION public.customer_product_price (
+		_customer_id bigint, 
+		_product_id bigint, 
+		OUT _price numeric)
+	RETURNS numeric(12, 2)
     LANGUAGE plpgsql
     AS 
 $BODY$ 
@@ -1145,7 +1149,7 @@ $BODY$
         SELECT markup_percent INTO _markup_percent FROM customer_markup_percent AS cmp
         JOIN contacts AS c ON c.markup_percent_id = cmp.id 
         WHERE c.id = _customer_id;
-        SELECT _cost * _markup_percent / 100 INTO _price; 
+        SELECT _cost + (_cost * _markup_percent) / 100 INTO _price; 
     END IF; 
     RETURN; 
     END ;

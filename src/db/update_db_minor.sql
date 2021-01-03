@@ -116,6 +116,54 @@ CREATE TABLE IF NOT EXISTS inventory.count_rows (
 	date_inserted date NOT NULL DEFAULT now(),
 	CONSTRAINT count_summary_id_product_id_unique UNIQUE (count_summary_id, product_id)
 );
+--CREATE FUNCTION public.product_retail_price
+CREATE OR REPLACE FUNCTION public.product_retail_price(
+		IN _product_id bigint,
+		OUT _price numeric)
+	RETURNS numeric(12, 2) 
+	LANGUAGE plpgsql AS 
+$BODY$ 
+	DECLARE _cost numeric(12, 2); _markup_percent numeric(12, 2); 
+	BEGIN 
+	SELECT price INTO _price FROM products_markup_prices AS pmp 
+		JOIN customer_markup_percent AS cmp 
+			ON cmp.id = pmp.markup_id 
+			AND cmp.standard = True 
+		WHERE pmp.product_id = _product_id; 
+	IF NOT FOUND THEN 
+		SELECT cost INTO _cost FROM products WHERE id = _product_id;
+		SELECT markup_percent INTO _markup_percent FROM customer_markup_percent AS cmp
+		WHERE standard = True;
+		SELECT _cost + (_cost * _markup_percent) / 100 INTO _price; 
+	END IF; 
+	RETURN; 
+	END ;
+$BODY$ ;
+
+--CREATE FUNCTION public.customer_product_price
+CREATE OR REPLACE FUNCTION public.customer_product_price (
+		_customer_id bigint, 
+		_product_id bigint, 
+		OUT _price numeric)
+	RETURNS numeric(12, 2)
+    LANGUAGE plpgsql
+    AS 
+$BODY$ 
+    DECLARE _cost numeric(12, 2); _markup_percent numeric(12, 2); 
+    BEGIN 
+    SELECT pmp.price INTO _price FROM products_markup_prices AS pmp 
+        JOIN contacts AS c ON c.markup_percent_id = pmp.markup_id
+        WHERE (c.id, pmp.product_id) = (_customer_id, _product_id); 
+    IF NOT FOUND THEN 
+        SELECT cost INTO _cost FROM products WHERE id = _product_id;
+        SELECT markup_percent INTO _markup_percent FROM customer_markup_percent AS cmp
+        JOIN contacts AS c ON c.markup_percent_id = cmp.id 
+        WHERE c.id = _customer_id;
+        SELECT _cost + (_cost * _markup_percent) / 100 INTO _price; 
+    END IF; 
+    RETURN; 
+    END ;
+$BODY$ ;
 
 
 
