@@ -95,6 +95,27 @@ END
 $$;
 --0.6.1
 ALTER TABLE public.files ALTER COLUMN date_inserted SET DEFAULT now();
+--0.6.2
+CREATE SCHEMA IF NOT EXISTS inventory;
+CREATE TABLE IF NOT EXISTS inventory.count_summaries (
+	id bigserial primary key,
+	name text NOT NULL,
+	fiscal_id bigint NOT NULL REFERENCES fiscal_years,
+	date_created date NOT NULL DEFAULT now(),
+	date_ended date,
+	total_cost numeric(12, 2) NOT NULL DEFAULT 0.00,
+	total_retail numeric(12, 2) NOT NULL DEFAULT 0.00,
+	active boolean NOT NULL DEFAULT True
+);
+CREATE TABLE IF NOT EXISTS inventory.count_rows (
+	count_summary_id bigint NOT NULL REFERENCES inventory.count_summaries,
+	product_id bigint NOT NULL REFERENCES products,
+	qty numeric(12, 2) NOT NULL DEFAULT 0.00,
+	cost numeric(16, 6) NOT NULL,
+	retail numeric(16, 6) NOT NULL,
+	date_inserted date NOT NULL DEFAULT now(),
+	CONSTRAINT count_summary_id_product_id_unique UNIQUE (count_summary_id, product_id)
+);
 
 
 
