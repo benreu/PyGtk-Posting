@@ -20,31 +20,31 @@ from constants import ui_directory, DB
 
 UI_FILE = ui_directory + "/reports/loan_payments.ui"
 
-class LoanPaymentsGUI:
+class LoanPaymentsGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
 
-		self.loan_payment_store = self.builder.get_object('loan_payments_store')
-		self.loan_store = self.builder.get_object('loan_store')
+		self.loan_payment_store = self.get_object('loan_payments_store')
+		self.loan_store = self.get_object('loan_store')
 		self.populate_loans ()
 
-		column = self.builder.get_object ('treeviewcolumn2')
-		renderer = self.builder.get_object ('cellrenderertext2')
+		column = self.get_object ('treeviewcolumn2')
+		renderer = self.get_object ('cellrenderertext2')
 		column.set_cell_data_func(renderer, self.cell_func, 2)
 
-		column = self.builder.get_object ('treeviewcolumn3')
-		renderer = self.builder.get_object ('cellrenderertext3')
+		column = self.get_object ('treeviewcolumn3')
+		renderer = self.get_object ('cellrenderertext3')
 		column.set_cell_data_func(renderer, self.cell_func, 3)
 
-		column = self.builder.get_object ('treeviewcolumn4')
-		renderer = self.builder.get_object ('cellrenderertext4')
+		column = self.get_object ('treeviewcolumn4')
+		renderer = self.get_object ('cellrenderertext4')
 		column.set_cell_data_func(renderer, self.cell_func, 4)
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -67,32 +67,68 @@ class LoanPaymentsGUI:
 		if loan_id != None :
 			self.loan_id = loan_id
 			self.populate_loan_payments()
+			self.populate_loan_totals()
+			DB.rollback()
 
 	def populate_loan_payments (self):
 		self.loan_payment_store.clear()
-		self.cursor.execute("SELECT "
-								"lp.id, "
-								"c.name, "
-								"total.amount::float, "
-								"principal.amount::float, "
-								"interest.amount::float, "
-								"total.date_inserted::text, "
-								"format_date(total.date_inserted) "
-							"FROM loan_payments AS lp "
-							"JOIN gl_entries AS total "
-								"ON total.id = lp.gl_entries_total_id "
-							"JOIN gl_entries AS principal "
-								"ON principal.id = lp.gl_entries_principal_id "
-							"JOIN gl_entries AS interest "
-								"ON interest.id = lp.gl_entries_interest_id "
-							"JOIN contacts AS c ON c.id = lp.contact_id "
-							"WHERE lp.loan_id = %s ORDER BY principal.date_inserted", 
-							(self.loan_id,))
-		for row in self.cursor.fetchall():
+		c = DB.cursor()
+		c.execute("SELECT "
+						"lp.id, "
+						"c.name, "
+						"total.amount::float, "
+						"principal.amount::float, "
+						"interest.amount::float, "
+						"total.date_inserted::text, "
+						"format_date(total.date_inserted) "
+					"FROM loan_payments AS lp "
+					"JOIN gl_entries AS total "
+						"ON total.id = lp.gl_entries_total_id "
+					"JOIN gl_entries AS principal "
+						"ON principal.id = lp.gl_entries_principal_id "
+					"JOIN gl_entries AS interest "
+						"ON interest.id = lp.gl_entries_interest_id "
+					"JOIN contacts AS c ON c.id = lp.contact_id "
+					"WHERE lp.loan_id = %s ORDER BY principal.date_inserted", 
+					(self.loan_id,))
+		for row in c.fetchall():
 			self.loan_payment_store.append(row)
-		DB.rollback()
 
-
+	def populate_loan_totals (self):
+		c = DB.cursor()
+		c.execute("SELECT "
+						"format_date(l.date_received), "
+						"l.period_amount::text ||' '||l.period||'(s)', "
+						"c.name, "
+						"liability.name, "
+						"l.finished, "
+						"l.amount::money, "
+						"COALESCE(SUM(principal.amount), 0.00)::money, "
+						"COALESCE(l.amount - SUM(principal.amount), 0.00)::money, "
+						"COALESCE(SUM(interest.amount), 0.00)::money "
+					"FROM loans AS l "
+					"LEFT JOIN loan_payments AS lp ON l.id = lp.loan_id "
+					"LEFT JOIN gl_entries AS principal "
+						"ON principal.id = lp.gl_entries_principal_id "
+					"LEFT JOIN gl_entries AS interest "
+						"ON interest.id = lp.gl_entries_interest_id "
+					"JOIN gl_accounts AS liability "
+						"ON liability.number = l.liability_account "
+					"JOIN contacts AS c ON c.id = l.contact_id "
+					"WHERE l.id = %s "
+					"GROUP BY l.amount, l.date_received, l.period_amount, "
+					"l.period, l.finished, liability.name, c.name", 
+					(self.loan_id,))
+		for row in c.fetchall():
+			self.get_object('date_started_entry').set_text(row[0])
+			self.get_object('payment_period_entry').set_text(row[1])
+			self.get_object('contact_name_entry').set_text(row[2])
+			self.get_object('liability_account_entry').set_text(row[3])
+			self.get_object('finished_checkbutton').set_active(row[4])
+			self.get_object('loan_total_entry').set_text(row[5])
+			self.get_object('principal_paid_entry').set_text(row[6])
+			self.get_object('principal_unpaid_entry').set_text(row[7])
+			self.get_object('interest_paid_entry').set_text(row[8])
 
 
 
