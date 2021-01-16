@@ -164,6 +164,8 @@ $BODY$
     RETURN; 
     END ;
 $BODY$ ;
-
+-- 0.6.4
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS liability_account bigint REFERENCES gl_accounts;
+UPDATE loans SET liability_account = ge.credit_account FROM (SELECT id, credit_account FROM gl_entries) AS ge WHERE loans.gl_entries_id = ge.id AND loans.liability_account IS NULL;
 
 
