@@ -126,6 +126,12 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			self.credit_card_store.append(row)
 		DB.rollback()
 
+	def set_shipping_description (self, text):
+		self.get_object('entry1').set_text(text)
+
+	def set_date (self, date):
+		self.calendar.set_date(date)
+
 	def service_provider_clicked (self, button):
 		import contacts_overview
 		contacts_overview.ContactsOverviewGUI()

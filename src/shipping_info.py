@@ -91,6 +91,8 @@ class ShippingInfoGUI(Gtk.Builder):
 			self.shipping_description = description
 
 	def populate_invoices (self):
+		self.invoice_id = None
+		self.get_object('invoice_id_entry').set_text('')
 		self.get_object('shipping_description_entry').set_sensitive(True)
 		self.invoice_store.clear()
 		self.cursor.execute("SELECT "
@@ -118,6 +120,9 @@ class ShippingInfoGUI(Gtk.Builder):
 			self.incoming_invoice = incoming_invoice.IncomingInvoiceGUI()
 			self.incoming_invoice.window.set_transient_for (self.window)
 			self.incoming_invoice.connect('invoice_applied', self.incoming_invoice_applied)
+			text = self.get_object('shipping_description_entry').get_text()
+			self.incoming_invoice.set_shipping_description(text)
+			self.incoming_invoice.set_date(self.date)
 		else:
 			self.incoming_invoice.window.show()
 

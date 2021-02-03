@@ -268,7 +268,7 @@ This transaction will be linked to the shipping info.</property>
                     <property name="id_column">0</property>
                     <signal name="changed" handler="invoice_changed" swapped="no"/>
                     <child internal-child="entry">
-                      <object class="GtkEntry">
+                      <object class="GtkEntry" id="invoice_id_entry">
                         <property name="can_focus">True</property>
                         <property name="completion">invoice_completion</property>
                       </object>
