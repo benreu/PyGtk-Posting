@@ -397,9 +397,8 @@ class MainGUI :
 		pay_stub_history.PayStubHistoryGUI()
 
 	def backup_window (self, n):
-		from db import backup_restore
-		u = backup_restore.Utilities(self)
-		u.backup_gui ()
+		from db import database_backup
+		database_backup.BackupGUI(automatic = True)
 
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()

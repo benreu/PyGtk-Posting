@@ -7,8 +7,6 @@ python_PYTHON = database_tools.py \
 	PyGtk_Posting.svg \
 	transactor.py \
 	__init__.py \
-	backup_restore.py \
-	backup_restore.ui \
 	sql_window.py \
 	sql_window.ui \
 	create_db.sql \
@@ -16,4 +14,8 @@ python_PYTHON = database_tools.py \
 	update_db_major.sql \
 	update_db_minor.sql \
 	version.py \
-	version.ui
+	version.ui \
+	database_backup.py \
+	database_backup.ui \
+	database_restore.py \
+	database_restore.ui

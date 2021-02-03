@@ -65,18 +65,16 @@ class GUI:
 			return True
 
 	def backup_database_clicked(self, widget):
-		from db.backup_restore import Utilities 
-		u = Utilities(parent = self )
-		u.backup_gui()
+		from db.database_backup import BackupGUI 
+		BackupGUI()
 
 	def restore_database_clicked(self, widget):
 		restore_database_name = self.builder.get_object('entry6').get_text()
 		if restore_database_name == "":
 			self.status_update("Database name is blank!")
 		else:
-			from db.backup_restore import Utilities
-			u = Utilities(parent = self)
-			u.restore_gui(restore_database_name, self)
+			from db.database_restore import RestoreGUI
+			RestoreGUI(restore_database_name, self)
 			
 	def restore_name_changed(self, widget):
 		restore_database_name = widget.get_text()
@@ -320,10 +318,24 @@ class GUI:
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
 			self.builder.get_object("entry5").set_text(row[3])
-		entry = self.builder.get_object('postgres_bin_path_entry')
 		cursor.execute("SELECT value FROM settings "
 						"WHERE setting = 'postgres_bin_path'")
-		entry.set_text(cursor.fetchone()[0])
+		self.bin_path = cursor.fetchone()[0]
+		chooser = self.builder.get_object('bin_path_chooser')
+		if os.path.exists(self.bin_path):
+			chooser.set_current_folder(self.bin_path)
+			chooser.set_tooltip_text(self.bin_path)
+		else:
+			chooser.set_tooltip_text(self.bin_path + ' does not exist')
+		cursor.execute("SELECT value FROM settings "
+						"WHERE setting = 'backup_path'")
+		path = cursor.fetchone()[0]
+		chooser = self.builder.get_object('backup_folder_chooser')
+		if os.path.exists(path):
+			chooser.set_current_folder(path)
+			chooser.set_tooltip_text(path)
+		else:
+			chooser.set_tooltip_text(path + ' does not exist')
 		sqlite.close()
 
 	def test_connection_clicked (self, widget):
@@ -364,20 +376,40 @@ class GUI:
 		GLib.timeout_add(3000, self.status_update, "Please check the entries and try again")
 
 	def postgres_bin_folder_set (self, filechooser):
-		path = filechooser.get_uri()[7:]
+		path = filechooser.get_filename()
 		filechooser.set_tooltip_text(path)
 		buf = self.builder.get_object('postgres_bin_path_buffer')
-		command = "%s/pg_isready" % path
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT user, password, host, port "
+											"FROM postgres_conn;"):
+			sql_user = row[0]
+			sql_password = row[1]
+			sql_host = row[2]
+			sql_port = row[3]
+		sqlite.close()
+		command = ["%s/pg_isready" % path,
+					"-h", sql_host,
+					"-p", sql_port
+					]
 		try:
-			p = Popen([command], stdout=PIPE, stderr=PIPE)
+			p = Popen(command, stdout=PIPE, stderr=PIPE)
 			stdout, stderr = p.communicate()
 			buf.set_text(stdout.decode('utf-8') + stderr.decode('utf-8'))
 		except Exception as e:
 			buf.set_text(str(e))
+			filechooser.set_filename(self.bin_path)
 			return
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("UPDATE settings SET value = ? "
 								"WHERE setting = 'postgres_bin_path'", (path,))
+		sqlite.close()
+
+	def backup_folder_path_set (self, filechooserbutton):
+		path = filechooserbutton.get_filename()
+		filechooserbutton.set_tooltip_text(path)
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE settings SET value = ? "
+								"WHERE setting = 'backup_path'", (path,))
 		sqlite.close()
 
 
