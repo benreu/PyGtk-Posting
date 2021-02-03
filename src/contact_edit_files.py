@@ -45,7 +45,9 @@ class ContactEditFilesGUI(Gtk.Builder):
 			c.execute("SELECT "
 							"id, "
 							"name, "
-							"(octet_length(file_data)/1000)::text || ' Kb' "
+							"(octet_length(file_data)/1000)::text || ' Kb', "
+							"date_inserted::text, "
+							"format_date(date_inserted) "
 						"FROM files "
 						"WHERE contact_id = %s ORDER BY name "
 						"FOR UPDATE NOWAIT", 
