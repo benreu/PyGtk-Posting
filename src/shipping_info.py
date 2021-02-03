@@ -159,7 +159,8 @@ class ShippingInfoGUI(Gtk.Builder):
 								"COALESCE(sh.invoice_id::text, 'N/A'), "
 								"sh.tracking_number, "
 								"sh.date_shipped::text, "
-								"format_date(sh.date_shipped) "
+								"format_date(sh.date_shipped), "
+								"sh.reason "
 							"FROM shipping_info AS sh "
 							"WHERE sh.contact_id = %s ORDER BY date_shipped",
 							(self.contact_id,))
