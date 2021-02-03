@@ -69,6 +69,8 @@ def update_apsw_tables(cursor):
 					"'localhost', '5432', 'None', 'False')")
 	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
 					"('postgres_bin_path', '/usr/bin')")
+	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
+					"('backup_path', '')")
 	cursor.execute("INSERT OR IGNORE INTO product_edit VALUES "
 					"('window_width', 900)")
 	cursor.execute("INSERT OR IGNORE INTO product_edit VALUES "
