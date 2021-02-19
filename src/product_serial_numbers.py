@@ -52,6 +52,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.serial_number = ''
 		self.filtered_store = self.get_object('serial_number_treeview_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
+		sort_model = self.get_object('serial_number_treeview_sort')
+		sort_model.set_sort_func(3, self.treeview_sort_func)
 		self.product_id = 0
 		self.populate_product_store()
 		self.populate_contact_store()
@@ -83,6 +85,18 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			if i not in model[tree_iter][3].lower():
 				return False
 		return True
+
+	def treeview_sort_func (self, model, iter_a, iter_b, arg):
+		a = model[iter_a][3]
+		b = model[iter_b][3]
+		try:
+			return int(a) - int(b)
+		except Exception as e:
+			if a < b:
+				return -1
+			elif a > b:
+				return 1
+			return 0 # indentical
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
