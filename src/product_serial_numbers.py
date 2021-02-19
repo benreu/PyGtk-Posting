@@ -124,6 +124,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def populate_serial_number_history (self):
 		treeview = self.get_object('serial_number_treeview')
+		original_model = treeview.get_model()
 		treeview.set_model(None)
 		store = self.get_object('serial_number_treeview_store')
 		store.clear()
@@ -161,7 +162,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
 			store.append(row)
-		treeview.set_model(store)
+		treeview.set_model(original_model)
 		DB.rollback()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
