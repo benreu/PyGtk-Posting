@@ -316,7 +316,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.get_object('button4').set_sensitive(True)
 
 	def reprint_serial_number_clicked (self, button):
-		barcode = self.get_object('reprint_spinbutton').get_value()
+		barcode = self.get_object('serial_number_entry').get_text()
 		label = Item()
 		label.code128 = barcode_generator.makeCode128(str(barcode))
 		label.barcode = barcode
@@ -351,9 +351,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		if path == []:
 			return
 		serial_number = model[path][3]
-		spinbutton = self.get_object('reprint_spinbutton')
-		spinbutton.set_text(serial_number)
-		spinbutton.update()
+		self.get_object('serial_number_entry').set_text(serial_number)
 
 
 
