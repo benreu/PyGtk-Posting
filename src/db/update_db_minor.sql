@@ -167,5 +167,40 @@ $BODY$ ;
 -- 0.6.4
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS liability_account bigint REFERENCES gl_accounts;
 UPDATE loans SET liability_account = ge.credit_account FROM (SELECT id, credit_account FROM gl_entries) AS ge WHERE loans.gl_entries_id = ge.id AND loans.liability_account IS NULL;
+--0.6.5
+ALTER TABLE public.time_clock_projects 
+	DROP CONSTRAINT time_clock_projects_resource_id_fkey, 
+	ADD CONSTRAINT time_clock_projects_resource_id_fkey 
+	FOREIGN KEY (resource_id)
+	REFERENCES public.resources (id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE public.resources 
+	DROP CONSTRAINT resources_parent_id_fkey, 
+	ADD CONSTRAINT resources_parent_id_fkey 
+	FOREIGN KEY (parent_id)
+	REFERENCES public.resources (id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE public.resources 
+	DROP CONSTRAINT resources_resource_type_id_fkey, 
+	ADD CONSTRAINT resources_resource_type_id_fkey 
+	FOREIGN KEY (resource_type_id)
+	REFERENCES public.resource_types (id) ON UPDATE CASCADE ON DELETE RESTRICT;
+WITH cte AS 
+	(SELECT row_number() OVER (ORDER BY id) AS row_num, id FROM resources ORDER BY id) 
+	UPDATE resources AS r SET id = cte.row_num FROM cte WHERE r.id = cte.id ;
+CREATE TABLE IF NOT EXISTS resource_ids_tag_ids (
+	resource_id bigint NOT NULL REFERENCES resources ON UPDATE CASCADE ON DELETE RESTRICT,
+	resource_tag_id bigint NOT NULL REFERENCES resource_tags ON UPDATE CASCADE ON DELETE RESTRICT,
+	date_inserted date NOT NULL DEFAULT now(),
+	CONSTRAINT resource_id_resource_tag_id_unique UNIQUE (resource_id, resource_tag_id)
+	);
+SELECT setval('resources_id_seq', (SELECT max(id) FROM resources));
+WITH cte AS 
+	(SELECT id, tag_id, date_created FROM public.resources WHERE tag_id IS NOT NULL) 
+	INSERT INTO resource_ids_tag_ids (resource_id, resource_tag_id, date_inserted) 
+	SELECT * FROM cte ON CONFLICT (resource_id, resource_tag_id) DO NOTHING;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS posted boolean DEFAULT false;
+UPDATE resources SET posted = rt.finished FROM (SELECT id, finished FROM resource_tags) AS rt WHERE rt.id = resources.tag_id AND posted = NULL;
+UPDATE resources SET posted = False WHERE posted IS NULL;
+UPDATE resources SET posted = True WHERE diary = True;
+ALTER TABLE resources ALTER COLUMN posted SET NOT NULL;
 
 
