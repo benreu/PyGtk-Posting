@@ -15,13 +15,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib, Gdk, GObject
 from datetime import datetime, date
 from dateutils import DateTimeCalendar
 import spell_check
 from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/resources/resource_management.ui"
+
+class CellRendererRgbaArray(Gtk.CellRendererText):
+	__gtype_name__ = 'CellRendererRgbaArray'
+	__gproperties__ = {'RGBA-array': 
+							( GObject.TYPE_PYOBJECT, 
+							'RGBA array', 
+							'column in TreeStore with RGBA array', 
+							GObject.ParamFlags.READWRITE), }
+	def __init__(self):
+		Gtk.CellRendererText.__init__(self)
+
+	def do_set_property (self, param, value):
+		name = param.name
+		if name == 'RGBA-array':
+			self.rgba_array = value
+			self.rgba_leng = len(value)
+
+	def do_render (self, cr, treeview, src, dest, flags):
+		for index, rgba in enumerate(self.rgba_array):
+			cr.save()
+			cr.set_source_rgba(rgba.red, rgba.green, rgba.blue)
+			x = dest.x + ((dest.width/self.rgba_leng) * index)
+			cr.translate(x, dest.y)
+			cr.rectangle(0, 0, dest.width/self.rgba_leng, dest.height)
+			cr.fill ()
+			cr.restore()
 
 class ResourceManagementGUI:
 	timeout_id = None
@@ -36,15 +62,22 @@ class ResourceManagementGUI:
 		for connection in (("shutdown", self.main_shutdown), ):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
+
+		renderer = CellRendererRgbaArray ()
+		treecolumn = self.builder.get_object('treeviewcolumn6')
+		treecolumn.pack_start(renderer, True)
+		treecolumn.set_attributes(renderer, RGBA_array = 8)
+		renderer.set_property('editable', True)
+		renderer.connect('editing-started', self.tag_editing_started)
 		
-		self.editing = False
 		self.timer_timeout = None
+		self.row_id = None
+		self.join_filter = ''
 		
 		self.resource_store = self.builder.get_object('resource_store')
 		self.contact_store = self.builder.get_object('contact_store')
 		self.contact_completion = self.builder.get_object('contact_completion')
 		self.contact_completion.set_match_func(self.contact_match_func)
-		self.tag_store = self.builder.get_object('tag_store')
 		
 		textview = self.builder.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
@@ -66,13 +99,11 @@ class ResourceManagementGUI:
 			for row in self.resource_store:
 				if row[0] == id_:
 					selection.select_path(row.path)
-			self.editing_buffer = True
 			self.cursor.execute("SELECT notes FROM resources "
 								"WHERE id = %s", (id_,))
 			for row in self.cursor.fetchall():
 				text = row[0]
-				self.builder.get_object('textbuffer1').set_text(text)
-		self.editing_buffer = False
+				self.builder.get_object('notes_buffer').set_text(text)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -90,9 +121,6 @@ class ResourceManagementGUI:
 
 	def focus_in_event (self, window, event):
 		self.populate_stores ()
-
-	def unfinished_only_toggled (self, togglebutton):
-		self.populate_resource_store ()
 	
 	def row_limit_value_changed (self, spinbutton):
 		self.populate_resource_store ()
@@ -149,20 +177,108 @@ class ResourceManagementGUI:
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
 
+	def remove_tags (self):
+		flowbox = self.builder.get_object('tag_flowbox')
+		for child in flowbox.get_children():
+			flowbox.remove(child)
+
+	def populate_tag_flowbox (self):
+		self.remove_tags()
+		flowbox = self.builder.get_object('tag_flowbox')
+		c = DB.cursor()
+		c.execute("SELECT "
+					"tag, "
+					"red, "
+					"green, "
+					"blue, "
+					"alpha "
+					"FROM resource_ids_tag_ids AS riti "
+					"JOIN resource_tags AS rt ON rt.id = riti.resource_tag_id "
+					"WHERE riti.resource_id = %s", (self.row_id,))
+		for row in c.fetchall():
+			tag_name = row[0]
+			red = int(row[1]*255)
+			green = int(row[2]*255)
+			blue = int(row[3]*255)
+			alpha = int(row[4]*255)
+			hex_color = '#%02x%02x%02x%02x' %  (red, green, blue, alpha)
+			string = "<span foreground='%s'>%s</span>\n" % (hex_color, tag_name)
+			label = Gtk.Label()
+			label.set_markup(string)
+			label.show()
+			flowbox.add(label)
+
+	def populate_tags_applied_store (self):
+		store = self.builder.get_object('tags_applied_store')
+		store.clear()
+		c = DB.cursor()
+		c.execute("SELECT id::text, tag, red, green, blue, alpha, "
+					"(SELECT True FROM resource_ids_tag_ids AS riti "
+					"WHERE (riti.resource_id, resource_tag_id) = (%s, rt.id)) "
+					"FROM resource_tags AS rt "
+					"ORDER BY tag", (self.row_id,))
+		for row in c.fetchall():
+			tag_id = row[0]
+			tag_name = row[1]
+			rgba = Gdk.RGBA(1, 1, 1, 1)
+			rgba.red = row[2]
+			rgba.green = row[3]
+			rgba.blue = row[4]
+			rgba.alpha = row[5]
+			applied = row[6]
+			store.append([tag_id, tag_name, rgba, applied])
+
+	def tag_toggled (self, cellrenderertoggle, path):
+		store = self.builder.get_object('tags_applied_store')
+		active = cellrenderertoggle.get_active()
+		tag_id = store[path][0]
+		store[path][3] = not active
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		resource_id = model[path][0]
+		c = DB.cursor()
+		if not active:
+			c.execute("INSERT INTO resource_ids_tag_ids "
+						"(resource_id, resource_tag_id) VALUES "
+						"(%s, %s) "
+						"ON CONFLICT (resource_id, resource_tag_id) "
+						"DO NOTHING ", (resource_id, tag_id))
+		else:
+			c.execute("DELETE FROM resource_ids_tag_ids WHERE "
+						"(resource_id, resource_tag_id) = "
+						"(%s, %s)", (resource_id, tag_id))
+		DB.commit()
+
+	def tag_popover_closed (self, popover):
+		self.populate_tag_flowbox()
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = self.resource_store.get_iter(path)
+		self.populate_row_tag_list(iter_)
+
 	def row_activated (self, treeview, path, treeview_column):
 		if self.timeout_id:
 			self.save_notes()
-		self.editing_buffer = True
-		row_id = self.resource_store[path][0]
+		self.row_id = self.resource_store[path][0]
+		self.populate_notes()
+		self.populate_tag_flowbox()
+		self.populate_tags_applied_store()
+
+	def populate_notes (self):
+		if self.row_id == None:
+			return
 		self.cursor.execute("SELECT notes FROM resources "
-							"WHERE id = %s", (row_id,))
+							"WHERE id = %s", (self.row_id,))
 		for row in self.cursor.fetchall():
 			text = row[0]
-			self.builder.get_object('textbuffer1').set_text(text)
+			self.builder.get_object('notes_buffer').set_text(text)
 			break
 		else:
-			self.builder.get_object('textbuffer1').set_text('')
-		self.editing_buffer = False
+			self.builder.get_object('notes_buffer').set_text('')
 		DB.rollback()
 
 	def contact_match_func(self, completion, key, iter):
@@ -183,11 +299,9 @@ class ResourceManagementGUI:
 							"WHERE id = %s ",
 							(contact_id, contact_id, id_))
 		DB.commit()
-		self.editing = False
-		self.populate_resource_store(id_)
+		self.populate_resource_store()
 
 	def contact_editing_started (self, renderer_combo, combobox, path):
-		self.editing = True
 		entry = combobox.get_child()
 		entry.set_completion(self.contact_completion)
 
@@ -200,14 +314,7 @@ class ResourceManagementGUI:
 							"WHERE id = %s",
 							(contact_id, contact_id, id_))
 		DB.commit()
-		self.editing = False
-		self.populate_resource_store(id_)
-
-	def contact_edited (self, renderer_combo, path, text):
-		self.editing = False
-
-	def contact_editing_canceled (self, renderer):
-		self.editing = False
+		self.populate_resource_store()
 
 	def populate_stores (self):
 		self.contact_store.clear()
@@ -220,8 +327,11 @@ class ResourceManagementGUI:
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
-		self.tag_store.clear()
-		self.cursor.execute("SELECT id, tag, red, green, blue, alpha "
+		active = self.builder.get_object('tag_combo').get_active()
+		store = self.builder.get_object('tag_store')
+		store.clear()
+		store.append(['', 'All tags', Gdk.RGBA(0, 0, 0, 0)])
+		self.cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"ORDER BY tag")
 		for row in self.cursor.fetchall():
@@ -232,10 +342,8 @@ class ResourceManagementGUI:
 			rgba.green = row[3]
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
-			self.tag_store.append([str(tag_id), tag_name, rgba])
-			for row in self.resource_store:
-				if row[8] == tag_id:
-					row[10] = rgba
+			store.append([tag_id, tag_name, rgba])
+		self.builder.get_object('tag_combo').set_active(active)
 		DB.rollback()
 
 	def new_entry_clicked (self, button):
@@ -246,10 +354,22 @@ class ResourceManagementGUI:
 								"RETURNING id")
 		new_id = self.cursor.fetchone()[0]
 		DB.commit()
-		self.populate_resource_store(new_id, new = True)
-		
-	def subject_editing_started (self, renderer_entry, entry, path):
-		self.editing = True
+		self.populate_resource_store(new = True)
+
+	def post_entry_clicked (self, button):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		c = DB.cursor()
+		c.execute("UPDATE resources SET posted = True WHERE id = %s; "
+					"UPDATE time_clock_projects "
+					"SET active = False "
+					"WHERE resource_id = %s ", (row_id, row_id))
+		DB.commit()
+		self.populate_resource_store()
+		self.builder.get_object('notes_buffer').set_text('')
 		
 	def subject_edited (self, renderer_text, path, text):
 		self.editing = False
@@ -260,9 +380,6 @@ class ResourceManagementGUI:
 		DB.commit()
 		self.resource_store[path][1] = text
 
-	def subject_editing_canceled (self, renderer):
-		self.editing = False
-
 	def dated_for_calendar_day_selected (self, calendar):
 		date = calendar.get_date()
 		selection = self.builder.get_object('treeview-selection1')
@@ -272,7 +389,7 @@ class ResourceManagementGUI:
 							"SET dated_for = %s "
 							"WHERE id = %s", (date, id_))
 		DB.commit()
-		self.populate_resource_store(id_)
+		self.populate_resource_store()
 
 	def dated_for_editing_started (self, widget, entry, text):
 		event = Gtk.get_current_event()
@@ -292,43 +409,44 @@ class ResourceManagementGUI:
 		DB.rollback()
 
 	def tag_editing_started (self, renderer_combo, combobox, path):
-		self.editing = True
-
-	def tag_changed (self, renderer_combo, path, tree_iter):
-		self.editing = False
-		tag_id = self.tag_store[tree_iter][0]
-		id_ = self.resource_store[path][0]
-		self.cursor.execute("UPDATE resources "
-							"SET tag_id = %s "
-							"WHERE id = %s; "
-							"UPDATE time_clock_projects AS tcp "
-							"SET active = NOT rt.finished "
-							"FROM resource_tags AS rt "
-							"WHERE (rt.id, rt.finished) = (%s, True) "
-							"AND tcp.resource_id = %s",
-							(tag_id, id_, tag_id, id_))
-		DB.commit()
-		self.populate_resource_store(id_)
+		event = Gtk.get_current_event()
+		rect = Gdk.Rectangle()
+		rect.x = event.x
+		rect.y = event.y + 30
+		rect.width = rect.height = 1
+		combobox.hide()
+		popover = self.builder.get_object('tag_popover')
+		popover.set_pointing_to(rect)
+		GLib.idle_add(popover.show)
 
 	def sort_by_combo_changed (self, combobox):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path != []:
 			id_ = model[path][0]
-			self.populate_resource_store(id_)
+			self.populate_resource_store()
 		else:
 			self.populate_resource_store()
 
-	def tag_editing_canceled (self, renderer):
-		self.editing = False
+	def tag_combo_changed (self, combobox):
+		tag_id = combobox.get_active_id()
+		if tag_id == None:
+			return
+		if tag_id == '':
+			self.join_filter = ''
+		else:
+			self.join_filter = 'JOIN resource_ids_tag_ids AS riti '\
+								'ON riti.resource_id = rm.id '\
+								'AND riti.resource_tag_id = %s' % tag_id
+		self.populate_resource_store()
 
-	def text_buffer_changed (self, text_buffer):
-		if self.editing_buffer == True:
+	def notes_buffer_changed (self, text_buffer):
+		#only save changes created by user
+		if not self.builder.get_object('textview1').is_focus():
 			return
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
-			self.show_message("Please select a row")
 			return
 		self.row_id = model[path][0]
 		start = text_buffer.get_start_iter()
@@ -346,10 +464,15 @@ class ResourceManagementGUI:
 		DB.commit()
 		self.timeout_id = None
 
-	def populate_resource_store (self, id_ = None, new = False):
+	def populate_resource_store (self, new = False):
+		id_ = None
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path != []:
+			id_ = model[path][0]
 		self.resource_store.clear()
+		self.builder.get_object('notes_buffer').set_text('')
 		row_limit = self.builder.get_object('spinbutton1').get_value()
-		finished = self.builder.get_object('checkbutton3').get_active()
 		sort = self.builder.get_object('sort_by_combo').get_active_id()
 		c = DB.cursor()
 		c.execute("SELECT "
@@ -359,67 +482,56 @@ class ResourceManagementGUI:
 					"COALESCE(name, ''), "
 					"COALESCE(ext_name, ''), "
 					"to_char(timed_seconds, 'HH24:MI:SS')::text AS time, "
-					"dated_for, "
+					"dated_for::text, "
 					"format_date(dated_for), "
-					"rmt.id, "
-					"tag, "
-					"red, "
-					"green, "
-					"blue, "
-					"alpha, "
+					"'', "
 					"phone_number, "
-					"call_received_time, "
+					"call_received_time::text, "
 					"format_timestamp(call_received_time), "
 					"to_do "
 				"FROM resources AS rm "
-				"LEFT JOIN resource_tags AS rmt "
-				"ON rmt.id = rm.tag_id "
+				"%s "
 				"LEFT JOIN contacts "
 				"ON rm.contact_id = contacts.id "
-				"WHERE date_created <= '%s' "
-				"AND (finished != %s OR finished = False) "
+				"WHERE (dated_for <= '%s' OR dated_for IS NULL) "
+				"AND posted = False "
 				"ORDER BY %s, rm.id "
-				"LIMIT %s" % (self.older_than_date, finished, 
-				sort, row_limit))
+				"LIMIT %s" % 
+				(self.join_filter, self.older_than_date, sort, row_limit))
 		for row in c.fetchall():
-			rgba = Gdk.RGBA(1, 1, 1, 1)
 			row_id = row[0]
-			subject = row[1]
-			contact_id = row[2]
-			contact_name = row[3]
-			ext_name = row[4]
-			time_formatted = row[5]
-			dated_for = row[6]
-			date_formatted = row[7]
-			tag_id = row[8]
-			tag_name = row[9]
-			if tag_id == None:
-				tag_id = 0
-				tag_name = ''
-			else:
-				rgba.red = row[10]
-				rgba.green = row[11]
-				rgba.blue = row[12]
-				rgba.alpha = row[13]
-			phone_number = row[14]
-			call_received_time = row[15]
-			c_r_time_formatted = row[16]
-			to_do = row[17]
-			iter_ = self.resource_store.append([row_id, subject, contact_id,
-										contact_name, ext_name, 0, 
-										time_formatted, date_formatted, tag_id, 
-										tag_name, rgba, phone_number,
-										call_received_time, 
-										c_r_time_formatted, to_do])
+			iter_ = self.resource_store.append(row)
+			self.populate_row_tag_list(iter_)
 			if row_id == id_:
-				self.builder.get_object('treeview-selection1').select_iter(iter_)
+				selection.select_iter(iter_)
 		c.close()
+		self.populate_notes()
 		if new == True:
 			treeview = self.builder.get_object('treeview1')
 			c = treeview.get_column(0)
 			path = self.resource_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
 		DB.rollback()
+
+	def populate_row_tag_list (self, iter_):
+		row_id = self.resource_store[iter_][0]
+		c = DB.cursor()
+		tag_list = list()
+		c.execute("SELECT "
+					"red, "
+					"green, "
+					"blue, "
+					"alpha "
+					"FROM resources AS r "
+					"JOIN resource_ids_tag_ids AS riti "
+						"ON riti.resource_id = r.id "
+					"JOIN resource_tags AS rt "
+						"ON rt.id = riti.resource_tag_id "
+					"WHERE r.id = %s ORDER BY rt.id", (row_id,))
+		for row in c.fetchall():
+			rgba = Gdk.RGBA(row[0], row[1], row[2], row[3])
+			tag_list.append(rgba)
+		self.resource_store[iter_][8] = tag_list
 		
 	def time_clock_project_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -513,12 +625,12 @@ class ResourceManagementGUI:
 							"SET dated_for = NULL "
 							"WHERE id = %s", ( id_, ))
 		DB.commit()
-		self.populate_resource_store(id_)
+		self.populate_resource_store()
 		self.dated_for_calendar.hide()
 
 	def to_do_toggled (self, renderer, path):
-		active = not self.resource_store[path][14]
-		self.resource_store[path][14] = active
+		active = not self.resource_store[path][12]
+		self.resource_store[path][12] = active
 		id_ = self.resource_store[path][0]
 		self.cursor.execute("UPDATE resources SET to_do = %s "
 							"WHERE id = %s", (active, id_))
