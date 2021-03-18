@@ -52,6 +52,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.serial_number = ''
 		self.filtered_store = self.get_object('serial_number_treeview_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
+		sort_model = self.get_object('serial_number_treeview_sort')
+		sort_model.set_sort_func(3, self.treeview_sort_func)
 		self.product_id = 0
 		self.populate_product_store()
 		self.populate_contact_store()
@@ -83,6 +85,18 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			if i not in model[tree_iter][3].lower():
 				return False
 		return True
+
+	def treeview_sort_func (self, model, iter_a, iter_b, arg):
+		a = model[iter_a][3]
+		b = model[iter_b][3]
+		try:
+			return int(a) - int(b)
+		except Exception as e:
+			if a < b:
+				return -1
+			elif a > b:
+				return 1
+			return 0 # indentical
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
@@ -124,6 +138,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def populate_serial_number_history (self):
 		treeview = self.get_object('serial_number_treeview')
+		original_model = treeview.get_model()
 		treeview.set_model(None)
 		store = self.get_object('serial_number_treeview_store')
 		store.clear()
@@ -161,7 +176,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
 			store.append(row)
-		treeview.set_model(store)
+		treeview.set_model(original_model)
 		DB.rollback()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
@@ -301,7 +316,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.get_object('button4').set_sensitive(True)
 
 	def reprint_serial_number_clicked (self, button):
-		barcode = self.get_object('reprint_spinbutton').get_value()
+		barcode = self.get_object('serial_number_entry').get_text()
 		label = Item()
 		label.code128 = barcode_generator.makeCode128(str(barcode))
 		label.barcode = barcode
@@ -336,9 +351,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		if path == []:
 			return
 		serial_number = model[path][3]
-		spinbutton = self.get_object('reprint_spinbutton')
-		spinbutton.set_text(serial_number)
-		spinbutton.update()
+		self.get_object('serial_number_entry').set_text(serial_number)
 
 
 
