@@ -197,10 +197,11 @@ WITH cte AS
 	(SELECT id, tag_id, date_created FROM public.resources WHERE tag_id IS NOT NULL) 
 	INSERT INTO resource_ids_tag_ids (resource_id, resource_tag_id, date_inserted) 
 	SELECT * FROM cte ON CONFLICT (resource_id, resource_tag_id) DO NOTHING;
-ALTER TABLE resources ADD COLUMN IF NOT EXISTS posted boolean DEFAULT false;
-UPDATE resources SET posted = rt.finished FROM (SELECT id, finished FROM resource_tags) AS rt WHERE rt.id = resources.tag_id AND posted = NULL;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS posted boolean;
+UPDATE resources SET posted = rt.finished FROM (SELECT id, finished FROM resource_tags WHERE finished = True) AS rt WHERE rt.id = resources.tag_id AND posted != True;
 UPDATE resources SET posted = False WHERE posted IS NULL;
 UPDATE resources SET posted = True WHERE diary = True;
+ALTER TABLE resources ALTER COLUMN posted SET DEFAULT False;
 ALTER TABLE resources ALTER COLUMN posted SET NOT NULL;
 
 
