@@ -66,7 +66,7 @@ class ResourceManagementGUI:
 		renderer = CellRendererRgbaArray ()
 		treecolumn = self.builder.get_object('treeviewcolumn6')
 		treecolumn.pack_start(renderer, True)
-		treecolumn.set_attributes(renderer, RGBA_array = 8)
+		treecolumn.set_attributes(renderer, RGBA_array = 7)
 		renderer.set_property('editable', True)
 		renderer.connect('editing-started', self.tag_editing_started)
 		
@@ -482,12 +482,9 @@ class ResourceManagementGUI:
 					"COALESCE(name, ''), "
 					"COALESCE(ext_name, ''), "
 					"to_char(timed_seconds, 'HH24:MI:SS')::text AS time, "
-					"dated_for::text, "
 					"format_date(dated_for), "
 					"'', "
 					"phone_number, "
-					"call_received_time::text, "
-					"format_timestamp(call_received_time), "
 					"to_do "
 				"FROM resources AS rm "
 				"%s "
@@ -531,7 +528,7 @@ class ResourceManagementGUI:
 		for row in c.fetchall():
 			rgba = Gdk.RGBA(row[0], row[1], row[2], row[3])
 			tag_list.append(rgba)
-		self.resource_store[iter_][8] = tag_list
+		self.resource_store[iter_][7] = tag_list
 		
 	def time_clock_project_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -629,8 +626,8 @@ class ResourceManagementGUI:
 		self.dated_for_calendar.hide()
 
 	def to_do_toggled (self, renderer, path):
-		active = not self.resource_store[path][12]
-		self.resource_store[path][12] = active
+		active = not self.resource_store[path][9]
+		self.resource_store[path][9] = active
 		id_ = self.resource_store[path][0]
 		self.cursor.execute("UPDATE resources SET to_do = %s "
 							"WHERE id = %s", (active, id_))
