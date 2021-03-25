@@ -62,6 +62,9 @@ def create_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE IF NOT EXISTS unpaid_invoices "
 										"(widget_id TEXT UNIQUE NOT NULL, "
 										"value INTEGER NOT NULL)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS vendor_history "
+										"(widget_id TEXT UNIQUE NOT NULL, "
+										"size INTEGER NOT NULL)")
 
 def update_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO postgres_conn VALUES "
@@ -201,3 +204,40 @@ def update_apsw_tables(cursor):
 					"('date_column', 100)")
 	cursor.execute("INSERT OR IGNORE INTO unpaid_invoices VALUES "
 					"('amount_column', 100)")
+	# vendor history window layout
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('window_width', 600)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('window_height', 400)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('date_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('invoice_name_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('description_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('amount_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('paid_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('posted_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('qty_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('product_name_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('product_ext_name_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('remark_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('price_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('ext_price_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('order_number_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('po_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('po_date_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
+					"('vendor_column', 100)")
