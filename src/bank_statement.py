@@ -344,8 +344,7 @@ class GUI(Gtk.Builder):
 		if result == Gtk.ResponseType.ACCEPT:
 			selection = self.get_object('treeview-selection2')
 			model, path = selection.get_selected_rows()
-			iter_ = self.bank_transaction_store.get_iter(path)
-			expense_account_number = model[iter_][0]
+			expense_account_number = model[path][0]
 			transactor.bank_charge(self.account_number, 
 									self.date, self.amount, 
 									self.description, expense_account_number)
