@@ -41,7 +41,9 @@ class MainGUI :
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.window = self.builder.get_object('main_window')
-		self.window.set_title('%s - PyGtk Posting' % db_name)
+		name = '%s - PyGtk Posting' % db_name
+		self.window.set_title(name)
+		GLib.set_application_name(name)
 		self.window.show_all()
 		self.window.set_default_icon_name("pygtk-posting") # app-wide icon
 		admin_utils.main_class = self
