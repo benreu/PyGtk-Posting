@@ -450,13 +450,20 @@ class MainGUI :
 			loan_id = row[0]
 			reminder = row[1]
 			store.append([reminder, loan_id, self.loan_payment, brown])
-		c.execute("SELECT rm.id, subject, red, green, blue, alpha "
-							"FROM resources AS rm "
-							"JOIN resource_tags AS rmt "
-							"ON rmt.id = rm.tag_id "
-							"WHERE finished != True "
-							"AND diary != True "
-							"AND to_do = True")
+		c.execute("SELECT "
+					"rm.id, "
+					"rm.subject, "
+					"COALESCE(rt.red, 1.0), "
+					"COALESCE(rt.green, 1.0), "
+					"COALESCE(rt.blue, 1.0), "
+					"COALESCE(rt.alpha, 1.0) "
+					"FROM resources AS rm "
+					"LEFT JOIN resource_ids_tag_ids AS riti "
+						"ON riti.resource_id = rm.id "
+					"LEFT JOIN resource_tags AS rt "
+						"ON rt.id = riti.resource_tag_id "
+					"WHERE posted != True "
+					"AND to_do = True")
 		for row in c.fetchall():
 			id_ = row[0]
 			subject = row[1]
