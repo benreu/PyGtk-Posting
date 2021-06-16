@@ -121,6 +121,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 			for row in self.cursor.fetchall():
 				po_name = row[0]
 				self.vendor_id = row[1]
+				self.get_object('po_name_entry').set_text(po_name)
+				self.get_object('po_number_entry').set_text(str(edit_po_id))
 			self.get_object('combobox1').set_active_id(str(self.vendor_id))
 			self.get_object('button2').set_sensitive(True)
 			self.get_object('button3').set_sensitive(True)
@@ -567,6 +569,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 									"po.date_created, "
 									"format_date(po.date_created), "
 									"c.phone, "
+									"po.name, "
 									"pg_try_advisory_lock_shared(po.id) AS lock "
 								"FROM purchase_orders AS po "
 								"JOIN contacts AS c ON c.id = po.vendor_id "
@@ -579,6 +582,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.datetime = row[1]
 				self.get_object('entry1').set_text(row[2])
 				self.get_object('entry8').set_text(row[3])
+				self.get_object('po_name_entry').set_text(row[4])
+				self.get_object('po_number_entry').set_text(str(row[0]))
 				self.populate_purchase_order_items ()
 				break
 			else:
@@ -593,6 +598,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 					self.datetime = row[0]
 					self.get_object('entry1').set_text(row[1])
 					self.get_object('entry8').set_text(row[2])
+					self.get_object('po_name_entry').set_text('')
+					self.get_object('po_number_entry').set_text('')
 			self.calculate_totals ()
 		DB.rollback()
 
@@ -1053,7 +1060,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 									"(%s, %s, False, False, False, False, %s) "
 								"RETURNING id", 
 									("", self.vendor_id, self.datetime ))
-			self.purchase_order_id = self.cursor.fetchone()[0]
+			po_id = self.cursor.fetchone()[0]
+			self.purchase_order_id = po_id
+			self.get_object('po_name_entry').set_text('')
+			self.get_object('po_number_entry').set_text(str(po_id))
 
 	def new_entry_clicked (self, button):
 		self.add_entry ()
@@ -1195,6 +1205,12 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def calendar_entry_icon_release (self, widget, icon, void):
 		self.calendar.set_relative_to (widget)
 		self.calendar.show()
+
+	def po_name_icon_release (self, entry, entryiconposition, event):
+		po_name = entry.get_text()
+		self.cursor.execute("UPDATE purchase_orders SET name = %s "
+							"WHERE id = %s", (po_name, self.purchase_order_id))
+		DB.commit()
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
