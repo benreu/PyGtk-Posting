@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 import subprocess
 from constants import ui_directory, DB, broadcaster
+from accounts import expense_account
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
@@ -33,6 +34,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.cursor = DB.cursor()
 
 		self.service_provider_store = self.get_object('service_provider_store')
+		self.get_object('expense_account_combobox').set_model(expense_account)
+		self.fiscal_store = self.get_object('fiscal_store')
 		self.incoming_invoice_store = self.get_object('incoming_invoices_store')
 		self.invoice_items_store = self.get_object('invoice_items_store')
 		sp_completion = self.get_object('service_provider_completion')
@@ -41,8 +44,12 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.search_desc_text = ''
 		self.filter = self.get_object ('incoming_invoices_filter')
 		self.filter.set_visible_func(self.filter_func)
+		self.service_provider_join = 'JOIN contacts AS c ON c.id = i.contact_id '
+		self.expense_account_join = ''
+		self.fiscal_year_join = ''
 
 		self.populate_service_provider_store ()
+		self.populate_fiscal_store ()
 		self.handler_ids = list()
 		for connection in (("admin_changed", self.admin_changed), ):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -105,10 +112,20 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()
+		self.service_provider_store.append(['0', "All service providers", ''])
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE service_provider = True ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.service_provider_store.append(row)
+		DB.rollback()
+
+	def populate_fiscal_store (self):
+		self.fiscal_store.clear()
+		self.fiscal_store.append(['0', "All fiscal years"])
+		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+							"ORDER BY name")
+		for row in self.cursor.fetchall():
+			self.fiscal_store.append(row)
 		DB.rollback()
 
 	def sp_match_func(self, completion, key, iter_):
@@ -118,18 +135,44 @@ class IncomingInvoiceGUI(Gtk.Builder):
 				return False# no match
 		return True# it's a hit!
 
-	def service_provider_combo_changed (self, combo):
-		service_provider_id = combo.get_active_id()
-		if service_provider_id != None:
-			self.get_object('checkbutton1').set_active (False)
-			self.service_provider_id = service_provider_id
-			self.populate_incoming_invoice_store()
+	def service_provider_combo_changed (self, combobox):
+		service_provider_id = combobox.get_active_id()
+		if service_provider_id == '0':
+			self.service_provider_join = \
+				'JOIN contacts AS c ON c.id = i.contact_id '
+		elif service_provider_id != None:
+			self.service_provider_join = \
+				"JOIN contacts AS c ON c.id = i.contact_id AND " \
+				"i.contact_id = %s " % (service_provider_id,)
+		self.populate_incoming_invoice_store()
 
 	def service_provider_match_selected (self, completion, model, iter_):
 		sp_id = model[iter_][0]
 		self.get_object('combobox1').set_active_id (sp_id)
 
-	def view_all_toggled (self, checkbutton):
+	def expense_account_combo_changed (self, combobox):
+		expense_account_id = combobox.get_active_id()
+		if expense_account_id == '0':
+			self.expense_account_join = ''
+		elif expense_account_id != None:
+			self.expense_account_join = \
+				"JOIN incoming_invoices_gl_entry_expenses_ids AS iigl " \
+				"ON iigl.incoming_invoices_id = i.id " \
+				"JOIN LATERAL (SELECT id FROM gl_entries AS ge " \
+				"WHERE ge.debit_account = %s AND " \
+				"iigl.gl_entry_expense_id = geda.id LIMIT 1) geda " \
+				% (expense_account_id,)
+		self.populate_incoming_invoice_store()
+
+	def fiscal_year_combo_changed (self, combobox):
+		fiscal_year_id = combobox.get_active_id()
+		if fiscal_year_id == '0':
+			self.fiscal_year_join = ''
+		elif fiscal_year_id != None:
+			self.fiscal_year_join = \
+				"JOIN fiscal_years AS fy ON fy.id = %s " \
+				"AND i.date_created " \
+				"BETWEEN fy.start_date AND fy.end_date " % (fiscal_year_id,)
 		self.populate_incoming_invoice_store()
 
 	def refresh_activated (self, button):
@@ -138,35 +181,24 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def populate_incoming_invoice_store (self):
 		self.incoming_invoice_store.clear()
 		self.invoice_items_store.clear()
-		if self.get_object('checkbutton1').get_active () == True:
-			self.cursor.execute("SELECT "
-									"i.id, "
-									"c.name, "
-									"date_created::text, "
-									"format_date(date_created), "
-									"description, "
-									"amount, "
-									"amount::text "
-								"FROM incoming_invoices AS i "
-								"JOIN contacts AS c ON c.id = i.contact_id "
-								"ORDER BY date_created, i.id")
-		elif self.service_provider_id == None:
-			return
-		else:
-			self.cursor.execute("SELECT "
-									"i.id, "
-									"c.name, "
-									"date_created::text, "
-									"format_date(date_created), "
-									"description, "
-									"amount, "
-									"amount::text "
-								"FROM incoming_invoices AS i "
-								"JOIN contacts AS c ON c.id = i.contact_id "
-								"WHERE contact_id = %s "
-								"ORDER BY date_created, i.id", 
-								(self.service_provider_id,))
-		for row in self.cursor.fetchall():
+		c = DB.cursor()
+		c.execute("SELECT "
+					"i.id, "
+					"c.name, "
+					"i.date_created::text, "
+					"format_date(i.date_created), "
+					"i.description, "
+					"i.amount, "
+					"i.amount::text "
+					"FROM incoming_invoices AS i "
+					"%s "
+					"%s "
+					"%s "
+					"ORDER BY date_created, i.id" % 
+					(self.service_provider_join, 
+					self.expense_account_join, 
+					self.fiscal_year_join ))
+		for row in c.fetchall():
 			self.incoming_invoice_store.append(row)
 		DB.rollback()
 
