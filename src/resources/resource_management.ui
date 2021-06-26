@@ -87,6 +87,15 @@
       <object class="GtkMenuItem">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Remove manual sort</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="remove_manual_sort_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
         <property name="label" translatable="yes">Report hub</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="report_hub_activated" swapped="no"/>
@@ -117,19 +126,13 @@
       <column type="gchararray"/>
       <!-- column-name ext_name -->
       <column type="gchararray"/>
-      <!-- column-name time_seconds -->
-      <column type="glong"/>
       <!-- column-name time_formatted -->
       <column type="gchararray"/>
-      <!-- column-name dated_for -->
+      <!-- column-name dated_for_formatted -->
       <column type="gchararray"/>
       <!-- column-name tag_color_list -->
       <column type="PyObject"/>
       <!-- column-name phone_number -->
-      <column type="gchararray"/>
-      <!-- column-name cid_time -->
-      <column type="gchararray"/>
-      <!-- column-name cid_time_formatted -->
       <column type="gchararray"/>
       <!-- column-name to_do -->
       <column type="gboolean"/>
@@ -388,7 +391,7 @@
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext3"/>
                               <attributes>
-                                <attribute name="text">6</attribute>
+                                <attribute name="text">5</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -405,7 +408,7 @@
                                 <signal name="editing-started" handler="dated_for_editing_started" swapped="no"/>
                               </object>
                               <attributes>
-                                <attribute name="text">7</attribute>
+                                <attribute name="text">6</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -427,21 +430,7 @@
                                 <property name="editable">True</property>
                               </object>
                               <attributes>
-                                <attribute name="text">9</attribute>
-                              </attributes>
-                            </child>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn" id="treeviewcolumn12">
-                            <property name="resizable">True</property>
-                            <property name="sizing">autosize</property>
-                            <property name="title" translatable="yes">CID Date</property>
-                            <property name="reorderable">True</property>
-                            <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext10"/>
-                              <attributes>
-                                <attribute name="text">11</attribute>
+                                <attribute name="text">8</attribute>
                               </attributes>
                             </child>
                           </object>
@@ -456,7 +445,7 @@
                                 <signal name="toggled" handler="to_do_toggled" swapped="no"/>
                               </object>
                               <attributes>
-                                <attribute name="active">12</attribute>
+                                <attribute name="active">9</attribute>
                               </attributes>
                             </child>
                           </object>

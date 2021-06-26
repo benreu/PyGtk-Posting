@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkMenu" id="invoice_menu">
@@ -12,6 +12,15 @@
         <property name="label" translatable="yes">Invoice history</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="invoice_history_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Selection statistics</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="invoice_selection_statistics_activated" swapped="no"/>
       </object>
     </child>
   </object>
@@ -147,7 +156,7 @@
     <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -319,6 +328,7 @@
                     <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
                     <property name="tooltip_column">4</property>
+                    <signal name="button-press-event" handler="invoice_treeview_button_press_event" swapped="no"/>
                     <signal name="button-release-event" handler="invoice_treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="invoice_row_activated" swapped="no"/>
                     <child internal-child="selection">

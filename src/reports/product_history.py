@@ -111,6 +111,10 @@ class ProductHistoryGUI (Gtk.Builder):
 				subprocess.call(["xdg-open", file_name])
 		DB.rollback()
 
+	def invoice_treeview_button_press_event (self, widget, event):
+		if event.button == 3:
+			return True
+
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection4')
 		model, path = selection.get_selected_rows()
@@ -138,6 +142,16 @@ class ProductHistoryGUI (Gtk.Builder):
 				selection.select_iter(row.iter)
 				break
 		self.invoice_history.present()
+
+	def invoice_selection_statistics_activated (self, menuitem):
+		from reports import product_invoice_statistics
+		pi = product_invoice_statistics.ProductInvoiceStatisticsGUI()
+		pi.set_product_id(self.product_id)
+		selection = self.get_object('treeview-selection4')
+		model, paths = selection.get_selected_rows()
+		for path in paths:
+			pi.append_invoice(model[path][0])
+		pi.show_all()
 
 	def p_o_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection1')

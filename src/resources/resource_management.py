@@ -66,7 +66,7 @@ class ResourceManagementGUI:
 		renderer = CellRendererRgbaArray ()
 		treecolumn = self.builder.get_object('treeviewcolumn6')
 		treecolumn.pack_start(renderer, True)
-		treecolumn.set_attributes(renderer, RGBA_array = 8)
+		treecolumn.set_attributes(renderer, RGBA_array = 7)
 		renderer.set_property('editable', True)
 		renderer.connect('editing-started', self.tag_editing_started)
 		
@@ -111,6 +111,8 @@ class ResourceManagementGUI:
 		self.populate_stores()
 
 	def destroy (self, widget):
+		if self.timeout_id:
+			self.save_notes()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 		self.cursor.close()
@@ -176,6 +178,12 @@ class ResourceManagementGUI:
 		treeview = self.builder.get_object('treeview1')
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
+
+	def remove_manual_sort_activated (self, menuitem):
+		c = DB.cursor()
+		c.execute("UPDATE resources SET sort = 0 WHERE posted = False")
+		DB.commit()
+		self.populate_resource_store()
 
 	def remove_tags (self):
 		flowbox = self.builder.get_object('tag_flowbox')
@@ -354,7 +362,13 @@ class ResourceManagementGUI:
 								"RETURNING id")
 		new_id = self.cursor.fetchone()[0]
 		DB.commit()
-		self.populate_resource_store(new = True)
+		self.populate_resource_store()
+		for row in self.resource_store:
+			if row[0] == new_id:
+				treeview = self.builder.get_object('treeview1')
+				c = treeview.get_column(0)
+				treeview.set_cursor(row.path[0], c, True)
+				break
 
 	def post_entry_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -420,13 +434,7 @@ class ResourceManagementGUI:
 		GLib.idle_add(popover.show)
 
 	def sort_by_combo_changed (self, combobox):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		if path != []:
-			id_ = model[path][0]
-			self.populate_resource_store()
-		else:
-			self.populate_resource_store()
+		self.populate_resource_store()
 
 	def tag_combo_changed (self, combobox):
 		tag_id = combobox.get_active_id()
@@ -464,7 +472,7 @@ class ResourceManagementGUI:
 		DB.commit()
 		self.timeout_id = None
 
-	def populate_resource_store (self, new = False):
+	def populate_resource_store (self):
 		id_ = None
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
@@ -482,12 +490,9 @@ class ResourceManagementGUI:
 					"COALESCE(name, ''), "
 					"COALESCE(ext_name, ''), "
 					"to_char(timed_seconds, 'HH24:MI:SS')::text AS time, "
-					"dated_for::text, "
 					"format_date(dated_for), "
 					"'', "
 					"phone_number, "
-					"call_received_time::text, "
-					"format_timestamp(call_received_time), "
 					"to_do "
 				"FROM resources AS rm "
 				"%s "
@@ -506,11 +511,6 @@ class ResourceManagementGUI:
 				selection.select_iter(iter_)
 		c.close()
 		self.populate_notes()
-		if new == True:
-			treeview = self.builder.get_object('treeview1')
-			c = treeview.get_column(0)
-			path = self.resource_store.get_path(iter_)
-			treeview.set_cursor(path, c, True)
 		DB.rollback()
 
 	def populate_row_tag_list (self, iter_):
@@ -531,7 +531,7 @@ class ResourceManagementGUI:
 		for row in c.fetchall():
 			rgba = Gdk.RGBA(row[0], row[1], row[2], row[3])
 			tag_list.append(rgba)
-		self.resource_store[iter_][8] = tag_list
+		self.resource_store[iter_][7] = tag_list
 		
 	def time_clock_project_clicked (self, button):
 		selection = self.builder.get_object('treeview-selection1')
@@ -629,8 +629,8 @@ class ResourceManagementGUI:
 		self.dated_for_calendar.hide()
 
 	def to_do_toggled (self, renderer, path):
-		active = not self.resource_store[path][12]
-		self.resource_store[path][12] = active
+		active = not self.resource_store[path][9]
+		self.resource_store[path][9] = active
 		id_ = self.resource_store[path][0]
 		self.cursor.execute("UPDATE resources SET to_do = %s "
 							"WHERE id = %s", (active, id_))
