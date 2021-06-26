@@ -8,4 +8,6 @@ python_PYTHON = assembled_products.py \
 	projects.py \
 	projects.ui \
 	serial_numbers.py \
-	serial_numbers.ui
+	serial_numbers.ui \
+	assembly_versions.py \
+	assembly_versions.ui
