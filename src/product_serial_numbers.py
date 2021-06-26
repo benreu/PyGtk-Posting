@@ -276,7 +276,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			store.clear()
 			self.cursor.execute("SELECT id::text, serial_number "
 								"FROM serial_numbers "
-								"WHERE product_id = %s", (product_id,))
+								"WHERE product_id = %s "
+								"ORDER BY serial_number", (product_id,))
 			for row in self.cursor.fetchall():
 				store.append(row)
 		DB.rollback()
