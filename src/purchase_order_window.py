@@ -1178,8 +1178,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 				break
 			continue
 		else:
-			self.p_o_store.append([0, 1, 0, '', True, '', 
-											'', '', 0.00, 0.00, False, 
+			self.p_o_store.append([0, '1', 0, '', True, '', 
+											'', '', '0.00', '0.00', False, 
 											int(self.vendor_id), '', 
 											self.purchase_order_id, False])
 			path = self.p_o_store.iter_n_children ()
