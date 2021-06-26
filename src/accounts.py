@@ -18,7 +18,7 @@
 from gi.repository import Gtk
 from constants import DB
 
-expense_account = Gtk.TreeStore(int, str)
+expense_account = Gtk.TreeStore(str, str)
 revenue_account = Gtk.TreeStore(int, str, str)
 revenue_list = Gtk.ListStore(int, str, str)
 product_expense_tree = Gtk.TreeStore(str, str)
@@ -127,22 +127,20 @@ def populate_accounts():
 		return show
 
 	def populate_child_expense ( number, parent):
-		cursor.execute("SELECT number, name FROM gl_accounts WHERE "
+		cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
 							"parent_number = %s ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = row[0]
-			name = row[1]
-			p = expense_account.append(parent,[number, name])
+			p = expense_account.append(parent, row)
 			populate_child_expense(number, p)
 
 	############## finally, populate the accounts
 	expense_account.clear()
-	cursor.execute("SELECT number, name FROM gl_accounts WHERE type = 3 "
+	cursor.execute("SELECT number::text, name FROM gl_accounts WHERE type = 3 "
 						"AND parent_number IS NULL")
 	for row in cursor.fetchall():
 		number = row[0]
-		name = row[1]
-		parent = expense_account.append(None,[number, name])
+		parent = expense_account.append(None, row)
 		populate_child_expense(number, parent)
 	#################################################
 	product_expense_tree.clear()
