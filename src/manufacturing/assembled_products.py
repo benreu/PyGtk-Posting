@@ -46,9 +46,14 @@ class AssembledProductsGUI:
 		self.assembly_treeview.drag_source_set_target_list([dnd])
 		self.product_store = self.builder.get_object('product_store')
 		self.assembly_store = self.builder.get_object('assembly_store')
-		product_completion = self.builder.get_object('product_completion')
-		product_completion.set_match_func(self.product_match_string)
 		self.assembled_product_store = self.builder.get_object('assembled_product_store')
+		self.version_store = self.builder.get_object('version_store')
+		product_completion = self.builder.get_object('product_completion')
+		product_completion.set_match_func(self.product_match_func)
+		version_completion = self.builder.get_object('version_completion')
+		version_completion.set_match_func(self.version_match_func)
+		assembled_completion = self.builder.get_object('assembled_product_completion')
+		assembled_completion.set_match_func(self.assembled_product_match_func)
 
 		self.populate_stores ()
 		
@@ -77,7 +82,7 @@ class AssembledProductsGUI:
 		string = str(qty) + ' ' + str(product_id) 
 		data.set_text(string, -1)
 
-	def assembled_products_button_release_event (self, treeview, event):
+	def assembled_products_button_release_event (self, treeview, event): #FIXME
 		if event.button == 3:
 			selection = self.builder.get_object('treeview-selection1')
 			model, path = selection.get_selected()
@@ -156,12 +161,16 @@ class AssembledProductsGUI:
 		completion = self.builder.get_object('product_completion')
 		entry.set_completion(completion)
 
-	def product_match_string(self, completion, key, tree_iter):
+	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
 		for text in split_search_text:
 			if text not in self.product_store[tree_iter][1].lower():
 				return False
 		return True
+
+	def version_clicked (self, button):
+		from manufacturing import assembly_versions
+		assembly_versions.AssembledVersionsGUI ()
 
 	def populate_vendor_store (self):
 		c = DB.cursor()
@@ -245,12 +254,14 @@ class AssembledProductsGUI:
 									"(manufactured_product_id, "
 									"qty, "
 									"assembly_product_id, "
-									"remark) "
-								"VALUES (%s, %s, %s, %s) RETURNING id", 
+									"remark, "
+									"version_id) "
+								"VALUES (%s, %s, %s, %s, %s) RETURNING id", 
 									(self.manufactured_product_id, 
 									qty, 
 									product_id, 
-									remark))
+									remark,
+									self.version_id))
 			self.assembly_store[tree_iter][0] = c.fetchone()[0]
 		else:
 			c.execute("UPDATE product_assembly_items SET "
@@ -297,25 +308,76 @@ class AssembledProductsGUI:
 		po = products_overview.ProductsOverviewGUI()
 		po.get_object('radiobutton3').set_active(True)
 
-	def manufactured_row_activate(self, treeview, path, treeviewcolumn):
+############## assembled product selection
+
+	def assembled_product_combo_changed (self, combo):
+		product_id = combo.get_active_id()
+		if product_id == None:
+			return
+		self.manufactured_product_id = product_id
+		self.populate_versions ()
+
+	def assembled_product_match_func (self, completion, key, tree_iter):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.assembled_product_store[tree_iter][1].lower():
+				return False
+		return True
+
+	def assembled_completion_match_selected (self, completion, model, t_iter):
+		self.manufactured_product_id = model[t_iter][0]
+		self.populate_versions ()
+
+############## version selection
+
+	def populate_versions (self):
+		self.builder.get_object('version_combobox').set_active(-1)
+		self.assembly_store.clear()
+		self.version_store.clear()
 		c = DB.cursor()
-		self.manufactured_product_id = self.assembled_product_store[path][0]
-		product_name = self.assembled_product_store[path][1]
-		self.builder.get_object('label6').set_label("'%s'" % product_name)
+		c.execute("SELECT id::text, version_name "
+					"FROM product_assembly_versions "
+					"WHERE product_id = %s AND active = True",
+					(self.manufactured_product_id,))
+		for row in c.fetchall():
+			self.version_store.append(row)
+		c.close()
+
+	def version_match_func (self, completion, key, tree_iter):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.version_store[tree_iter][1].lower():
+				return False
+		return True
+
+	def version_combo_changed (self, combobox):
+		version_id = combobox.get_active_id()
+		if version_id != None:
+			self.version_id = version_id
+			self.populate_product_assembly_store()
+
+	def version_completion_match_selected (self, completion, model, t_iter):
+		self.version_id = model[t_iter][0]
+		self.populate_product_assembly_store()
+
+############## assembly store
+
+	def populate_product_assembly_store (self):
+		c = DB.cursor()
 		self.assembly_store.clear()
 		c.execute("SELECT pai.id, qty, assembly_product_id, name, "
 					"remark, cost, cost*qty "
 					"FROM product_assembly_items AS pai "
 					"JOIN products ON products.id = "
 					"pai.assembly_product_id "
-					"WHERE manufactured_product_id = %s",
-					(self.manufactured_product_id,))
+					"WHERE version_id = %s",
+					(self.version_id,))
 		for row in c.fetchall():
 			self.assembly_store.append(row)
 		self.populating = True
 		c.execute ("SELECT assembly_notes "
-					"FROM products WHERE id = %s", 
-					(self.manufactured_product_id,))
+					"FROM product_assembly_versions WHERE id = %s", 
+					(self.version_id,))
 		for row in c.fetchall():
 			self.builder.get_object('notes_buffer').set_text(row[0])
 		c.close()
