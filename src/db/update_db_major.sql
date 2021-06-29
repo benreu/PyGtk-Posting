@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS product_assembly_versions (
 	active boolean NOT NULL DEFAULT True
 	);
 INSERT INTO product_assembly_versions (product_id, version_name, assembly_notes) SELECT pai.manufactured_product_id, 'Version A', p.assembly_notes FROM product_assembly_items AS pai JOIN products AS p ON p.id = pai.manufactured_product_id WHERE pai.manufactured_product_id NOT IN (SELECT product_id FROM product_assembly_versions GROUP BY product_id) GROUP BY manufactured_product_id, p.assembly_notes ORDER BY manufactured_product_id;
+INSERT INTO product_assembly_versions (product_id, version_name, assembly_notes) SELECT mp.product_id, 'Version A', p.assembly_notes FROM manufacturing_projects AS mp JOIN products AS p ON p.id = mp.product_id WHERE mp.product_id NOT IN (SELECT product_id FROM product_assembly_versions GROUP BY product_id) GROUP BY product_id, p.assembly_notes ORDER BY product_id;
 ALTER TABLE product_assembly_items ADD COLUMN IF NOT EXISTS version_id bigint;
 ALTER TABLE public.product_assembly_items 
 	DROP CONSTRAINT IF EXISTS product_assembly_items_version_id_fkey, 
