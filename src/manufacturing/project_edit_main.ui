@@ -27,12 +27,31 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkListStore" id="version_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="version_completion">
+    <property name="model">version_store</property>
+    <property name="text_column">1</property>
+    <signal name="match-selected" handler="version_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Manufacturing project</property>
     <property name="modal">True</property>
     <property name="window_position">center</property>
-    <property name="default_width">440</property>
+    <property name="default_width">600</property>
     <property name="default_height">250</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
@@ -64,6 +83,7 @@
                     <property name="adjustment">units_adjustment</property>
                     <property name="numeric">True</property>
                     <property name="value">1</property>
+                    <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                     <signal name="value-changed" handler="qty_spinbutton_changed" swapped="no"/>
                   </object>
                   <packing>
@@ -87,7 +107,7 @@
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">1</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
@@ -98,7 +118,7 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
@@ -109,7 +129,7 @@
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
@@ -152,6 +172,38 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Version</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="version_combo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="model">version_store</property>
+                <property name="has_entry">True</property>
+                <property name="entry_text_column">1</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="version_combo_changed" swapped="no"/>
+                <child internal-child="entry">
+                  <object class="GtkEntry">
+                    <property name="can_focus">True</property>
+                    <property name="completion">version_completion</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
                 <property name="top_attach">1</property>
               </packing>
             </child>
