@@ -104,6 +104,18 @@ class ContactsOverviewGUI(Gtk.Builder):
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
 
+	def copy_mode_toggled (self, checkmenuitem):
+		mode = checkmenuitem.get_active()
+		self.get_object('name_renderer').set_property('editable', mode)
+		self.get_object('ext_name_renderer').set_property('editable', mode)
+		self.get_object('address_renderer').set_property('editable', mode)
+		self.get_object('city_renderer').set_property('editable', mode)
+		self.get_object('state_renderer').set_property('editable', mode)
+		self.get_object('zip_renderer').set_property('editable', mode)
+		self.get_object('fax_renderer').set_property('editable', mode)
+		self.get_object('phone_renderer').set_property('editable', mode)
+		self.get_object('email_renderer').set_property('editable', mode)
+
 	def search_changed (self, search_entry):
 		self.name_filter = search_entry.get_text().split()
 		self.filtered_store.refilter()
