@@ -133,6 +133,14 @@
       <column type="gchararray"/>
       <!-- column-name doc_type -->
       <column type="gchararray"/>
+      <!-- column-name price -->
+      <column type="gfloat"/>
+      <!-- column-name price_formatted -->
+      <column type="gchararray"/>
+      <!-- column-name ext_price -->
+      <column type="gfloat"/>
+      <!-- column-name ext_price_formatted -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkTextBuffer" id="resource_buffer"/>
@@ -623,10 +631,14 @@
                       <object class="GtkTreeViewColumn">
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Remark</property>
+                        <property name="expand">True</property>
                         <property name="reorderable">True</property>
                         <property name="sort_column_id">4</property>
                         <child>
-                          <object class="GtkCellRendererText"/>
+                          <object class="GtkCellRendererText">
+                            <property name="editable">True</property>
+                            <property name="ellipsize">middle</property>
+                          </object>
                           <attributes>
                             <attribute name="text">4</attribute>
                           </attributes>
@@ -643,6 +655,34 @@
                           <object class="GtkCellRendererText"/>
                           <attributes>
                             <attribute name="text">5</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Price</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">6</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">7</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Ext price</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">8</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">9</attribute>
                           </attributes>
                         </child>
                       </object>
