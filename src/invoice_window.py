@@ -16,7 +16,7 @@
 
 
 from gi.repository import Gtk, Gdk, GLib
-import os, subprocess, psycopg2
+import os, subprocess, psycopg2, re
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
@@ -135,6 +135,9 @@ class InvoiceGUI:
 		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
 		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
 
+	def widget_focus_in_event (self, widget, event):
+		GLib.idle_add(widget.select_region, 0, -1)
+
 	def populate_location_store (self):
 		location_combo = self.builder.get_object('combobox2')
 		active_location = location_combo.get_active_id()
@@ -167,24 +170,40 @@ class InvoiceGUI:
 		combo.set_active_id(transfer_customer_id)
 
 	def barcode_entry_key_pressed (self, entry, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if keyname != 'Return' and keyname != "KP_Enter": # enter key(s)
+			if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
+				# process keypresses with CTRL held down
+				entry.delete_selection()
+				position = entry.get_position()
+				number = re.sub("[^0-9]", "", keyname)
+				entry.insert_text(number, position)
+				entry.set_position(position + 1)
+			return
+		barcode = entry.get_text()
+		if barcode == "":
+			return # blank barcode
+		self.cursor.execute("SELECT id FROM products "
+							"WHERE (barcode, deleted) = "
+							"(%s, False)", (barcode,))
+		for row in self.cursor.fetchall():
+			product_id = row[0]
+			break
+		else:
+			return
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
-			barcode = entry.get_text()
-			if barcode == "":
-				return # blank barcode
-			self.cursor.execute("SELECT id FROM products "
-								"WHERE (barcode, deleted, sellable, stock) = "
-								"(%s, False, True, True)", (barcode,))
-			for row in self.cursor.fetchall():
-				product_id = row[0]
-				break
-			else:
+			for row in self.invoice_store:
+				if row[2] == product_id:
+					row[1] -= 1
+					break
+			entry.select_region(0,-1)
+		elif event.get_state() & Gdk.ModifierType.CONTROL_MASK: #ctrl held down
+			selection = self.builder.get_object('treeview-selection')
+			model, path = selection.get_selected_rows()
+			if path == []:
 				return
-			keyname = Gdk.keyval_name(event.keyval)
-			if keyname == 'Return' or keyname == "KP_Enter": # enter key(s)
-				for row in self.invoice_store:
-					if row[2] == product_id:
-						row[1] -= 1
-						break
+			self.product_selected (product_id, path)
+			entry.select_region(0,-1)
 
 	def barcode_entry_activate (self, entry):
 		self.check_invoice_id()

@@ -361,6 +361,7 @@
                                 <property name="can_focus">True</property>
                                 <property name="has_focus">True</property>
                                 <property name="completion">customer_completion</property>
+                                <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                                 <signal name="populate-popup" handler="customer_combo_populate_popup" swapped="no"/>
                               </object>
                             </child>
@@ -871,6 +872,7 @@
                     <property name="width_chars">10</property>
                     <property name="placeholder_text" translatable="yes">Scan barcode</property>
                     <signal name="activate" handler="barcode_entry_activate" swapped="no"/>
+                    <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                     <signal name="key-press-event" handler="barcode_entry_key_pressed" swapped="no"/>
                   </object>
                   <packing>
