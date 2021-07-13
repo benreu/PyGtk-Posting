@@ -331,6 +331,7 @@
                             <property name="can_focus">True</property>
                             <property name="has_focus">True</property>
                             <property name="completion">vendor_completion</property>
+                            <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                             <signal name="populate-popup" handler="vendor_combo_populate_popup" swapped="no"/>
                           </object>
                         </child>
@@ -749,7 +750,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="placeholder_text" translatable="yes">Scan barcode</property>
-                <signal name="activate" handler="barcode_entry_activated" swapped="no"/>
+                <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                 <signal name="key-release-event" handler="barcode_entry_key_released" swapped="no"/>
               </object>
               <packing>
@@ -968,7 +969,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="placeholder_text" translatable="yes">Scan barcode</property>
-                    <signal name="activate" handler="barcode_entry_activated" swapped="no"/>
+                    <signal name="key-release-event" handler="barcode_entry_key_released" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

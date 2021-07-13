@@ -154,6 +154,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.unlock_po()
 		self.cursor.close()
 
+	def widget_focus_in_event (self, widget, event):
+		GLib.idle_add(widget.select_region, 0, -1)
+
 	def on_drag_data_received(self,widget,drag_context,x,y,data,info,time):
 		list_ = data.get_text().split(' ')
 		if len(list_) != 2:
@@ -1139,28 +1142,17 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.delete_entry_activated ()
 
 	def barcode_entry_key_released (self, entry, event):
-		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
-			barcode = entry.get_text()
-			if barcode == "":
-				return # blank barcode
-			self.cursor.execute("SELECT id FROM products "
-								"WHERE barcode = %s", (barcode,))
-			for row in self.cursor.fetchall():
-				product_id = row[0]
-				break
-			else:
-				return
-			keyname = Gdk.keyval_name(event.keyval)
-			if keyname == 'Return' or keyname == "KP_Enter": # enter key(s)
-				for index, row in enumerate(self.p_o_store):
-					if row[2] == product_id:
-						row[1] -= 1
-						self.save_purchase_order_line (index)
-						break
-
-	def barcode_entry_activated (self, entry):
+		keyname = Gdk.keyval_name(event.keyval)
+		if keyname != 'Return' and keyname != "KP_Enter": # enter key(s)
+			if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
+				# process keypresses with CTRL held down
+				entry.delete_selection()
+				position = entry.get_position()
+				number = re.sub("[^0-9]", "", keyname)
+				entry.insert_text(number, position)
+				entry.set_position(position + 1)
+			return
 		barcode = entry.get_text()
-		entry.select_region(0,-1)
 		if barcode == "":
 			return # blank barcode
 		self.cursor.execute("SELECT id FROM products "
@@ -1169,18 +1161,41 @@ class PurchaseOrderGUI(Gtk.Builder):
 			product_id = row[0]
 			break
 		else:
-			for row in self.barcodes_not_found_store:
-				if row[2] == barcode:
-					row[1] += 1
-					break
-				continue
-			else:
-				self.barcodes_not_found_store.append([0, 1, barcode])
-			self.get_object('entry10').grab_focus()
-			barcode_error_dialog = self.get_object('barcode_error_dialog')
-			barcode_error_dialog.run()
-			barcode_error_dialog.hide()
+			self.process_missing_barcode (barcode)
 			return
+		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
+			entry.select_region(0,-1)
+			for index, row in enumerate(self.p_o_store):
+				if row[2] == product_id:
+					row[1] -= 1
+					self.save_purchase_order_line (index)
+					break
+		elif event.get_state() & Gdk.ModifierType.CONTROL_MASK: #ctrl held down
+			entry.select_region(0,-1)
+			selection = self.get_object('treeview-selection')
+			model, path = selection.get_selected_rows()
+			if path == []:
+				return
+			_iter = self.p_o_store.get_iter(path)
+			self.save_product (_iter, product_id)
+		else:
+			entry.select_region(0,-1)
+			self.add_product (product_id)
+
+	def process_missing_barcode (self, barcode):
+		for row in self.barcodes_not_found_store:
+			if row[2] == barcode:
+				row[1] += 1
+				break
+			continue
+		else:
+			self.barcodes_not_found_store.append([0, 1, barcode])
+		self.get_object('entry10').grab_focus()
+		barcode_error_dialog = self.get_object('barcode_error_dialog')
+		barcode_error_dialog.run()
+		barcode_error_dialog.hide()
+
+	def add_product (self, product_id):
 		for index, row in enumerate(self.p_o_store):
 			if row[2] == product_id:
 				row[1] += 1
