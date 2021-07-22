@@ -183,7 +183,7 @@ class ProjectEditGUI(Gtk.Builder):
 						"RETURNING time_clock_projects_id", 
 						(name, qty, notes, self.version_id, self.project_id))
 			active = self.get_object('time_clock_checkbutton').get_active()
-			for row in cursor.fetchall():
+			for row in c.fetchall():
 				time_clock_projects_id = row[0]
 				c.execute("UPDATE time_clock_projects "
 							"SET (name, active, stop_date) = "
