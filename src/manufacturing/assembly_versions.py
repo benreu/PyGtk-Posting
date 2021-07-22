@@ -28,9 +28,23 @@ class AssembledVersionsGUI (Gtk.Builder):
 		self.connect_signals(self)
 		self.version_store = self.get_object('version_store')
 		self.assembled_product_store = self.get_object('assembled_product_store')
+		product_completion = self.get_object('product_completion')
+		product_completion.set_match_func(self.product_match_func)
 		self.populate_assembled_products ()
 		self.window = self.get_object('window')
 		self.window.show_all()
+
+	def product_match_func(self, completion, key, iter_):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in self.assembled_product_store[iter_][1].lower():
+				return False# no match
+		return True# it's a hit!
+
+	def product_match_selected (self, entrycompletion, treemodel, treeiter):
+		product_id = treemodel[treeiter][0]
+		self.get_object('product_combo').set_active_id(product_id)
+		return True
 
 	def populate_assembled_products (self):
 		c = DB.cursor()
@@ -46,6 +60,7 @@ class AssembledVersionsGUI (Gtk.Builder):
 		product_id = combobox.get_active_id()
 		if product_id == None:
 			return
+		self.get_object('create_version_button').set_sensitive(True)
 		self.product_id = product_id
 		self.populate_versions ()
 
@@ -84,6 +99,10 @@ class AssembledVersionsGUI (Gtk.Builder):
 		DB.commit()
 		c.close()
 		self.populate_versions()
+
+	def use_version_items_combo_changed (self, combobox):
+		if combobox.get_active_id != None:
+			self.get_object('existing_items_checkbutton').set_active(True)
 
 	def version_name_edited (self, cellrenderertext, path, text):
 		row_id = self.version_store[path][0]
