@@ -123,19 +123,21 @@ class AssembledProductsGUI:
 										quoting=csv.QUOTE_MINIMAL)
 			c.execute(	"SELECT "
 							"pai.qty, "
-							"products.name, "
+							"p.name, "
 							"COALESCE(vpn.vendor_sku, 'No order number'), "
-							"products.manufacturer_sku, "
+							"p.manufacturer_sku, "
 							"pai.remark, "
-							"products.cost "
+							"p.cost "
 						"FROM product_assembly_items AS pai "
-						"JOIN products ON pai.assembly_product_id = products.id "
+						"JOIN product_assembly_versions AS pav "
+							"ON pai.version_id = pav.id "
+						"JOIN products AS p ON pai.assembly_product_id = p.id "
 						"LEFT JOIN vendor_product_numbers AS vpn "
 							"ON vpn.product_id = pai.assembly_product_id "
 							"AND vendor_id = %s "
-						"WHERE (manufactured_product_id) = (%s) "
+						"WHERE pav.id = %s "
 						"ORDER BY pai.id", 
-						(vendor_id, self.manufactured_product_id))
+						(vendor_id, self.version_id))
 			for row in c.fetchall():
 				exportfile.writerow(row)
 		c.close()
