@@ -16,7 +16,8 @@
 from gi.repository import Gtk
 from db import transactor
 from dateutils import DateTimeCalendar
-import subprocess
+import subprocess, decimal
+
 from constants import ui_directory, DB
 from sqlite_utils import get_apsw_connection
 
@@ -225,6 +226,7 @@ class GUI (Gtk.Builder):
 		self.populate_unpaid_invoices()
 
 	def populate_unpaid_invoices(self):
+		unpaid_invoice_amount = decimal.Decimal()
 		treeview_selection = self.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
 		model.clear()
@@ -246,16 +248,22 @@ class GUI (Gtk.Builder):
 		tupl = c.fetchall()
 		for row in tupl:
 			model.append(row)
+			unpaid_invoice_amount += decimal.Decimal(row[6])
 		if path != [] and tupl != []:
 			treeview_selection.select_path(path)
 			self.get_object('treeview1').scroll_to_cell(path)
-		c.execute("SELECT COALESCE(i.amount_due - pi.amount, 0.00)::money "
+		c.execute("SELECT "
+					"COALESCE(i.amount_due - (pi.amount + cm.amount), 0.00)::money "
 					"FROM (SELECT SUM(amount_due) AS amount_due FROM invoices "
 					"WHERE (posted, canceled, active) = (True, False, True)) i, "
 					"(SELECT SUM(amount) AS amount FROM payments_incoming "
-					"WHERE (misc_income) = (False)) pi ")
+					"WHERE misc_income = False) pi, "
+					"(SELECT SUM(amount_owed) AS amount FROM credit_memos "
+					"WHERE posted = True) cm ")
 		unpaid = c.fetchone()[0]
-		self.get_object('label3').set_label(unpaid)
+		self.get_object('AR_balance_label').set_label(unpaid)
+		l = '${:,.2f}'.format(unpaid_invoice_amount)
+		self.get_object('unpaid_invoices_label').set_label(l)
 		c.close()
 		DB.rollback()
 
