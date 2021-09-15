@@ -202,31 +202,35 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		DB.rollback()
 
 	def add_serial_event_clicked (self, button):
-		dialog = self.get_object('event_dialog')
-		response = dialog.run ()
-		if response == Gtk.ResponseType.ACCEPT:
-			serial_number = self.get_object('entry2').get_text()
-			buf = self.get_object('textbuffer1')
-			start_iter = buf.get_start_iter()
-			end_iter = buf.get_end_iter()
-			description = buf.get_text(start_iter, end_iter, True)
-			self.cursor.execute("INSERT INTO serial_number_history "
-								"(contact_id, "
-								"date_inserted, description, serial_number_id) "
-								"VALUES (%s, %s, %s, %s)", 
-								(self.contact_id, self.date, 
-								description, self.serial_id))
-			DB.commit()
-			self.populate_serial_number_history ()
-			self.get_object('combobox2').set_sensitive(False)
-			self.get_object('combobox3').set_sensitive(False)
-			self.get_object('textview1').set_sensitive(False)
-			self.get_object('button4').set_sensitive(False)
-			self.get_object('combobox-entry2').set_text('')
-			self.get_object('combobox-entry4').set_text('')
-			self.get_object('combobox-entry5').set_text('')
-			self.get_object('textbuffer1').set_text('')
-		dialog.hide()
+		window = self.get_object('add_event_window')
+		window.show_all()
+
+	def add_event_clicked (self, button):
+		serial_number = self.get_object('entry2').get_text()
+		buf = self.get_object('textbuffer1')
+		start_iter = buf.get_start_iter()
+		end_iter = buf.get_end_iter()
+		description = buf.get_text(start_iter, end_iter, True)
+		self.cursor.execute("INSERT INTO serial_number_history "
+							"(contact_id, "
+							"date_inserted, description, serial_number_id) "
+							"VALUES (%s, %s, %s, %s)", 
+							(self.contact_id, self.date, 
+							description, self.serial_id))
+		DB.commit()
+		self.populate_serial_number_history ()
+		self.get_object('combobox2').set_sensitive(False)
+		self.get_object('combobox3').set_sensitive(False)
+		self.get_object('textview1').set_sensitive(False)
+		self.get_object('combobox-entry2').set_text('')
+		self.get_object('combobox-entry4').set_text('')
+		self.get_object('combobox-entry3').set_text('')
+		self.get_object('textbuffer1').set_text('')
+		self.get_object('add_event_window').hide()
+		button.set_sensitive(False)
+
+	def cancel_event_clicked (self, button):
+		self.get_object('add_event_window').hide()
 
 	def add_serial_number_dialog_clicked (self, button):
 		dialog = self.get_object('add_serial_number_dialog')
@@ -235,6 +239,9 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			self.populate_serial_number_history ()
 		dialog.hide()
 		self.get_object('label10').set_text('')
+	def add_event_window_delete_event (self, window, event):
+		window.hide()
+		return True
 
 	def add_serial_number_clicked (self, button):
 		serial_number = self.get_object('entry2').get_text()
@@ -315,7 +322,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			self.get_object('combobox3').set_sensitive(True)
 
 	def event_description_changed (self, entry):
-		self.get_object('button4').set_sensitive(True)
+		self.get_object('add_event_button').set_sensitive(True)
 
 	def reprint_serial_number_clicked (self, button):
 		barcode = self.get_object('serial_number_entry').get_text()
@@ -336,6 +343,18 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		menu = self.get_object('right_click_menu')
 		menu.popup_at_pointer()
 
+	def add_serial_number_event_activated (self, menuitem):
+		selection = self.get_object('serial_number_treeselection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][2]
+		serial_number = model[path][4]
+		window = self.get_object('add_event_window')
+		window.show_all()
+		self.get_object('combobox4').set_active_id(str(product_id))
+		self.get_object('combobox2').set_active_id(str(serial_number))
+
 	def invoice_hub_activated (self, menuitem):
 		selection = self.get_object('serial_number_treeselection')
 		model, path = selection.get_selected_rows()
@@ -354,7 +373,6 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			return
 		serial_number = model[path][4]
 		self.get_object('serial_number_entry').set_text(serial_number)
-
 
 
 
