@@ -53,7 +53,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.filtered_store = self.get_object('serial_number_treeview_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		sort_model = self.get_object('serial_number_treeview_sort')
-		sort_model.set_sort_func(3, self.treeview_sort_func)
+		sort_model.set_sort_func(4, self.serial_number_sort_func)
 		self.product_id = 0
 		self.populate_product_store()
 		self.populate_contact_store()
@@ -79,16 +79,16 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def filter_func (self, model, tree_iter, r):
 		for i in self.product_name.split():
-			if i not in model[tree_iter][2].lower():
+			if i not in model[tree_iter][3].lower():
 				return False
 		for i in self.serial_number.split():
-			if i not in model[tree_iter][3].lower():
+			if i not in model[tree_iter][4].lower():
 				return False
 		return True
 
-	def treeview_sort_func (self, model, iter_a, iter_b, arg):
-		a = model[iter_a][3]
-		b = model[iter_b][3]
+	def serial_number_sort_func (self, model, iter_a, iter_b, arg):
+		a = model[iter_a][4]
+		b = model[iter_b][4]
 		try:
 			return int(a) - int(b)
 		except Exception as e:
@@ -145,6 +145,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.cursor.execute("SELECT "
 								"sn.id, "
 								"COALESCE(manufacturing_id::text, ''), "
+								"p.id, "
 								"p.name, "
 								"sn.serial_number, "
 								"sn.date_inserted::text, "
@@ -169,7 +170,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"ON poli.id = sn.purchase_order_item_id "
 							"LEFT JOIN purchase_orders AS po "
 								"ON po.id = poli.purchase_order_id "
-							"GROUP BY sn.id, p.name, sn.serial_number, "
+							"GROUP BY sn.id, p.id, p.name, sn.serial_number, "
 								"sn.date_inserted, invoice_id, poli.id, "
 								"manufacturing_id, i.dated_for, "
 								"po.date_printed "
@@ -340,7 +341,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		invoice_number = model[path][8]
+		invoice_number = model[path][9]
 		if invoice_number == "":
 			return
 		import invoice_hub
@@ -351,7 +352,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		serial_number = model[path][3]
+		serial_number = model[path][4]
 		self.get_object('serial_number_entry').set_text(serial_number)
 
 
