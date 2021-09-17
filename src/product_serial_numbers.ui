@@ -505,7 +505,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="add_serial_number_dialog_clicked" swapped="no"/>
+                <signal name="clicked" handler="add_serial_number_window_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -833,62 +833,22 @@
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="add_serial_number_dialog">
+  <object class="GtkWindow" id="add_serial_number_window">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Add serial number entry</property>
+    <property name="title" translatable="yes">Add serial number</property>
     <property name="window_position">center</property>
-    <property name="default_width">500</property>
-    <property name="default_height">300</property>
-    <property name="icon_name">pygtk-posting</property>
-    <property name="type_hint">dialog</property>
+    <property name="default_width">440</property>
+    <property name="default_height">250</property>
     <property name="transient_for">window1</property>
-    <child type="titlebar">
+    <signal name="delete-event" handler="add_serial_number_window_delete_event" swapped="no"/>
+    <child>
       <placeholder/>
     </child>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox1">
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area1">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button3">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button2">
-                <property name="label" translatable="yes">Add entry</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="add_serial_number_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
         <child>
           <object class="GtkGrid" id="grid1">
             <property name="visible">True</property>
@@ -968,7 +928,7 @@
                   </attributes>
                 </child>
                 <child internal-child="entry">
-                  <object class="GtkEntry" id="combobox-entry">
+                  <object class="GtkEntry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="completion">add_product_completion</property>
@@ -988,12 +948,50 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="label10">
+          <object class="GtkLabel" id="exception_label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <attributes>
-              <attribute name="foreground" value="#cccc00000000"/>
-            </attributes>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="cancel_serial_number_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="add_serial_number_button">
+                <property name="label" translatable="yes">Add serial number</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="add_serial_number_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1003,9 +1001,6 @@
         </child>
       </object>
     </child>
-    <action-widgets>
-      <action-widget response="-6">button3</action-widget>
-    </action-widgets>
   </object>
   <object class="GtkTextBuffer" id="textbuffer1">
     <signal name="changed" handler="event_description_changed" swapped="no"/>

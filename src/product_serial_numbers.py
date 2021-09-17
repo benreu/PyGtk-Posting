@@ -232,16 +232,14 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 	def cancel_event_clicked (self, button):
 		self.get_object('add_event_window').hide()
 
-	def add_serial_number_dialog_clicked (self, button):
-		dialog = self.get_object('add_serial_number_dialog')
-		response = dialog.run ()
-		if response == Gtk.ResponseType.ACCEPT:
-			self.populate_serial_number_history ()
-		dialog.hide()
-		self.get_object('label10').set_text('')
 	def add_event_window_delete_event (self, window, event):
 		window.hide()
 		return True
+
+	def add_serial_number_window_clicked (self, button):
+		self.get_object('exception_label').set_text('')
+		self.get_object('add_serial_number_button').set_sensitive(False)
+		self.get_object('add_serial_number_window').show_all()
 
 	def add_serial_number_clicked (self, button):
 		serial_number = self.get_object('entry2').get_text()
@@ -252,11 +250,18 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"VALUES (%s, %s, %s)", 
 								(self.product_id, serial_number, self.date))
 			DB.commit()
-			dialog = self.get_object('add_serial_number_dialog')
-			dialog.response(Gtk.ResponseType.ACCEPT)
+			self.get_object('add_serial_number_window').hide()
+			self.populate_serial_number_history ()
 		except psycopg2.IntegrityError as e:
-			self.get_object('label10').set_text(str(e))
+			self.get_object('exception_label').set_text(str(e))
 			DB.rollback()
+
+	def cancel_serial_number_clicked (self, button):
+		self.get_object('add_serial_number_window').hide()
+
+	def add_serial_number_window_delete_event (self, window, event):
+		window.hide()
+		return True
 
 	def refresh_clicked (self, button):
 		self.populate_serial_number_history ()
@@ -309,7 +314,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			self.get_object('textview1').set_sensitive(True)
 
 	def add_serial_number_changed (self, entry):
-		self.get_object('button2').set_sensitive(True)
+		self.get_object('add_serial_number_button').set_sensitive(True)
 
 	def serial_number_match_selected (self, completion, model, iter_):
 		serial_number = model[iter_][0]
