@@ -137,7 +137,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def service_provider_combo_changed (self, combobox):
 		service_provider_id = combobox.get_active_id()
-		if service_provider_id == '0':
+		if service_provider_id == None :
+			self.service_provider_join = \
+				'JOIN contacts AS c ON c.id = i.contact_id '
+			return
+		elif service_provider_id == '0':
 			self.service_provider_join = \
 				'JOIN contacts AS c ON c.id = i.contact_id '
 		elif service_provider_id != None:
@@ -152,7 +156,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def expense_account_combo_changed (self, combobox):
 		expense_account_id = combobox.get_active_id()
-		if expense_account_id == '0':
+		if expense_account_id == None:
+			self.expense_account_join = ''
+			return
+		elif expense_account_id == '0':
 			self.expense_account_join = ''
 		elif expense_account_id != None:
 			self.expense_account_join = \
@@ -166,7 +173,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def fiscal_year_combo_changed (self, combobox):
 		fiscal_year_id = combobox.get_active_id()
-		if fiscal_year_id == '0':
+		if fiscal_year_id == None:
+			self.fiscal_year_join = ''
+			return
+		elif fiscal_year_id == '0':
 			self.fiscal_year_join = ''
 		elif fiscal_year_id != None:
 			self.fiscal_year_join = \
@@ -181,6 +191,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def populate_incoming_invoice_store (self):
 		self.incoming_invoice_store.clear()
 		self.invoice_items_store.clear()
+		print(self.expense_account_join)
 		c = DB.cursor()
 		c.execute("SELECT "
 					"i.id, "
