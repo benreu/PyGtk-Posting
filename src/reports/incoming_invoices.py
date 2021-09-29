@@ -165,9 +165,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			self.expense_account_join = \
 				"JOIN incoming_invoices_gl_entry_expenses_ids AS iigl " \
 				"ON iigl.incoming_invoices_id = i.id " \
-				"JOIN LATERAL (SELECT id FROM gl_entries AS ge " \
-				"WHERE ge.debit_account = %s AND " \
-				"iigl.gl_entry_expense_id = geda.id LIMIT 1) geda " \
+				"JOIN gl_entries AS ge " \
+				"ON iigl.gl_entry_expense_id = ge.id " \
+					"AND ge.debit_account = %s " \
 				% (expense_account_id,)
 		self.populate_incoming_invoice_store()
 
