@@ -164,13 +164,15 @@ class PurchaseOrderGUI(Gtk.Builder):
 			return
 		if self.vendor_id == 0:
 			return
+		self.check_po_id()
 		qty, product_id = list_[0], list_[1]
 		cursor = DB.cursor()
-		cursor.execute("SELECT COALESCE(vendor_sku, ''), p.name "
-						"FROM vendor_product_numbers AS vpn "
-						"JOIN products AS p ON p.id = vpn.product_id "
-						"WHERE (product_id, vendor_id) = (%s, %s)",
-						(product_id, self.vendor_id))
+		cursor.execute("SELECT COALESCE(vpn.vendor_sku, ''), p.name "
+						"FROM products AS p "
+						"LEFT JOIN vendor_product_numbers AS vpn "
+						"ON p.id = vpn.product_id AND vendor_id = %s "
+						"WHERE p.id = %s",
+						(self.vendor_id, product_id))
 		for row in cursor.fetchall():
 			order_number = row[0]
 			name = row[1]

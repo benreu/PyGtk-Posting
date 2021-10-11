@@ -458,7 +458,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">purchase_order_store</property>
-                <property name="reorderable">True</property>
                 <property name="search_column">1</property>
                 <property name="enable_grid_lines">both</property>
                 <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
