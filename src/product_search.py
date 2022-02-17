@@ -48,13 +48,16 @@ class ProductSearchGUI:
 		self.filtered_product_store = self.builder.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
 		self.handler_ids = list()
-		for connection in (("products_changed", self.populate_product_treeview_store),):
+		for connection in (("products_changed", self.show_refresh_button),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 		self.populate_product_treeview_store()
+
+	def show_refresh_button (self, broadcast):
+		self.builder.get_object('refresh_button').set_visible(True)
 
 	def destroy (self, window):
 		for handler in self.handler_ids:
@@ -112,7 +115,11 @@ class ProductSearchGUI:
 				return False
 		return True
 
-	def populate_product_treeview_store (self, m = None):
+	def refresh_clicked (self, button):
+		self.populate_product_treeview_store()
+		button.set_visible(False)
+
+	def populate_product_treeview_store (self):
 		progressbar = self.builder.get_object('progressbar')
 		treeview = self.builder.get_object('treeview1')
 		store = self.builder.get_object('product_store')
