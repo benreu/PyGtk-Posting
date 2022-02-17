@@ -191,7 +191,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def populate_incoming_invoice_store (self):
 		self.incoming_invoice_store.clear()
 		self.invoice_items_store.clear()
-		print(self.expense_account_join)
 		c = DB.cursor()
 		c.execute("SELECT "
 					"i.id, "
@@ -214,10 +213,21 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		DB.rollback()
 
 	def incoming_invoice_selection_changed (self, treeselection):
-		model, path = treeselection.get_selected_rows()
-		if path == []:
-			return
 		self.invoice_items_store.clear()
+		model, paths = treeselection.get_selected_rows()
+		stack = self.get_object('invoice_info_page')
+		if len(paths) == 0:
+			stack.set_visible_child_name('invoice_items_page')
+			return
+		elif len(paths) == 1:
+			stack.set_visible_child_name('invoice_items_page')
+			self.populate_invoice_items(treeselection)
+		elif len(paths) > 1:
+			stack.set_visible_child_name('invoice_stats_page')
+			self.show_incoming_invoice_stats(treeselection)
+
+	def populate_invoice_items (self, treeselection):
+		model, path = treeselection.get_selected_rows()
 		row_id = model[path][0]
 		self.cursor.execute("SELECT "
 								"ge.id, "
@@ -237,6 +247,39 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			self.invoice_items_store.append(row)
 		DB.rollback()
+
+	def show_incoming_invoice_stats (self, treeselection):
+		model, paths = treeselection.get_selected_rows()
+		path_list = list()
+		for path in paths:
+			path_list.append(model[path][0])
+		c = DB.cursor()
+		c.execute("SELECT "
+						"COUNT(id)::text, "
+						"format_date(MIN(date_created)), "
+						"format_date(MAX(date_created)), "
+						"COUNT( DISTINCT contact_id)::text, "
+						"MIN(amount)::money, "
+						"MAX(amount)::money, "
+						"SUM(amount)::money, "
+						"AVG(amount)::money, "
+						"date_trunc('day',make_interval(days => "
+							"MAX(date_created)-MIN(date_created)))::text "
+					"FROM incoming_invoices "
+					"WHERE id IN %s" %
+					(str(tuple(path_list)),))
+		for row in c.fetchall():
+			self.get_object('invoice_count').set_label(row[0])
+			self.get_object('start_date_label').set_label(row[1])
+			self.get_object('end_date_label').set_label(row[2])
+			self.get_object('service_providers_label').set_label(row[3])
+			self.get_object('min_amount_label').set_label(row[4])
+			self.get_object('max_amount_label').set_label(row[5])
+			self.get_object('total_amount_label').set_label(row[6])
+			self.get_object('avg_amount_label').set_label(row[7])
+			self.get_object('days_label').set_label(row[8][:-5]) #strip 'days' text
+		DB.rollback()
+		c.close()
 
 	########## admin section
 
