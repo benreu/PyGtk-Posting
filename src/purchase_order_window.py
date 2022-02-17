@@ -1071,7 +1071,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.get_object('po_number_entry').set_text(str(po_id))
 
 	def new_entry_clicked (self, button):
-		self.add_entry ()
+		_iter = self.add_entry ()
+		treeview = self.get_object('treeview2')
+		c = treeview.get_column(0)
+		path = self.p_o_store.get_path(_iter)
+		treeview.set_cursor(path, c, True)
 
 	def add_entry (self):
 		self.check_po_id ()
@@ -1084,17 +1088,14 @@ class PurchaseOrderGUI(Gtk.Builder):
 		for i in self.cursor.fetchall():
 			product_id = i[0]
 			product_name = i[1]
-			iter_ = self.p_o_store.append([0, '1', product_id, 
+			_iter = self.p_o_store.append([0, '1', product_id, 
 										"Select order number", 
 										False, "Select a stock item" , "", "", 
 										'1', '1', True, int(self.vendor_id),
 										'', self.purchase_order_id, False])
-			self.check_po_item_id (iter_)
-			treeview = self.get_object('treeview2')
-			c = treeview.get_column(0)
-			path = self.p_o_store.get_path(iter_)
-			treeview.set_cursor(path, c, True)
+			self.check_po_item_id (_iter)
 		DB.commit()
+		return _iter
 
 	def delete_item_activated (self, menuitem = None):
 		selection = self.get_object("treeview-selection")
@@ -1205,13 +1206,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 				break
 			continue
 		else:
-			self.p_o_store.append([0, '1', 0, '', True, '', 
-											'', '', '0.00', '0.00', False, 
-											int(self.vendor_id), '', 
-											self.purchase_order_id, False])
-			path = self.p_o_store.iter_n_children ()
-			path -= 1 #iter_n_children starts at 1 ; path starts at 0
-			_iter = self.p_o_store.get_iter(path)
+			_iter = self.add_entry ()
 			self.save_product (_iter, product_id)
 
 	def calendar_day_selected (self, calendar):
