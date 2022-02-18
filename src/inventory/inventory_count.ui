@@ -254,6 +254,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">inventory_rows_store</property>
+                        <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection" id="treeview-selection1"/>
                         </child>
@@ -500,6 +501,28 @@
             <property name="position">1</property>
           </packing>
         </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="right_click_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Delete</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="delete_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="product_hub_activated" swapped="no"/>
       </object>
     </child>
   </object>

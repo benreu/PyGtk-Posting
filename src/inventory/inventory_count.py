@@ -28,6 +28,7 @@ class InventoryCountGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.product_store = self.get_object('product_store')
 		self.populate_stores()
 		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
@@ -37,12 +38,11 @@ class InventoryCountGUI(Gtk.Builder):
 
 	def populate_stores (self):
 		c = DB.cursor()
-		store = self.get_object('product_store')
-		store.clear()
+		self.product_store.clear()
 		c.execute("SELECT id::text, name || ' {' || ext_name || '}' "
 							"FROM products ORDER BY name, ext_name")
 		for row in c.fetchall():
-			store.append(row)
+			self.product_store.append(row)
 		c = DB.cursor()
 		store = self.get_object('inventory_summaries_store')
 		store.clear()
@@ -88,6 +88,31 @@ class InventoryCountGUI(Gtk.Builder):
 		DB.commit()
 		store[path][0] = int(qty)
 		self.populate_inventory_count ()
+
+	def treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('right_click_menu')
+			menu.popup_at_pointer()
+
+	def delete_activated (self, menuitem):
+		model, path = self.get_object('treeview-selection1').get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][1]
+		c = DB.cursor()
+		c.execute("DELETE FROM inventory.count_rows "
+					"WHERE (count_summary_id, product_id) = (%s, %s)",
+					(self.summary_id, product_id))
+		DB.commit()
+		self.populate_inventory_count ()
+
+	def product_hub_activated (self, menuitem):
+		model, path = self.get_object('treeview-selection1').get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][1]
+		import product_hub
+		product_hub.ProductHubGUI(product_id)
 
 	def barcode_entry_activated (self, entry):
 		barcode = entry.get_text()
