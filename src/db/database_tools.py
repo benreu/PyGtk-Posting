@@ -21,7 +21,6 @@ from gi.repository import Gtk, GLib, Vte
 import subprocess, psycopg2, re, os
 from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from db import database_utils
 from constants import DB, ui_directory, sql_dir
 from constants import log_file as LOG_FILE
 from sqlite_utils import get_apsw_connection
@@ -38,7 +37,6 @@ class GUI:
 		self.builder.connect_signals(self)
 		self.statusbar = self.builder.get_object("statusbar2")
 		self.progressbar = self.builder.get_object("progressbar1")
-		database_utils.PROGRESSBAR = self.progressbar
 		if error == False:
 			self.db = DB
 			self.retrieve_dbs ()
@@ -134,9 +132,6 @@ class GUI:
 		db_version = model[iter_][0]
 		self.builder.get_object('label13').set_label(db_version)
 		self.builder.get_object('label14').set_label(db_name)
-
-	def upgrade_old_version (self):
-		database_utils.check_and_update_version (self.statusbar)
 
 	def login_multiple_clicked(self, widget):
 		selected = self.builder.get_object('combobox-entry').get_text()

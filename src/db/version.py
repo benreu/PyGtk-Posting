@@ -31,7 +31,6 @@ class CheckVersion :
 		d.window.hide()
 		while Gtk.events_pending():
 			Gtk.main_iteration()
-		d.upgrade_old_version()
 		self.window = main.window
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)

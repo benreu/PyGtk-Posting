@@ -3,7 +3,6 @@
 
 python_PYTHON = database_tools.py \
 	database_tools.ui \
-	database_utils.py \
 	PyGtk_Posting.svg \
 	transactor.py \
 	__init__.py \
