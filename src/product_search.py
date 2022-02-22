@@ -20,6 +20,7 @@
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
 from constants import ui_directory, DB, broadcaster
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/product_search.ui"
 
@@ -53,6 +54,7 @@ class ProductSearchGUI:
 			self.handler_ids.append(handler)
 
 		self.window = self.builder.get_object('window1')
+		self.load_window_layout ()
 		self.window.show_all()
 		self.populate_product_treeview_store()
 
@@ -63,7 +65,67 @@ class ProductSearchGUI:
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 		self.cursor.close()
-		
+
+	def load_window_layout (self):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'window_height'")
+		height = c.fetchone()[0]
+		self.window.resize(width, height)
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'sort_column'")
+		sort_column = c.fetchone()[0]
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'sort_type'")
+		sort_type = Gtk.SortType(c.fetchone()[0])
+		store = self.builder.get_object('product_store')
+		store.set_sort_column_id(sort_column, sort_type)
+		c.execute("SELECT widget_id, value FROM product_search WHERE "
+					"widget_id NOT IN ('window_width', "
+									"'window_height', "
+									"'sort_column', "
+									"'sort_type')")
+		for row in c.fetchall():
+			column = self.builder.get_object(row[0])
+			width = row[1]
+			if width == 0:
+				column.set_visible(False)
+			else:
+				column.set_fixed_width(width)
+		sqlite.close()
+	
+	def save_window_layout_activated (self, menuitem):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		width, height = self.window.get_size()
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('window_height', ?)", (height,))
+		tuple_ = self.builder.get_object('product_store').get_sort_column_id()
+		sort_column = tuple_[0]
+		if sort_column == None:
+			sort_column = 0
+			sort_type = 0
+		else:
+			sort_type = tuple_[1].numerator
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('sort_column', ?)", (sort_column,))
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('sort_type', ?)", (sort_type,))
+		treeview = self.builder.get_object('treeview1')
+		columns = treeview.get_columns()
+		for column in columns:
+			widget_name = column.get_name()
+			width = column.get_width()
+			c.execute("REPLACE INTO product_search (widget_id, value) "
+						"VALUES (?, ?)", (widget_name, width))
+		sqlite.close()
+	
 	def on_drag_data_get (self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		product_id = model[path][0]

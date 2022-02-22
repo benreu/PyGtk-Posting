@@ -65,6 +65,9 @@ def create_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE IF NOT EXISTS vendor_history "
 										"(widget_id TEXT UNIQUE NOT NULL, "
 										"size INTEGER NOT NULL)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS product_search "
+										"(widget_id TEXT UNIQUE NOT NULL, "
+										"value INTEGER NOT NULL)")
 
 def update_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO postgres_conn VALUES "
@@ -241,3 +244,28 @@ def update_apsw_tables(cursor):
 					"('po_date_column', 100)")
 	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
 					"('vendor_column', 100)")
+	# product search window layout
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('window_width', 500)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('window_height', 400)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('product_name_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('ext_name_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('barcode_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('vendor_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('order_number_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('vendor_number_column', 100)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('stock_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('sellable_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('purchasable_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('manufactured_column', 25)")

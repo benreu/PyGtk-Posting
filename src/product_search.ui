@@ -44,6 +44,19 @@
       </object>
     </child>
   </object>
+  <object class="GtkMenu" id="menu2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Save window layout</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="save_window_layout_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="product_store">
     <columns>
       <!-- column-name product_id -->
@@ -87,6 +100,9 @@
     <property name="default_height">400</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="box1">
         <property name="width_request">700</property>
@@ -215,6 +231,23 @@
                 <property name="position">6</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkMenuButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="focus_on_click">False</property>
+                <property name="receives_default">True</property>
+                <property name="popup">menu2</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -239,7 +272,7 @@
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                  <object class="GtkTreeViewColumn" id="product_name_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Product name</property>
@@ -258,7 +291,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                  <object class="GtkTreeViewColumn" id="ext_name_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Ext name</property>
@@ -276,7 +309,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                  <object class="GtkTreeViewColumn" id="barcode_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Barcode</property>
@@ -294,7 +327,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                  <object class="GtkTreeViewColumn" id="vendor_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Vendor</property>
@@ -312,7 +345,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                  <object class="GtkTreeViewColumn" id="order_number_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Order number</property>
@@ -330,7 +363,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                  <object class="GtkTreeViewColumn" id="vendor_number_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Vendor barcode</property>
@@ -348,7 +381,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                  <object class="GtkTreeViewColumn" id="stock_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="fixed_width">30</property>
@@ -365,7 +398,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                  <object class="GtkTreeViewColumn" id="sellable_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="fixed_width">30</property>
@@ -382,7 +415,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                  <object class="GtkTreeViewColumn" id="purchasable_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="fixed_width">30</property>
@@ -399,7 +432,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                  <object class="GtkTreeViewColumn" id="manufactured_column">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
                     <property name="fixed_width">30</property>
