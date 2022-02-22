@@ -44,6 +44,7 @@ class AssembledProductsGUI:
 		self.assembly_treeview.drag_source_set( Gdk.ModifierType.BUTTON1_MASK ,[dnd], Gdk.DragAction.COPY)
 		self.assembly_treeview.connect('drag_data_get', self.on_drag_data_get)
 		self.assembly_treeview.drag_source_set_target_list([dnd])
+		
 		self.product_store = self.builder.get_object('product_store')
 		self.assembly_store = self.builder.get_object('assembly_store')
 		self.assembled_product_store = self.builder.get_object('assembled_product_store')
@@ -61,17 +62,24 @@ class AssembledProductsGUI:
 		self.window.show_all()
 
 	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
-		return
-		_list_ = data.get_text().split(' ')
-		if len(_list_) != 2:
+		list_ = data.get_text().split(' ')
+		if len(list_) != 2:
+			raise Exception("invalid drag data received")
 			return
-		table, _id_ = _list_[0], _list_[1]
+		qty, product_id = list_[0], list_[1]
+		self.window.present()
 		c = DB.cursor()
-		c.execute("SELECT product, remark, cost FROM %s WHERE id = %s" % (table, _id_))
+		c.execute("SELECT name, cost FROM products WHERE id = %s", 
+																(product_id,))
 		for row in c.fetchall():
-			product = row[0]
-			remark = row[1]
-			price = row[2]
+			name = row[0]
+			price = row[1]
+			iter_ = self.assembly_store.append([0, int(qty), int(product_id), 
+												name, "", price, 0.00])
+			self.save_assembly_product_line(iter_)
+			path = self.assembly_store.get_path(iter_)
+			column = self.assembly_treeview.get_column(0)
+			self.assembly_treeview.set_cursor(path, column, True)
 		c.close()
 		DB.rollback()
 	
