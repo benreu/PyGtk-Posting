@@ -269,3 +269,7 @@ def update_apsw_tables(cursor):
 					"('purchasable_column', 25)")
 	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
 					"('manufactured_column', 25)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('sort_column', 0)")
+	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
+					"('sort_type', 0)")
