@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 from constants import DB
 
-expense_account = Gtk.TreeStore(str, str)
+expense_tree = Gtk.TreeStore(str, str, str)
+expense_list = Gtk.ListStore(str, str, str)
 revenue_account = Gtk.TreeStore(int, str, str)
 revenue_list = Gtk.ListStore(int, str, str)
 product_expense_tree = Gtk.TreeStore(str, str)
@@ -29,7 +30,7 @@ product_inventory_list = Gtk.ListStore(str, str, str)
 product_revenue_list = Gtk.ListStore(str, str, str)
 
 def populate_accounts():
-	global  expense_account, \
+	global  expense_tree, \
 			revenue_account, \
 			revenue_list, \
 			product_expense_tree, \
@@ -126,22 +127,31 @@ def populate_accounts():
 					product_expense_tree.remove(p)
 		return show
 
-	def populate_child_expense ( number, parent):
-		cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
+	def populate_child_expense ( number, parent, account_path):
+		cursor.execute("SELECT number::text, name, ' / '||name "
+							"FROM gl_accounts WHERE "
 							"parent_number = %s ORDER BY name", (number,))
 		for row in cursor.fetchall():
 			number = row[0]
-			p = expense_account.append(parent, row)
-			populate_child_expense(number, p)
+			name = row[1]
+			path = account_path + row[2]
+			expense_list.append([number, name, path])
+			p = expense_tree.append(parent, [number, name, path])
+			populate_child_expense(number, p, path)
 
 	############## finally, populate the accounts
-	expense_account.clear()
-	cursor.execute("SELECT number::text, name FROM gl_accounts WHERE type = 3 "
-						"AND parent_number IS NULL")
+	expense_tree.clear()
+	expense_list.clear()
+	cursor.execute("SELECT number::text, name, ' / '||name "
+						"FROM gl_accounts WHERE type = 3 "
+						"AND parent_number IS NULL ORDER BY name")
 	for row in cursor.fetchall():
 		number = row[0]
-		parent = expense_account.append(None, row)
-		populate_child_expense(number, parent)
+		name = row[1]
+		path = row[2]
+		expense_list.append([number, name, path])
+		parent = expense_tree.append(None, [number, name, path])
+		populate_child_expense (number, parent, path)
 	#################################################
 	product_expense_tree.clear()
 	product_expense_list.clear()
