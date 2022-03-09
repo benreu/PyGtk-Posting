@@ -19,7 +19,7 @@
 from gi.repository import Gtk
 import subprocess
 from constants import ui_directory, DB, broadcaster
-from accounts import expense_account
+from accounts import expense_tree
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
@@ -34,7 +34,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.cursor = DB.cursor()
 
 		self.service_provider_store = self.get_object('service_provider_store')
-		self.get_object('expense_account_combobox').set_model(expense_account)
+		self.get_object('expense_account_combobox').set_model(expense_tree)
 		self.fiscal_store = self.get_object('fiscal_store')
 		self.incoming_invoice_store = self.get_object('incoming_invoices_store')
 		self.invoice_items_store = self.get_object('invoice_items_store')
