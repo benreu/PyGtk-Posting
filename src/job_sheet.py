@@ -445,6 +445,7 @@ class JobSheetGUI(Gtk.Builder):
 					"WHERE job_sheet_id = %s", 
 					(invoice_id, self.job_id, self.job_id, 
 					datetime.today(), self.job_id))
+		DB.commit()
 		self.job_store.clear()
 		self.get_object('comboboxtext2').set_active(-1)
 		self.get_object('job_type_combo').set_active(-1)
@@ -452,7 +453,6 @@ class JobSheetGUI(Gtk.Builder):
 		self.job_id = 0
 		self.populate_customer_store ()
 		self.populate_existing_job_combobox ()
-		DB.commit()
 
 	def populate_job_treeview(self):
 		treeselection = self.get_object('treeview-selection1')

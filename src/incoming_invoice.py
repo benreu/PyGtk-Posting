@@ -22,7 +22,7 @@ from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
 from constants import ui_directory, DB, broadcaster, template_dir
-import accounts
+from accounts import expense_list, expense_tree
 import subprocess, printing
 
 
@@ -49,8 +49,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		for connection in (("contacts_changed", self.populate_service_providers ),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.expense_account_store = accounts.expense_account
-		self.get_object('cellrenderercombo1').set_property('model', accounts.expense_account)
+		self.expense_account_store = expense_tree
+		self.get_object('cellrenderercombo1').set_property('model', expense_tree)
+		self.get_object('account_completion').set_model(expense_list)
 		
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -72,7 +73,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.credit_card_store = self.get_object('credit_card_store')
 		self.populate_stores ()
 		self.populate_service_providers ()
-		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", ""])
+		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", "", ""])
 	
 		self.window = self.get_object('window1')
 		self.window.show_all()
@@ -151,7 +152,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.get_object('label14').set_label(contact_name)
 
 	def add_percentage_row_clicked (self, button):
-		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", ""])
+		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", "", ""])
 		self.add_expense_totals ()
 
 	def delete_percentage_row_clicked (self, button):
@@ -210,12 +211,31 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def expense_account_render_changed (self, renderer, path, tree_iter):
 		account_number = self.expense_account_store[tree_iter][0]
 		account_name = self.expense_account_store[tree_iter][1]
+		account_path = self.expense_account_store[tree_iter][2]
 		self.expense_percentage_store[path][2] = int(account_number)
 		self.expense_percentage_store[path][3] = account_name
+		self.expense_percentage_store[path][4] = account_path
 		self.check_if_all_entries_valid ()
 
+	def expense_combo_editing_started (self, cellrenderer, celleditable, path):
+		entry = celleditable.get_child()
+		entry.set_completion(self.get_object('account_completion'))
+
+	def account_match_selected (self, entrycompletion, model, treeiter):
+		selection = self.get_object('treeview-selection1')
+		treeview_model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		account_number = model[treeiter][0]
+		account_name = model[treeiter][1]
+		account_path = model[treeiter][2]
+		treeview_model[path][2] = int(account_number)
+		treeview_model[path][3] = account_name
+		treeview_model[path][4] = account_path
+		self.check_if_all_entries_valid()
+
 	def remark_edited (self, cellrenderertext, path, text):
-		self.expense_percentage_store[path][4] = text
+		self.expense_percentage_store[path][5] = text
 
 	def bank_credit_card_combo_changed (self, combo):
 		if combo.get_active() == None:
@@ -366,7 +386,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		for row in self.expense_percentage_store:
 			amount = row[1]
 			account = row[2]
-			remark = row[4]
+			remark = row[5]
 			self.invoice.expense(amount, account, remark)
 		c.close()
 		return total
