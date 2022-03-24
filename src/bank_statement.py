@@ -23,7 +23,7 @@ from db import transactor
 from decimal import Decimal
 from dateutils import DateTimeCalendar
 from constants import ui_directory, DB
-from accounts import expense_account
+from accounts import expense_tree
 
 UI_FILE = ui_directory + "/bank_statement.ui"
 
@@ -34,7 +34,7 @@ class GUI(Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
-		self.get_object('treeview2').set_model(expense_account)
+		self.get_object('treeview2').set_model(expense_tree)
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -54,8 +54,6 @@ class GUI(Gtk.Builder):
 											'bank_transaction_store')
 		self.bank_account_store = self.get_object(
 											'bank_account_store')
-		self.expense_store = self.get_object(
-											'expense_account_store')
 		self.transaction_description_store = self.get_object(
 											'transaction_description_store')
 		self.populate_account_stores ()
@@ -132,17 +130,6 @@ class GUI(Gtk.Builder):
 
 	def populate_bank_charge_stores (self):
 		c = DB.cursor()
-		self.expense_store.clear()
-		c.execute("SELECT number, name FROM gl_accounts "
-					"WHERE type = 3 AND parent_number IS NULL")
-		for row in c.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			parent_tree = self.expense_store.append(None,[account_number, 
-															account_name])
-			self.get_child_accounts (self.expense_store, 
-										account_number, 
-										parent_tree)
 		self.transaction_description_store.clear()
 		c.execute("SELECT transaction_description AS td "
 					"FROM gl_entries "
@@ -163,18 +150,6 @@ class GUI(Gtk.Builder):
 					"WHERE bank_account = True")
 		for row in c.fetchall():
 			self.bank_account_store.append(row)
-		c.close()
-		DB.rollback()
-
-	def get_child_accounts (self, store, parent_number, parent_tree):
-		c = DB.cursor()
-		c.execute("SELECT number, name FROM gl_accounts "
-					"WHERE parent_number = %s", (parent_number,))
-		for row in c.fetchall():
-			account_number = row[0]
-			account_name = row[1]
-			parent = store.append(parent_tree,[account_number, account_name])
-			self.get_child_accounts (store, account_number, parent)
 		c.close()
 		DB.rollback()
 

@@ -42,7 +42,7 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkTreeStore" id="expense_account_store">
+  <object class="GtkTreeStore" id="expense_account_placeholder">
     <columns>
       <!-- column-name account_number -->
       <column type="gint"/>
@@ -912,7 +912,7 @@
               <object class="GtkTreeView" id="treeview2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">expense_account_store</property>
+                <property name="model">expense_account_placeholder</property>
                 <property name="activate_on_single_click">True</property>
                 <signal name="row-activated" handler="expense_treeview_row_activate" swapped="no"/>
                 <child internal-child="selection">
