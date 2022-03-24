@@ -22,7 +22,7 @@ import subprocess
 from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
 from constants import DB, ui_directory, help_dir
-from accounts import expense_account
+from accounts import expense_tree
 
 UI_FILE = ui_directory + "/customer_payment.ui"
 
@@ -40,7 +40,7 @@ class GUI:
 		self.cursor.execute("SELECT accrual_based FROM settings")
 		self.accrual = self.cursor.fetchone()[0]
 
-		self.expense_accounts = expense_account
+		self.expense_trees = expense_tree
 
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
@@ -114,6 +114,10 @@ class GUI:
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
 		DB.rollback()
+
+	def apply_payment_method_toggled (self, togglebutton):
+		active = togglebutton.get_active()
+		self.builder.get_object('amount_spinbutton').set_sensitive(active)
 
 	def calculate_discount (self, discount, total):
 		discount_percent = (float(discount) / 100.00)
@@ -216,7 +220,7 @@ class GUI:
 							(self.customer_id,))
 		for row in self.cursor.fetchall():
 			self.invoice_store.append(row)
-		self.builder.get_object('spinbutton1').set_value(0)
+		self.builder.get_object('amount_spinbutton').set_value(0)
 
 	def invoice_selection_changed (self, selection):
 		total = Decimal()
@@ -226,12 +230,12 @@ class GUI:
 		if len(path) == 1:
 			invoice_id = model[path][0]
 			amount_due = model[path][5]
-			self.builder.get_object('spinbutton1').set_value(amount_due)
+			self.builder.get_object('amount_spinbutton').set_value(amount_due)
 			self.calculate_invoice_discount (invoice_id)
 		else:
-			self.builder.get_object('label9').set_label('Select one invoice')
-			self.builder.get_object('label4').set_label('Select one invoice')
-			self.builder.get_object('spinbutton1').set_value(total)
+			self.builder.get_object('label9').set_label('Select a single invoice')
+			self.builder.get_object('label4').set_label('Select a single invoice')
+			self.builder.get_object('amount_spinbutton').set_value(total)
 		self.builder.get_object('label22').set_label('{:,.2f}'.format(total, 2))
 
 	def invoice_treeview_button_release_event (self, treeview, event):
@@ -246,7 +250,7 @@ class GUI:
 		self.cursor.execute("UPDATE invoices SET amount_due = %s "
 							"WHERE id = %s", (amount, invoice_id))
 		DB.commit()
-		self.builder.get_object('spinbutton1').set_value(float(amount))
+		self.builder.get_object('amount_spinbutton').set_value(float(amount))
 		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
 
 	def amount_due_editing_started (self, renderer, spinbutton, path):
@@ -271,7 +275,7 @@ class GUI:
 			self.cursor.execute("UPDATE invoices SET amount_due = %s "
 								"WHERE id = %s", (discounted_amount, invoice_id))
 			DB.commit()
-			self.builder.get_object('spinbutton1').set_value(discounted_amount)
+			self.builder.get_object('amount_spinbutton').set_value(discounted_amount)
 			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
 			#self.populate_invoices ()
 
@@ -296,7 +300,7 @@ class GUI:
 
 	def post_payment_clicked (self, widget):
 		comments = 	self.builder.get_object('entry2').get_text()
-		total = self.builder.get_object('spinbutton1').get_text()
+		total = self.builder.get_object('amount_spinbutton').get_text()
 		total = Decimal(total)
 		self.payment = transactor.CustomerInvoicePayment(self.date, total)
 		if self.payment_type_id == 0:
@@ -312,7 +316,6 @@ class GUI:
 								self.customer_id, total, self.date, 
 								comments))
 			self.payment_id = self.cursor.fetchone()[0]
-			self.update_invoices_paid ()
 			self.payment.bank_check (self.payment_id)
 		elif self.payment_type_id == 1:
 			payment_text = self.credit_entry.get_text()
@@ -326,7 +329,6 @@ class GUI:
 								payment_text, False, self.customer_id, 
 								total, self.date, comments))
 			self.payment_id = self.cursor.fetchone()[0]
-			self.update_invoices_paid ()
 			self.payment.credit_card (self.payment_id)
 		elif self.payment_type_id == 2:
 			payment_text = self.cash_entry.get_text()
@@ -340,13 +342,16 @@ class GUI:
 								payment_text, False, self.customer_id, 
 								total, self.date, comments))
 			self.payment_id = self.cursor.fetchone()[0]
-			self.update_invoices_paid ()
 			self.payment.cash (self.payment_id)
+		if self.builder.get_object('fifo_payment_checkbutton').get_active():
+			self.pay_invoices_fifo()
+		else:
+			self.pay_selected_invoices()
 		DB.commit()
 		self.cursor.close()
 		self.window.destroy ()
 		
-	def update_invoices_paid (self):
+	def pay_invoices_fifo (self):
 		c = DB.cursor()
 		c_id = self.customer_id
 		c.execute("(SELECT id, total - amount_due AS discount FROM "
@@ -390,6 +395,25 @@ class GUI:
 						"= (True, %s, %s) "
 						"WHERE id = %s", 
 						(self.payment_id, self.date, invoice_id))
+		c.close()
+		
+	def pay_selected_invoices (self):
+		c = DB.cursor()
+		selection = self.builder.get_object('treeview-selection1')
+		model, paths = selection.get_selected_rows()
+		discount = Decimal('0.00')
+		for row in paths:
+			invoice_id = model[row][0]
+			if self.accrual == False:
+				transactor.post_invoice_accounts (self.date, invoice_id)
+			c.execute("UPDATE invoices "
+						"SET (paid, payments_incoming_id, date_paid) = "
+						"(True, %s, %s) WHERE id = %s "
+						"RETURNING total - amount_due AS discount", 
+						(self.payment_id, self.date, invoice_id))
+			discount += c.fetchone()[0]
+		if discount != Decimal('0.00'):
+			self.payment.customer_discount (discount)
 		c.close()
 
 	def calendar_day_selected (self, calendar):
@@ -471,7 +495,7 @@ class GUI:
 		if amount == 0.00:
 			return
 		elif amount < 0.00:
-			combobox.set_model(self.expense_accounts)
+			combobox.set_model(self.expense_trees)
 		elif amount > 0.00:
 			combobox.set_model(self.cash_account_store)
 
@@ -502,7 +526,7 @@ class GUI:
 		button.set_sensitive (False)
 		label = self.builder.get_object('label20')
 		label.set_visible (True)
-		payment = self.builder.get_object('spinbutton1').get_value()
+		payment = self.builder.get_object('amount_spinbutton').get_value()
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		invoice_amount_due_totals = Decimal()
@@ -517,7 +541,7 @@ class GUI:
 	def check_amount_totals_absolute (self):
 		button = self.builder.get_object('button1')
 		button.set_sensitive (False)
-		payment = self.builder.get_object('spinbutton1').get_value()
+		payment = self.builder.get_object('amount_spinbutton').get_value()
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if len(path) == 0:
