@@ -117,7 +117,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 		self.get_object('email_renderer').set_property('editable', mode)
 
 	def search_changed (self, search_entry):
-		self.name_filter = search_entry.get_text().split()
+		self.name_filter = search_entry.get_text().lower().split()
 		self.filtered_store.refilter()
 
 	def filter_func (self, model, tree_iter, r):
