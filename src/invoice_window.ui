@@ -74,6 +74,27 @@
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Delete item</property>
         <signal name="activate" handler="delete_line_item_activated" swapped="no"/>
+        <accelerator key="F3" signal="activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Move down</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="move_down_activated" swapped="no"/>
+        <accelerator key="Down" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Move up</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="move_up_activated" swapped="no"/>
+        <accelerator key="Up" signal="activate" modifiers="GDK_CONTROL_MASK"/>
       </object>
     </child>
     <child>
@@ -83,6 +104,7 @@
         <property name="label" translatable="yes">Product hub</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="product_hub_activated" swapped="no"/>
+        <accelerator key="h" signal="activate" modifiers="GDK_CONTROL_MASK"/>
       </object>
     </child>
     <child>
@@ -339,6 +361,7 @@
                                 <property name="can_focus">True</property>
                                 <property name="has_focus">True</property>
                                 <property name="completion">customer_completion</property>
+                                <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                                 <signal name="populate-popup" handler="customer_combo_populate_popup" swapped="no"/>
                               </object>
                             </child>
@@ -578,165 +601,242 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow1">
-                <property name="height_request">50</property>
+              <object class="GtkOverlay">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="margin_top">10</property>
-                <property name="shadow_type">in</property>
+                <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkTreeView" id="treeview2">
+                  <object class="GtkScrolledWindow" id="scrolledwindow1">
+                    <property name="height_request">50</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="model">invoice_store</property>
-                    <property name="enable_grid_lines">horizontal</property>
-                    <property name="activate_on_single_click">True</property>
-                    <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
-                    <signal name="key-release-event" handler="key_tree_tab" swapped="no"/>
-                    <signal name="row-activated" handler="invoice_item_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection"/>
-                    </child>
+                    <property name="margin_top">10</property>
+                    <property name="shadow_type">in</property>
                     <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Qty</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">1</property>
+                      <object class="GtkTreeView" id="treeview2">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">invoice_store</property>
+                        <property name="enable_grid_lines">horizontal</property>
+                        <property name="activate_on_single_click">True</property>
+                        <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
+                        <signal name="key-release-event" handler="key_tree_tab" swapped="no"/>
+                        <signal name="row-activated" handler="invoice_item_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="treeview-selection"/>
+                        </child>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext2">
-                            <property name="editable">True</property>
-                            <signal name="edited" handler="qty_edited" swapped="no"/>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Qty</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext2">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="qty_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn2">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Product</property>
-                        <property name="expand">True</property>
-                        <property name="clickable">True</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">3</property>
                         <child>
-                          <object class="GtkCellRendererCombo" id="cellrenderercombo1">
-                            <property name="editable">True</property>
-                            <property name="model">product_store</property>
-                            <property name="text_column">1</property>
-                            <signal name="changed" handler="product_renderer_changed" swapped="no"/>
-                            <signal name="editing-started" handler="product_renderer_started" swapped="no"/>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Product</property>
+                            <property name="expand">True</property>
+                            <property name="clickable">True</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">3</property>
+                            <child>
+                              <object class="GtkCellRendererCombo" id="cellrenderercombo1">
+                                <property name="editable">True</property>
+                                <property name="model">product_store</property>
+                                <property name="text_column">1</property>
+                                <signal name="changed" handler="product_renderer_changed" swapped="no"/>
+                                <signal name="editing-started" handler="product_renderer_started" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">3</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">3</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn7">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Ext. name</property>
-                        <property name="expand">True</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">4</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext3"/>
-                          <attributes>
-                            <attribute name="text">4</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn3">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Remark</property>
-                        <property name="expand">True</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">5</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext4">
-                            <property name="editable">True</property>
-                            <signal name="edited" handler="remark_edited" swapped="no"/>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Ext. name</property>
+                            <property name="expand">True</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">4</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext3"/>
+                              <attributes>
+                                <attribute name="text">4</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">5</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn4">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Price</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">6</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext5">
-                            <property name="editable">True</property>
-                            <signal name="edited" handler="price_edited" swapped="no"/>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Remark</property>
+                            <property name="expand">True</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">5</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext4">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="remark_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">5</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">6</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn5">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Tax</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">7</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext6"/>
-                          <attributes>
-                            <attribute name="text">7</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Price</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">6</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext5">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="price_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">6</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn6">
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Ext. price</property>
-                        <property name="reorderable">True</property>
-                        <property name="sort_column_id">8</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext7"/>
-                          <attributes>
-                            <attribute name="text">8</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn5">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Tax</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">7</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext6"/>
+                              <attributes>
+                                <attribute name="text">7</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn13">
-                        <property name="visible">False</property>
-                        <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Serial</property>
-                        <property name="reorderable">True</property>
                         <child>
-                          <object class="GtkCellRendererToggle" id="cellrenderertoggle2"/>
-                          <attributes>
-                            <attribute name="active">12</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Ext. price</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort_column_id">8</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderertext7"/>
+                              <attributes>
+                                <attribute name="text">8</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn13">
+                            <property name="visible">False</property>
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Serial</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererToggle" id="cellrenderertoggle2"/>
+                              <attributes>
+                                <attribute name="active">12</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="index">-1</property>
+                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkInfoBar" id="invoice_changed_infobar">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">end</property>
+                <property name="hexpand">True</property>
+                <property name="show_close_button">True</property>
+                <property name="revealed">False</property>
+                <signal name="close" handler="info_bar_close" swapped="no"/>
+                <signal name="response" handler="info_bar_response" swapped="no"/>
+                <child internal-child="action_area">
+                  <object class="GtkButtonBox">
+                    <property name="can_focus">False</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkButton" id="button4">
+                        <property name="label" translatable="yes">Reload</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child internal-child="content_area">
+                  <object class="GtkBox">
+                    <property name="can_focus">False</property>
+                    <property name="spacing">16</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">There are changes on this Invoice</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <action-widgets>
+                  <action-widget response="-10">button4</action-widget>
+                </action-widgets>
+              </object>
+              <packing>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">2</property>
               </packing>
@@ -772,6 +872,7 @@
                     <property name="width_chars">10</property>
                     <property name="placeholder_text" translatable="yes">Scan barcode</property>
                     <signal name="activate" handler="barcode_entry_activate" swapped="no"/>
+                    <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                     <signal name="key-press-event" handler="barcode_entry_key_pressed" swapped="no"/>
                   </object>
                   <packing>
@@ -816,7 +917,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
             <child>
@@ -932,7 +1033,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">5</property>
               </packing>
             </child>
           </object>
@@ -1275,12 +1376,12 @@
           <object class="GtkLabel" id="label13">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">This invoice document is still being viewed and/or edited; please close
- that Libreoffice window before changing or regenerating the invoice.
+            <property name="label" translatable="yes">This invoice document is still being viewed and/or edited; Libreoffice
+will generate the invoice exactly as shown in the window currently open.
+If you want to generate the default invoice, close the Libreoffice window,
+click Cancel, and then click Post Invoice again.
 
-If you are sure this message is wrong, you can click Continue.
-If you click Continue and Libreoffice is accessing the invoice document,
-the invoice will not be correctly printed or stored and it is your problem.
+If you have custom changes you wish to save, you can click Continue.
 
 If this message shows up and all Libreoffice windows are closed,
 it probably means Libreoffice crashed or was improperly shut down.</property>

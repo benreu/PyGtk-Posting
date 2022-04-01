@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkEntryCompletion" id="entrycompletion1">
@@ -44,6 +44,19 @@
       </object>
     </child>
   </object>
+  <object class="GtkMenu" id="menu2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Save window layout</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="save_window_layout_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="product_store">
     <columns>
       <!-- column-name product_id -->
@@ -75,6 +88,9 @@
   <object class="GtkTreeModelFilter" id="filtered_product_store">
     <property name="child_model">product_store</property>
   </object>
+  <object class="GtkTreeModelSort" id="sorted_product_store">
+    <property name="model">filtered_product_store</property>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
@@ -84,7 +100,7 @@
     <property name="default_height">400</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -200,6 +216,38 @@
                 <property name="position">5</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkButton" id="refresh_button">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="no_show_all">True</property>
+                <property name="always_show_image">True</property>
+                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="focus_on_click">False</property>
+                <property name="receives_default">True</property>
+                <property name="popup">menu2</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -211,31 +259,30 @@
           <object class="GtkScrolledWindow" id="scrolledwindow1">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="hscrollbar_policy">never</property>
             <property name="shadow_type">in</property>
             <child>
               <object class="GtkTreeView" id="treeview1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="model">filtered_product_store</property>
+                <property name="model">sorted_product_store</property>
                 <property name="enable_grid_lines">both</property>
                 <property name="activate_on_single_click">True</property>
                 <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
-                <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                    <property name="sizing">autosize</property>
-                    <property name="min_width">100</property>
+                  <object class="GtkTreeViewColumn" id="product_name_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Product name</property>
                     <property name="expand">True</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="product_name_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">1</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext1">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">1</attribute>
@@ -244,16 +291,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn2">
-                    <property name="sizing">autosize</property>
-                    <property name="min_width">100</property>
+                  <object class="GtkTreeViewColumn" id="ext_name_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Ext name</property>
-                    <property name="expand">True</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="ext_name_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">2</attribute>
@@ -262,16 +309,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn3">
-                    <property name="sizing">autosize</property>
-                    <property name="min_width">100</property>
+                  <object class="GtkTreeViewColumn" id="barcode_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Barcode</property>
-                    <property name="expand">True</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="barcode_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext3">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">3</attribute>
@@ -280,16 +327,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn4">
-                    <property name="sizing">autosize</property>
-                    <property name="min_width">100</property>
+                  <object class="GtkTreeViewColumn" id="vendor_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Vendor</property>
-                    <property name="expand">True</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="vendor_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">4</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext4">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">4</attribute>
@@ -298,16 +345,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn5">
-                    <property name="sizing">autosize</property>
-                    <property name="min_width">100</property>
+                  <object class="GtkTreeViewColumn" id="order_number_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Order number</property>
-                    <property name="expand">True</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="order_number_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">5</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">5</attribute>
@@ -316,16 +363,16 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
-                    <property name="sizing">autosize</property>
-                    <property name="min_width">100</property>
+                  <object class="GtkTreeViewColumn" id="vendor_number_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Vendor barcode</property>
-                    <property name="expand">True</property>
-                    <property name="clickable">True</property>
-                    <signal name="clicked" handler="vendor_barcode_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">6</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext6">
                         <property name="editable">True</property>
+                        <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
                         <attribute name="text">6</attribute>
@@ -334,11 +381,14 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                  <object class="GtkTreeViewColumn" id="stock_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="fixed_width">30</property>
                     <property name="title" translatable="yes">S</property>
-                    <property name="clickable">True</property>
                     <property name="widget">label1</property>
-                    <signal name="clicked" handler="stock_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">8</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle1"/>
                       <attributes>
@@ -348,11 +398,14 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                  <object class="GtkTreeViewColumn" id="sellable_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="fixed_width">30</property>
                     <property name="title" translatable="yes">S</property>
-                    <property name="clickable">True</property>
                     <property name="widget">label2</property>
-                    <signal name="clicked" handler="sellable_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">9</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle2"/>
                       <attributes>
@@ -362,11 +415,14 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                  <object class="GtkTreeViewColumn" id="purchasable_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="fixed_width">30</property>
                     <property name="title" translatable="yes">P</property>
-                    <property name="clickable">True</property>
                     <property name="widget">label3</property>
-                    <signal name="clicked" handler="purchasable_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">10</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle3"/>
                       <attributes>
@@ -376,11 +432,14 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                  <object class="GtkTreeViewColumn" id="manufactured_column">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="fixed_width">30</property>
                     <property name="title" translatable="yes">M</property>
-                    <property name="clickable">True</property>
                     <property name="widget">label4</property>
-                    <signal name="clicked" handler="manufactured_column_clicked" swapped="no"/>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">11</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle4"/>
                       <attributes>
@@ -399,12 +458,9 @@
           </packing>
         </child>
         <child>
-          <object class="GtkCheckButton" id="checkbutton1">
-            <property name="label" translatable="yes">Update external windows when product selection changes</property>
+          <object class="GtkProgressBar" id="progressbar">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">False</property>
-            <property name="draw_indicator">True</property>
+            <property name="can_focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>

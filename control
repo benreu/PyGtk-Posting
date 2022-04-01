@@ -1,9 +1,9 @@
 Package: pygtk-posting
-Version: 0.5.19
+Version: 0.5.32
 Section: Office
 Priority: optional
 Architecture: all
-Depends: python3, python3-sane, python3-apsw, gir1.2-gtk-3.0, gir1.2-poppler-0.18, gir1.2-gtkspell3-3.0, gir1.2-evince-3.0, python3-xlsxwriter, python3-xlrd, python3-genshi, python3-apsw, python3-psycopg2, python3-tk, python3-matplotlib, python3-cairocffi, python3-uno, python3-lxml, unoconv, pdfsizeopt, gir1.2-goocanvas-2.0, gir1.2-keybinder-3.0, ghostscript
+Depends: python3, python3-sane, python3-apsw, gir1.2-gtk-3.0, gir1.2-poppler-0.18, gir1.2-gtkspell3-3.0, gir1.2-evince-3.0, python3-xlsxwriter, python3-xlrd, python3-genshi, python3-apsw, python3-psycopg2, python3-tk, python3-matplotlib, python3-cairocffi, python3-uno, python3-lxml, unoconv, gir1.2-goocanvas-2.0, gir1.2-keybinder-3.0, ghostscript
 Maintainer: Reuben Rissler <pygtk.posting@gmail.com>
 Description: Accounting for Linux
  An open source accounting / business management system for Linux.

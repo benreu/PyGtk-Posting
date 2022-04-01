@@ -40,7 +40,7 @@ class GlEntryLookupGUI :
 						"format_date(po.date_created) "
 					"FROM purchase_orders AS po "
 					"JOIN contacts AS v ON v.id = po.vendor_id "
-					"JOIN purchase_order_line_items AS poli "
+					"JOIN purchase_order_items AS poli "
 						"ON poli.purchase_order_id = po.id "
 					"JOIN gl_entries AS ge ON poli.gl_entries_id = ge.id "
 					"JOIN products AS p ON p.id = poli.product_id "

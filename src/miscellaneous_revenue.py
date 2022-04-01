@@ -16,10 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-from db import transactor
+from decimal import Decimal
+from db.transactor import MiscRevenueTransaction
 from dateutils import DateTimeCalendar
 from constants import ui_directory, DB, broadcaster
-from accounts import revenue_account
+from accounts import revenue_account, revenue_list
 
 UI_FILE = ui_directory + "//miscellaneous_revenue.ui"
 
@@ -35,7 +36,8 @@ class MiscellaneousRevenueGUI:
 		for connection in (("contacts_changed", self.populate_contacts ), ):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.builder.get_object('treeview1').set_model(revenue_account)
+		self.builder.get_object('revenue_combo_renderer').set_property('model',revenue_account)
+		self.builder.get_object('account_completion').set_model(revenue_list)
 		self.contact_store = self.builder.get_object('contact_store')
 		contact_completion = self.builder.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
@@ -59,6 +61,8 @@ class MiscellaneousRevenueGUI:
 		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def destroy (self, widget):
+		for connection_id in self.handler_ids:
+			broadcaster.disconnect(connection_id)
 		self.cursor.close()
 
 	def contacts_clicked (self, button):
@@ -85,7 +89,7 @@ class MiscellaneousRevenueGUI:
 	def populate_contacts (self, m=None, i=None):
 		self.contact_store.clear ()
 		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
-							"WHERE deleted = False ORDER BY name")
+							"WHERE deleted = False ORDER BY name, ext_name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
 		DB.rollback()
@@ -121,26 +125,29 @@ class MiscellaneousRevenueGUI:
 		if self.date == None:
 			button.set_label('No date selected')
 			return
-		selection = self.builder.get_object('treeview-selection2')
-		model, path = selection.get_selected_rows ()
-		if path != []:
-			treeiter = model.get_iter(path)
-			if model.iter_has_child(treeiter) == True:
-				button.set_label('Parent account selected')
-				return # parent account selected
-		else:
-			button.set_label('No account selected')
-			return # no account selected
+		total = 0.00
+		model = self.builder.get_object('revenue_store')
+		for row in model:
+			total += float(row[3])
+			if row[0] == 0:
+				button.set_label('No account selected')
+				return # no account selected
+			if float(row[3]) == 0.00:
+				button.set_label('Row amount is 0.00')
+				return # row amount is 0.00
+		if total == 0.00:
+			button.set_label('No revenue rows added')
+			return # row amount is 0.00
 		check_text = self.builder.get_object('entry1').get_text()
 		check_active = self.builder.get_object('radiobutton1').get_active()
 		if check_active == True and check_text == '':
 			button.set_label('No check number')
 			return # no check number
-		if self.builder.get_object('spinbutton1').get_value() == 0.00:
-			button.set_label('No amount entered')
+		if self.builder.get_object('spinbutton1').get_value() != total:
+			button.set_label('Amount does not match total')
 			return
 		button.set_sensitive(True)
-		button.set_label('Post Income')
+		button.set_label('Post Revenue')
 	
 	def amount_spinbutton_changed (self, spinbutton):
 		self.check_if_all_entries_valid ()
@@ -148,30 +155,73 @@ class MiscellaneousRevenueGUI:
 	def revenue_account_treeview_activated (self, treeview, path, column):
 		self.check_if_all_entries_valid ()
 
-	def post_income_clicked (self, button):
-		comments = self.builder.get_object('entry5').get_text()
-		amount = self.builder.get_object('spinbutton1').get_value()
+	def treeview_button_release_event (self, widget, event):
+		if event.button != 3:
+			return
+		menu = self.builder.get_object('menu1')
+		menu.popup_at_pointer()
+
+	def balance_this_row_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
-		revenue_account = model[path][0]
+		if path == []:
+			return
+		amount = Decimal()
+		for row in model:
+			if row.path != path[0]:
+				amount += Decimal(row[3])
+		total = self.builder.get_object('spinbutton1').get_text()
+		model[path][3] = str(Decimal(total) - amount)
+		self.check_if_all_entries_valid()
+
+	def post_revenue_clicked (self, button):
+		comments = self.builder.get_object('entry5').get_text()
+		total = self.builder.get_object('spinbutton1').get_text()
+		cursor = DB.cursor()
+		transaction = MiscRevenueTransaction(self.date)
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
-			self.cursor.execute("INSERT INTO payments_incoming (check_payment, cash_payment, credit_card_payment, payment_text , check_deposited, customer_id, amount, date_inserted, comments, closed, misc_income) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) RETURNING id", (True, False, False, payment_text, False, self.contact_id, amount, self.date, comments, False))
-			payment_id = self.cursor.fetchone()[0]
-			transactor.post_misc_check_payment(self.date, amount, payment_id, revenue_account)	
+			cursor.execute("INSERT INTO payments_incoming "
+							"(check_payment, payment_text, "
+							"customer_id, amount, "
+							"date_inserted, comments, misc_income) "
+							"VALUES (True, %s, %s, %s, %s, %s, True) "
+							"RETURNING id", 
+							(payment_text, self.contact_id, 
+							total, self.date, comments))
+			payment_id = cursor.fetchone()[0]
+			transaction.post_misc_check_payment(total, payment_id)
 		elif self.payment_type_id == 1:
 			payment_text = self.credit_entry.get_text()
-			self.cursor.execute("INSERT INTO payments_incoming (check_payment, cash_payment, credit_card_payment, payment_text , check_deposited, customer_id, amount, date_inserted, comments, closed, misc_income) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) RETURNING id", (False, False, True, payment_text, False, self.contact_id, amount, self.date, comments, False))
-			payment_id = self.cursor.fetchone()[0]
-			transactor.post_misc_credit_card_payment(self.date, amount, payment_id, revenue_account)	
+			cursor.execute("INSERT INTO payments_incoming "
+							"(credit_card_payment, payment_text, "
+							"customer_id, amount, date_inserted, "
+							"comments, misc_income) "
+							"VALUES (True, %s, %s, %s, %s, %s, True) "
+							"RETURNING id", 
+							(payment_text, self.contact_id, 
+							total, self.date, comments))
+			payment_id = cursor.fetchone()[0]
+			transaction.post_misc_credit_card_payment(total, payment_id)
 		elif self.payment_type_id == 2:
 			payment_text = self.cash_entry.get_text()
-			self.cursor.execute("INSERT INTO payments_incoming (check_payment, cash_payment, credit_card_payment, payment_text , check_deposited, customer_id, amount, date_inserted, comments, closed, misc_income) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) RETURNING id", (False, True, False, payment_text, False, self.contact_id, amount, self.date, comments, False))
-			payment_id = self.cursor.fetchone()[0]
-			transactor.post_misc_cash_payment(self.date, amount, payment_id, revenue_account)
+			cursor.execute("INSERT INTO payments_incoming "
+							"(cash_payment, payment_text, "
+							"customer_id, amount, date_inserted, "
+							"comments, misc_income) "
+							"VALUES (True, %s, %s, %s, %s, %s, True) "
+							"RETURNING id", 
+							(payment_text, self.contact_id, 
+							total, self.date, comments))
+			payment_id = cursor.fetchone()[0]
+			transaction.post_misc_cash_payment(total, payment_id)
+		model = self.builder.get_object('revenue_store')
+		for row in model:
+			revenue_account = row[0]
+			amount = row[3]
+			transaction.post_credit_entry(revenue_account, amount)
 		DB.commit()
-		for connection_id in self.handler_ids:
-			broadcaster.disconnect(connection_id)
+		cursor.close()
 		self.window.destroy()
 
 	def date_entry_icon_release (self, entry, icon, event):
@@ -183,5 +233,72 @@ class MiscellaneousRevenueGUI:
 		date_text = calendar.get_text()
 		self.builder.get_object('entry4').set_text(date_text)
 		self.check_if_all_entries_valid ()
-		
-		
+
+	def revenue_account_combo_changed (self, cellrenderercombo, path, treeiter):
+		account_number = revenue_account[treeiter][0]
+		account_name = revenue_account[treeiter][1]
+		account_path = revenue_account[treeiter][2]
+		model = self.builder.get_object('revenue_store')
+		model[path][0] = account_number
+		model[path][1] = account_name
+		model[path][2] = account_path
+		self.check_if_all_entries_valid()
+	
+	def account_match_selected (self, entrycompletion, model, treeiter):
+		selection = self.builder.get_object('treeview-selection2')
+		treeview_model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		account_number = model[treeiter][0]
+		account_name = model[treeiter][1]
+		account_path = model[treeiter][2]
+		treeview_model[path][0] = account_number
+		treeview_model[path][1] = account_name
+		treeview_model[path][2] = account_path
+		self.check_if_all_entries_valid()
+
+	def revenue_account_editing_started (self, cellrenderer, editable, path):
+		entry = editable.get_child()
+		entry.set_completion(self.builder.get_object('account_completion'))
+
+	def revenue_amount_edited (self, cellrenderertext, path, text):
+		model = self.builder.get_object('revenue_store')
+		model[path][3] = '{:.2f}'.format(float(text))
+		self.check_if_all_entries_valid()
+
+	def revenue_amount_editing_started (self, cellrenderer, editable, path):
+		editable.set_numeric(True)
+	
+	def equalize_clicked (self, button):
+		model = self.builder.get_object('revenue_store')
+		lines = model.iter_n_children()
+		if lines == 0:
+			return
+		revenue_amount = self.builder.get_object('spinbutton1').get_text()
+		split_amount = Decimal(revenue_amount) / lines
+		split_amount = Decimal(split_amount).quantize(Decimal('0.01'))
+		for row in model:
+			row[3] = str(split_amount)
+		self.check_if_all_entries_valid ()
+
+	def delete_row_clicked (self, button):
+		selection = self.builder.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
+		if path != []:
+			model.remove(model.get_iter(path))
+		self.check_if_all_entries_valid()
+
+	def add_row_clicked (self, button):
+		treeview = self.builder.get_object('treeview1')
+		model = treeview.get_model()
+		if len(model) == 0:
+			amount = self.builder.get_object('spinbutton1').get_text()
+		else:
+			amount = '0.00'
+		iter_ = model.append([0, '', '', amount])
+		path = model.get_path(iter_)
+		column = treeview.get_column(0)
+		treeview.set_cursor(path, column, True)
+		self.check_if_all_entries_valid()
+
+

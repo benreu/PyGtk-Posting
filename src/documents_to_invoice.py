@@ -81,7 +81,7 @@ Do you want to append the document items?" % customer_name)
 			invoice_exists_dialog.hide()
 			break
 		else:
-			invoice_id = invoice_window.create_new_invoice(self.cursor, datetime.today(), customer_id)
+			invoice_id = invoice_window.create_new_invoice(datetime.today(), customer_id)
 			self.import_document_items_to_invoice(document_id, invoice_id)
 
 	def import_document_items_to_invoice(self, document_id, invoice_id):
@@ -90,7 +90,7 @@ Do you want to append the document items?" % customer_name)
 		if self.cursor.fetchone()[0] == 1 :#scale document import
 			freeze_wt = 0
 			self.cursor.execute("SELECT id, product_id, remark, "
-								"retailer_id,type_1 FROM document_lines "
+								"retailer_id,type_1 FROM document_items "
 								"WHERE document_id = %s", (document_id,))
 			for row in self.cursor.fetchall():
 				doc_line_id = row[0]
@@ -119,7 +119,7 @@ Do you want to append the document items?" % customer_name)
 					canceled, imported) VALUES (%s, %s, %s, %s, \
 					False, True)", (invoice_id, qty, 25, remark))
 		else: # Reuben's original
-			self.cursor.execute("SELECT qty, product_id, remark, price FROM document_lines WHERE document_id = %s", (document_id,))
+			self.cursor.execute("SELECT qty, product_id, remark, price FROM document_items WHERE document_id = %s", (document_id,))
 			for row in self.cursor.fetchall():
 				qty = row[0]
 				product_id = row[1]

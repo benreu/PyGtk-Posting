@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="adjustment1">
@@ -53,6 +53,27 @@
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Delete item</property>
         <signal name="activate" handler="delete_item_activated" swapped="no"/>
+        <accelerator key="F3" signal="activate"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Move down</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="move_down_activated" swapped="no"/>
+        <accelerator key="Down" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Move up</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="move_up_activated" swapped="no"/>
+        <accelerator key="Up" signal="activate" modifiers="GDK_CONTROL_MASK"/>
       </object>
     </child>
     <child>
@@ -62,6 +83,7 @@
         <property name="label" translatable="yes">Product hub</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="product_hub_activated" swapped="no"/>
+        <accelerator key="h" signal="activate" modifiers="GDK_CONTROL_MASK"/>
       </object>
     </child>
   </object>
@@ -226,7 +248,7 @@
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
     <signal name="key-release-event" handler="window_key_event" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -309,12 +331,13 @@
                             <property name="can_focus">True</property>
                             <property name="has_focus">True</property>
                             <property name="completion">vendor_completion</property>
+                            <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                             <signal name="populate-popup" handler="vendor_combo_populate_popup" swapped="no"/>
                           </object>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
+                        <property name="expand">True</property>
                         <property name="fill">True</property>
                         <property name="position">0</property>
                       </packing>
@@ -351,6 +374,7 @@
                       <object class="GtkLabel" id="label1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="margin_right">5</property>
                         <property name="label" translatable="yes">Order Date</property>
                       </object>
                       <packing>
@@ -363,8 +387,9 @@
                       <object class="GtkEntry" id="entry1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="hexpand">True</property>
                         <property name="editable">False</property>
+                        <property name="width_chars">13</property>
+                        <property name="max_width_chars">13</property>
                         <property name="primary_icon_stock">gtk-find</property>
                         <signal name="icon-release" handler="calendar_entry_icon_release" swapped="no"/>
                       </object>
@@ -372,6 +397,32 @@
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label9">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="margin_left">5</property>
+                        <property name="margin_right">5</property>
+                        <property name="label" translatable="yes">Phone</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="entry8">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="editable">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">6</property>
                       </packing>
                     </child>
                   </object>
@@ -391,7 +442,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
@@ -407,6 +458,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="model">purchase_order_store</property>
+                <property name="search_column">1</property>
                 <property name="enable_grid_lines">both</property>
                 <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <signal name="drag-data-received" handler="on_drag_data_received" swapped="no"/>
@@ -600,7 +652,74 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkInfoBar" id="po_changed_infobar">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="show_close_button">True</property>
+            <property name="revealed">False</property>
+            <signal name="close" handler="info_bar_close" swapped="no"/>
+            <signal name="response" handler="info_bar_response" swapped="no"/>
+            <child internal-child="action_area">
+              <object class="GtkButtonBox">
+                <property name="can_focus">False</property>
+                <property name="spacing">6</property>
+                <property name="layout_style">end</property>
+                <child>
+                  <object class="GtkButton" id="button14">
+                    <property name="label" translatable="yes">Refresh</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child internal-child="content_area">
+              <object class="GtkBox">
+                <property name="can_focus">False</property>
+                <property name="spacing">16</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">There are changes on this PO</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <action-widgets>
+              <action-widget response="-10">button14</action-widget>
+            </action-widgets>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -630,7 +749,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="placeholder_text" translatable="yes">Scan barcode</property>
-                <signal name="activate" handler="barcode_entry_activated" swapped="no"/>
+                <signal name="focus-in-event" handler="widget_focus_in_event" swapped="no"/>
                 <signal name="key-release-event" handler="barcode_entry_key_released" swapped="no"/>
               </object>
               <packing>
@@ -675,7 +794,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -689,11 +808,10 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="editable">False</property>
-                <property name="has_frame">False</property>
                 <property name="xalign">1</property>
               </object>
               <packing>
-                <property name="left_attach">5</property>
+                <property name="left_attach">7</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -704,31 +822,7 @@
                 <property name="label" translatable="yes">Total</property>
               </object>
               <packing>
-                <property name="left_attach">4</property>
-                <property name="top_attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="entry8">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="editable">False</property>
-                <property name="has_frame">False</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label9">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Phone</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
+                <property name="left_attach">6</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -739,7 +833,7 @@
                 <property name="label" translatable="yes">Rows</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">4</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -753,6 +847,54 @@
                 <property name="max_width_chars">4</property>
               </object>
               <packing>
+                <property name="left_attach">5</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">PO name</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="po_name_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="secondary_icon_stock">gtk-save</property>
+                <signal name="icon-release" handler="po_name_icon_release" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Number</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="po_number_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="width_chars">6</property>
+                <property name="xalign">1</property>
+              </object>
+              <packing>
                 <property name="left_attach">3</property>
                 <property name="top_attach">0</property>
               </packing>
@@ -761,7 +903,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>
@@ -774,7 +916,7 @@
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -826,7 +968,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="placeholder_text" translatable="yes">Scan barcode</property>
-                    <signal name="activate" handler="barcode_entry_activated" swapped="no"/>
+                    <signal name="key-release-event" handler="barcode_entry_key_released" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -920,7 +1062,7 @@
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -1059,7 +1201,7 @@ Do you want to update the quantity to </property>
     <property name="action">save</property>
     <property name="do_overwrite_confirmation">True</property>
     <property name="local_only">False</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -1122,7 +1264,7 @@ Do you want to update the quantity to </property>
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -1370,7 +1512,7 @@ Do you want to update the quantity to </property>
     <property name="icon_name">pygtk-posting</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">window</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">

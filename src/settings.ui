@@ -201,7 +201,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes"> Finance fee rate </property>
+                        <property name="label" translatable="yes">Finance fee rate </property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
                         </attributes>
@@ -258,7 +258,7 @@
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes"> % </property>
+                            <property name="label" translatable="yes"> % annually</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>

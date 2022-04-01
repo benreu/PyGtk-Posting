@@ -17,9 +17,10 @@
 
 import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
-import os, subprocess, re
+import os, subprocess, re, psycopg2
 from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
-						is_admin, help_dir, broadcaster
+						help_dir, broadcaster
+import admin_utils
 
 UI_FILE = ui_directory + "/main_window.ui"
 
@@ -40,22 +41,16 @@ class MainGUI :
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.window = self.builder.get_object('main_window')
-		self.window.set_title('%s - PyGtk Posting' % db_name)
+		name = '%s - PyGtk Posting' % db_name
+		self.window.set_title(name)
+		GLib.set_application_name(name)
 		self.window.show_all()
 		self.window.set_default_icon_name("pygtk-posting") # app-wide icon
-		self.set_admin_menus(dev_mode)
-		about_window = self.builder.get_object('aboutdialog1')
-		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
-		about_window.add_credit_section("Suggestions/advice from (in no particular order)", 
-													["Marvin Stauffer", 
-													"Melvin Stauffer", 
-													"Roy Horst", 
-													"Daniel Witmer", 
-													"Alvin Witmer",
-													"Jonathan Groff"])
+		admin_utils.main_class = self
+		admin_utils.set_admin(dev_mode)
 		self.populate_menu_features ()
 		self.populate_modules ()
-		self.check_db_version ()
+		self.check_db_version() 
 		import traceback_handler
 		traceback_handler.Log()
 
@@ -100,9 +95,11 @@ class MainGUI :
 			self.keybinding.show_window()
 
 	def check_db_version (self):
-		posting_version = self.builder.get_object('aboutdialog1').get_version()
 		from db import version
-		version.CheckVersion(self, posting_version)
+		version.CheckVersion(self)
+		# avoid rollbacks during upgrade process by connecting focus afterwards
+		self.window.connect("focus-in-event", self.focus)
+		self.focus()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -136,9 +133,6 @@ class MainGUI :
 		import customer_finance_charge
 		customer_finance_charge.CustomerFinanceChargeGUI()
 
-	def password_entry_activated (self, dialog):
-		dialog.response(-3)
-
 	def credit_card_merchant_activated (self, menuitem):
 		global ccm
 		if ccm == None or ccm.exists == False:
@@ -148,26 +142,7 @@ class MainGUI :
 			ccm.window.present()
 
 	def admin_login_clicked (self, menuitem):
-		if is_admin == True:
-			self.set_admin_menus (False)
-			menuitem.set_label("Admin login")
-		else:
-			self.check_admin (False)
-
-	def set_admin_menus (self, value):
-		self.builder.get_object('menuitem10').set_sensitive(value)
-		self.builder.get_object('menuitem67').set_sensitive(value)
-		self.builder.get_object('menuitem21').set_sensitive(value)
-		self.builder.get_object('menuitem45').set_sensitive(value)
-		self.builder.get_object('menuitem55').set_sensitive(value)
-		self.builder.get_object('menuitem50').set_sensitive(value)
-		self.builder.get_object('menuitem74').set_sensitive(value)
-		self.builder.get_object('menuitem76').set_sensitive(value)
-		self.builder.get_object('menuitem64').set_sensitive(value)
-		self.builder.get_object('menuitem49').set_sensitive(value)
-		self.builder.get_object('menuitem80').set_sensitive(value)
-		import constants
-		constants.is_admin = value
+		admin_utils.toggle_admin()
 
 	def blank_clicked (self, button):
 		pass
@@ -180,16 +155,12 @@ class MainGUI :
 		from reports import deposits
 		deposits.DepositsGUI()
 
-	def contact_product_view_clicked (self, button):
-		import contact_product_view
-		contact_product_view.ContactProductViewGUI()
-
 	def fiscal_year_activated (self, menuitem):
 		import fiscal_years
 		fiscal_years.FiscalYearGUI()
 
 	def resource_search_activated (self, menuitem):
-		import resource_search
+		from resources import resource_search
 		resource_search.ResourceSearchGUI()
 
 	def incoming_invoice_report_activated(self, menuitem):
@@ -204,8 +175,12 @@ class MainGUI :
 		from admin import duplicate_contact
 		duplicate_contact.DuplicateContactGUI()
 
+	def credit_card_statements_report_clicked (self, menuitem):
+		from reports import credit_card_statement_history
+		credit_card_statement_history.CreditCardHistoryGUI()
+
 	def resource_diary_activated (self, menuitem):
-		import resource_diary
+		from resources import resource_diary
 		resource_diary.ResourceDiaryGUI ()
 
 	def miscellaneous_revenue_activated (self, button):
@@ -238,9 +213,13 @@ class MainGUI :
 		from payroll import employee_info
 		employee_info.EmployeeInfoGUI()
 
-	def resource_tags (self, widget):
-		import resource_management_tags
-		resource_management_tags.ResourceManagementTagsGUI ()
+	def resource_categories_activated (self, widget):
+		from resources import resource_categories
+		resource_categories.ResourceCategoriesGUI ()
+
+	def resource_type_activated (self, menuitem):
+		from resources import resource_types
+		resource_types.ResourceTypesGUI ()
 
 	def customer_terms_clicked (self, menuitem):
 		import customer_terms
@@ -263,7 +242,7 @@ class MainGUI :
 		credit_memo.CreditMemoGUI()
 
 	def resource_management (self, widget):
-		import resource_management
+		from resources import resource_management
 		resource_management.ResourceManagementGUI()
 
 	def invoice_history (self, widget):
@@ -299,7 +278,7 @@ class MainGUI :
 		payment_receipt.PaymentReceiptGUI()
 
 	def count_inventory_activated (self, menuitem):
-		from reports import inventory_count
+		from inventory import inventory_count
 		inventory_count.InventoryCountGUI()
 
 	def user_manual_help (self, widget):
@@ -310,7 +289,7 @@ class MainGUI :
 		documents_window.DocumentGUI()
 
 	def assembled_products_clicked (self, button):
-		import assembled_products
+		from manufacturing import assembled_products
 		assembled_products.AssembledProductsGUI()
 
 	def invoice_amounts_activated (self, menuitem):
@@ -322,8 +301,8 @@ class MainGUI :
 		vendor_history.VendorHistoryGUI()
 
 	def manufacturing_window (self, widget):
-		import manufacturing
-		manufacturing.ManufacturingGUI()
+		from manufacturing import projects
+		projects.ManufacturingProjectsGUI()
 
 	def accounts_overview_activated (self, menuitem):
 		import accounts_overview
@@ -377,7 +356,7 @@ class MainGUI :
 		vendor_payment.GUI()
 
 	def resource_calendar (self, button):
-		import resource_calendar
+		from resources import resource_calendar
 		resource_calendar.ResourceCalendarGUI ()
 
 	def open_invoices (self, widget):
@@ -407,22 +386,6 @@ class MainGUI :
 		import receive_orders
 		receive_orders.ReceiveOrdersGUI()
 
-	def check_admin (self, external = True):
-		"check for admin, external option to show extra alert for not being admin"
-		if is_admin == False:
-			dialog = self.builder.get_object('admin_dialog')
-			self.builder.get_object('label21').set_visible(external)
-			result = dialog.run()
-			dialog.hide()
-			text = self.builder.get_object('entry2').get_text().lower()
-			self.builder.get_object('entry2').set_text('')
-			self.builder.get_object('menuitem35').set_label("Admin logout")
-			if result == Gtk.ResponseType.ACCEPT and text == 'admin':
-				self.set_admin_menus (True)
-				return True #updated to admin
-			return False #not admin, and not updated
-		return True #admin already to begin with
-
 	def employee_time (self, widget):
 		import employee_payment
 		employee_payment.EmployeePaymentGUI ()
@@ -436,9 +399,8 @@ class MainGUI :
 		pay_stub_history.PayStubHistoryGUI()
 
 	def backup_window (self, n):
-		from db import backup_restore
-		u = backup_restore.Utilities(self)
-		u.backup_gui ()
+		from db import database_backup
+		database_backup.BackupGUI(automatic = True)
 
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()
@@ -458,16 +420,12 @@ class MainGUI :
 		red = Gdk.RGBA(1, 0, 0, 1)
 		orange = Gdk.RGBA(1, 0.5, 0, 1)
 		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
-		try:
-			c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
-						"(SELECT statement_finish_date FROM settings) "
-						"+ INTERVAL'1 month') "
-						"+ ((SELECT statement_day_of_month FROM settings) "
-							"* INTERVAL '1 day') "
-						"- INTERVAL '1 day'")
-		except Exception as e:
-			DB.rollback()
-			return
+		c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
+					"(SELECT statement_finish_date FROM settings) "
+					"+ INTERVAL'1 month') "
+					"+ ((SELECT statement_day_of_month FROM settings) "
+						"* INTERVAL '1 day') "
+					"- INTERVAL '1 day'")
 		if c.fetchone()[0] == True:
 			store.append(["Print statements", 0, self.statement_window, orange])
 		c.execute("SELECT "
@@ -487,18 +445,25 @@ class MainGUI :
 					"date_trunc(l.period, "
 						"CURRENT_DATE - "
 							"(l.period_amount||' '||l.period)::interval "
-					")")
+					") AND finished = False")
 		for row in c.fetchall():
 			loan_id = row[0]
 			reminder = row[1]
 			store.append([reminder, loan_id, self.loan_payment, brown])
-		c.execute("SELECT rm.id, subject, red, green, blue, alpha "
-							"FROM resources AS rm "
-							"JOIN resource_tags AS rmt "
-							"ON rmt.id = rm.tag_id "
-							"WHERE finished != True "
-							"AND diary != True "
-							"AND to_do = True")
+		c.execute("SELECT "
+					"rm.id, "
+					"rm.subject, "
+					"COALESCE(rt.red, 1.0), "
+					"COALESCE(rt.green, 1.0), "
+					"COALESCE(rt.blue, 1.0), "
+					"COALESCE(rt.alpha, 1.0) "
+					"FROM resources AS rm "
+					"LEFT JOIN resource_ids_tag_ids AS riti "
+						"ON riti.resource_id = rm.id "
+					"LEFT JOIN resource_tags AS rt "
+						"ON rt.id = riti.resource_tag_id "
+					"WHERE posted != True "
+					"AND to_do = True")
 		for row in c.fetchall():
 			id_ = row[0]
 			subject = row[1]
@@ -509,15 +474,21 @@ class MainGUI :
 			rgba.alpha = row[5]
 			store.append([subject, id_, self.resource_window, rgba])
 		c.close()
-		DB.rollback()
 
 	def resource_window (self, id_):
-		import resource_management
+		from resources import resource_management
 		resource_management.ResourceManagementGUI(id_)
 		
 	def focus (self, widget = None, d = None):
+		try:
+			self.populate_to_do_treeview()
+			self.load_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def load_statistics (self):
 		c = DB.cursor()
-		self.populate_to_do_treeview()
 		c.execute("SELECT COUNT(id) FROM invoices "
 					"WHERE (canceled, paid, posted) = (False, False, True)")
 		unpaid_invoices = 0
@@ -561,15 +532,14 @@ class MainGUI :
 			open_invoices = "Open invoices\n         (%s)" % row[0]
 		self.builder.get_object('button17').set_label(open_invoices)
 		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
-					"LATERAL (SELECT product_id FROM purchase_order_line_items "
-						"WHERE purchase_order_line_items.purchase_order_id = "
+					"LATERAL (SELECT product_id FROM purchase_order_items "
+						"WHERE purchase_order_items.purchase_order_id = "
 						"purchase_orders.id LIMIT 1) ILI "
 					"WHERE (purchase_orders.canceled, closed) = (False, False)")
 		for row in c.fetchall():
 			open_invoices = "Open POs\n         (%s)" % row[0]
 		self.builder.get_object('button13').set_label(open_invoices)
 		c.close()
-		DB.rollback()
 
 	def inventory_history_report (self, widget):
 		from inventory import inventory_history
@@ -603,10 +573,8 @@ class MainGUI :
 		self.open_po.window.present()
 
 	def about_window(self, widget):
-		about_window = self.builder.get_object('aboutdialog1')
-		about_window.set_keep_above(True)
-		about_window.run()
-		about_window.hide()
+		import about_window
+		about_window.AboutWindowGUI(self.window)
 
 	def main_reports_window (self, menuitem):
 		from reports import main_reports_window
@@ -615,17 +583,21 @@ class MainGUI :
 	def unpaid_invoices(self, widget):
 		if self.unpaid_invoices_window == None:
 			import unpaid_invoices
-			unpaid_invoices.GUI()
+			self.unpaid_invoices_window = unpaid_invoices.GUI()
 		else:
 			self.unpaid_invoices_window.present()
 
 	def destroy(self, widget):
-		broadcaster.emit("shutdown")
-		c = DB.cursor()
-		c.execute("UNLISTEN products")
-		c.execute("UNLISTEN contacts")
-		c.close()
-		DB.close ()
+		try: # in case DB is closed from previous error
+			c = DB.cursor()
+			c.execute("UNLISTEN products")
+			c.execute("UNLISTEN contacts")
+			c.close()
+			broadcaster.emit("shutdown")
+			DB.close ()
+		except Exception as e:
+			print (e)
+			pass
 		Gtk.main_quit()
 
 	def statement_window(self, widget = None):
@@ -723,10 +695,6 @@ class MainGUI :
 	def time_clock_history (self, button):
 		from reports import time_clock_history
 		time_clock_history.TimeClockHistoryGUI ()
-
-	def count_inventory_clicked (self, button):
-		from reports import inventory_count
-		inventory_count.InventoryCountGUI()
 
 	def pay_stub_history (self, button):
 		from reports import pay_stub_history

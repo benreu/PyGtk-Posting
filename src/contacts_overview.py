@@ -17,7 +17,7 @@
 from gi.repository import Gtk, GLib
 import subprocess
 from constants import ui_directory, DB, template_dir, broadcaster
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/contacts_overview.ui"
 
@@ -104,8 +104,20 @@ class ContactsOverviewGUI(Gtk.Builder):
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
 
+	def copy_mode_toggled (self, checkmenuitem):
+		mode = checkmenuitem.get_active()
+		self.get_object('name_renderer').set_property('editable', mode)
+		self.get_object('ext_name_renderer').set_property('editable', mode)
+		self.get_object('address_renderer').set_property('editable', mode)
+		self.get_object('city_renderer').set_property('editable', mode)
+		self.get_object('state_renderer').set_property('editable', mode)
+		self.get_object('zip_renderer').set_property('editable', mode)
+		self.get_object('fax_renderer').set_property('editable', mode)
+		self.get_object('phone_renderer').set_property('editable', mode)
+		self.get_object('email_renderer').set_property('editable', mode)
+
 	def search_changed (self, search_entry):
-		self.name_filter = search_entry.get_text().split()
+		self.name_filter = search_entry.get_text().lower().split()
 		self.filtered_store.refilter()
 
 	def filter_func (self, model, tree_iter, r):
@@ -136,8 +148,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 			where = "WHERE (employee, deleted) = (True, False)"
 		elif self.get_object('radiobutton4').get_active() == True:
 			where = "WHERE (service_provider, deleted) = (True, False)"
-		else: # all contacts
-			where = ""
+		else: # all contacts not deleted
+			where = "WHERE deleted = False"
 		c.execute("SELECT id, "
 						"name, "
 						"ext_name, "
@@ -194,29 +206,39 @@ class ContactsOverviewGUI(Gtk.Builder):
 				break
 
 	def contact_selection_changed (self, treeselection):
+		"populate contact individuals when a contact is selected"
 		model, path = treeselection.get_selected_rows()
 		if path == []:
 			return
 		self.contact_id = model[path][0]
+		self.populate_contact_individuals()
+
+	def contact_individuals_clicked (self, button):
+		self.get_object('stack1').set_visible_child_name('individuals_page')
+
+	def go_back_to_contacts_clicked (self, button):
+		self.get_object('stack1').set_visible_child_name('contacts_page')
 
 	def contact_activated (self, treeview, treepath, treeviewcolumn):
 		model, path = treeview.get_selection().get_selected_rows()
-		contact_id = model[path][0]
-		import contact_edit_main
-		ce = contact_edit_main.ContactEditMainGUI(contact_id)
-		ce.window.set_transient_for(self.window)
+		self.contact_id = model[path][0]
+		self.edit_contact()
 
 	def new_clicked (self, button):
 		import contact_edit_main
-		contact_edit_main.ContactEditMainGUI(overview_class = self)
+		ce = contact_edit_main.ContactEditMainGUI(overview_class = self)
+		ce.window.set_transient_for(self.window)
 
 	def edit_clicked (self, button):
 		model, path = self.get_object('treeview-selection2').get_selected_rows()
 		if path == []:
 			return
-		contact_id = model[path][0]
+		self.contact_id = model[path][0]
+		self.edit_contact()
+
+	def edit_contact (self):
 		import contact_edit_main
-		ce = contact_edit_main.ContactEditMainGUI(contact_id)
+		ce = contact_edit_main.ContactEditMainGUI(self.contact_id)
 		ce.window.set_transient_for(self.window)
 
 	def contact_exemptions_clicked (self, button):
@@ -354,6 +376,61 @@ class ContactsOverviewGUI(Gtk.Builder):
 		c.close()
 		DB.rollback()
 
+################   contact individuals
+
+	def populate_contact_individuals (self):
+		store = self.get_object('contact_individuals_store')
+		store.clear()
+		button = self.get_object('contact_individuals_button')
+		c = DB.cursor()
+		c.execute("SELECT id, "
+						"name, "
+						"ext_name, "
+						"address, "
+						"city, "
+						"state, "
+						"zip, "
+						"phone, "
+						"fax, "
+						"email "
+					"FROM contact_individuals WHERE contact_id = %s "
+					"ORDER BY name, ext_name", 
+					(self.contact_id,))
+		tupl = c.fetchall()
+		if tupl == []: # only show the individuals button when individuals exist
+			button.hide()
+		else:
+			button.show()
+		for row in tupl:
+			store.append(row)
+		c.close()
+		DB.rollback()
+
+	def new_individual_clicked (self, button):
+		if self.contact_id == 0:
+			return
+		import contact_edit_individual
+		ced_gui = contact_edit_individual.ContactEditIndividualGUI(self)
+		ced_gui.window.set_transient_for(self.window)
+		ced_gui.contact_id = self.contact_id
+
+	def individual_row_activated (self, treeview, path, treeviewcolumn):
+		model = self.get_object('contact_individuals_store')
+		individual_id = model[path][0]
+		self.edit_contact_individual (individual_id)
+
+	def edit_individual_clicked (self, button):
+		selection = self.get_object('treeview-selection3')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		individual_id = model[path][0]
+		self.edit_contact_individual (individual_id)
+
+	def edit_contact_individual (self, individual_id):
+		import contact_edit_individual as ced
+		ced_gui = ced.ContactEditIndividualGUI(self, individual_id)
+		ced_gui.window.set_transient_for(self.window)
 
 
 

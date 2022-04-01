@@ -23,7 +23,6 @@ pygtk_posting_PYTHON = \
 	statementing.py \
 	customer_tax_exemptions.py \
 	product_location.py \
-	manufacturing.py \
 	documenting.py \
 	time_clock.py \
 	view_log.py \
@@ -56,7 +55,6 @@ pygtk_posting_PYTHON = \
 	job_sheet.ui \
 	customer_tax_exemptions.ui \
 	product_location.ui \
-	manufacturing.ui \
 	time_clock.ui \
 	view_log.ui \
 	invoice_window.ui \
@@ -69,25 +67,14 @@ pygtk_posting_PYTHON = \
 	incoming_invoice.ui \
 	product_search.py \
 	product_search.ui \
-	resource_management.py \
-	resource_management.ui \
-	resource_management_tags.ui \
-	resource_management_tags.py \
-	resource_calendar.py \
-	resource_calendar.ui \
 	open_invoices.py \
 	open_invoices.ui \
-	resource_diary.py \
-	resource_diary.ui \
 	employee_payment.py \
 	employee_payment.ui \
-	assembled_products.ui \
-	assembled_products.py \
 	double_entry_transaction.py \
 	double_entry_transaction.ui \
 	credit_card_merchant.py \
 	credit_card_merchant.ui \
-	resource_search.py \
 	payment_receipt.py \
 	payment_receipt.ui \
 	spell_check.py \
@@ -99,7 +86,6 @@ pygtk_posting_PYTHON = \
 	catalog_creator.ui \
 	product_serial_numbers.py \
 	product_serial_numbers.ui \
-	resource_search.ui \
 	fiscal_years.py \
 	fiscal_years.ui \
 	open_purchase_orders.py \
@@ -124,8 +110,6 @@ pygtk_posting_PYTHON = \
 	customer_terms.py \
 	customer_terms.ui \
 	credit_memo_template.py \
-	contact_product_view.ui \
-	contact_product_view.py \
 	contact_hub.ui \
 	shipping_info.py \
 	shipping_info.ui \
@@ -168,7 +152,18 @@ pygtk_posting_PYTHON = \
 	contact_edit_files.py \
 	contact_edit_files.ui \
 	complete_search.py \
-	complete_search.ui
+	complete_search.ui \
+	product_print_label.py \
+	product_print_label.ui \
+	contact_edit_individual.py \
+	contact_edit_individual.ui \
+	about_window.py \
+	about_window.ui \
+	sqlite_utils.py \
+	admin_utils.py \
+	admin_utils.ui
+	invoice_hub.py \
+	invoice_hub.ui
 
 
 EXTRA_DIST = $(ui_DATA)
@@ -188,4 +183,6 @@ SUBDIRS = \
 	reports \
 	admin \
 	payroll \
-	modules
+	modules \
+	manufacturing \
+	resources

@@ -21,10 +21,9 @@ from gi.repository import Gtk, GLib, Vte
 import subprocess, psycopg2, re, os
 from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from db import database_utils
 from constants import DB, ui_directory, sql_dir
 from constants import log_file as LOG_FILE
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -38,7 +37,6 @@ class GUI:
 		self.builder.connect_signals(self)
 		self.statusbar = self.builder.get_object("statusbar2")
 		self.progressbar = self.builder.get_object("progressbar1")
-		database_utils.PROGRESSBAR = self.progressbar
 		if error == False:
 			self.db = DB
 			self.retrieve_dbs ()
@@ -65,18 +63,16 @@ class GUI:
 			return True
 
 	def backup_database_clicked(self, widget):
-		from db.backup_restore import Utilities 
-		u = Utilities(parent = self )
-		u.backup_gui()
+		from db.database_backup import BackupGUI 
+		BackupGUI()
 
 	def restore_database_clicked(self, widget):
 		restore_database_name = self.builder.get_object('entry6').get_text()
 		if restore_database_name == "":
 			self.status_update("Database name is blank!")
 		else:
-			from db.backup_restore import Utilities
-			u = Utilities(parent = self)
-			u.restore_gui(restore_database_name, self)
+			from db.database_restore import RestoreGUI
+			RestoreGUI(restore_database_name, self)
 			
 	def restore_name_changed(self, widget):
 		restore_database_name = widget.get_text()
@@ -90,7 +86,7 @@ class GUI:
 		
 	def set_active_database (self ):
 		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT db_name FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT db_name FROM postgres_conn;"):
 			sql_database = row[0]
 		self.builder.get_object('combobox1').set_active_id(sql_database)
 		self.builder.get_object('label10').set_text("Current database : " + sql_database)
@@ -101,7 +97,8 @@ class GUI:
 		sqlite = get_apsw_connection()
 		db_name_store = self.builder.get_object('db_name_store')
 		db_name_store.clear()
-		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT user, password, host, port "
+											"FROM postgres_conn;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -136,9 +133,6 @@ class GUI:
 		self.builder.get_object('label13').set_label(db_version)
 		self.builder.get_object('label14').set_label(db_name)
 
-	def upgrade_old_version (self):
-		database_utils.check_and_update_version (self.statusbar)
-
 	def login_multiple_clicked(self, widget):
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
@@ -152,7 +146,8 @@ class GUI:
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			sqlite = get_apsw_connection()
-			sqlite.cursor().execute("UPDATE connection SET db_name = '%s'" % (selected))
+			sqlite.cursor().execute("UPDATE postgres_conn SET db_name = '%s'" 
+																% (selected))
 			self.error = False
 			self.window.close()
 			subprocess.Popen(["./src/main.py", 
@@ -181,7 +176,8 @@ class GUI:
 			self.status_update("No database name!")
 			return
 		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT * FROM connection;"):
+		for row in sqlite.cursor().execute("SELECT user, password, host, port "
+											"FROM postgres_conn;"):
 			sql_user = row[0]
 			sql_password = row[1]
 			sql_host = row[2]
@@ -217,7 +213,7 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		sqlite.cursor().execute("UPDATE connection SET db_name = ?", (db_name,))
+		sqlite.cursor().execute("UPDATE postgres_conn SET db_name = ?", (db_name,))
 		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
@@ -257,7 +253,6 @@ class GUI:
 				dialog.run()
 				dialog.hide()
 				cursor.close()
-				raise Exception(e)
 				return False
 		cursor.close()
 		return True
@@ -312,15 +307,30 @@ class GUI:
 	def get_postgre_settings(self, widget):
 		sqlite = get_apsw_connection()
 		cursor = sqlite.cursor()
-		for row in cursor.execute("SELECT * FROM connection;"):
+		for row in cursor.execute("SELECT user, password, host, port "
+									"FROM postgres_conn;"):
 			self.builder.get_object("entry2").set_text(row[0])
 			self.builder.get_object("entry3").set_text(row[1])
 			self.builder.get_object("entry4").set_text(row[2])
 			self.builder.get_object("entry5").set_text(row[3])
-		entry = self.builder.get_object('postgres_bin_path_entry')
 		cursor.execute("SELECT value FROM settings "
 						"WHERE setting = 'postgres_bin_path'")
-		entry.set_text(cursor.fetchone()[0])
+		self.bin_path = cursor.fetchone()[0]
+		chooser = self.builder.get_object('bin_path_chooser')
+		if os.path.exists(self.bin_path):
+			chooser.set_current_folder(self.bin_path)
+			chooser.set_tooltip_text(self.bin_path)
+		else:
+			chooser.set_tooltip_text(self.bin_path + ' does not exist')
+		cursor.execute("SELECT value FROM settings "
+						"WHERE setting = 'backup_path'")
+		path = cursor.fetchone()[0]
+		chooser = self.builder.get_object('backup_folder_chooser')
+		if os.path.exists(path):
+			chooser.set_current_folder(path)
+			chooser.set_tooltip_text(path)
+		else:
+			chooser.set_tooltip_text(path + ' does not exist')
 		sqlite.close()
 
 	def test_connection_clicked (self, widget):
@@ -341,7 +351,7 @@ class GUI:
 			self.builder.get_object("grid2").set_sensitive(False)
 			return
 		sqlite = get_apsw_connection()
-		sqlite.cursor().execute("UPDATE connection SET "
+		sqlite.cursor().execute("UPDATE postgres_conn SET "
 						"(user, password, host, port) = "
 						"(?, ?, ?, ?)", 
 						(sql_user, sql_password, sql_host, sql_port))
@@ -361,20 +371,40 @@ class GUI:
 		GLib.timeout_add(3000, self.status_update, "Please check the entries and try again")
 
 	def postgres_bin_folder_set (self, filechooser):
-		path = filechooser.get_uri()[7:]
+		path = filechooser.get_filename()
 		filechooser.set_tooltip_text(path)
 		buf = self.builder.get_object('postgres_bin_path_buffer')
-		command = "%s/pg_isready" % path
+		sqlite = get_apsw_connection()
+		for row in sqlite.cursor().execute("SELECT user, password, host, port "
+											"FROM postgres_conn;"):
+			sql_user = row[0]
+			sql_password = row[1]
+			sql_host = row[2]
+			sql_port = row[3]
+		sqlite.close()
+		command = ["%s/pg_isready" % path,
+					"-h", sql_host,
+					"-p", sql_port
+					]
 		try:
-			p = Popen([command], stdout=PIPE, stderr=PIPE)
+			p = Popen(command, stdout=PIPE, stderr=PIPE)
 			stdout, stderr = p.communicate()
 			buf.set_text(stdout.decode('utf-8') + stderr.decode('utf-8'))
 		except Exception as e:
 			buf.set_text(str(e))
+			filechooser.set_filename(self.bin_path)
 			return
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("UPDATE settings SET value = ? "
 								"WHERE setting = 'postgres_bin_path'", (path,))
+		sqlite.close()
+
+	def backup_folder_path_set (self, filechooserbutton):
+		path = filechooserbutton.get_filename()
+		filechooserbutton.set_tooltip_text(path)
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE settings SET value = ? "
+								"WHERE setting = 'backup_path'", (path,))
 		sqlite.close()
 
 

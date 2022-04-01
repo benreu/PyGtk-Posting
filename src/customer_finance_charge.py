@@ -142,9 +142,16 @@ class CustomerFinanceChargeGUI:
 						"ELSE 0.00 "
 						"END) AS amount_unpaid " 
 					"FROM invoices i "
-					"CROSS JOIN " 
-						"(SELECT SUM(amount) AS amount " 
-						"FROM payments_incoming WHERE customer_id = %s " 
+					"CROSS JOIN "
+						"(SELECT amount + amount_owed AS amount FROM " 
+							"(SELECT SUM(amount) AS amount " 
+							"FROM payments_incoming WHERE customer_id = %s " 
+							") pi, "
+							"(SELECT "
+								"COALESCE(SUM(-amount_owed), 0.00) AS amount_owed "
+							"FROM credit_memos "
+							"WHERE (posted, customer_id) = (True, %s) "
+							") cm "
 						") p "
 					"WHERE customer_id = %s ORDER BY i.id ) "
 					"SELECT "
@@ -157,7 +164,7 @@ class CustomerFinanceChargeGUI:
 						"ROUND(amount_unpaid * (SELECT finance_rate FROM settings) / 100, 2), "
 						"ROUND(amount_unpaid * (SELECT finance_rate FROM settings) / 100, 2)::text "
 					"FROM invoice_cte WHERE amount_unpaid != 0.00 " , 
-					(c_id, c_id))
+					(c_id, c_id, c_id))
 		for row in c.fetchall():
 			self.finance_charge_store.append(row)
 		self.builder.get_object('button3').set_sensitive(True)

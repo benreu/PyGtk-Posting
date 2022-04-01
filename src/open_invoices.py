@@ -16,25 +16,61 @@
 
 from gi.repository import Gtk
 from constants import ui_directory, DB
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/open_invoices.ui"
 
-class OpenInvoicesGUI:
+class OpenInvoicesGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
-		self.open_invoice_store = self.builder.get_object('open_invoice_store')
+		self.open_invoice_store = self.get_object('open_invoice_store')
 		self.populate_store ()
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
+		self.set_window_layout_from_settings ()
 		self.window.show_all()
+
+	def set_window_layout_from_settings(self):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		c.execute("SELECT value FROM open_invoices "
+					"WHERE widget_id = 'window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT value FROM open_invoices "
+					"WHERE widget_id = 'window_height'")
+		height = c.fetchone()[0]
+		self.window.resize(width, height)
+		c.execute("SELECT value FROM open_invoices "
+					"WHERE widget_id = 'sort_column'")
+		sort_column = c.fetchone()[0]
+		c.execute("SELECT value FROM open_invoices "
+					"WHERE widget_id = 'sort_type'")
+		sort_type = Gtk.SortType(c.fetchone()[0])
+		store = self.get_object('open_invoice_store')
+		store.set_sort_column_id(sort_column, sort_type)
+		c.execute("SELECT widget_id, value FROM open_invoices WHERE "
+					"widget_id IN ('number_column', "
+									"'invoice_column', "
+									"'contact_column', "
+									"'date_created_column', "
+									"'items_column')")
+		for row in c.fetchall():
+			column = self.get_object(row[0])
+			width = row[1]
+			if width == 0:
+				column.set_visible(False)
+			else:
+				column.set_fixed_width(width)
+		sqlite.close()
 
 	def present (self):
 		self.window.present()
 
 	def delete_event (self, window, event):
+		self.set_window_layout_from_settings ()
 		window.hide()
 		return True
 
@@ -42,7 +78,7 @@ class OpenInvoicesGUI:
 		self.populate_store()
 		
 	def contact_hub_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -52,7 +88,7 @@ class OpenInvoicesGUI:
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
 
 	def new_invoice_clicked (self, button):
@@ -66,11 +102,11 @@ class OpenInvoicesGUI:
 	def open_invoice (self, invoice_id):
 		import invoice_window
 		invoice_window.InvoiceGUI(invoice_id)
-		if self.builder.get_object('hide_checkbutton').get_active():
+		if self.get_object('hide_checkbutton').get_active():
 			self.window.hide()
 
 	def populate_store (self):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.open_invoice_store.clear()
 		self.cursor.execute("SELECT "
@@ -87,7 +123,8 @@ class OpenInvoicesGUI:
 							"ON ili.invoice_id = i.id "
 							"WHERE (i.canceled, posted, i.active) "
 							"= (False, False, True) "
-							"GROUP BY (i.id, c.name, c.id)")
+							"GROUP BY (i.id, c.name, c.id) "
+							"ORDER BY i.id")
 		for row in self.cursor.fetchall():
 			self.open_invoice_store.append(row)
 		if path != []:
@@ -95,12 +132,53 @@ class OpenInvoicesGUI:
 		DB.rollback()
 
 	def open_invoice_clicked (self, button):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		invoice_id = model[path][0]
 		self.open_invoice (invoice_id)
+
+	def save_window_layout_activated (self, menuitem):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		width, height = self.window.get_size()
+		c.execute("REPLACE INTO open_invoices (widget_id, value) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO open_invoices (widget_id, value) "
+					"VALUES ('window_height', ?)", (height,))
+		tuple_ = self.get_object('open_invoice_store').get_sort_column_id()
+		sort_column = tuple_[0]
+		if sort_column == None:
+			sort_column = 0
+			sort_type = 0
+		else:
+			sort_type = tuple_[1].numerator
+		c.execute("REPLACE INTO open_invoices (widget_id, value) "
+					"VALUES ('sort_column', ?)", (sort_column,))
+		c.execute("REPLACE INTO open_invoices (widget_id, value) "
+					"VALUES ('sort_type', ?)", (sort_type,))
+		for column in ['number_column', 
+						'invoice_column', 
+						'contact_column', 
+						'date_created_column', 
+						'items_column']:
+			try:
+				width = self.get_object(column).get_width()
+			except Exception as e:
+				self.show_message("On column %s\n %s" % (column, str(e)))
+				continue
+			c.execute("REPLACE INTO open_invoices (widget_id, value) "
+						"VALUES (?, ?)", (column, width))
+		sqlite.close()
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

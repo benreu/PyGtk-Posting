@@ -17,7 +17,7 @@
 from gi.repository import Gtk, Gdk, GLib
 import subprocess
 from constants import broadcaster, DB, ui_directory
-from main import get_apsw_connection
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/products_overview.ui"
 
@@ -61,11 +61,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 	def product_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
 		product_id = model[path][0]
-		import product_edit_main
-		pe = product_edit_main.ProductEditMainGUI()
-		pe.get_object('product_completion').set_model(self.product_name_store)
-		pe.select_product(product_id)
-		pe.window.set_transient_for(self.window)
+		self.edit_product (product_id)
 
 	def set_window_layout_from_settings(self):
 		sqlite = get_apsw_connection()
@@ -125,6 +121,15 @@ class ProductsOverviewGUI (Gtk.Builder):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 		self.window = None
+
+	def report_hub_activated (self, menuitem):
+		treeview = self.get_object('treeview2')
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
+
+	def print_label_activated (self, menuitem):
+		import product_print_label
+		product_print_label.ProductPrintLabelGUI(self.product_id)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -218,6 +223,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 		self.treeview.set_model(model)
+		self.treeview.set_search_column(1)
 		self.select_product()
 		spinner.hide()
 		spinner.stop()
@@ -306,6 +312,9 @@ class ProductsOverviewGUI (Gtk.Builder):
 		if path == []:
 			return
 		product_id = model[path][0]
+		self.edit_product (product_id)
+
+	def edit_product (self, product_id):
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI()
 		pe.get_object('product_completion').set_model(self.product_name_store)

@@ -2,8 +2,6 @@
 
 python_PYTHON = time_clock_project.ui \
 	time_clock_project.py \
-	inventory_count.py \
-	inventory_count.ui \
 	job_sheet_history.ui \
 	job_sheet_history.py \
 	time_clock_history.ui \
@@ -59,9 +57,13 @@ python_PYTHON = time_clock_project.ui \
 	document_history.ui \
 	shipping_history.py \
 	shipping_history.ui \
-	manufacturing_reports.py \
-	manufacturing_reports.ui \
 	charts.py \
-	charts.ui
+	charts.ui \
+	po_payment_matching.py \
+	po_payment_matching.ui \
+	credit_card_statement_history.py \
+	credit_card_statement_history.ui \
+	product_invoice_statistics.py \
+	product_invoice_statistics.ui
 
 uidir = $(pkgdatadir)/reports/ui

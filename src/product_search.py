@@ -20,6 +20,7 @@
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
 from constants import ui_directory, DB, broadcaster
+from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/product_search.ui"
 
@@ -45,23 +46,86 @@ class ProductSearchGUI:
 		self.treeview.drag_source_set_target_list([dnd])
 		
 		self.product_store = self.builder.get_object('product_store')
-		self.product_store.set_sort_column_id(1, Gtk.SortType.ASCENDING)
 		self.filtered_product_store = self.builder.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
-		self.populate_product_treeview_store()
 		self.handler_ids = list()
-		for connection in (("products_changed", self.populate_product_treeview_store),):
+		for connection in (("products_changed", self.show_refresh_button),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 
 		self.window = self.builder.get_object('window1')
+		self.load_window_layout ()
 		self.window.show_all()
+		self.populate_product_treeview_store()
+
+	def show_refresh_button (self, broadcast):
+		self.builder.get_object('refresh_button').set_visible(True)
 
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 		self.cursor.close()
-		
+
+	def load_window_layout (self):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'window_height'")
+		height = c.fetchone()[0]
+		self.window.resize(width, height)
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'sort_column'")
+		sort_column = c.fetchone()[0]
+		c.execute("SELECT value FROM product_search "
+					"WHERE widget_id = 'sort_type'")
+		sort_type = Gtk.SortType(c.fetchone()[0])
+		store = self.builder.get_object('product_store')
+		store.set_sort_column_id(sort_column, sort_type)
+		c.execute("SELECT widget_id, value FROM product_search WHERE "
+					"widget_id NOT IN ('window_width', "
+									"'window_height', "
+									"'sort_column', "
+									"'sort_type')")
+		for row in c.fetchall():
+			column = self.builder.get_object(row[0])
+			width = row[1]
+			if width == 0:
+				column.set_visible(False)
+			else:
+				column.set_fixed_width(width)
+		sqlite.close()
+	
+	def save_window_layout_activated (self, menuitem):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		width, height = self.window.get_size()
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('window_height', ?)", (height,))
+		tuple_ = self.builder.get_object('product_store').get_sort_column_id()
+		sort_column = tuple_[0]
+		if sort_column == None:
+			sort_column = 0
+			sort_type = 0
+		else:
+			sort_type = tuple_[1].numerator
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('sort_column', ?)", (sort_column,))
+		c.execute("REPLACE INTO product_search (widget_id, value) "
+					"VALUES ('sort_type', ?)", (sort_type,))
+		treeview = self.builder.get_object('treeview1')
+		columns = treeview.get_columns()
+		for column in columns:
+			widget_name = column.get_name()
+			width = column.get_width()
+			c.execute("REPLACE INTO product_search (widget_id, value) "
+						"VALUES (?, ?)", (widget_name, width))
+		sqlite.close()
+	
 	def on_drag_data_get (self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
 		product_id = model[path][0]
@@ -82,10 +146,6 @@ class ProductSearchGUI:
 		import product_hub
 		product_hub.ProductHubGUI(id_)
 
-	def treeview_row_activated (self, treeview, path, column):
-		if self.builder.get_object('checkbutton1').get_active() == False:
-			return
-
 	def any_search_changed (self, entry):
 		'''This signal is hooked up to all search entries'''
 		self.product_name = self.builder.get_object('searchentry1').get_text().lower()
@@ -98,124 +158,59 @@ class ProductSearchGUI:
 
 	def filter_func (self, model, tree_iter, r):
 		for i in self.product_name.split():
-			if i in model[tree_iter][1].lower():
-				continue
-			else:
+			if i not in model[tree_iter][1].lower():
 				return False
 		for i in self.ext_name.split():
-			if i in model[tree_iter][2].lower():
-				continue
-			else:
+			if i not in model[tree_iter][2].lower():
 				return False
 		for i in self.barcode.split():
-			if i in model[tree_iter][3].lower():
-				continue
-			else:
+			if i not in model[tree_iter][3].lower():
 				return False
 		for i in self.vendor.split():
-			if i in model[tree_iter][4].lower():
-				continue
-			else:
+			if i not in model[tree_iter][4].lower():
 				return False
 		for i in self.order_number.split():
-			if i in model[tree_iter][5].lower():
-				continue
-			else:
+			if i not in model[tree_iter][5].lower():
 				return False
 		for i in self.vendor_barcode.split():
-			if i in model[tree_iter][6].lower():
-				continue
-			else:
+			if i not in model[tree_iter][6].lower():
 				return False
 		return True
 
-	def populate_product_treeview_store (self, m = None):
-		self.product_store.clear()
-		self.cursor.execute ("SELECT p.id, p.name, p.ext_name, p.barcode, "
-							"p.deleted, p.stock, p.sellable, p.purchasable, "
-							"p.manufactured, "
-							"c.name, vp.vendor_sku, vp.vendor_barcode "
+	def refresh_clicked (self, button):
+		self.populate_product_treeview_store()
+		button.set_visible(False)
+
+	def populate_product_treeview_store (self):
+		progressbar = self.builder.get_object('progressbar')
+		treeview = self.builder.get_object('treeview1')
+		store = self.builder.get_object('product_store')
+		treeview.set_model(None)
+		store.clear()
+		c = DB.cursor()
+		c.execute ("SELECT p.id, "
+							"p.name, "
+							"p.ext_name, "
+							"p.barcode, "
+							"COALESCE(c.name, ''), "
+							"COALESCE(vpn.vendor_sku, ''), "
+							"COALESCE(vpn.vendor_barcode, ''), "
+							"p.deleted, "
+							"p.stock, "
+							"p.sellable, "
+							"p.purchasable, "
+							"p.manufactured "
 							"FROM products AS p "
-							"LEFT JOIN vendor_product_numbers AS vp "
-							"ON vp.product_id = p.id "
-							"LEFT JOIN contacts AS c ON vp.vendor_id = c.id")
-		for row in self.cursor.fetchall():
-			product_id = row[0]
-			name = row[1]
-			ext_name = row[2]
-			barcode = row[3]
-			deleted = row[4]
-			stock = row[5]
-			sellable = row[6]
-			purchasable = row[7]
-			manufactured = row[8]
-			vendor = row[9]
-			order_number = row[10]
-			vendor_barcode = row[11]
-			if vendor == None:
-				vendor = ''
-			if order_number == None:
-				order_number = ''
-			if vendor_barcode == None:
-				vendor_barcode = ''
-			self.product_store.append([product_id, name, ext_name, 
-											barcode, vendor, order_number, 
-											vendor_barcode, deleted, stock, 
-											sellable, purchasable, 
-											manufactured])
+							"LEFT JOIN vendor_product_numbers AS vpn "
+							"ON vpn.product_id = p.id "
+							"LEFT JOIN contacts AS c ON vpn.vendor_id = c.id")
+		p_tuple = c.fetchall()
+		rows = len(p_tuple)
+		for row_count, row in enumerate(p_tuple):
+			progressbar.set_fraction((row_count + 1) / rows)
+			store.append(row)
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+		treeview.set_model(self.builder.get_object('sorted_product_store'))
 		DB.rollback()
 
-	def set_all_column_indicators_false(self):
-		for column in self.treeview.get_columns():
-			column.set_sort_indicator(False )
-
-	def product_name_column_clicked(self, treeview_column ):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (1, Gtk.SortType.ASCENDING )
-
-	def ext_name_column_clicked(self, treeview_column):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (2, Gtk.SortType.ASCENDING )
-
-	def barcode_column_clicked(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (3, Gtk.SortType.ASCENDING )
-
-	def vendor_column_clicked(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (4, Gtk.SortType.ASCENDING )
-
-	def order_number_column_clicked(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (5, Gtk.SortType.ASCENDING )
-
-	def vendor_barcode_column_clicked(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (6, Gtk.SortType.ASCENDING )
-
-	def stock_column_clicked(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (8, Gtk.SortType.ASCENDING )
-
-	def sellable_column_clicked(self, treeview_column):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (9, Gtk.SortType.ASCENDING)
-
-	def purchasable_column_clicked(self, treeview_column):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (10, Gtk.SortType.ASCENDING)
-
-	def manufactured_column_clicked(self, treeview_column):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_store.set_sort_column_id (11, Gtk.SortType.ASCENDING)
-		

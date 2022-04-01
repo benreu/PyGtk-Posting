@@ -203,7 +203,7 @@
                 <child>
                   <object class="GtkTreeViewColumn">
                     <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Number</property>
+                    <property name="title" translatable="yes">Invoice</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">0</property>
                     <child>

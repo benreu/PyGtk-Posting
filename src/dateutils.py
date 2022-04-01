@@ -24,6 +24,7 @@ PARSE_STRING = "%b %d %Y"
 USER_FORMAT_DATE_TIME = "%a %b %d %Y %I:%M:%S %p"
 USER_FORMAT_DATE = "%a %b %d %Y"
 DB_FORMAT_DATE = "%Y-%m-%d"
+TIMECARD_TIME = "%I:%M %p"
 
 # -- datetime utils -- #
 
@@ -34,6 +35,11 @@ def datetime_to_user_date_time (date_time):
 	date_string = datetime.strftime(date_time, USER_FORMAT_DATE_TIME)
 	return date_string
 
+def datetime_to_time_card_format (date_time):
+	if date_time == None:
+		return ''
+	date_string = datetime.strftime(date_time, TIMECARD_TIME)
+	return date_string
 def datetime_to_compact_string (date_time):
 	print ("datetime_to_compact_string is deprecated, please use Postgres function")
 	if date_time == None:
@@ -144,7 +150,14 @@ def seconds_to_compact_string (start_seconds):
 
 class DateTimeCalendar (Gtk.Popover):
 	'''A Gtk Calendar within a Gtk Popover that recognizes Python datetimes'''
-	__gsignals__ = { 'day_selected': (GObject.SignalFlags.RUN_FIRST, GObject.TYPE_NONE, ())}
+	__gsignals__ = { 
+					'day_selected':				(GObject.SignalFlags.RUN_FIRST, 
+												GObject.TYPE_NONE, 
+												()),
+					'day_selected_double_click': (GObject.SignalFlags.RUN_FIRST, 
+												GObject.TYPE_NONE, 
+												())
+					}
 	
 	__gtype_name__ = 'DateTimeCalendar'
 	
@@ -180,6 +193,7 @@ class DateTimeCalendar (Gtk.Popover):
 		return first_d_of_yr_str 
 
 	def day_double_click (self, calendar):
+		self.emit('day_selected_double_click')
 		self.hide()
 
 	def get_date (self):
@@ -274,6 +288,13 @@ class DateTimeCalendar (Gtk.Popover):
 		self.show()
 		return self.error
 
+	def get_is_today (self):
+		return self.get_date () == datetime.today().date()
+
+	def get_julian_date (self):
+		date_time = self.get_datetime ()
+		date_string = datetime.strftime(date_time, "%y%j")
+		return date_string
 GObject.type_register(DateTimeCalendar)
 
 

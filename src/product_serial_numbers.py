@@ -19,10 +19,14 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
-from constants import ui_directory, DB, broadcaster
-import constants
+import subprocess
+import barcode_generator
+from constants import ui_directory, DB, broadcaster, template_dir
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
+
+class Item (object):
+	pass
 
 class ProductSerialNumbersGUI(Gtk.Builder):
 	def __init__(self):
@@ -48,6 +52,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.serial_number = ''
 		self.filtered_store = self.get_object('serial_number_treeview_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
+		sort_model = self.get_object('serial_number_treeview_sort')
+		sort_model.set_sort_func(4, self.serial_number_sort_func)
 		self.product_id = 0
 		self.populate_product_store()
 		self.populate_contact_store()
@@ -73,12 +79,24 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def filter_func (self, model, tree_iter, r):
 		for i in self.product_name.split():
-			if i not in model[tree_iter][1].lower():
+			if i not in model[tree_iter][3].lower():
 				return False
 		for i in self.serial_number.split():
-			if i not in model[tree_iter][2].lower():
+			if i not in model[tree_iter][4].lower():
 				return False
 		return True
+
+	def serial_number_sort_func (self, model, iter_a, iter_b, arg):
+		a = model[iter_a][4]
+		b = model[iter_b][4]
+		try:
+			return int(a) - int(b)
+		except Exception as e:
+			if a < b:
+				return -1
+			elif a > b:
+				return 1
+			return 0 # indentical
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
@@ -119,32 +137,47 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		DB.rollback()
 
 	def populate_serial_number_history (self):
+		treeview = self.get_object('serial_number_treeview')
+		original_model = treeview.get_model()
+		treeview.set_model(None)
 		store = self.get_object('serial_number_treeview_store')
 		store.clear()
 		self.cursor.execute("SELECT "
 								"sn.id, "
+								"COALESCE(manufacturing_id::text, ''), "
+								"p.id, "
 								"p.name, "
 								"sn.serial_number, "
 								"sn.date_inserted::text, "
 								"format_date(sn.date_inserted), "
 								"COALESCE(COUNT(snh.id)::text, ''), "
+								"COALESCE(ili.invoice_id, 0), "
 								"COALESCE(ili.invoice_id::text, ''), "
+								"COALESCE(i.dated_for::text, ''), "
+								"COALESCE(format_date(i.dated_for), ''), "
 								"COALESCE(poli.purchase_order_id::text, ''), "
-								"COALESCE(manufacturing_id::text, '') "
+								"COALESCE(po.date_printed::text, ''), "
+								"COALESCE(format_date(po.date_printed), '') "
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh "
 								"ON snh.serial_number_id = sn.id "
 							"LEFT JOIN invoice_items AS ili "
 								"ON ili.id = sn.invoice_item_id "
-							"LEFT JOIN purchase_order_line_items AS poli "
-								"ON poli.id = purchase_order_line_item_id "
-							"GROUP BY sn.id, p.name, sn.serial_number, "
+							"LEFT JOIN invoices AS i "
+								"ON i.id = ili.invoice_id "
+							"LEFT JOIN purchase_order_items AS poli "
+								"ON poli.id = sn.purchase_order_item_id "
+							"LEFT JOIN purchase_orders AS po "
+								"ON po.id = poli.purchase_order_id "
+							"GROUP BY sn.id, p.id, p.name, sn.serial_number, "
 								"sn.date_inserted, invoice_id, poli.id, "
-								"manufacturing_id "
+								"manufacturing_id, i.dated_for, "
+								"po.date_printed "
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
 			store.append(row)
+		treeview.set_model(original_model)
 		DB.rollback()
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
@@ -169,39 +202,44 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		DB.rollback()
 
 	def add_serial_event_clicked (self, button):
-		dialog = self.get_object('event_dialog')
-		response = dialog.run ()
-		if response == Gtk.ResponseType.ACCEPT:
-			serial_number = self.get_object('entry2').get_text()
-			buf = self.get_object('textbuffer1')
-			start_iter = buf.get_start_iter()
-			end_iter = buf.get_end_iter()
-			description = buf.get_text(start_iter, end_iter, True)
-			self.cursor.execute("INSERT INTO serial_number_history "
-								"(contact_id, "
-								"date_inserted, description, serial_number_id) "
-								"VALUES (%s, %s, %s, %s)", 
-								(self.contact_id, self.date, 
-								description, self.serial_id))
-			DB.commit()
-			self.populate_serial_number_history ()
-			self.get_object('combobox2').set_sensitive(False)
-			self.get_object('combobox3').set_sensitive(False)
-			self.get_object('textview1').set_sensitive(False)
-			self.get_object('button4').set_sensitive(False)
-			self.get_object('combobox-entry2').set_text('')
-			self.get_object('combobox-entry4').set_text('')
-			self.get_object('combobox-entry5').set_text('')
-			self.get_object('textbuffer1').set_text('')
-		dialog.hide()
+		window = self.get_object('add_event_window')
+		window.show_all()
 
-	def add_serial_number_dialog_clicked (self, button):
-		dialog = self.get_object('add_serial_number_dialog')
-		response = dialog.run ()
-		if response == Gtk.ResponseType.ACCEPT:
-			self.populate_serial_number_history ()
-		dialog.hide()
-		self.get_object('label10').set_text('')
+	def add_event_clicked (self, button):
+		serial_number = self.get_object('entry2').get_text()
+		buf = self.get_object('textbuffer1')
+		start_iter = buf.get_start_iter()
+		end_iter = buf.get_end_iter()
+		description = buf.get_text(start_iter, end_iter, True)
+		self.cursor.execute("INSERT INTO serial_number_history "
+							"(contact_id, "
+							"date_inserted, description, serial_number_id) "
+							"VALUES (%s, %s, %s, %s)", 
+							(self.contact_id, self.date, 
+							description, self.serial_id))
+		DB.commit()
+		self.populate_serial_number_history ()
+		self.get_object('combobox2').set_sensitive(False)
+		self.get_object('combobox3').set_sensitive(False)
+		self.get_object('textview1').set_sensitive(False)
+		self.get_object('combobox-entry2').set_text('')
+		self.get_object('combobox-entry4').set_text('')
+		self.get_object('combobox-entry3').set_text('')
+		self.get_object('textbuffer1').set_text('')
+		self.get_object('add_event_window').hide()
+		button.set_sensitive(False)
+
+	def cancel_event_clicked (self, button):
+		self.get_object('add_event_window').hide()
+
+	def add_event_window_delete_event (self, window, event):
+		window.hide()
+		return True
+
+	def add_serial_number_window_clicked (self, button):
+		self.get_object('exception_label').set_text('')
+		self.get_object('add_serial_number_button').set_sensitive(False)
+		self.get_object('add_serial_number_window').show_all()
 
 	def add_serial_number_clicked (self, button):
 		serial_number = self.get_object('entry2').get_text()
@@ -212,11 +250,18 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"VALUES (%s, %s, %s)", 
 								(self.product_id, serial_number, self.date))
 			DB.commit()
-			dialog = self.get_object('add_serial_number_dialog')
-			dialog.response(Gtk.ResponseType.ACCEPT)
+			self.get_object('add_serial_number_window').hide()
+			self.populate_serial_number_history ()
 		except psycopg2.IntegrityError as e:
-			self.get_object('label10').set_text(str(e))
+			self.get_object('exception_label').set_text(str(e))
 			DB.rollback()
+
+	def cancel_serial_number_clicked (self, button):
+		self.get_object('add_serial_number_window').hide()
+
+	def add_serial_number_window_delete_event (self, window, event):
+		window.hide()
+		return True
 
 	def refresh_clicked (self, button):
 		self.populate_serial_number_history ()
@@ -244,7 +289,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			store.clear()
 			self.cursor.execute("SELECT id::text, serial_number "
 								"FROM serial_numbers "
-								"WHERE product_id = %s", (product_id,))
+								"WHERE product_id = %s "
+								"ORDER BY serial_number", (product_id,))
 			for row in self.cursor.fetchall():
 				store.append(row)
 		DB.rollback()
@@ -268,7 +314,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			self.get_object('textview1').set_sensitive(True)
 
 	def add_serial_number_changed (self, entry):
-		self.get_object('button2').set_sensitive(True)
+		self.get_object('add_serial_number_button').set_sensitive(True)
 
 	def serial_number_match_selected (self, completion, model, iter_):
 		serial_number = model[iter_][0]
@@ -281,9 +327,57 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			self.get_object('combobox3').set_sensitive(True)
 
 	def event_description_changed (self, entry):
-		self.get_object('button4').set_sensitive(True)
+		self.get_object('add_event_button').set_sensitive(True)
 
+	def reprint_serial_number_clicked (self, button):
+		barcode = self.get_object('serial_number_entry').get_text()
+		label = Item()
+		label.code128 = barcode_generator.makeCode128(str(barcode))
+		label.barcode = barcode
+		from py3o.template import Template
+		label_file = "/tmp/manufacturing_serial_label.odt"
+		t = Template(template_dir+"/manufacturing_serial_template.odt", 
+															label_file )
+		data = dict(label = label)
+		t.render(data) 
+		subprocess.call(["soffice", "--headless", "-p", label_file])
 
+	def treeview_button_release_event (self, widget, event):
+		if event.button != 3:
+			return
+		menu = self.get_object('right_click_menu')
+		menu.popup_at_pointer()
+
+	def add_serial_number_event_activated (self, menuitem):
+		selection = self.get_object('serial_number_treeselection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][2]
+		serial_number = model[path][4]
+		window = self.get_object('add_event_window')
+		window.show_all()
+		self.get_object('combobox4').set_active_id(str(product_id))
+		self.get_object('combobox2').set_active_id(str(serial_number))
+
+	def invoice_hub_activated (self, menuitem):
+		selection = self.get_object('serial_number_treeselection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_number = model[path][9]
+		if invoice_number == "":
+			return
+		import invoice_hub
+		invoice_hub.InvoiceHubGUI(invoice_number)
+
+	def select_serial_number_activated (self, menuitem):
+		selection = self.get_object('serial_number_treeselection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		serial_number = model[path][4]
+		self.get_object('serial_number_entry').set_text(serial_number)
 
 
 

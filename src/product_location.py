@@ -21,12 +21,12 @@ from constants import ui_directory, DB, broadcaster
 
 UI_FILE = ui_directory + "/product_location.ui"
 
-class ProductLocationGUI:
+class ProductLocationGUI(Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
 
 		self.aisle_text = ""
@@ -39,106 +39,75 @@ class ProductLocationGUI:
 		self.bin_text = ""
 		self.ascending = False
 	
-		self.product_location_store = self.builder.get_object('location_treeview_store')
-		self.product_location_store.set_sort_column_id(1, Gtk.SortType.ASCENDING)
-		self.location_store = self.builder.get_object('location_store')
+		self.product_location_store = self.get_object('location_treeview_store')
+		self.location_store = self.get_object('location_store')
 		
-		self.filtered_location_store = self.builder.get_object('filtered_location_store')
+		self.filtered_location_store = self.get_object(
+											'filtered_location_treeview_store')
 		self.filtered_location_store.set_visible_func(self.filter_func)
 
-		self.treeview = self.builder.get_object('treeview1')
+		self.treeview = self.get_object('treeview1')
 		
-		self.populate_product_location_treeview()
 		self.populate_location_combo()
+		self.populate_product_location_treeview()
 		self.handler_ids = list()
-		for connection in (("products_changed", self.populate_product_location_treeview),):
+		for connection in (("products_changed", self.show_refresh_button),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
 
 	def delete_event (self, window, event):
-		#for handler in self.handler_ids:
-		#	broadcaster.disconnect(handler)
+		self.get_object('searchentry1').set_text('')
 		window.hide()
 		return True
 
 	def present (self):
+		self.populate_product_location_treeview()
 		self.window.present()
 
+	def show_refresh_button (self, callback):
+		self.get_object('refresh_button').set_visible(True)
+
+	def refresh_clicked (self, button):
+		button.set_visible(False)
+		tree_selection = self.get_object('treeview-selection1')
+		model, path = tree_selection.get_selected_rows()
+		self.populate_product_location_treeview ()
+		if path == []:
+			return
+		self.get_object('treeview1').scroll_to_cell(path)
+		tree_selection.select_path(path)
+
 	def clear_all_search_clicked(self, widget):
-		self.builder.get_object('searchentry1').set_text("")
-		self.builder.get_object('entry1').set_text("")
-		self.builder.get_object('entry2').set_text("")
-		self.builder.get_object('entry3').set_text("")
-		self.builder.get_object('entry4').set_text("")
-		self.builder.get_object('entry5').set_text("")
-		self.builder.get_object('entry6').set_text("")
-		self.builder.get_object('entry7').set_text("")
+		self.get_object('searchentry1').set_text("")
+		self.get_object('entry1').set_text("")
+		self.get_object('entry2').set_text("")
+		self.get_object('entry3').set_text("")
+		self.get_object('entry4').set_text("")
+		self.get_object('entry5').set_text("")
+		self.get_object('entry6').set_text("")
+		self.get_object('entry7').set_text("")
 
 	def product_hub_activated (self, menuitem):
-		selection = self.builder.get_object('treeview-selection1')
+		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
 		product_id = model[path][9]
 		import product_hub 
 		product_hub.ProductHubGUI(product_id)
-
-	def set_all_column_indicators_false(self):
-		for column in self.treeview.get_columns():
-			column.set_sort_indicator(False )
-
-	def product_column_sort(self, treeview_column ):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (1, Gtk.SortType.ASCENDING )
-
-	def aisle_column_sort(self, treeview_column):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (2, Gtk.SortType.ASCENDING )
-
-	def rack_column_sort(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (3, Gtk.SortType.ASCENDING )
-
-	def cart_column_sort(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (4, Gtk.SortType.ASCENDING )
-
-	def shelf_column_sort(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (5, Gtk.SortType.ASCENDING )
-
-	def cabinet_column_sort(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (6, Gtk.SortType.ASCENDING )
-
-	def drawer_column_sort(self, treeview_column):	
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (7, Gtk.SortType.ASCENDING )
-
-	def bin_column_sort(self, treeview_column):
-		self.set_all_column_indicators_false()
-		treeview_column.set_sort_indicator(True )
-		self.product_location_store.set_sort_column_id (8, Gtk.SortType.ASCENDING )
 		
 	def search_changed(self, widget):
-		self.product_text = self.builder.get_object('searchentry1').get_text().lower()
-		self.aisle_text = self.builder.get_object('entry1').get_text().lower()
-		self.rack_text = self.builder.get_object('entry2').get_text().lower()
-		self.cart_text = self.builder.get_object('entry3').get_text().lower()
-		self.shelf_text = self.builder.get_object('entry4').get_text().lower()
-		self.cabinet_text = self.builder.get_object('entry5').get_text().lower()
-		self.drawer_text = self.builder.get_object('entry6').get_text().lower()
-		self.bin_text = self.builder.get_object('entry7').get_text().lower()
+		self.product_text = self.get_object('searchentry1').get_text().lower()
+		self.aisle_text = self.get_object('entry1').get_text().lower()
+		self.rack_text = self.get_object('entry2').get_text().lower()
+		self.cart_text = self.get_object('entry3').get_text().lower()
+		self.shelf_text = self.get_object('entry4').get_text().lower()
+		self.cabinet_text = self.get_object('entry5').get_text().lower()
+		self.drawer_text = self.get_object('entry6').get_text().lower()
+		self.bin_text = self.get_object('entry7').get_text().lower()
 		self.filtered_location_store.refilter()
 
 	def filter_func(self, model, tree_iter, r):
@@ -154,18 +123,10 @@ class ProductLocationGUI:
 		return False
 
 	def focus(self, widget, event):
-		tree_selection = self.builder.get_object('treeview-selection1')
-		model, path = tree_selection.get_selected_rows()
-		self.populate_product_location_treeview ()
 		self.populate_location_combo()
-		if path == []:
-			return		
-		#if self.builder.get_object('checkbutton1').get_active() == True:
-		self.builder.get_object('treeview1').scroll_to_cell(path)
-		tree_selection.select_path(path)
 
-	def populate_product_location_treeview (self, i = None):
-		location_id = self.builder.get_object('combobox1').get_active_id()
+	def populate_product_location_treeview (self):
+		location_id = self.get_object('combobox1').get_active_id()
 		self.product_location_store.clear()
 		self.cursor.execute ("SELECT "
 								"pl.id, "
@@ -180,14 +141,15 @@ class ProductLocationGUI:
 								"product_id "
 							"FROM product_location AS pl "
 							"JOIN products AS p ON p.id = pl.product_id "
-							"WHERE location_id = %s", 
+							"WHERE location_id = %s "
+							"ORDER BY p.name", 
 							(location_id,))
 		for row in self.cursor.fetchall():
 			self.product_location_store.append(row)
 		DB.rollback()
 
 	def populate_location_combo(self):
-		location_combo = self.builder.get_object('combobox1')
+		location_combo = self.get_object('combobox1')
 		active_id = location_combo.get_active_id()
 		self.location_store.clear()
 		self.cursor.execute ("SELECT id, name FROM locations")
@@ -209,7 +171,7 @@ class ProductLocationGUI:
 
 	def product_treeview_button_release (self, treeview, event):
 		if event.button == 3:
-			menu = self.builder.get_object('menu1')
+			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
 
 

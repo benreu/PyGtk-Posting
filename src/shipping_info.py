@@ -36,20 +36,18 @@ class ShippingInfoGUI(Gtk.Builder):
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
 
-		self.customer_store = self.get_object('customer_store')
+		self.contact_store = self.get_object('contact_store')
 		self.invoice_store = self.get_object('invoice_store')
 		self.cursor.execute("SELECT "
-								"c.id::text, c.name, c.ext_name "
-							"FROM invoices AS i "
-							"JOIN contacts AS c ON c.id = i.customer_id "
-							"WHERE i.canceled = False "
-							"GROUP BY c.id, c.name, c.ext_name "
-							"ORDER BY c.name")
+								"id::text, name, ext_name "
+							"FROM contacts AS c "
+							"WHERE deleted = False "
+							"ORDER BY name")
 		for row in self.cursor.fetchall():
-			self.customer_store.append(row)
+			self.contact_store.append(row)
 		DB.rollback()
-		customer_completion = self.get_object('customer_completion')
-		customer_completion.set_match_func(self.customer_match_func)
+		contact_completion = self.get_object('contact_completion')
+		contact_completion.set_match_func(self.contact_match_func)
 		
 		self.window = self.get_object('window')
 		self.window.show_all()
@@ -60,22 +58,22 @@ class ShippingInfoGUI(Gtk.Builder):
 	def help_clicked (self, button):
 		print ('please add help to shipping info')
 
-	def customer_match_func(self, completion, key, iter_):
+	def contact_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
 		for text in split_search_text:
-			if text not in self.customer_store[iter_][1].lower():
+			if text not in self.contact_store[iter_][1].lower():
 				return False
 		return True
 
-	def customer_changed (self, combobox):
-		customer_id = combobox.get_active_id()
-		if customer_id != None:
-			self.customer_id = customer_id
+	def contact_changed (self, combobox):
+		contact_id = combobox.get_active_id()
+		if contact_id != None:
+			self.contact_id = contact_id
 			self.populate_invoices()
 			self.populate_shipping_history ()
 
-	def customer_match_selected (self, entrycompletion, treemodel, treeiter):
-		self.customer_id = treemodel[treeiter][0]
+	def contact_match_selected (self, entrycompletion, treemodel, treeiter):
+		self.contact_id = treemodel[treeiter][0]
 		self.populate_invoices()
 		self.populate_shipping_history ()
 
@@ -93,6 +91,8 @@ class ShippingInfoGUI(Gtk.Builder):
 			self.shipping_description = description
 
 	def populate_invoices (self):
+		self.invoice_id = None
+		self.get_object('invoice_id_entry').set_text('')
 		self.get_object('shipping_description_entry').set_sensitive(True)
 		self.invoice_store.clear()
 		self.cursor.execute("SELECT "
@@ -100,7 +100,7 @@ class ShippingInfoGUI(Gtk.Builder):
 							"FROM invoices AS i "
 							"WHERE (i.canceled, i.customer_id) = (False, %s) "
 							"ORDER BY i.id"
-							, (self.customer_id,))
+							, (self.contact_id,))
 		for row in self.cursor.fetchall():
 			self.invoice_store.append(row)
 		DB.rollback()
@@ -120,6 +120,9 @@ class ShippingInfoGUI(Gtk.Builder):
 			self.incoming_invoice = incoming_invoice.IncomingInvoiceGUI()
 			self.incoming_invoice.window.set_transient_for (self.window)
 			self.incoming_invoice.connect('invoice_applied', self.incoming_invoice_applied)
+			text = self.get_object('shipping_description_entry').get_text()
+			self.incoming_invoice.set_shipping_description(text)
+			self.incoming_invoice.set_date(self.date)
 		else:
 			self.incoming_invoice.window.show()
 
@@ -137,7 +140,7 @@ class ShippingInfoGUI(Gtk.Builder):
 							"contact_id, invoice_id, incoming_invoice_id) "
 						"VALUES (%s, %s, %s, %s, %s, %s)", 
 						(self.date, tracking_number, self.shipping_description,
-						self.customer_id, self.invoice_id, 
+						self.contact_id, self.invoice_id, 
 						self.incoming_invoice_id))
 			DB.commit()
 		except Exception as e:
@@ -156,10 +159,11 @@ class ShippingInfoGUI(Gtk.Builder):
 								"COALESCE(sh.invoice_id::text, 'N/A'), "
 								"sh.tracking_number, "
 								"sh.date_shipped::text, "
-								"format_date(sh.date_shipped) "
+								"format_date(sh.date_shipped), "
+								"sh.reason "
 							"FROM shipping_info AS sh "
 							"WHERE sh.contact_id = %s ORDER BY date_shipped",
-							(self.customer_id,))
+							(self.contact_id,))
 		for row in self.cursor.fetchall():
 			store.append(row)
 		DB.rollback()
@@ -168,7 +172,7 @@ class ShippingInfoGUI(Gtk.Builder):
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
 		self.get_object('entry2').set_text(day_text)
-		self.get_object('customer_combo').set_sensitive(True)
+		self.get_object('contact_combo').set_sensitive(True)
 
 	def calendar_entry_icon_released (self, widget, icon, event):
 		self.calendar.set_relative_to(widget)

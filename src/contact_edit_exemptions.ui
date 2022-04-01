@@ -68,9 +68,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                    <property name="resizable">True</property>
                     <property name="title" translatable="yes">Name</property>
                     <property name="expand">True</property>
-                    <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">1</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext3"/>
@@ -82,9 +83,10 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn3">
+                    <property name="resizable">True</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">Available</property>
-                    <property name="clickable">True</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">2</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle1"/>
@@ -96,14 +98,15 @@
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn4">
+                    <property name="resizable">True</property>
                     <property name="sizing">autosize</property>
-                    <property name="title" translatable="yes">File</property>
-                    <property name="clickable">True</property>
+                    <property name="title" translatable="yes">File scanned</property>
+                    <property name="reorderable">True</property>
                     <property name="sort_column_id">3</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle2"/>
                       <attributes>
-                        <attribute name="active">3</attribute>
+                        <attribute name="active">4</attribute>
                       </attributes>
                     </child>
                   </object>

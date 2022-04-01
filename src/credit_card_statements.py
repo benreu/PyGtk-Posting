@@ -36,10 +36,10 @@ class CreditCardStatementGUI:
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
 									'fees_rewards_description_store')
-		
+
+		self.credit_card_account = None
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
-		self.calendar.set_today()
 
 		self.populate_accounts_combo ()
 				
@@ -50,15 +50,13 @@ class CreditCardStatementGUI:
 		self.cursor.close()
 
 	def focus (self, window, event):
-		return
-		self.populate_accounts_combo()
+		pass
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def populate_accounts_combo(self):
 		credit_card_store = self.builder.get_object('credit_card_store')
-		#cc_id = credit_card_combo.get_active_id()
 		credit_card_store.clear()
 		self.cursor.execute("SELECT number, name, "
 							"(SELECT COALESCE(SUM(amount), 0.00) FROM gl_entries "
@@ -121,6 +119,16 @@ class CreditCardStatementGUI:
 			self.get_child_accounts (account_number, p)
 
 	def reconcile_clicked (self, widget):
+		self.cursor.execute("SELECT 1 FROM gl_entries "
+							"WHERE date_reconciled = %s "
+							"AND (credit_account = %s OR debit_account = %s)",
+							(self.date, self.credit_card_account, 
+							self.credit_card_account))
+		if self.cursor.fetchone():
+			self.show_error_dialog("A reconcile already exists for this "
+									"credit card on this date.\n"
+									"Please choose a different date.")
+			return
 		self.cursor.execute("UPDATE gl_entries "
 							"SET date_reconciled = %s "
 							"WHERE date_reconciled IS NULL "
@@ -130,6 +138,10 @@ class CreditCardStatementGUI:
 							self.credit_card_account))
 		DB.commit()
 		self.populate_statement_treeview ()
+		self.date = None
+		self.builder.get_object('entry4').set_text('')
+		self.builder.get_object('button5').set_label("Reconcile - no date selected")
+		self.builder.get_object('button5').set_sensitive(False)
 
 	def description_edited (self, renderer, path, text):
 		row_id = self.transactions_store[path][0]
@@ -162,7 +174,15 @@ class CreditCardStatementGUI:
 		date = self.transactions_store[path][1]
 		entry.set_text(date)
 
-	def populate_statement_treeview (self, widget = None):
+	def credit_card_statement_history_clicked (self, button):
+		from reports import credit_card_statement_history
+		credit_card_statement_history.CreditCardHistoryGUI()
+
+	def refresh_clicked (self, button):
+		if self.credit_card_account:
+			self.populate_statement_treeview()
+
+	def populate_statement_treeview (self):
 		self.transactions_store.clear()
 		self.cursor.execute("SELECT "
 								"id, "
@@ -215,7 +235,6 @@ class CreditCardStatementGUI:
 		self.builder.get_object('label9').set_label(str(balance))
 		self.builder.get_object('combobox1').set_sensitive(True)
 		self.builder.get_object('spinbutton2').set_sensitive(True)
-		self.builder.get_object('button5').set_sensitive(True)
 
 	def fees_rewards_description_changed(self, entry):
 		if entry.get_text() == '':
@@ -287,11 +306,20 @@ class CreditCardStatementGUI:
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
 		self.builder.get_object('entry4').set_text(day_text)
+		self.builder.get_object('button5').set_label("Reconcile")
+		self.builder.get_object('button5').set_sensitive(True)
 
 	def calendar_entry_icon_released (self, widget, icon, event):
 		self.calendar.set_relative_to(widget)
 		self.calendar.show()
 
+	def show_error_dialog (self, error):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (error)
+		dialog.run()
+		dialog.destroy()
 
 
-		
+

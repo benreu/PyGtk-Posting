@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="files_store">
@@ -9,6 +9,10 @@
       <!-- column-name name -->
       <column type="gchararray"/>
       <!-- column-name size -->
+      <column type="gchararray"/>
+      <!-- column-name date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -22,7 +26,7 @@
     <property name="icon_name">pygtk-posting</property>
     <property name="skip_taskbar_hint">True</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -108,6 +112,20 @@
                       </object>
                       <attributes>
                         <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Date</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">3</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">4</attribute>
                       </attributes>
                     </child>
                   </object>

@@ -15,43 +15,50 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
 import customer_payment, statementing
 from constants import ui_directory, DB, help_dir
+from dateutils import DateTimeCalendar
 
 UI_FILE = ui_directory + "/customer_statement.ui"
 
-class GUI:
+class GUI (Gtk.Builder):
 	def __init__(self):
 
-		self.builder = Gtk.Builder()
-		self.builder.add_from_file(UI_FILE)
-		self.builder.connect_signals(self)
+		Gtk.Builder.__init__(self)
+		self.add_from_file(UI_FILE)
+		self.connect_signals(self)
 		self.cursor = DB.cursor()
 
 		self.customer_id = None
 
-		self.customer_store = self.builder.get_object('customer_store')
-		self.statement_store = self.builder.get_object('statement_store')
-		customer_completion = self.builder.get_object('customer_completion')
+		self.customer_store = self.get_object('customer_store')
+		self.statement_store = self.get_object('statement_store')
+		customer_completion = self.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
-		self.customer_combobox_populate ()
-		self.name_store = Gtk.ListStore(int, str )
+		
+		self.calendar = DateTimeCalendar()
+		self.calendar.connect('day-selected-double-click', 
+								self.calendar_day_selected)
+		self.calendar.set_relative_to(self.get_object('entry1'))
+		self.statement_end_date = None
 				
-		self.window = self.builder.get_object('window1')
+		self.window = self.get_object('window1')
 		self.window.show_all()
+		self.calendar.show()
 
 	def destroy (self, widget):
 		self.cursor.close()
 
 	def finish_statement_clicked (self, button):
-		dialog = self.builder.get_object('dialog1')
+		dialog = self.get_object('dialog1')
 		response = dialog.run()
 		if response == Gtk.ResponseType.ACCEPT:
 			self.cursor.execute("UPDATE settings "
-								"SET statement_finish_date = CURRENT_DATE")
+								"SET statement_finish_date = %s", 
+								(self.statement_end_date,))
 			DB.commit()
 		dialog.hide()
 
@@ -63,79 +70,107 @@ class GUI:
 
 	def print_statement_clicked(self, button):
 		statement = statementing.Setup( self.statement_store, 
-										self.customer_id, datetime.today(), 
-										self.customer_total)
+										self.customer_id,
+										self.customer_unformatted_total,
+										self.statement_end_date)
 		statement.print_dialog(self.window)
 		self.customer_combobox_populate ()
 		self.statement_store.clear()
-		self.builder.get_object('combobox-entry').set_text("")
+		self.get_object('combobox-entry').set_text("")
 
 	def view_statement_clicked (self, button):
 		statement = statementing.Setup( self.statement_store, 
 										self.customer_id, 
-										datetime.today(), 
-										self.customer_total)
+										self.customer_unformatted_total,
+										self.statement_end_date)
 		statement.view()
 
 	def customer_combobox_populate(self):
 		self.customer_store.clear()
 		c = DB.cursor()
-		c.execute("with table2 AS "
-					"( "
+		c.execute("WITH table2 AS  "
+					"(  "
 					"SELECT id, "
-						"(SELECT COALESCE(SUM(amount_due), 0.0) " 
-						"AS invoices_total FROM invoices  "
-						"WHERE (canceled, posted, customer_id) = "
-						"(False, True, c.id)),  "
-						"(SELECT amount + amount_owed AS payments_total FROM "
-								"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
-								"FROM payments_incoming "
-								"WHERE (customer_id, misc_income) = (c.id, False)"
-								") pi, "
-								"(SELECT COALESCE(SUM(amount_owed), 0.0) AS amount_owed "
-								"FROM credit_memos WHERE (customer_id, posted) = (c.id, True)"
-								") cm "
-						"), "
+					"(SELECT COALESCE(SUM(amount_due), 0.0) "
+					"AS invoices_total FROM invoices "
+					"WHERE (canceled, posted, customer_id) = "
+					"(False, True, c.id)),  "
+					"(SELECT COALESCE(SUM(amount_due), 0.0) "
+					"AS invoices_total_to_end_date FROM invoices "
+					"WHERE (canceled, posted, customer_id) = "
+					"(False, True, c.id) AND dated_for <= %s ), "
+						"(SELECT amount + amount_owed AS payments_total "
+						"FROM "
+						"(SELECT COALESCE(SUM(amount), 0.0) AS amount "
+						"FROM payments_incoming "
+						"WHERE (customer_id, misc_income) = (c.id, False) "
+						") pi, "
+						"(SELECT COALESCE(SUM(amount_owed), 0.0) "
+							"AS amount_owed "
+						"FROM credit_memos "
+						"WHERE (customer_id, posted) = (c.id, True) "
+						") cm "
+					"), "
+					"(SELECT ending_amount + ending_amount_owed "
+					"AS ending_payments_total "
+					"FROM "
+						"(SELECT COALESCE(SUM(amount), 0.0) AS ending_amount "
+						"FROM payments_incoming  "
+						"WHERE (customer_id, misc_income) = (c.id, False) "
+						"AND date_inserted <= %s "
+						") pi_ending, "
+						"(SELECT COALESCE(SUM(amount_owed), 0.0) "
+							"AS ending_amount_owed "
+						"FROM credit_memos "
+						"WHERE (customer_id, posted) = "
+							"(c.id, True) AND dated_for <= %s "
+						") cm_ending "
+					"), "
 					"name, ext_name FROM contacts AS c "
-					"WHERE customer = True ORDER by name"
+					"WHERE customer = True "
 					") "
-					"SELECT  "
-					"id, "
-					"invoices_total - payments_total AS balance_due, "
+					"SELECT "
+					"id::text, "
 					"name, "
 					"ext_name, "
-					"(invoices_total - payments_total) *.015 AS finance_fee, "
-					"invoices_total, "
-					"payments_total "
+					"'Statement Balance ' || "
+						"(invoices_total_to_end_date - "
+							"ending_payments_total)::money, "
+					"invoices_total_to_end_date - ending_payments_total, "
+					"'Account Balance ' || "
+						"(invoices_total - payments_total)::money "
 					"FROM table2 "
-					"WHERE (invoices_total-payments_total) > 0  "
-					"GROUP BY id,name,balance_due,"
-						"invoices_total,payments_total,ext_name  "
-					"ORDER BY name")
+					"WHERE (invoices_total-payments_total) <> 0 "
+					"GROUP BY id, name, invoices_total, payments_total, "
+						"ext_name, invoices_total_to_end_date, "
+						"ending_payments_total "
+					"ORDER BY name ",
+					(self.statement_end_date, 
+					self.statement_end_date, self.statement_end_date))
 		for row in c.fetchall():
-			customer_id = row[0]
-			unpaid = row[1]
-			customer_name = row[2]
-			customer_ext_name = row[3]
-			self.customer_store.append([str(customer_id), customer_name, 
-									customer_ext_name, 
-									'Balance : ${:,.2f}'.format(unpaid),
-									unpaid])
+			self.customer_store.append(row)
 		c.close()
 		DB.rollback()
 
 	def focus (self, window, event):
-		self.customer_combobox_populate ()
-		if self.customer_id != None:
-			self.populate_statement_store()
+		self.refresh()
 
-	def customer_combobox_changed(self, combo): #updates the customer
-		active = self.builder.get_object('combobox1').get_active()
+	def refresh(self):
+		if self.statement_end_date == None:
+			return
+		self.customer_combobox_populate ()
+		self.get_object('customer_combobox').set_active_id(self.customer_id)
+
+	def customer_combobox_changed(self, combobox):
+		active = combobox.get_active()
 		if active == -1:
 			return
 		self.customer_id = self.customer_store[active][0]
-		self.customer_total = self.customer_store[active][4]
-		self.builder.get_object('label2').set_label (str(self.customer_total))
+		customer_total = self.customer_store[active][3]
+		self.customer_unformatted_total = self.customer_store[active][4]
+		account_total = self.customer_store[active][5]
+		self.get_object('label2').set_label(customer_total)
+		self.get_object('label1').set_label(account_total)
 		self.populate_statement_store()
 
 	def customer_match_func(self, completion, key, iter):
@@ -147,51 +182,56 @@ class GUI:
 
 	def customer_match_selected(self, completion, model, iter):
 		customer_id = model[iter][0]
-		self.builder.get_object('combobox1').set_active_id (customer_id)
+		self.get_object('customer_combobox').set_active_id(customer_id)
 
 	def populate_statement_store (self):
 		self.statement_store.clear()
 		c_id = self.customer_id
 		self.cursor.execute("SELECT * FROM "
 								"(SELECT "
-									"id::text, "
-									"name, "
+									"id, "
+									"'', "
+									"'Balance forward' AS description, "
 									"date_inserted::text AS date, "
 									"format_date(date_inserted), "
 									"amount, "
 									"amount::text "
 								"FROM statements " 
 								"WHERE id =(SELECT MAX(id) FROM statements "
-								"WHERE customer_id = %s)"
+								"WHERE (customer_id, printed) = (%s, True) )"
 								") s "
 								"UNION "
 								"(SELECT "
+									"id, "
+									"'Invoice', "
 									"id::text, "
-									"name, "
 									"dated_for::text AS date, "
 									"format_date(dated_for), "
 									"amount_due, "
 									"amount_due::text "
 								"FROM invoices "
 								"WHERE (canceled, posted, customer_id) = "
-								"(False, True, %s) "
+								"(False, True, %s) AND dated_for <= %s "
 								"AND statement_id IS NULL"
 								") "
 								"UNION "
 								"(SELECT "
+									"id, "
+									"'Credit Memo', "
 									"id::text, "
-									"name, "
 									"date_created::text AS date, "
 									"format_date(date_created), "
 									"(-amount_owed), "
 									"(-amount_owed)::text "
 								"FROM credit_memos "
 								"WHERE (posted, customer_id) = (True, %s) "
+								"AND dated_for <= %s "
 								"AND statement_id IS NULL"
 								") "
 								"UNION "
 								"(SELECT "
-									"payment_text, "
+									"id, "
+									"'Payment', "
 									"payment_info(id), "
 									"date_inserted::text AS date, "
 									"format_date(date_inserted), "
@@ -199,15 +239,26 @@ class GUI:
 									"amount::text "
 								"FROM payments_incoming "
 								"WHERE (customer_id, misc_income) = "
-								"(%s, False) AND statement_id IS NULL"
+								"(%s, False) AND date_inserted <= %s "
+								" AND statement_id IS NULL"
 								") "
-							"ORDER BY date", 
-							(c_id, c_id, c_id, c_id))
+							"ORDER BY date ASC, description DESC", 
+							(c_id, c_id, self.statement_end_date, c_id,
+							self.statement_end_date, c_id, 
+							self.statement_end_date))
 		for row in self.cursor.fetchall():
 			self.statement_store.append(row)
-		self.builder.get_object('button3').set_sensitive(True)
+		self.get_object('button3').set_sensitive(True)
 		DB.rollback()
 
+	def calendar_day_selected (self, calendar):
+		self.statement_end_date = calendar.get_date()
+		day_text = calendar.get_text()
+		self.get_object('entry1').set_text(day_text)
+		GLib.idle_add(self.refresh)
+
+	def calendar_icon_release (self, widget, icon, event):
+		self.calendar.show()
 
 
 

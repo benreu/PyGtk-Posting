@@ -47,6 +47,14 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
+	def product_hub_clicked (self, button):
+		import product_hub
+		product_hub.ProductHubGUI(self.product_id)
+
+	def new_window_clicked (self, button):
+		from reports import product_history
+		product_history.ProductHistoryGUI()
+
 	def destroy (self, window):
 		self.cursor.close()
 
@@ -81,7 +89,14 @@ class ProductHistoryGUI (Gtk.Builder):
 			dest_notebook.set_tab_detachable(widget, True)
 			dest_notebook.set_tab_reorderable(widget, True)
 			dest_notebook.child_set_property(widget, 'tab-expand', True)
-		
+
+	def export_hub_clicked (self, button):
+		tab_num = self.get_object('notebook1').get_current_page()
+		scrolled_window = self.get_object('notebook1').get_nth_page(tab_num)
+		treeview = scrolled_window.get_child()
+		from reports import report_hub
+		report_hub.ReportHubGUI(treeview)
+
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
@@ -95,6 +110,10 @@ class ProductHistoryGUI (Gtk.Builder):
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_name])
 		DB.rollback()
+
+	def invoice_treeview_button_press_event (self, widget, event):
+		if event.button == 3:
+			return True
 
 	def invoice_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection4')
@@ -123,6 +142,16 @@ class ProductHistoryGUI (Gtk.Builder):
 				selection.select_iter(row.iter)
 				break
 		self.invoice_history.present()
+
+	def invoice_selection_statistics_activated (self, menuitem):
+		from reports import product_invoice_statistics
+		pi = product_invoice_statistics.ProductInvoiceStatisticsGUI()
+		pi.set_product_id(self.product_id)
+		selection = self.get_object('treeview-selection4')
+		model, paths = selection.get_selected_rows()
+		for path in paths:
+			pi.append_invoice(model[path][0])
+		pi.show_all()
 
 	def p_o_treeview_button_release_event (self, treeview, event):
 		selection = self.get_object('treeview-selection1')
@@ -173,7 +202,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.populate_product_stores ()
 
 	def populate_product_stores (self):
-		self.get_object('refresh_button').set_sensitive(True)
+		self.get_object('button_box').set_sensitive(True)
 		self.populate_product_invoices ()
 		self.populate_purchase_orders ()
 		self.populate_warranty_store ()
@@ -213,6 +242,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		po_store = self.get_object('po_store')
 		po_store.clear()
 		count = 0
+		qty = Decimal()
 		self.cursor.execute("SELECT "
 								"po.id, "
 								"date_created::text, "
@@ -223,24 +253,27 @@ class ProductHistoryGUI (Gtk.Builder):
 								"price::text, "
 								"order_number "
 							"FROM purchase_orders AS po "
-							"JOIN purchase_order_line_items AS poli "
+							"JOIN purchase_order_items AS poli "
 							"ON poli.purchase_order_id = po.id "
 							"JOIN contacts ON contacts.id = po.vendor_id "
-							"WHERE product_id = %s", 
+							"WHERE product_id = %s ORDER by date_created", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
+			qty += row[4]
 			po_store.append(row)
 		if count == 0:
 			self.get_object('label4').set_label('Purchase Orders')
 		else:
-			label = "<span weight='bold'>Purchase Orders (%s)</span>" % count
+			label = "<span weight='bold'>Purchase Orders (%s) [%s]</span>" \
+														% (count, qty)
 			self.get_object('label4').set_markup(label)
 
 	def populate_product_invoices (self):
 		invoice_store = self.get_object('invoice_store')
 		invoice_store.clear()
 		count = 0
+		qty = Decimal()
 		self.cursor.execute("SELECT "
 								"i.id, "
 								"dated_for::text, "
@@ -261,37 +294,45 @@ class ProductHistoryGUI (Gtk.Builder):
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
+			qty += row[5]
 			invoice_store.append(row)
 		if count == 0:
 			self.get_object('label2').set_label('Invoices')
 		else:
-			label = "<span weight='bold'>Invoices (%s)</span>" % count
+			label = "<span weight='bold'>Invoices (%s) [%s]</span>" \
+												% (count, qty)
 			self.get_object('label2').set_markup(label)
 
 	def populate_manufacturing_store (self):
 		store = self.get_object('manufacturing_store')
 		store.clear()
 		count = 0
+		qty = Decimal()
 		self.cursor.execute("SELECT "
 								"mp.id, "
 								"mp.name, "
 								"qty, "
 								"SUM(stop_time - start_time)::text, "
-								"COUNT(DISTINCT(employee_id)) "
+								"COUNT(DISTINCT(employee_id)), "
+								"date_created::text, "
+								"format_date(date_created) "
 							"FROM manufacturing_projects AS mp "
 							"JOIN time_clock_projects AS tcp "
 								"ON tcp.id = mp.time_clock_projects_id "
 							"JOIN time_clock_entries AS tce "
 								"ON tce.project_id = tcp.id "
 							"WHERE product_id = %s "
-							"GROUP BY mp.id, mp.name, qty", (self.product_id,))
+							"GROUP BY mp.id, mp.name, qty "
+							"ORDER BY date_created", (self.product_id,))
 		for row in self.cursor.fetchall():
 			store.append(row) 
 			count+= 1
+			qty += row[2]
 		if count == 0:
 			self.get_object('label3').set_label('Manufacturing')
 		else:
-			label = "<span weight='bold'>Manufacturing (%s)</span>" % count
+			label = "<span weight='bold'>Manufacturing (%s) [%s]</span>" \
+													% (count, qty)
 			self.get_object('label3').set_markup(label)
 		
 	def show_message (self, message):

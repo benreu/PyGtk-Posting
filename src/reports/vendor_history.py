@@ -16,10 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
 import subprocess
 from constants import ui_directory, DB
+from sqlite_utils import get_apsw_connection
+import admin_utils
 
 UI_FILE = ui_directory + "/reports/vendor_history.ui"
 
@@ -48,14 +50,7 @@ class VendorHistoryGUI:
 		self.vendor_id = 0
 
 		self.vendor_store = self.builder.get_object('vendor_store')
-		self.cursor.execute("SELECT c.id::text, c.name "
-							"FROM purchase_orders AS p "
-							"JOIN contacts AS c ON c.id = p.vendor_id "
-							"GROUP BY c.id, c.name "
-							"ORDER BY c.name")
-		for row in self.cursor.fetchall():
-			self.vendor_store.append(row)
-		DB.rollback()
+		self.populate_vendors()
 		self.product_name = ''
 		self.product_ext_name = ''
 		self.remark = ''
@@ -65,7 +60,9 @@ class VendorHistoryGUI:
 		self.filter.set_visible_func(self.filter_func)
 		
 		self.window = self.builder.get_object('window1')
+		self.set_window_layout_from_settings ()
 		self.window.show_all()
+		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
 
 	def on_drag_data_get(self, widget, drag_context, data, info, time):
 		model, path = widget.get_selection().get_selected_rows()
@@ -75,6 +72,60 @@ class VendorHistoryGUI:
 		qty = model.get_value(treeiter, 1)
 		product_id = model.get_value(treeiter, 3)
 		data.set_text(str(qty) + ' ' + str(product_id), -1)
+
+	def set_window_layout_from_settings(self):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		c.execute("SELECT size FROM vendor_history "
+					"WHERE widget_id = 'window_width'")
+		width = c.fetchone()[0]
+		c.execute("SELECT size FROM vendor_history "
+					"WHERE widget_id = 'window_height'")
+		height = c.fetchone()[0]
+		self.window.resize(width, height)
+		c.execute("SELECT widget_id, size FROM vendor_history WHERE "
+					"widget_id NOT IN ('window_height', 'window_width')")
+		for row in c.fetchall():
+			width = row[1]
+			column = self.builder.get_object(row[0])
+			if width == 0:
+				column.set_visible(False)
+			else:
+				column.set_fixed_width(width)
+		sqlite.close()
+
+	def save_window_layout_activated (self, menuitem):
+		sqlite = get_apsw_connection()
+		c = sqlite.cursor()
+		width, height = self.window.get_size()
+		c.execute("REPLACE INTO vendor_history (widget_id, size) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO vendor_history (widget_id, size) "
+					"VALUES ('window_height', ?)", (height,))
+		for column in ['date_column', 
+						'invoice_name_column', 
+						'description_column', 
+						'amount_column', 
+						'paid_column', 
+						'posted_column', 
+						'qty_column', 
+						'product_name_column', 
+						'product_ext_name_column', 
+						'remark_column', 
+						'price_column', 
+						'ext_price_column', 
+						'order_number_column', 
+						'po_column', 
+						'po_date_column', 
+						'vendor_column']:
+			try:
+				width = self.builder.get_object(column).get_width()
+			except Exception as e:
+				self.show_message("On column %s\n %s" % (column, str(e)))
+				continue
+			c.execute("REPLACE INTO vendor_history (widget_id, size) "
+						"VALUES (?, ?)", (column, width))
+		sqlite.close()
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.po_store[path][0]
@@ -91,7 +142,24 @@ class VendorHistoryGUI:
 
 	def destroy (self, window):
 		self.cursor.close()
-		
+
+	def populate_vendors (self):
+		self.vendor_store.clear()
+		self.cursor.execute("SELECT c.id::text, c.name "
+							"FROM purchase_orders AS p "
+							"JOIN contacts AS c ON c.id = p.vendor_id "
+							"GROUP BY c.id, c.name "
+							"ORDER BY c.name")
+		for row in self.cursor.fetchall():
+			self.vendor_store.append(row)
+		DB.rollback()
+	
+	def refresh_vendors_clicked (self, button):
+		self.populate_vendors()
+	
+	def refresh_purchase_orders_clicked (self, button):
+		self.populate_vendor_purchase_orders()
+
 	def po_treeview_button_release_event (self, treeview, event):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
@@ -128,7 +196,7 @@ class VendorHistoryGUI:
 
 	def vendor_view_all_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.load_vendor_purchase_orders ()
+		self.populate_vendor_purchase_orders ()
 		if active == True:
 			self.builder.get_object('checkbutton1').set_active(False)
 		
@@ -139,15 +207,17 @@ class VendorHistoryGUI:
 		self.vendor_id = vendor_id
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton3').set_active(False)
-		self.load_vendor_purchase_orders ()
+		self.populate_vendor_purchase_orders ()
 
 	def vendor_match_selected (self, completion, model, iter):
 		self.vendor_id = model[iter][0]
 		self.builder.get_object('checkbutton1').set_active(False)
 		self.builder.get_object('checkbutton3').set_active(False)
-		self.load_vendor_purchase_orders ()
+		self.populate_vendor_purchase_orders ()
 
-	def load_vendor_purchase_orders (self):
+	def populate_vendor_purchase_orders (self):
+		treeview = self.builder.get_object('treeview1')
+		treeview.set_model(None)
 		c = DB.cursor()
 		self.po_store.clear()
 		total = Decimal()
@@ -185,7 +255,8 @@ class VendorHistoryGUI:
 		for row in c.fetchall():
 			total += row[5]
 			self.po_store.append(row)
-		self.builder.get_object('label3').set_label(str(total))
+		self.builder.get_object('label3').set_label('${:,.2f}'.format(total))
+		treeview.set_model(self.po_store)
 		c.close()
 		DB.rollback()
 
@@ -220,11 +291,12 @@ class VendorHistoryGUI:
 									"po.date_created::text, "
 									"format_date(po.date_created), "
 									"c.name "
-								"FROM purchase_order_line_items AS poli "
+								"FROM purchase_order_items AS poli "
 								"JOIN products AS p ON p.id = poli.product_id "
-								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN purchase_orders AS po "
+									"ON po.id = poli.purchase_order_id "
 								"JOIN contacts AS c ON c.id = po.vendor_id "
-								"ORDER BY p.name ")
+								"ORDER BY poli.sort, poli.id")
 		else:
 			selection = self.builder.get_object('treeview-selection1')
 			model, paths = selection.get_selected_rows ()
@@ -255,11 +327,13 @@ class VendorHistoryGUI:
 									"po.date_created::text, "
 									"format_date(po.date_created), "
 									"c.name "
-								"FROM purchase_order_line_items AS poli "
+								"FROM purchase_order_items AS poli "
 								"JOIN products AS p ON p.id = poli.product_id "
-								"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
+								"JOIN purchase_orders AS po "
+									"ON po.id = poli.purchase_order_id "
 								"JOIN contacts AS c ON c.id = po.vendor_id "
-								"WHERE purchase_order_id IN " + args)
+								"WHERE purchase_order_id IN %s "
+								"ORDER BY poli.sort, poli.id" % args)
 		for row in self.cursor.fetchall():
 			store.append(row)
 		DB.rollback()
@@ -308,13 +382,42 @@ class VendorHistoryGUI:
 
 	def run_attach_dialog (self, po_id):
 		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			file_data = dialog.get_pdf ()
-			self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
-								"WHERE id = %s", (file_data, po_id))
-			DB.commit()
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback, po_id)
+
+	def optimized_callback (self, pdf_attachment_window, po_id):
+		file_data = pdf_attachment_window.get_pdf ()
+		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
+							"WHERE id = %s", (file_data, po_id))
+		DB.commit()
+
+	def name_edited (self, cellrenderertext, path, text):
+		if not admin_utils.is_admin:
+			return
+		self.po_id = self.po_store[path][0]
+		self.cursor.execute("UPDATE purchase_orders "
+							"SET name = %s "
+							"WHERE id = %s", (text, self.po_id))
+		DB.commit()
+		self.po_store[path][3] = text
+
+	def description_edited (self, cellrenderertext, path, text):
+		if not admin_utils.is_admin:
+			return
+		self.po_id = self.po_store[path][0]
+		self.cursor.execute("UPDATE purchase_orders "
+							"SET invoice_description = %s "
+							"WHERE id = %s", (text, self.po_id))
+		DB.commit()
+		self.po_store[path][4] = text
+		
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

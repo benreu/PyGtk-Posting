@@ -40,7 +40,7 @@ class GUI():
 								"date_format, "
 								"timestamp_format, "
 								"request_po_attachment, "
-								"finance_rate * 100 "
+								"finance_rate * 100 * 365 "
 							"FROM public.settings")
 		for row in self.cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
@@ -96,10 +96,10 @@ class GUI():
 			self.cursor.execute("UPDATE settings.purchase_order "
 								"SET (qty_prec, price_prec) = (%s, %s)", 
 								(qty_prec, price_prec))
-			self.cursor.execute("ALTER TABLE public.purchase_order_line_items "
+			self.cursor.execute("ALTER TABLE public.purchase_order_items "
 								"ALTER COLUMN qty "
 								"TYPE numeric(12,"+ str(qty_prec) +");")
-			self.cursor.execute("ALTER TABLE public.purchase_order_line_items "
+			self.cursor.execute("ALTER TABLE public.purchase_order_items "
 								"ALTER COLUMN price "
 								"TYPE numeric(12,"+ str(price_prec) +");")
 			DB.commit()
@@ -143,7 +143,8 @@ class GUI():
 	def finance_fee_value_changed (self, spinbutton):
 		finance_rate = spinbutton.get_value()
 		self.cursor.execute("UPDATE settings "
-							"SET finance_rate = (%s/100)", (finance_rate,))
+							"SET finance_rate = ((%s/100)/365)", 
+							(finance_rate,))
 		DB.commit()
 
 

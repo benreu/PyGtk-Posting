@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkEntryCompletion" id="account_completion">
+    <property name="text_column">1</property>
+    <signal name="match-selected" handler="account_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">100</property>
     <property name="step_increment">1</property>
@@ -54,6 +64,10 @@
       <column type="gint"/>
       <!-- column-name account_name -->
       <column type="gchararray"/>
+      <!-- column-name account_path -->
+      <column type="gchararray"/>
+      <!-- column-name remark -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkImage" id="image1">
@@ -65,6 +79,11 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-remove</property>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-justify-center</property>
   </object>
   <object class="GtkMenu" id="menu1">
     <property name="visible">True</property>
@@ -111,11 +130,11 @@
     <property name="title" translatable="yes">Incoming Invoice</property>
     <property name="window_position">center</property>
     <property name="default_width">600</property>
-    <property name="default_height">460</property>
+    <property name="default_height">500</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
     <signal name="focus-in-event" handler="focus" swapped="no"/>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -305,6 +324,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">expense_percentage_store</property>
+                    <property name="tooltip_column">4</property>
                     <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="treeview-selection1"/>
@@ -314,6 +334,7 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Percent</property>
                         <property name="reorderable">True</property>
+                        <property name="sort_column_id">0</property>
                         <child>
                           <object class="GtkCellRendererSpin" id="cellrendererspin1">
                             <property name="editable">True</property>
@@ -344,15 +365,33 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Expense Account</property>
                         <property name="reorderable">True</property>
+                        <property name="sort_column_id">3</property>
                         <child>
                           <object class="GtkCellRendererCombo" id="cellrenderercombo1">
                             <property name="editable">True</property>
-                            <property name="has_entry">False</property>
                             <property name="text_column">1</property>
                             <signal name="changed" handler="expense_account_render_changed" swapped="no"/>
+                            <signal name="editing-started" handler="expense_combo_editing_started" swapped="no"/>
                           </object>
                           <attributes>
                             <attribute name="text">3</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Remark</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">5</property>
+                        <child>
+                          <object class="GtkCellRendererText">
+                            <property name="editable">True</property>
+                            <signal name="edited" handler="remark_edited" swapped="no"/>
+                          </object>
+                          <attributes>
+                            <attribute name="text">5</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -377,6 +416,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Add row</property>
                     <property name="image">image1</property>
                     <signal name="clicked" handler="add_percentage_row_clicked" swapped="no"/>
                   </object>
@@ -391,6 +431,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Remove row</property>
                     <property name="image">image2</property>
                     <signal name="clicked" handler="delete_percentage_row_clicked" swapped="no"/>
                   </object>
@@ -398,6 +439,22 @@
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Equalize row amounts</property>
+                    <property name="image">image3</property>
+                    <property name="always_show_image">True</property>
+                    <signal name="clicked" handler="equalize_amounts_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -752,15 +809,15 @@
                         <property name="hexpand">True</property>
                         <child>
                           <object class="GtkButton" id="button3">
-                            <property name="label" translatable="yes">Print</property>
+                            <property name="label" translatable="yes">Post Only</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <signal name="clicked" handler="print_check_clicked" swapped="no"/>
+                            <signal name="clicked" handler="post_only_clicked" swapped="no"/>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
+                            <property name="left_attach">2</property>
                             <property name="top_attach">3</property>
                           </packing>
                         </child>
@@ -791,7 +848,7 @@
                             <property name="input_hints">GTK_INPUT_HINT_SPELLCHECK | GTK_INPUT_HINT_NONE</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
+                            <property name="left_attach">2</property>
                             <property name="top_attach">1</property>
                           </packing>
                         </child>
@@ -850,12 +907,55 @@
                             <property name="input_hints">GTK_INPUT_HINT_SPELLCHECK | GTK_INPUT_HINT_NONE</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
+                            <property name="left_attach">2</property>
                             <property name="top_attach">0</property>
                           </packing>
                         </child>
                         <child>
                           <object class="GtkLabel" id="label11">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="top_attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="button9">
+                            <property name="label" translatable="yes">Print &amp; Post</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <signal name="clicked" handler="print_and_post_clicked" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="top_attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="top_attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="top_attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                           </object>

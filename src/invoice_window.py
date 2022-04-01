@@ -16,7 +16,7 @@
 
 
 from gi.repository import Gtk, Gdk, GLib
-import os, subprocess, psycopg2
+import os, subprocess, psycopg2, re
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
@@ -76,11 +76,11 @@ class InvoiceGUI:
 		
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store ), 
-						   ("products_changed", self.populate_product_store )):
+						   ("products_changed", self.populate_product_store ), 
+						   ("invoices_changed", self.show_reload_infobar )):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.customer_id = 0
-		self.menu_visible = False
 		
 		textview = self.builder.get_object('comment_textview')
 		spell_check.add_checker_to_widget (textview)
@@ -92,22 +92,6 @@ class InvoiceGUI:
 		product_completion.set_match_func(self.product_match_func)
 		customer_completion = self.builder.get_object('customer_completion')
 		customer_completion.set_match_func(self.customer_match_func)
-
-		qty_column = self.builder.get_object ('treeviewcolumn1')
-		qty_renderer = self.builder.get_object ('cellrenderertext2')
-		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
-
-		price_column = self.builder.get_object ('treeviewcolumn4')
-		price_renderer = self.builder.get_object ('cellrenderertext5')
-		price_column.set_cell_data_func(price_renderer, self.price_cell_func)
-
-		tax_column = self.builder.get_object ('treeviewcolumn5')
-		tax_renderer = self.builder.get_object ('cellrenderertext6')
-		tax_column.set_cell_data_func(tax_renderer, self.tax_cell_func)
-
-		ext_price_column = self.builder.get_object ('treeviewcolumn6')
-		ext_price_renderer = self.builder.get_object ('cellrenderertext7')
-		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
 
 		self.document_type = "Invoice"
 		self.populate_location_store ()
@@ -151,6 +135,9 @@ class InvoiceGUI:
 		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
 		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
 
+	def widget_focus_in_event (self, widget, event):
+		GLib.idle_add(widget.select_region, 0, -1)
+
 	def populate_location_store (self):
 		location_combo = self.builder.get_object('combobox2')
 		active_location = location_combo.get_active_id()
@@ -183,24 +170,40 @@ class InvoiceGUI:
 		combo.set_active_id(transfer_customer_id)
 
 	def barcode_entry_key_pressed (self, entry, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if keyname != 'Return' and keyname != "KP_Enter": # enter key(s)
+			if event.get_state() & Gdk.ModifierType.CONTROL_MASK:
+				# process keypresses with CTRL held down
+				entry.delete_selection()
+				position = entry.get_position()
+				number = re.sub("[^0-9]", "", keyname)
+				entry.insert_text(number, position)
+				entry.set_position(position + 1)
+			return
+		barcode = entry.get_text()
+		if barcode == "":
+			return # blank barcode
+		self.cursor.execute("SELECT id FROM products "
+							"WHERE (barcode, deleted) = "
+							"(%s, False)", (barcode,))
+		for row in self.cursor.fetchall():
+			product_id = row[0]
+			break
+		else:
+			return
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
-			barcode = entry.get_text()
-			if barcode == "":
-				return # blank barcode
-			self.cursor.execute("SELECT id FROM products "
-								"WHERE (barcode, deleted, sellable, stock) = "
-								"(%s, False, True, True)", (barcode,))
-			for row in self.cursor.fetchall():
-				product_id = row[0]
-				break
-			else:
+			for row in self.invoice_store:
+				if row[2] == product_id:
+					row[1] -= 1
+					break
+			entry.select_region(0,-1)
+		elif event.get_state() & Gdk.ModifierType.CONTROL_MASK: #ctrl held down
+			selection = self.builder.get_object('treeview-selection')
+			model, path = selection.get_selected_rows()
+			if path == []:
 				return
-			keyname = Gdk.keyval_name(event.keyval)
-			if keyname == 'Return' or keyname == "KP_Enter": # enter key(s)
-				for row in self.invoice_store:
-					if row[2] == product_id:
-						row[1] -= 1
-						break
+			self.product_selected (product_id, path)
+			entry.select_region(0,-1)
 
 	def barcode_entry_activate (self, entry):
 		self.check_invoice_id()
@@ -208,12 +211,18 @@ class InvoiceGUI:
 		entry.select_region(0,-1)
 		if barcode == "":
 			return # blank barcode
-		self.cursor.execute("SELECT process_invoice_barcode(%s, %s)", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT process_invoice_barcode(%s, %s)", 
 							(barcode, self.invoice_id))
-		for row in self.cursor.fetchall():
+		DB.commit()
+		for row in cursor.fetchall():
 			if row[0] != 0:
-				self.populate_invoice_items()
 				row_id = row[0]
+				cursor.execute("UPDATE invoice_items SET (price, tax_rate_id) = "
+								"(customer_product_price(%s, product_id), %s) "
+								"WHERE id = %s", 
+								(self.customer_id, self.tax_rate_id, row_id))
+				self.populate_invoice_items()
 			else:            #barcode not found
 				for row in self.barcodes_not_found_store:
 					if row[2] == barcode:
@@ -233,7 +242,8 @@ class InvoiceGUI:
 				c = treeview.get_column(0)
 				#path = self.invoice_store.get_path(row.path)
 				treeview.set_cursor(row.path, c, False)
-		DB.rollback()
+		DB.commit()
+		cursor.close()
 
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
@@ -266,11 +276,9 @@ class InvoiceGUI:
 
 	def focus (self, window, event):
 		self.populate_location_store ()
-		if self.invoice_id != None:
-			self.populate_invoice_items ()
 
 	def treeview_button_release_event (self, treeview, event):
-		if event.button == 3 and self.menu_visible == False:
+		if event.button == 3:
 			selection = self.builder.get_object("treeview-selection")
 			model, path = selection.get_selected_rows ()
 			cancel_time_import_menuitem = self.builder.get_object("menuitem13")
@@ -285,9 +293,6 @@ class InvoiceGUI:
 					cancel_time_import_menuitem.set_visible(True)
 			menu = self.builder.get_object('invoice_item_menu')
 			menu.popup_at_pointer()
-			self.menu_visible = True
-		else:
-			self.menu_visible = False
 		DB.rollback()
 
 	def cancel_time_clock_import_activated (self, menuitem):
@@ -326,6 +331,38 @@ class InvoiceGUI:
 		product_id = model[path][2]
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
+
+	def move_up_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_prev = model.iter_previous(iter_)
+		if iter_prev == None:
+			return
+		model.swap(iter_, iter_prev)
+		self.save_row_ordering()
+
+	def move_down_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_next = model.iter_next(iter_)
+		if iter_next == None:
+			return
+		model.swap(iter_, iter_next)
+		self.save_row_ordering()
+
+	def save_row_ordering (self):
+		for row_count, row in enumerate (self.invoice_store):
+			row_id = row[0]
+			self.cursor.execute("UPDATE invoice_items "
+								"SET sort = %s WHERE id = %s", 
+								(row_count, row_id))
+		DB.commit()
 
 	def tax_exemption_window (self, widget):
 		import customer_tax_exemptions as cte
@@ -390,6 +427,7 @@ class InvoiceGUI:
 			self.calendar.set_date(date)
 		self.document_type = self.document_list_store[path][2]
 		self.populate_invoice_items()
+		self.calculate_totals()
 		DB.rollback()
 
 	def update_invoice_name (self, document_prefix):
@@ -411,6 +449,7 @@ class InvoiceGUI:
 		self.update_invoice_name (text)
 		self.cursor.execute("UPDATE invoices SET doc_type = %s "
 							"WHERE id = %s", (text, self.invoice_id))
+		DB.commit()
 		self.populate_document_list()
 		
 	def contacts_window(self, widget):
@@ -444,9 +483,12 @@ class InvoiceGUI:
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
 			self.invoice = invoice_create.Setup(self.invoice_store, 
-												self.customer_id, comment, 
-												self.datetime, self.invoice_id, 
-												self, self.document_type)
+												self.customer_id, 
+												comment, 
+												self.datetime, 
+												self.invoice_id, 
+												self, 
+												self.document_type)
 		self.invoice.view()
 
 	def post_invoice(self, widget):
@@ -456,17 +498,20 @@ class InvoiceGUI:
 		comment = buf.get_text(start, end, True)
 		if not self.invoice:
 			self.invoice = invoice_create.Setup(self.invoice_store, 
-												self.customer_id, comment, 
-												self.datetime, self.invoice_id,
-												self, self.document_type)
+												self.customer_id, 
+												comment, 
+												self.datetime, 
+												self.invoice_id,
+												self, 
+												self.document_type)
 		else:
+			if os.path.exists(self.invoice.lock_file):
+				dialog = self.builder.get_object('dialog1')
+				response = dialog.run()
+				dialog.hide()
+				if response != Gtk.ResponseType.ACCEPT:
+					return
 			self.invoice.save()
-		if os.path.exists(self.invoice.lock_file):
-			dialog = self.builder.get_object('dialog1')
-			response = dialog.run()
-			dialog.hide()
-			if response != Gtk.ResponseType.ACCEPT:
-				return
 		if self.builder.get_object('menuitem1').get_active() == True:
 			self.invoice.print_directly(self.window)
 		else:
@@ -498,7 +543,7 @@ class InvoiceGUI:
 							"LEFT JOIN tax_rates "
 							"ON tax_rates.id = ili.tax_rate_id "
 							"WHERE (invoice_id, canceled) = (%s, False) "
-							"ORDER BY ili.id", (self.invoice_id,))
+							"ORDER BY ili.sort, ili.id", (self.invoice_id,))
 		for row in self.cursor.fetchall():
 			id = row[0]
 			qty = row[1]
@@ -526,10 +571,10 @@ class InvoiceGUI:
 		'''if tax_rate_id is NULL, trigger will use default tax rate'''
 		if self.populating == True:
 			return
-		tax_rate_id = combo.get_active_id()
+		self.tax_rate_id = combo.get_active_id()
 		self.cursor.execute("UPDATE invoice_items SET tax_rate_id = %s "
 							"WHERE invoice_id = %s", 
-							(tax_rate_id, self.invoice_id))
+							(self.tax_rate_id, self.invoice_id))
 		DB.commit()
 		self.populate_invoice_items ()
 		self.calculate_totals ()
@@ -638,16 +683,14 @@ class InvoiceGUI:
 		DB.rollback()
 
 	################## start qty
-	
-	def qty_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		if model.get_value(iter_, 12) == True:
-			qty = int(model.get_value(iter_, 1))
-			cellrenderer.set_property("text" , str(qty))
 
 	def qty_edited(self, widget, path, text):
 		if self.invoice_store[path][12] == True:
-			text = int(text) # only allow whole numbers for inventory
+			try:
+				text = int(text) # only allow whole numbers for inventory
+			except Exception as e:
+				self.show_error_dialog (str(e))
+				return False
 		iter_ = self.invoice_store.get_iter (path)
 		self.check_invoice_item_id (iter_)
 		line_id = self.invoice_store[iter_][0]
@@ -684,13 +727,9 @@ class InvoiceGUI:
 		self.cursor.execute("UPDATE invoice_items SET remark = %s "
 							"WHERE id = %s", (text, line_id))
 		DB.commit()
+		self.invoice = None
 
 	################## start price
-
-	def price_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		price = '{:,.2f}'.format(model.get_value(iter_, 6))
-		cellrenderer.set_property("text" , price)
 		
 	def price_edited(self, widget, path, text):
 		iter_ = self.invoice_store.get_iter(path)
@@ -716,18 +755,6 @@ class InvoiceGUI:
 		self.calculate_totals()
 
 	################## end price
-
-	def tax_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		tax = '{:,.2f}'.format(model.get_value(iter_, 7))
-		cellrenderer.set_property("text" , tax)
-
-	def ext_price_cell_func(self, column, cellrenderer, model, iter_, data):
-		return
-		ext_price = '{:,.2f}'.format(model.get_value(iter_, 8))
-		cellrenderer.set_property("text" , ext_price)
-		
-	################## start product
 	
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -798,6 +825,11 @@ class InvoiceGUI:
 		self.check_serial_numbers ()
 		self.populate_serial_numbers ()
 		self.calculate_totals()
+		# retrieve path again after all sorting has happened for the updates
+		path = self.invoice_store.get_path(iter_)
+		treeview = self.builder.get_object('treeview2')
+		c = treeview.get_column(3)
+		treeview.set_cursor(path, c, True)
 
 	def populate_serial_numbers (self):
 		serial_number_store = self.builder.get_object('serial_number_store')
@@ -997,6 +1029,7 @@ class InvoiceGUI:
 		self.builder.get_object('entry3').set_text(subtotal)
 		self.builder.get_object('entry4').set_text(tax)
 		self.builder.get_object('entry5').set_text(total)
+		self.invoice = None
 
 	def check_invoice_item_id (self, iter_):
 		id = self.invoice_store[iter_][0]
@@ -1089,11 +1122,18 @@ class InvoiceGUI:
 
 	def window_key_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
-		if keyname == 'F1':
+		if event.get_state() & Gdk.ModifierType.CONTROL_MASK: #Ctrl held down
+			if keyname == "h":
+				self.product_hub_activated (None)
+			elif keyname == "Down":
+				self.move_down_activated (None)
+			elif keyname == "Up":
+				self.move_up_activated (None)
+		elif keyname == 'F1':
 			self.help_clicked (None)
-		if keyname == 'F2':
+		elif keyname == 'F2':
 			self.new_item_clicked (None)
-		if keyname == 'F3':
+		elif keyname == 'F3':
 			self.delete_entry(None)
 
 	def calendar_day_selected (self, calendar):
@@ -1104,5 +1144,18 @@ class InvoiceGUI:
 	def calendar(self, widget, icon, event):
 		self.calendar.show()
 
+	def show_reload_infobar (self, broadcaster, invoice_id):
+		if invoice_id == self.invoice_id:
+			infobar = self.builder.get_object('invoice_changed_infobar')
+			infobar.set_revealed(True)
 
-	 
+	def info_bar_close (self, infobar):
+		infobar.set_revealed(False)
+
+	def info_bar_response (self, infobar, response):
+		if response == Gtk.ResponseType.APPLY:
+			self.populate_invoice_items ()
+		infobar.set_revealed(False)
+
+
+

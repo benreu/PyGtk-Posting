@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 from decimal import Decimal, ROUND_HALF_UP
 from subprocess import Popen
 from datetime import datetime
@@ -77,7 +77,6 @@ class GUI(Gtk.Builder):
 		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
 
 		self.populate_terms_listbox()
-		self.populate_expense_account_store ()
 		self.populate_expense_products ()
 		self.window = self.get_object('window')
 		self.window.show_all()
@@ -103,6 +102,38 @@ class GUI(Gtk.Builder):
 		if event.button == 3:
 			menu = self.get_object('menu1')
 			menu.popup_at_pointer()
+
+	def move_down_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_next = model.iter_next(iter_)
+		if iter_next == None:
+			return
+		model.swap(iter_, iter_next)
+		self.save_row_ordering()
+
+	def move_up_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		iter_ = model.get_iter(path)
+		iter_prev = model.iter_previous(iter_)
+		if iter_prev == None:
+			return
+		model.swap(iter_, iter_prev)
+		self.save_row_ordering()
+
+	def save_row_ordering (self):
+		for row_count, row in enumerate (self.purchase_order_items_store):
+			row_id = row[0]
+			self.cursor.execute("UPDATE purchase_order_items "
+								"SET sort = %s WHERE id = %s", 
+								(row_count, row_id))
+		DB.commit()
 
 	def product_hub_activated (self, menuitem):
 		selection = self.get_object("treeview-selection")
@@ -156,18 +187,18 @@ class GUI(Gtk.Builder):
 		self.get_object('spinbutton2').set_value(0.00)
 
 	def calculate_cost_clicked (self, button):
-		self.cursor.execute("SELECT SUM(price) FROM purchase_order_line_items "
+		self.cursor.execute("SELECT SUM(price) FROM purchase_order_items "
 							"JOIN products "
-							"ON purchase_order_line_items.product_id "
+							"ON purchase_order_items.product_id "
 							"= products.id "
 							"WHERE purchase_order_id = %s AND expense = True",
 							(self.purchase_order_id,))
 		expense = self.cursor.fetchone()[0]
 		if expense == None:
 			return
-		self.cursor.execute("SELECT SUM(qty) FROM purchase_order_line_items "
+		self.cursor.execute("SELECT SUM(qty) FROM purchase_order_items "
 							"JOIN products "
-							"ON purchase_order_line_items.product_id "
+							"ON purchase_order_items.product_id "
 							"= products.id "
 							"WHERE purchase_order_id = %s AND expense = False",
 							(self.purchase_order_id,))
@@ -189,8 +220,10 @@ class GUI(Gtk.Builder):
 			if result == Gtk.ResponseType.CANCEL:
 				return 
 			elif result == 0:
-				if not self.attach_button_clicked():
-					return
+				import pdf_attachment
+				paw = pdf_attachment.PdfAttachmentWindow(self.window)
+				paw.connect("pdf_optimized", self.optimized_callback)
+				return
 		invoice_number = self.get_object('entry6').get_text()
 		self.cursor.execute("UPDATE purchase_orders "
 							"SET (amount_due, invoiced, total, "
@@ -267,11 +300,12 @@ class GUI(Gtk.Builder):
 						"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
 						"expense, "
 						"order_number "
-					"FROM purchase_order_line_items AS poli "
+					"FROM purchase_order_items AS poli "
 					"JOIN products AS p ON p.id = poli.product_id "
 					"LEFT JOIN gl_accounts AS a "
 					"ON a.number = poli.expense_account "
-					"WHERE purchase_order_id = (%s) ORDER BY poli.id", 
+					"WHERE purchase_order_id = (%s) "
+					"ORDER BY poli.sort, poli.id", 
 					(self.purchase_order_id, ))
 		for row in c.fetchall() :
 			self.purchase_order_items_store.append(row)
@@ -349,7 +383,7 @@ class GUI(Gtk.Builder):
 		price = line[5]
 		ext_price = line[6]
 		expense_account_id = line[7]
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET (qty, remark, price, ext_price) = "
 							"(%s, %s, %s, %s) WHERE id = %s", 
 							(qty, remarks, price, ext_price, row_id))
@@ -385,7 +419,7 @@ class GUI(Gtk.Builder):
 		self.purchase_order_items_store[path][7] = int(account_number)
 		self.purchase_order_items_store[path][8] = account_name
 		row_id = self.purchase_order_items_store[path][0]
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET expense_account = %s WHERE id = %s", 
 							(account_number, row_id))
 		DB.commit()
@@ -528,22 +562,21 @@ class GUI(Gtk.Builder):
 
 	def attach_button_clicked (self, button = None):
 		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			pdf_data = dialog.get_pdf ()
-			self.cursor.execute("UPDATE purchase_orders "
-								"SET attached_pdf = %s "
-								"WHERE id = %s", 
-								(pdf_data, self.purchase_order_id))
-			DB.commit()
-			# update the attachment status for this po
-			active = self.get_object("combobox1").get_active()
-			self.po_store[active][3] = True
-			self.get_object("button15").set_sensitive(True)
-			self.attachment = True
-			return True
-		return False
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback)
+
+	def optimized_callback (self, pdf_attachment_window):
+		pdf_data = pdf_attachment_window.get_pdf ()
+		self.cursor.execute("UPDATE purchase_orders "
+							"SET attached_pdf = %s "
+							"WHERE id = %s", 
+							(pdf_data, self.purchase_order_id))
+		DB.commit()
+		# update the attachment status for this po
+		active = self.get_object("combobox1").get_active()
+		self.po_store[active][3] = True
+		self.get_object("button15").set_sensitive(True)
+		self.attachment = True
 
 	def expense_products_clicked (self, button):
 		import expense_products
@@ -552,4 +585,17 @@ class GUI(Gtk.Builder):
 
 	def ep_callback (self, expense_product_gui):
 		self.populate_expense_products()
+
+	def window_key_release_event (self, widget, event):
+		keyname = Gdk.keyval_name(event.keyval)
+		if event.get_state() & Gdk.ModifierType.CONTROL_MASK: #Ctrl held down
+			if keyname == "h":
+				self.product_hub_activated (None)
+			elif keyname == "Down":
+				self.move_down_activated (None)
+			elif keyname == "Up":
+				self.move_up_activated (None)
+
+
+
 

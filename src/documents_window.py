@@ -425,6 +425,11 @@ class DocumentGUI:
 		price = get_customer_product_price(self.contact_id, product_id)
 		self.documents_store[iter_][12] = str(price)
 		self.calculate_totals()
+		# retrieve path again after all sorting has happened for the updates
+		path = self.documents_store.get_path(iter_)
+		treeview = self.builder.get_object('treeview2')
+		c = treeview.get_column(3)
+		treeview.set_cursor(path, c, True)
 		
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
@@ -742,8 +747,8 @@ class DocumentGUI:
 								"ext_price "
 							"FROM document_items WHERE document_id = %s)", 
 							(self.document_id, self.contact_id, old_id))
-		self.populate_document_store ()
 		DB.commit()
+		self.populate_document_store ()
 		dh.window.destroy()
 
 	def help_clicked (self, widget):

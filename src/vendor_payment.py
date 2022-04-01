@@ -20,8 +20,7 @@ from decimal import Decimal
 import subprocess, printing
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
-from db.transactor import VendorPayment, vendor_check_payment, \
-							vendor_debit_payment, post_purchase_order_accounts
+from db.transactor import VendorPayment, post_purchase_order_accounts
 from constants import ui_directory, DB, template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
@@ -252,9 +251,9 @@ class GUI:
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id()
 		transaction_number = self.builder.get_object('entry4').get_text()
-		vendor_debit_payment (self.date, self.total, 
-								checking_account_number, transaction_number)
-		self.mark_invoices_paid ()
+		payment = VendorPayment(self.date, self.total)
+		payment.debit(checking_account_number, transaction_number)
+		self.mark_invoices_paid (payment.transaction_id)
 		DB.commit ()
 		self.populate_vendor_invoice_store ()
 
@@ -305,7 +304,7 @@ class GUI:
 		t = Template(template_dir+"/vendor_check_template.odt", self.tmp_file, True)
 		t.render(data)
 		subprocess.call(["odt2pdf", self.tmp_file])
-		p = printing.Operation(settings_file = 'Vendor check')
+		p = printing.Operation(settings_file = 'Vendor_check')
 		p.set_file_to_print(self.tmp_file_pdf)
 		p.set_parent(self.window)
 		result = p.print_dialog()
@@ -316,27 +315,28 @@ class GUI:
 		check_number =  self.builder.get_object('entry2').get_text()
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id ()
-		vendor_check_payment (self.date, self.total, 
-								checking_account_number, check_number, 
-								self.vendor_name)
-		self.mark_invoices_paid ()
+		payment = VendorPayment(self.date, self.total)
+		payment.check(checking_account_number, check_number, self.vendor_name)
+		self.mark_invoices_paid (payment.transaction_id)
 		DB.commit()
 		self.populate_vendor_invoice_store ()
 		self.builder.get_object('box14').set_sensitive(False)
 
-	def mark_invoices_paid (self ):
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		accrual_based = self.cursor.fetchone()[0] 
+	def mark_invoices_paid (self, gt_id):
+		c = DB.cursor()
+		c.execute("SELECT accrual_based FROM settings")
+		accrual_based = c.fetchone()[0] 
 		selection = self.builder.get_object('treeview-selection1')
 		model, paths = selection.get_selected_rows()
 		for path in paths:
 			po_id = model[path][0]
-			self.cursor.execute("UPDATE purchase_orders "
-								"SET (paid, date_paid) = "
-								"(True, %s) WHERE id = %s", 
-								(self.date, po_id))
+			c.execute("UPDATE purchase_orders SET "
+						"(paid, date_paid, gl_transaction_payment_id) = "
+						"(True, %s, %s) WHERE id = %s", 
+						(self.date, gt_id, po_id))
 			if accrual_based == False:
 				post_purchase_order_accounts (po_id, self.date)
+		c.close()
 
 	def credit_card_changed(self, widget):
 		self.check_credit_card_entries_valid ()
@@ -345,17 +345,15 @@ class GUI:
 		self.check_cash_entries_valid ()
 	
 	def pay_with_credit_card_clicked (self, widget):
-		self.mark_invoices_paid()
 		c_c_combo = self.builder.get_object('comboboxtext2')
 		c_c_account_number = c_c_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
-		payment = VendorPayment(self.date, 
-								self.total, 
-								description)
+		payment = VendorPayment(self.date, self.total, description)
 		for row in self.c_c_multi_payment_store:
 			amount = row[0]
 			date = row[1]
 			payment.credit_card(c_c_account_number, amount, date)
+		self.mark_invoices_paid(payment.transaction_id)
 		DB.commit()
 		self.populate_vendor_liststore ()
 		self.populate_vendor_invoice_store ()
@@ -363,14 +361,12 @@ class GUI:
 		self.check_cash_entries_valid ()
 		
 	def pay_with_cash_clicked (self, button):
-		self.mark_invoices_paid()
 		cash_combo = self.builder.get_object('comboboxtext1')
 		cash_account_number = cash_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
-		payment = VendorPayment(self.date, 
-								self.total, 
-								description)
+		payment = VendorPayment(self.date, self.total, description)
 		payment.cash (cash_account_number)
+		self.mark_invoices_paid(payment.transaction_id)
 		DB.commit()
 		self.populate_vendor_liststore ()
 		self.populate_vendor_invoice_store ()

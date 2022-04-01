@@ -1,4 +1,4 @@
-# products.py
+# product_edit_main.py
 # Copyright (C) 2016 reuben
 # 
 # products.py is free software: you can redistribute it and/or modify it
@@ -23,10 +23,13 @@ from constants import 	broadcaster, \
 						is_admin, \
 						help_dir, \
 						template_dir
-from accounts import 	product_revenue_account, \
-						product_expense_account, \
-						product_inventory_account
-from main import get_apsw_connection
+from accounts import 	product_revenue_tree, \
+						product_expense_tree, \
+						product_inventory_tree, \
+						product_revenue_list, \
+						product_expense_list, \
+						product_inventory_list
+from sqlite_utils import get_apsw_connection
 import spell_check, barcode_generator
 
 
@@ -70,9 +73,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		self.product_overview = product_overview
-		self.get_object('combobox1').set_model(product_expense_account)
-		self.get_object('combobox2').set_model(product_revenue_account)
-		self.get_object('combobox3').set_model(product_inventory_account)
+		self.set_models ()
 		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 		self.treeview = self.get_object('treeview2')
@@ -81,17 +82,30 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.set_window_layout_from_settings ()
 		self.window = self.get_object('window')
 		self.window.show_all()
-		self.window.set_keep_above(True)
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
+
+	def set_models (self):
+		self.get_object('combobox1').set_model(product_expense_tree)
+		self.get_object('combobox2').set_model(product_revenue_tree)
+		self.get_object('combobox3').set_model(product_inventory_tree)
+		comp = self.get_object('expense_completion')
+		comp.set_model(product_expense_list)
+		comp.set_match_func(self.account_match_func, product_expense_list)
+		comp = self.get_object('inventory_completion')
+		comp.set_model(product_inventory_list)
+		comp.set_match_func(self.account_match_func, product_inventory_list)
+		comp = self.get_object('revenue_completion')
+		comp.set_model(product_revenue_list)
+		comp.set_match_func(self.account_match_func, product_revenue_list)
 
 	def set_window_layout_from_settings (self):
 		sqlite = get_apsw_connection ()
 		c = sqlite.cursor()
-		c.execute("SELECT size FROM widget_size "
-					"WHERE widget_id = 'product_window_width'")
+		c.execute("SELECT size FROM product_edit "
+					"WHERE widget_id = 'window_width'")
 		width = c.fetchone()[0]
-		c.execute("SELECT size FROM widget_size "
-					"WHERE widget_id = 'product_window_height'")
+		c.execute("SELECT size FROM product_edit "
+					"WHERE widget_id = 'window_height'")
 		height = c.fetchone()[0]
 		self.get_object('window').resize(width, height)
 		sqlite.close()
@@ -100,10 +114,10 @@ class ProductEditMainGUI (Gtk.Builder):
 		sqlite = get_apsw_connection ()
 		c = sqlite.cursor()
 		width, height = self.window.get_size()
-		c.execute("REPLACE INTO widget_size (widget_id, size) "
-					"VALUES ('product_window_width', ?)", (width,))
-		c.execute("REPLACE INTO widget_size (widget_id, size) "
-					"VALUES ('product_window_height', ?)", (height,))
+		c.execute("REPLACE INTO product_edit (widget_id, size) "
+					"VALUES ('window_width', ?)", (width,))
+		c.execute("REPLACE INTO product_edit (widget_id, size) "
+					"VALUES ('window_height', ?)", (height,))
 		sqlite.close()
 
 	def destroy(self, window):
@@ -112,6 +126,16 @@ class ProductEditMainGUI (Gtk.Builder):
 
 	def help_button_activated (self, menuitem):
 		subprocess.Popen(["yelp", help_dir + "/products.page"])
+	
+	def widget_focus_in (self, widget, event):
+		GLib.idle_add(widget.select_region, 0, -1)
+
+	def account_match_func(self, completion, key, tree_iter, account):
+		split_search_text = key.split()
+		for text in split_search_text:
+			if text not in account[tree_iter][1].lower():
+				return False
+		return True
 
 	def populate_account_combos(self):
 		c = DB.cursor()
@@ -273,6 +297,9 @@ class ProductEditMainGUI (Gtk.Builder):
 			if keyname == "q":
 				window.destroy()
 		
+	def product_name_changed (self, editable):
+		self.window.set_title(editable.get_text())
+
 	def select_product (self, product_id):
 		self.product_id = product_id
 		c = DB.cursor()
@@ -301,6 +328,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.window.destroy()
 			return False
 		for row in c.fetchall():
+			self.get_object('id_label').set_label(str(self.product_id))
 			self.get_object('entry1').set_text(row[0])
 			self.get_object("textbuffer1").set_text(row[1])
 			self.get_object('entry2').set_text(row[2])
@@ -336,17 +364,32 @@ class ProductEditMainGUI (Gtk.Builder):
 			return
 		self.expense_account = account_number
 
+	def expense_completion_match_selected (self, completion, model, treeiter):
+		self.expense_account = model[treeiter][0]
+
 	def revenue_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
 		if account_number == None:
 			return
 		self.revenue_account = account_number
 
+	def revenue_completion_match_selected (self, completion, model, treeiter):
+		self.revenue_account = model[treeiter][0]
+
 	def inventory_account_combo_changed (self, combo):
 		account_number = combo.get_active_id()
 		if account_number == None:
 			return
 		self.inventory_account = account_number
+
+	def inventory_completion_match_selected (self, completion, model, treeiter):
+		self.inventory_account = model[treeiter][0]
+
+	def window_focus_out (self, widget, event):
+		self.window.set_urgency_hint(True)
+
+	def window_focus_in (self, widget, event):
+		self.window.set_urgency_hint(False)
 
 	def save_clicked (self, button = None):
 		name = self.get_object('entry1').get_text()
@@ -405,10 +448,9 @@ class ProductEditMainGUI (Gtk.Builder):
 				self.show_message(str(e))
 				return
 			DB.commit()
-			if self.product_overview != None:
-				self.product_overview.product_id = self.product_id
-				self.product_overview.append_product()
-				self.product_overview.select_product()
+			self.product_overview.product_id = self.product_id
+			self.product_overview.append_product()
+			self.product_overview.select_product()
 		else:  # just save the existing product
 			try:
 				if barcode == '':

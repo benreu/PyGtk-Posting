@@ -32,6 +32,7 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_combos()
+		self.populate_zip_codes ()
 		self.contact_id = contact_id
 		if contact_id != None:
 			self.load_contact()
@@ -39,6 +40,33 @@ class ContactEditMainGUI(Gtk.Builder):
 		
 	def destroy(self, window):
 		self.cursor.close()
+
+	def populate_zip_codes (self):
+		zip_code_store = self.get_object("zip_code_store")
+		zip_code_store.clear()
+		self.cursor.execute("SELECT zip, city, state FROM contacts "
+							"WHERE deleted = False "
+							"GROUP BY zip, city, state "
+							"ORDER BY zip, city")
+		for row in self.cursor.fetchall():
+			zip_code_store.append(row)
+
+	def zip_code_match_selected (self, completion, store, _iter):
+		city = store[_iter][1]
+		state = store[_iter][2]
+		self.get_object("entry5").set_text(city)
+		self.get_object("entry6").set_text(state)
+
+	def zip_activated (self, entry):
+		zip_code = entry.get_text()
+		self.cursor.execute("SELECT city, state FROM contacts "
+							"WHERE (deleted, zip) = (False, %s) "
+							"GROUP BY city, state LIMIT 1", (zip_code,))
+		for row in self.cursor.fetchall():
+			city = row[0]
+			state = row[1]
+			self.get_object("entry5").set_text(city)
+			self.get_object("entry6").set_text(state)
 
 	def populate_combos (self):
 		store = self.get_object('terms_store')
@@ -60,6 +88,15 @@ class ContactEditMainGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			self.get_object('combobox2').set_active_id(row[0])
 		DB.rollback()
+
+	def window_focus_out (self, widget, event):
+		self.window.set_urgency_hint(True)
+
+	def window_focus_in (self, widget, event):
+		self.window.set_urgency_hint(False)
+		
+	def contact_name_changed (self, editable):
+		self.window.set_title(editable.get_text())
 
 	def load_contact (self):
 		try:
@@ -96,6 +133,7 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.window.destroy()
 			return
 		for row in self.cursor.fetchall():
+			self.get_object('id_label').set_label(str(self.contact_id))
 			self.get_object('entry1').set_text(row[0])
 			self.get_object('entry2').set_text(row[1])
 			self.get_object('entry3').set_text(row[2])
@@ -169,6 +207,7 @@ class ContactEditMainGUI(Gtk.Builder):
 								custom1, custom2, custom3, custom4, notes, 
 								term_id, service_provider, checks_payable_to,
 								markup_id, self.contact_id))
+			DB.commit()
 		else:
 			self.cursor.execute("INSERT INTO contacts " 
 								"(name, ext_name, address, city, state, zip, "
@@ -188,10 +227,28 @@ class ContactEditMainGUI(Gtk.Builder):
 								service_provider, checks_payable_to, 
 								markup_id))
 			contact_id = self.cursor.fetchone()[0]
+			DB.commit()
 			self.overview_class.append_contact(contact_id)
 			self.overview_class.select_contact(contact_id)
-		DB.commit()
 		self.window.destroy()
+
+	def name_entry_focus_out_event (self, entry, event):
+		name = entry.get_text().lower()
+		store = self.get_object('duplicate_contact_store')
+		store.clear()
+		self.cursor.execute("SELECT id, name, ext_name, address, deleted "
+							"FROM contacts WHERE LOWER(name) = %s", (name,))
+		for row in self.cursor.fetchall():
+			store.append(row)
+		if len(store) > 0 and self.contact_id == None:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
+		else:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
+		self.get_object('duplicate_popover').set_relative_to(entry)
+
+	def name_entry_icon_release (self, entry, pos, event):
+		self.get_object('duplicate_popover').show()
+		self.get_object('treeview-selection3').unselect_all()
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

@@ -56,6 +56,16 @@
         <property name="can_focus">False</property>
         <property name="label" translatable="yes">Print label</property>
         <property name="use_underline">True</property>
+        <signal name="activate" handler="print_label_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Report hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="report_hub_activated" swapped="no"/>
       </object>
     </child>
     <child>
@@ -71,7 +81,7 @@
   <object class="GtkListStore" id="product_store">
     <columns>
       <!-- column-name product_id -->
-      <column type="glong"/>
+      <column type="gint"/>
       <!-- column-name product_name -->
       <column type="gchararray"/>
       <!-- column-name product_ext_name -->
@@ -305,8 +315,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">sort_product_store</property>
-                    <property name="reorderable">True</property>
                     <property name="search_column">1</property>
+                    <property name="enable_grid_lines">horizontal</property>
                     <property name="tooltip_column">3</property>
                     <signal name="button-release-event" handler="product_treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="product_treeview_row_activated" swapped="no"/>

@@ -93,7 +93,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			return
 		import contact_hub
 		contact_hub.ContactHubGUI(self.contact_id)
-		
+
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
@@ -110,8 +110,26 @@ class ContactHistoryGUI (Gtk.Builder):
 			f.close()
 		DB.rollback()
 
+	def shipping_treeview_button_release_event (self, treeview, event):
+		selection = treeview.get_selection()
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		if event.button == 3:
+			menu = self.get_object('shipping_menu')
+			menu.popup_at_pointer()
+
+	def shipping_invoice_history_activated (self, menuitem):
+		selection = self.get_object('shipping-selection')
+		model, path = selection.get_selected_rows()
+		invoice_id = model[path][5]
+		if invoice_id == 'N/A':
+			return
+		invoice_id = int(invoice_id)
+		self.show_invoice_history (invoice_id)
+
 	def invoice_treeview_button_release_event (self, treeview, event):
-		selection = self.get_object('treeview-selection4')
+		selection = treeview.get_selection()
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
@@ -120,9 +138,12 @@ class ContactHistoryGUI (Gtk.Builder):
 			menu.popup_at_pointer()
 
 	def invoice_history_activated (self, menuitem):
-		selection = self.get_object('treeview-selection4')
+		selection = self.get_object('invoice-selection')
 		model, path = selection.get_selected_rows()
 		invoice_id = model[path][0]
+		self.show_invoice_history (invoice_id)
+
+	def show_invoice_history (self, invoice_id):
 		if not self.invoice_history or self.invoice_history.exists == False:
 			from reports import invoice_history as ih
 			self.invoice_history = ih.InvoiceHistoryGUI()
@@ -130,10 +151,12 @@ class ContactHistoryGUI (Gtk.Builder):
 		combo.set_active_id(self.contact_id)
 		store = self.invoice_history.get_object('invoice_store')
 		selection = self.invoice_history.get_object('treeview-selection1')
+		treeview = self.invoice_history.get_object('treeview1')
 		selection.unselect_all()
 		for row in store:
 			if row[0] == invoice_id:
 				selection.select_iter(row.iter)
+				treeview.scroll_to_cell(row.path, None, False)
 				break
 		self.invoice_history.present()
 
@@ -161,6 +184,45 @@ class ContactHistoryGUI (Gtk.Builder):
 		treeview = scrolled_window.get_child()
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
+		
+	def statement_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('statement_menu')
+			menu.popup_at_pointer()
+
+	def view_pdf_activated (self, menuitem):
+		selection = self.get_object('statement_selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		row_id = model[path][0]
+		c = DB.cursor()
+		c.execute("SELECT name, pdf FROM statements "
+					"WHERE id = %s AND pdf IS NOT NULL", (row_id,))
+		for row in c.fetchall():
+			file_name = row[0]
+			if file_name == None:
+				break
+			pdf_data = row[1]
+			with open(file_name,'wb') as f:
+				f.write(pdf_data)
+			subprocess.call(["xdg-open", file_name])
+		c.close()
+		DB.rollback()
+
+	def product_treeview_button_release_event (self, widget, event):
+		if event.button == 3:
+			menu = self.get_object('product_menu')
+			menu.popup_at_pointer()
+
+	def product_hub_activated (self, menuitem):
+		selection = self.get_object('product_selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][2]
+		import product_hub
+		product_hub.ProductHubGUI(product_id)
 
 	def product_selection_changed (self, selection):
 		rows = len(selection.get_selected_rows()[1])
@@ -253,7 +315,11 @@ class ContactHistoryGUI (Gtk.Builder):
 					"p.id, "
 					"p.name AS name, "
 					"remark, "
-					"'Invoice' "
+					"'Invoice', "
+					"SUM(price), "
+					"SUM(price)::text, "
+					"SUM(ext_price), "
+					"SUM(ext_price)::text "
 					"FROM products AS p "
 					"JOIN invoice_items AS ili ON ili.product_id = p.id "
 					"JOIN invoices AS i ON i.id = ili.invoice_id "
@@ -265,9 +331,13 @@ class ContactHistoryGUI (Gtk.Builder):
 					"p.id, "
 					"p.name AS name, "
 					"remark, "
-					"'Purchase order' "
+					"'Purchase order', "
+					"SUM(price), "
+					"SUM(price)::text, "
+					"SUM(ext_price), "
+					"SUM(ext_price)::text "
 					"FROM products AS p "
-					"JOIN purchase_order_line_items AS poli ON poli.product_id = p.id "
+					"JOIN purchase_order_items AS poli ON poli.product_id = p.id "
 					"JOIN purchase_orders AS po ON po.id = poli.purchase_order_id "
 					"WHERE vendor_id = %s "
 					"GROUP BY p.id, p.name, remark) "
@@ -277,7 +347,11 @@ class ContactHistoryGUI (Gtk.Builder):
 					"p.id, "
 					"p.name AS name, "
 					"remark, "
-					"'Documents' "
+					"'Documents', "
+					"SUM(price), "
+					"SUM(price)::text, "
+					"SUM(ext_price), "
+					"SUM(ext_price)::text "
 					"FROM products AS p "
 					"JOIN document_items AS di ON di.product_id = p.id "
 					"JOIN documents AS d ON d.id = di.document_id "
@@ -289,10 +363,14 @@ class ContactHistoryGUI (Gtk.Builder):
 					"p.id, "
 					"p.name AS name, "
 					"remark, "
-					"'Job Sheet' "
+					"'Job Sheet', "
+					"0.0, "
+					"'N/A', "
+					"0.0, "
+					"'N/A'::text "
 					"FROM products AS p "
-					"JOIN job_sheet_line_items AS jsli ON jsli.product_id = p.id "
-					"JOIN job_sheets AS js ON js.id = jsli.job_sheet_id "
+					"JOIN job_sheet_items AS jsi ON jsi.product_id = p.id "
+					"JOIN job_sheets AS js ON js.id = jsi.job_sheet_id "
 					"WHERE contact_id = %s "
 					"GROUP BY p.id, p.name, remark) "
 					"ORDER BY name", 
@@ -385,7 +463,8 @@ class ContactHistoryGUI (Gtk.Builder):
 								"format_date(date_inserted), "
 								"amount, "
 								"amount::text, "
-								"payment_info(id) "
+								"payment_info(id), "
+								"misc_income "
 							"FROM payments_incoming "
 							"WHERE customer_id = %s "
 							"ORDER BY date_inserted;", (self.contact_id,))
@@ -433,21 +512,23 @@ class ContactHistoryGUI (Gtk.Builder):
 		c.execute("SELECT "
 						"si.id, "
 						"si.tracking_number, "
-						"i.id, "
+						"si.reason, "
+						"si.date_shipped::text, "
+						"format_date(si.date_shipped), "
+						"COALESCE(si.invoice_id::text, 'N/A'), "
 						"COALESCE(ii.amount, 0.00), "
 						"COALESCE(ii.amount::text, 'N/A') "
 					"FROM shipping_info AS si "
-					"JOIN invoices AS i ON i.id = si.invoice_id "
 					"LEFT JOIN incoming_invoices AS ii "
 						"ON ii.id = si.incoming_invoice_id "
-					"WHERE customer_id = %s"
-					"ORDER BY dated_for", 
+					"WHERE si.contact_id = %s"
+					"ORDER BY date_shipped", 
 					(self.contact_id,))
 		for row in c.fetchall():
 			count += 1
 			shipping_store.append(row)
 		if count == 0:
-			self.get_object('label11').set_label('Invoices')
+			self.get_object('label11').set_label('Shipping')
 		else:
 			label = "<span weight='bold'>Shipping (%s)</span>" % count
 			self.get_object('label11').set_markup(label)

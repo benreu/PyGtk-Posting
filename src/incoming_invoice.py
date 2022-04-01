@@ -21,8 +21,13 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
-from constants import ui_directory, DB, broadcaster
-import accounts
+from constants import ui_directory, DB, broadcaster, template_dir
+from accounts import expense_list, expense_tree
+import subprocess, printing
+
+
+class Item(object):#this is used by py3o library see their example for more info
+	pass
 
 UI_FILE = ui_directory + "/incoming_invoice.ui"
 
@@ -44,8 +49,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		for connection in (("contacts_changed", self.populate_service_providers ),):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.expense_account_store = accounts.expense_account
-		self.get_object('cellrenderercombo1').set_property('model', accounts.expense_account)
+		self.expense_account_store = expense_tree
+		self.get_object('cellrenderercombo1').set_property('model', expense_tree)
+		self.get_object('account_completion').set_model(expense_list)
 		
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -67,14 +73,15 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.credit_card_store = self.get_object('credit_card_store')
 		self.populate_stores ()
 		self.populate_service_providers ()
-		self.expense_percentage_store.append([0, Decimal('0.00'), 0, ""])
-		self.calculate_percentages ()
+		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", "", ""])
 	
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.file_data = None
 
 	def destroy (self, widget):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 		self.cursor.close()
 
 	def provider_match_func(self, completion, key, iter_):
@@ -120,13 +127,19 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			self.credit_card_store.append(row)
 		DB.rollback()
 
+	def set_shipping_description (self, text):
+		self.get_object('entry1').set_text(text)
+
+	def set_date (self, date):
+		self.calendar.set_date(date)
+
 	def service_provider_clicked (self, button):
 		import contacts_overview
 		contacts_overview.ContactsOverviewGUI()
 		
 	def provider_match_selected(self, completion, model, iter_):
-		provider_id = model[iter_][0]
-		self.get_object('combobox1').set_active_id(provider_id)
+		self.provider_id = model[iter_][0]
+		self.get_object('combobox1').set_active_id(self.provider_id)
 
 	def service_provider_combo_changed (self, combo):
 		if self.populating == True:
@@ -139,8 +152,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.get_object('label14').set_label(contact_name)
 
 	def add_percentage_row_clicked (self, button):
-		self.expense_percentage_store.append([0, Decimal('0.00'), 0, ""])
-		self.calculate_percentages ()
+		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", "", ""])
+		self.add_expense_totals ()
 
 	def delete_percentage_row_clicked (self, button):
 		selection = self.get_object('treeview-selection1')
@@ -148,9 +161,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if path != []:
 			tree_iter = model.get_iter(path)
 			self.expense_percentage_store.remove(tree_iter)
-		self.calculate_percentages ()
+		self.add_expense_totals ()
 
-	def calculate_percentages (self):
+	def equalize_amounts_clicked (self, button):
 		lines = self.expense_percentage_store.iter_n_children()
 		if lines == 0:
 			return
@@ -164,15 +177,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.add_expense_totals ()
 
 	def invoice_spinbutton_changed (self, spinbutton):
-		self.update_expense_amounts ()
-
-	def update_expense_amounts (self):
-		invoice_amount = self.get_object('spinbutton1').get_text()
-		for row in self.expense_percentage_store:
-			percentage = row[0]
-			percent = Decimal(percentage) / 100
-			split_amount = Decimal(invoice_amount) * percent
-			row[1] = split_amount
 		self.add_expense_totals ()
 
 	def expense_amount_edited (self, renderer, path, text):
@@ -207,9 +211,31 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def expense_account_render_changed (self, renderer, path, tree_iter):
 		account_number = self.expense_account_store[tree_iter][0]
 		account_name = self.expense_account_store[tree_iter][1]
+		account_path = self.expense_account_store[tree_iter][2]
 		self.expense_percentage_store[path][2] = int(account_number)
 		self.expense_percentage_store[path][3] = account_name
+		self.expense_percentage_store[path][4] = account_path
 		self.check_if_all_entries_valid ()
+
+	def expense_combo_editing_started (self, cellrenderer, celleditable, path):
+		entry = celleditable.get_child()
+		entry.set_completion(self.get_object('account_completion'))
+
+	def account_match_selected (self, entrycompletion, model, treeiter):
+		selection = self.get_object('treeview-selection1')
+		treeview_model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		account_number = model[treeiter][0]
+		account_name = model[treeiter][1]
+		account_path = model[treeiter][2]
+		treeview_model[path][2] = int(account_number)
+		treeview_model[path][3] = account_name
+		treeview_model[path][4] = account_path
+		self.check_if_all_entries_valid()
+
+	def remark_edited (self, cellrenderertext, path, text):
+		self.expense_percentage_store[path][5] = text
 
 	def bank_credit_card_combo_changed (self, combo):
 		if combo.get_active() == None:
@@ -247,8 +273,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if self.date == None:
 			self.set_button_message('No date selected')
 			return
-		invoice_amount = Decimal(self.get_object('spinbutton1'
-																).get_text())
+		invoice_amount = Decimal(self.get_object('spinbutton1').get_text())
 		if invoice_amount == 0.00:
 			self.set_button_message('No invoice amount')
 			return
@@ -292,7 +317,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def cash_payment_clicked (self, button):
 		total = self.save_incoming_invoice ()
 		cash_account = self.get_object('combobox3').get_active_id()
-		self.invoice.cash_payment (total, cash_account, self.invoice_id)
+		self.invoice.cash_payment (total, cash_account)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
@@ -304,7 +329,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		active = self.get_object('combobox1').get_active()
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
-		self.invoice.credit_card_payment (total, description, credit_card, self.invoice_id)
+		self.invoice.credit_card_payment (total, description, credit_card)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
@@ -316,21 +341,27 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		active = self.get_object('combobox1').get_active()
 		service_provider = self.service_provider_store[active][1]
 		description = "%s : %s" % (service_provider, transfer_number)
-		self.invoice.transfer (total, description, checking_account, self.invoice_id)
+		self.invoice.transfer (total, description, checking_account)
 		DB.commit()
 		button.set_sensitive(False)
 		self.emit('invoice_applied')
 
-	def print_check_clicked (self, button):
+	def post_only_clicked (self,button):
+		self.perform_payment()
+		button.set_sensitive(False)
+
+	def perform_payment(self):
 		total = self.save_incoming_invoice ()
 		checking_account = self.get_object('combobox2').get_active_id()
 		check_number = self.get_object('entry7').get_text()
 		active = self.get_object('combobox1').get_active()
 		description = self.service_provider_store[active][1]
-		self.invoice.check_payment(total, check_number, checking_account, description, self.invoice_id)
+		self.invoice.check_payment(total, check_number, checking_account, description)
 		DB.commit()
-		button.set_sensitive(False)
 		self.emit('invoice_applied')
+		check_number = get_check_number(checking_account)
+		self.get_object('entry7').set_text(str(check_number))
+
 
 	def save_incoming_invoice (self):
 		c = DB.cursor()
@@ -350,11 +381,13 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", 
 					(contact_id, self.date, total, description, 
 					self.invoice.transaction_id, self.file_data))
-		self.invoice_id = c.fetchone()[0]
+		self.invoice_id = c.fetchone()[0] # self.invoice_id is a public variable
+		self.invoice.incoming_invoice_id = self.invoice_id
 		for row in self.expense_percentage_store:
 			amount = row[1]
-			expense_account = row[2]
-			self.invoice.expense(amount, expense_account, self.invoice_id)
+			account = row[2]
+			remark = row[5]
+			self.invoice.expense(amount, account, remark)
 		c.close()
 		return total
 
@@ -388,10 +421,65 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def attach_button_clicked (self, button):
 		import pdf_attachment
-		dialog = pdf_attachment.Dialog(self.window)
-		result = dialog.run()
-		if result == Gtk.ResponseType.ACCEPT:
-			self.file_data = dialog.get_pdf ()
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback)
+
+	def optimized_callback (self, pdf_attachment_window):
+		self.file_data = pdf_attachment_window.get_pdf ()
+
+	def print_and_post_clicked (self, button):
+		total = Decimal(self.get_object('spinbutton1').get_text())
+		check_number = self.get_object('entry7').get_text()
+		bank_account = self.get_object('combobox2').get_active_id()
+		self.cursor.execute("SELECT "
+								"name, "
+								"checks_payable_to, "
+								"address, "
+								"city, "
+								"state, "
+								"zip, "
+								"phone "
+							"FROM contacts WHERE id = %s",(self.provider_id,))
+		provider = Item()
+		for line in self.cursor.fetchall():
+			provider.name = line[0]
+			provider.pay_to = line[1]
+			provider.street = line[2]
+			provider.city = line[3]
+			provider.state = line[4]
+			provider.zip = line[5]
+			provider.phone = line[6]
+			pay_to = line[1].split()[0]
+		items = list()
+		'''for row in self.provider_invoice_store:
+			if row[3] == True:'''
+				
+		item = Item()
+		item.po_number = ''#row[0] 
+		item.amount = ''#row[2]
+		item.date = ''#row[4]
+		items.append(item)
+		check = Item()
+		check.check_number = check_number
+		check.checking_account = bank_account
+		check.date = self.date
+		check.amount = total 
+		check.amount_text = get_written_check_amount_text (total)
+		from py3o.template import Template
+		data = dict(contact = provider, check = check, items = items )#- kept this
+		#in case we ever wish to list the accountbreakdown on the check stubs
+		self.tmp_file = "/tmp/check" + pay_to +".odt"
+		self.tmp_file_pdf = "/tmp/check" + pay_to + ".pdf"
+		t = Template(template_dir+"/vendor_check_template.odt", self.tmp_file, True)
+		t.render(data)
+		subprocess.call(["odt2pdf", self.tmp_file])
+		p = printing.Operation(settings_file = 'Vendor_check')
+		p.set_file_to_print(self.tmp_file_pdf)
+		p.set_parent(self.window)
+		result = p.print_dialog()
+		if result != "user canceled":
+			self.perform_payment()
+
 
 
 

@@ -129,6 +129,10 @@
       <column type="gfloat"/>
       <!-- column-name amount_formatted -->
       <column type="gchararray"/>
+      <!-- column-name date_created -->
+      <column type="gchararray"/>
+      <!-- column-name date_created_formattted -->
+      <column type="gchararray"/>
       <!-- column-name date_printed -->
       <column type="gchararray"/>
       <!-- column-name date_printed_formatted -->
@@ -385,16 +389,30 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Date created</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort_column_id">8</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">9</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn4">
                         <property name="resizable">True</property>
                         <property name="sizing">autosize</property>
                         <property name="title" translatable="yes">Date printed</property>
                         <property name="reorderable">True</property>
-                        <property name="sort_column_id">8</property>
+                        <property name="sort_column_id">10</property>
                         <child>
                           <object class="GtkCellRendererText" id="cellrenderertext4"/>
                           <attributes>
-                            <attribute name="text">9</attribute>
+                            <attribute name="text">11</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -559,6 +577,7 @@
                             <property name="sort_column_id">6</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext12">
+                                <property name="editable">True</property>
                                 <property name="ellipsize">middle</property>
                               </object>
                               <attributes>

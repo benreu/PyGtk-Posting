@@ -208,11 +208,16 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">100</property>
                             <property name="title" translatable="yes">Employee</property>
                             <property name="expand">True</property>
+                            <property name="reorderable">True</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext1">
+                                <property name="ellipsize">middle</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
                               </attributes>
@@ -221,11 +226,16 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn2">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">100</property>
                             <property name="title" translatable="yes">Project</property>
                             <property name="expand">True</property>
+                            <property name="reorderable">True</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext2"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext2">
+                                <property name="ellipsize">middle</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">3</attribute>
                               </attributes>
@@ -234,8 +244,11 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn3">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">25</property>
                             <property name="title" translatable="yes">Time</property>
+                            <property name="reorderable">True</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext3"/>
                               <attributes>
@@ -251,58 +264,6 @@
                     <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="box2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkLabel" id="label3">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Efficiency </property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spinbutton1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="adjustment">adjustment1</property>
-                        <property name="digits">1</property>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button1">
-                        <property name="label" translatable="yes">Apply</property>
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <signal name="clicked" handler="efficiency_apply_button_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="padding">10</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -334,11 +295,17 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn4">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">100</property>
                             <property name="title" translatable="yes">Start Time</property>
+                            <property name="expand">True</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">1</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext4"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext4">
+                                <property name="ellipsize">middle</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
                               </attributes>
@@ -347,11 +314,17 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn5">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">100</property>
                             <property name="title" translatable="yes">Stop Time</property>
+                            <property name="expand">True</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">2</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext5"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext5">
+                                <property name="ellipsize">middle</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">2</attribute>
                               </attributes>
@@ -360,8 +333,11 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn6">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">50</property>
                             <property name="title" translatable="yes">Actual</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">3</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext6"/>
@@ -373,8 +349,11 @@
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn7">
-                            <property name="sizing">autosize</property>
+                            <property name="resizable">True</property>
+                            <property name="sizing">fixed</property>
+                            <property name="fixed_width">50</property>
                             <property name="title" translatable="yes">Adjusted</property>
+                            <property name="reorderable">True</property>
                             <property name="sort_column_id">4</property>
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext7"/>
@@ -815,9 +794,8 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Warning ! Editing valid entries improperly
-is punishable by law ! Only edit entries that are
-clearly a mistake. For other purposes, edit the
-efficiency factor.</property>
+is punishable by law ! Only edit entries that 
+are clearly a mistake.</property>
                 <attributes>
                   <attribute name="foreground" value="#cccc00000000"/>
                 </attributes>

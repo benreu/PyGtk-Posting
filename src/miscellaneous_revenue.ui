@@ -2,8 +2,34 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkListStore" id="account_list_placeholder">
+    <columns>
+      <!-- column-name number -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name path -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="account_completion">
+    <property name="model">account_list_placeholder</property>
+    <property name="text_column">1</property>
+    <signal name="match-selected" handler="account_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">10000</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="amount_adjustment">
+    <property name="upper">1000000</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -33,6 +59,31 @@
         <attribute name="text">2</attribute>
       </attributes>
     </child>
+  </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Balance this row</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="balance_this_row_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkListStore" id="revenue_store">
+    <columns>
+      <!-- column-name account_number -->
+      <column type="gint"/>
+      <!-- column-name account_name -->
+      <column type="gchararray"/>
+      <!-- column-name acccount_path -->
+      <column type="gchararray"/>
+      <!-- column-name amount -->
+      <column type="gchararray"/>
+    </columns>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="can_focus">False</property>
@@ -331,31 +382,131 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow2">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkTreeView" id="treeview1">
+                  <object class="GtkScrolledWindow" id="scrolledwindow2">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="activate_on_single_click">True</property>
-                    <signal name="row-activated" handler="revenue_account_treeview_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection2"/>
-                    </child>
+                    <property name="shadow_type">in</property>
                     <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn1">
-                        <property name="title" translatable="yes">Revenue Account</property>
+                      <object class="GtkTreeView" id="treeview1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">revenue_store</property>
+                        <property name="reorderable">True</property>
+                        <property name="tooltip_column">2</property>
+                        <property name="activate_on_single_click">True</property>
+                        <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
+                        <signal name="row-activated" handler="revenue_account_treeview_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="treeview-selection2"/>
+                        </child>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext1"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Revenue Account</property>
+                            <property name="expand">True</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererCombo" id="revenue_combo_renderer">
+                                <property name="editable">True</property>
+                                <property name="text_column">1</property>
+                                <signal name="changed" handler="revenue_account_combo_changed" swapped="no"/>
+                                <signal name="editing-started" handler="revenue_account_editing_started" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Amount</property>
+                            <property name="reorderable">True</property>
+                            <child>
+                              <object class="GtkCellRendererSpin">
+                                <property name="editable">True</property>
+                                <property name="adjustment">amount_adjustment</property>
+                                <property name="digits">2</property>
+                                <signal name="edited" handler="revenue_amount_edited" swapped="no"/>
+                                <signal name="editing-started" handler="revenue_amount_editing_started" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">3</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="homogeneous">True</property>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label" translatable="yes">Equalize</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Equalize row amounts</property>
+                        <signal name="clicked" handler="equalize_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label" translatable="yes">Delete row</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Delete selected row from revenue</property>
+                        <signal name="clicked" handler="delete_row_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label" translatable="yes">Add row</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_text" translatable="yes">Add row to revenue</property>
+                        <signal name="clicked" handler="add_row_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
               <packing>
@@ -392,12 +543,12 @@
             </child>
             <child>
               <object class="GtkButton" id="button2">
-                <property name="label" translatable="yes">Post Income</property>
+                <property name="label" translatable="yes">Post Revenue</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="post_income_clicked" swapped="no"/>
+                <signal name="clicked" handler="post_revenue_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

@@ -128,22 +128,22 @@ class Setup(XCloseListener, unohelper.Base):
 			
 		document = Item()
 		cursor.execute("WITH _subtotal AS "
-									"(SELECT SUM(ext_price) AS ep FROM invoice_items "
-									"WHERE invoice_id = %s "
-									"), "
-								"_tax AS "
-									"(SELECT SUM(tax) FROM invoice_items "
-									"WHERE invoice_id = %s "
-									") "
-								"UPDATE invoices SET (subtotal, tax, total) = "
-									"((SELECT * FROM _subtotal), "
-									"(SELECT * FROM _tax), "
-									"(SELECT * FROM _subtotal) + (SELECT * FROM _tax )"
-								") WHERE id = %s "
-								"RETURNING   subtotal::money, "
-											"tax::money, "
-											"total::money", 
-								(self.invoice_id, self.invoice_id, self.invoice_id))
+							"(SELECT SUM(ext_price) AS ep FROM invoice_items "
+							"WHERE invoice_id = %s "
+							"), "
+						"_tax AS "
+							"(SELECT SUM(tax) FROM invoice_items "
+							"WHERE invoice_id = %s "
+							") "
+						"UPDATE invoices SET (subtotal, tax, total) = "
+							"((SELECT * FROM _subtotal), "
+							"(SELECT * FROM _tax), "
+							"(SELECT * FROM _subtotal) + (SELECT * FROM _tax )"
+						") WHERE id = %s "
+						"RETURNING subtotal::money, "
+							"tax::money, "
+							"total::money", 
+						(self.invoice_id, self.invoice_id, self.invoice_id))
 		for row in cursor.fetchall():
 			subtotal = row[0]
 			tax = row[1]
@@ -178,18 +178,22 @@ class Setup(XCloseListener, unohelper.Base):
 		self.document_odt = document.name + ".odt"
 		self.document_pdf = document.name + ".pdf"
 		self.lock_file = '/tmp/.~lock.' + self.document_odt + '#'
-		self.data = dict(items = items, document = document, contact = customer, terms = terms, company = company)
-		from py3o.template import Template #import for every invoice or there is an error about invalid magic header numbers
+		data = dict(items = items, 
+					document = document, 
+					contact = customer, 
+					terms = terms, 
+					company = company)
+		from py3o.template import Template #import for every invoice
 		self.invoice_file = "/tmp/" + self.document_odt
 		t = Template(template_dir+"/invoice_template.odt", self.invoice_file , True)
-		t.render(self.data) #the self.data holds all the info of the invoice
+		t.render(data) #the data holds all the info of the invoice
 		cursor.close()
 
 	def save (self):
 		try:
 			self.invoice_doc.save()
 		except Exception as e:
-			print (e, 'document no longer exists')
+			print (e, 'in invoice_create, document no longer exists')
 
 	def view(self):
 		if self.invoice_doc:
@@ -208,23 +212,36 @@ class Setup(XCloseListener, unohelper.Base):
 			self.get_office_socket_connection ()
 
 	def get_office_socket_connection (self):
-		subprocess.Popen("soffice "
-						"'--accept=socket,host=localhost,port=2002;urp;' "
-						"--nologo --nodefault", shell=True)		
+		subprocess.Popen(["soffice",
+							"--accept=socket,"
+							"host=localhost,"
+							"port=2002;"
+							"urp;",
+							"--nologo",
+							"--nodefault"])	
 		localContext = uno.getComponentContext()
 		resolver = localContext.ServiceManager.createInstanceWithContext(
-						'com.sun.star.bridge.UnoUrlResolver', localContext )
-		connection_url = 'uno:socket,host=localhost,port=2002;urp;StarOffice.ServiceManager'
+										'com.sun.star.bridge.UnoUrlResolver', 
+										localContext )
+		connection_url = 	('uno:socket,'
+							'host=localhost,'
+							'port=2002;'
+							'urp;'
+							'StarOffice.ServiceManager')
 		result = False
 		while result == False:
 			try:
 				smgr = resolver.resolve( connection_url )
 				result = True
 			except NoConnectException:
-				subprocess.Popen("soffice "
-								"'--accept=socket,host=localhost,port=2002;urp;' "
-								"--nologo --nodefault", shell=True)
-				time.sleep(.1)
+				subprocess.Popen(["soffice",
+									"--accept=socket,"
+									"host=localhost,"
+									"port=2002;"
+									"urp;",
+									"--nologo",
+									"--nodefault"])
+				time.sleep(1)
 		remoteContext = smgr.getPropertyValue( 'DefaultContext' )
 		self.desktop = smgr.createInstanceWithContext( 'com.sun.star.frame.Desktop', 
 																remoteContext)
@@ -258,7 +275,11 @@ class Setup(XCloseListener, unohelper.Base):
 
 	def email (self, email):
 		document = "/tmp/" + self.document_pdf
-		subprocess.Popen("thunderbird -compose to=" + email + ",subject=Invoice,attachment=" + document, shell = True)
+		subprocess.Popen(["thunderbird",
+							"-compose",
+							"to=" + email + 
+							",subject=Invoice,"
+							"attachment=" + document])
 
 	def post(self):
 		document = "/tmp/" + self.document_pdf
@@ -288,4 +309,4 @@ class Setup(XCloseListener, unohelper.Base):
 g_ImplementationHelper = unohelper.ImplementationHelper()
 g_ImplementationHelper.addImplementation(Setup,'com.sun.star.util.XClosedListener',())
 
-		
+

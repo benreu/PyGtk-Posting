@@ -50,7 +50,7 @@ class ContactHubGUI:
 	def invoice_to_payment_matching_clicked (self, button):
 		from reports import invoice_to_payment_matching
 		i = invoice_to_payment_matching.GUI()
-		i.builder.get_object('combobox1').set_active_id(self.contact_id)
+		i.builder.get_object('combobox1').set_active_id(str(self.contact_id))
 		self.window.destroy()
 
 	def cancel_clicked (self, button):
@@ -58,7 +58,9 @@ class ContactHubGUI:
 
 	def edit_contact_clicked (self, button):
 		import contacts_overview
-		contacts_overview.ContactsOverviewGUI(self.contact_id)
+		cov = contacts_overview.ContactsOverviewGUI()
+		cov.select_contact(self.contact_id)
+		cov.edit_contact()
 		self.window.destroy()
 
 	def job_sheet_history_clicked (self, button):

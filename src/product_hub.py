@@ -43,7 +43,18 @@ class ProductHubGUI:
 	def cancel_clicked (self, button):
 		self.window.destroy()
 
+	def print_label_clicked (self, button):
+		import product_print_label
+		product_print_label.ProductPrintLabelGUI(self.product_id)
+		self.window.destroy()
+
 	def edit_product_clicked (self, button):
+		import products_overview
+		p_gui = products_overview.ProductsOverviewGUI(self.product_id)
+		p_gui.edit_product (self.product_id)
+		self.window.destroy()
+
+	def product_overview_clicked (self, button):
 		import products_overview
 		products_overview.ProductsOverviewGUI(self.product_id)
 		self.window.destroy()
@@ -51,7 +62,7 @@ class ProductHubGUI:
 	def product_location_clicked (self, button):
 		import product_location
 		p = product_location.ProductLocationGUI()
-		p.builder.get_object('searchentry1').set_text(self.name)
+		p.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
 	def product_search_clicked (self, button):

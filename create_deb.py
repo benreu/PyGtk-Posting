@@ -112,10 +112,6 @@ shutil.copy2(JOIN(CWD, "copyright"), doc_dest_folder)
 font_dest_folder = JOIN(package_folder, "usr/share/fonts/truetype/code128")
 os.makedirs (font_dest_folder)
 shutil.copy2(JOIN(CWD, "code128.ttf"), font_dest_folder)
-# include schema file for local settings
-schema_folder = JOIN(package_folder, "usr/share/glib-2.0/schemas")
-os.makedirs (schema_folder)
-shutil.copy2(JOIN(CWD, "com.github.benreu.pygtk-posting.gschema.xml"), schema_folder)
 #copy files for debian packaging
 debian_folder = JOIN(package_folder, "DEBIAN")
 os.mkdir (debian_folder)

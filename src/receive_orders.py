@@ -66,7 +66,7 @@ class ReceiveOrdersGUI:
 		self.cursor.execute("SELECT pli.id, qty::int, product_id, "
 							"remark, received, "
 							"name, ext_name, cost "
-							"FROM purchase_order_line_items AS pli "
+							"FROM purchase_order_items AS pli "
 							"JOIN products ON products.id = pli.product_id "
 							"AND expense = False "
 							"WHERE purchase_order_id = %s "
@@ -142,7 +142,7 @@ class ReceiveOrdersGUI:
 			for i in range(difference):
 				GLib.timeout_add(100, self.print_label, product_id)
 			row[6] = ordered
-			self.cursor.execute("UPDATE purchase_order_line_items "
+			self.cursor.execute("UPDATE purchase_order_items "
 								"SET received = %s WHERE id = %s", 
 								(ordered, row_id))
 			DB.commit()
@@ -162,7 +162,7 @@ class ReceiveOrdersGUI:
 		for i in range(difference):	
 			GLib.timeout_add(10, self.print_label, product_id)
 		self.receive_order_store[path][6] = qty
-		self.cursor.execute("UPDATE purchase_order_line_items "
+		self.cursor.execute("UPDATE purchase_order_items "
 							"SET received = %s WHERE id = %s", (qty, row_id))
 		DB.commit()
 		self.check_if_all_products_received()

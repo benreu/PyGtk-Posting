@@ -502,8 +502,9 @@
                 <property name="can_focus">True</property>
                 <property name="shadow_type">in</property>
                 <child>
-                  <object class="GtkTextView">
+                  <object class="GtkTextView" id="comments_textview">
                     <property name="visible">True</property>
+                    <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="tooltip_text" translatable="yes">Comments</property>
                     <property name="buffer">comments_buffer</property>
