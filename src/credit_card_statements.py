@@ -40,7 +40,6 @@ class CreditCardStatementGUI:
 		self.credit_card_account = None
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
-		self.calendar.set_today()
 
 		self.populate_accounts_combo ()
 				
@@ -129,6 +128,10 @@ class CreditCardStatementGUI:
 							self.credit_card_account))
 		DB.commit()
 		self.populate_statement_treeview ()
+		self.date = None
+		self.builder.get_object('entry4').set_text('')
+		self.builder.get_object('button5').set_label("Reconcile - no date selected")
+		self.builder.get_object('button5').set_sensitive(False)
 
 	def description_edited (self, renderer, path, text):
 		row_id = self.transactions_store[path][0]
@@ -222,7 +225,6 @@ class CreditCardStatementGUI:
 		self.builder.get_object('label9').set_label(str(balance))
 		self.builder.get_object('combobox1').set_sensitive(True)
 		self.builder.get_object('spinbutton2').set_sensitive(True)
-		self.builder.get_object('button5').set_sensitive(True)
 
 	def fees_rewards_description_changed(self, entry):
 		if entry.get_text() == '':
@@ -294,6 +296,8 @@ class CreditCardStatementGUI:
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
 		self.builder.get_object('entry4').set_text(day_text)
+		self.builder.get_object('button5').set_label("Reconcile")
+		self.builder.get_object('button5').set_sensitive(True)
 
 	def calendar_entry_icon_released (self, widget, icon, event):
 		self.calendar.set_relative_to(widget)
