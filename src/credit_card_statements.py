@@ -119,6 +119,16 @@ class CreditCardStatementGUI:
 			self.get_child_accounts (account_number, p)
 
 	def reconcile_clicked (self, widget):
+		self.cursor.execute("SELECT 1 FROM gl_entries "
+							"WHERE date_reconciled = %s "
+							"AND (credit_account = %s OR debit_account = %s)",
+							(self.date, self.credit_card_account, 
+							self.credit_card_account))
+		if self.cursor.fetchone():
+			self.show_error_dialog("A reconcile already exists for this "
+									"credit card on this date.\n"
+									"Please choose a different date.")
+			return
 		self.cursor.execute("UPDATE gl_entries "
 							"SET date_reconciled = %s "
 							"WHERE date_reconciled IS NULL "
@@ -303,6 +313,13 @@ class CreditCardStatementGUI:
 		self.calendar.set_relative_to(widget)
 		self.calendar.show()
 
+	def show_error_dialog (self, error):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (error)
+		dialog.run()
+		dialog.destroy()
 
 
-		
+
