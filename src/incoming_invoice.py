@@ -361,7 +361,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.emit('invoice_applied')
 		check_number = get_check_number(checking_account)
 		self.get_object('entry7').set_text(str(check_number))
-
+		self.file_data = None
 
 	def save_incoming_invoice (self):
 		c = DB.cursor()
