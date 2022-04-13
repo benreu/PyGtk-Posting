@@ -18,6 +18,7 @@
 import gi
 gi.require_version('GtkSource', '3.0')
 from gi.repository import Gtk, GtkSource, GObject, Gdk
+import time
 from constants import ui_directory, DB
 
 UI_FILE = ui_directory + "/db/sql_window.ui"
@@ -129,8 +130,11 @@ class SQLWindowGUI(Gtk.Builder):
 		end_iter = self.source_buffer.get_end_iter ()
 		string = self.source_buffer.get_text(start_iter, end_iter, True)
 		cursor = DB.cursor()
+		t = time.time()
 		try:
 			cursor.execute(string)
+			query_time = round(time.time() - t, 4)
+			self.get_object('time_label').set_label(str(query_time))
 		except Exception as e:
 			self.get_object('sql_error_buffer').set_text(str(e))
 			self.get_object('textview2').set_visible(True)
