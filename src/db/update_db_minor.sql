@@ -203,5 +203,7 @@ UPDATE resources SET posted = False WHERE posted IS NULL;
 UPDATE resources SET posted = True WHERE diary = True;
 ALTER TABLE resources ALTER COLUMN posted SET DEFAULT False;
 ALTER TABLE resources ALTER COLUMN posted SET NOT NULL;
-
+--0.7.1
+CREATE INDEX IF NOT EXISTS gl_entries_gl_transaction_id_idx 
+	ON public.gl_entries USING btree (gl_transaction_id);
 
