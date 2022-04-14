@@ -30,19 +30,13 @@ class GUI:
 		self.cursor = DB.cursor()
 		self.account_number = None
 
-		self.account_store = self.builder.get_object('account_store')
+		self.account_store = self.builder.get_object('account_treestore')
+		self.completion_liststore = self.builder.get_object('completion_liststore')
 		self.account_treestore = self.builder.get_object('account_transaction_store')
 		self.treeview = self.builder.get_object('treeview1')
 		self.is_parent_account = None
+		self.populate_account_treestore ()
 		c = DB.cursor()
-		c.execute("SELECT number, name, is_parent FROM gl_accounts "
-							"ORDER BY number")
-		for account in c.fetchall():
-			number = str(account[0])
-			name = account[1]
-			is_parent_account = account[2]
-			self.account_store.append([number, number + " " + name, 
-										is_parent_account])
 		fiscal_store = self.builder.get_object('fiscal_store')
 		c.execute("SELECT id::text, name FROM fiscal_years "
 							"WHERE active = True ORDER BY name ")
@@ -72,6 +66,31 @@ class GUI:
 	def balance_cell_func(self, column, cellrenderer, model, iter1, data):
 		balance = '{:,.2f}'.format(model.get_value(iter1, 5))
 		cellrenderer.set_property("text" , balance)
+
+	def populate_account_treestore (self):
+		c = DB.cursor()
+		self.account_treestore.clear()
+		c.execute("SELECT number::text, name, is_parent FROM gl_accounts "
+							"WHERE parent_number IS NULL ORDER BY number")
+		for row in c.fetchall():
+			account_number = row[0]
+			self.completion_liststore.append(row)
+			parent = self.account_store.append(None, row)
+			self.get_main_child_accounts (parent, account_number)
+		DB.rollback()
+		c.close()
+
+	def get_main_child_accounts (self, parent_tree, parent_number):
+		c = DB.cursor()
+		c.execute("SELECT number::text, name, is_parent FROM gl_accounts "
+							"WHERE parent_number = %s ORDER BY number", 
+							(parent_number,))
+		for row in c.fetchall():
+			account_number = row[0]
+			self.completion_liststore.append(row)
+			parent = self.account_store.append(parent_tree, row)
+			self.get_main_child_accounts (parent, account_number)
+		c.close()
 
 	def treeview_button_release_event (self, widget, event):
 		if event.button == 3:
@@ -158,24 +177,30 @@ class GUI:
 			self.account_treestore.set_value(tree_parent, 4, account_amount)
 
 	def account_match_selected(self, completion, model, iter_):
-		self.select_account (iter_)
+		self.account_number = model[iter_][0]
+		self.account_name = model[iter_][1]
+		self.is_parent_account = model[iter_][2]
+		self.select_account ()
+		return True # block the signal from updating the combobox-entry text
 
 	def account_combo_changed(self, combo):
-		path = combo.get_active()
-		if path != -1: #no account selected
-			self.select_account (path)
+		iter_ = combo.get_active_iter()
+		if iter_ != None: #no account selected
+			self.account_number = self.account_store[iter_][0]
+			self.account_name = self.account_store[iter_][1]
+			self.is_parent_account = self.account_store[iter_][2]
+			self.select_account()
 
-	def select_account (self, path):
-		self.account_number = self.account_store[path][0]
-		self.account_name = self.account_store[path][1]
-		self.is_parent_account = self.account_store[path][2]
+	def select_account (self, ):
+		account = self.account_number + ' ' + self.account_name
+		self.builder.get_object('combobox-entry').set_text(account)
 		type_ = str(self.account_number)[0]
 		if type_ == '4' or type_ == '5':
 			self.n_col = 6 #the column with negative values
 		else:
 			self.n_col = 4
 		self.load_account_store()
-		self.scroll_window_to_bottom ()		
+		self.scroll_window_to_bottom ()
 		
 	def refresh(self, widget):
 		self.load_account_store()
@@ -207,21 +232,23 @@ class GUI:
 	def completion_match_func (self, completion, key, iter):
 		split_search_text = key.split()
 		for text in split_search_text:
-			if text not in self.account_store[iter][1].lower():
+			number = self.completion_liststore[iter][0]
+			name = self.completion_liststore[iter][1].lower()
+			if text not in number and text not in name:
 				return False
 		return True
 
 	def cursor_double_clicked(self, treeview, path, column):
 		treeiter = self.account_treestore.get_iter(path)
 		account_number = self.account_treestore.get_value(treeiter, 2)
-		self.cursor.execute("SELECT name, number, is_parent FROM gl_accounts "
+		self.cursor.execute("SELECT number::text, name, is_parent "
+							"FROM gl_accounts "
 							"WHERE number = %s", (account_number, ))
-		for line in self.cursor.fetchall():
-			self.account_name = line[0]
-			self.account_number = str(line[1])
-			self.is_parent_account = line[2]
-			account_combo = self.builder.get_object('combobox1')
-			account_combo.set_active_id (self.account_number)
+		for row in self.cursor.fetchall():
+			self.account_number = row[0]
+			self.account_name = row[1]
+			self.is_parent_account = row[2]
+			self.select_account()
 
 	def parent_child_account_treeview (self):
 		self.account_treestore.clear()
@@ -583,8 +610,3 @@ class GUI:
 
 
 
-		
-
-
-
-		
