@@ -54,7 +54,7 @@ class BackupGUI(Gtk.Builder):
 		sqlite = get_apsw_connection()
 		cursor = sqlite.cursor()
 		cursor.execute("SELECT value FROM settings "
-						"WHERE setting = 'backup_path' AND setting != ''")
+						"WHERE setting = 'backup_path'")
 		for row in cursor.fetchall():
 			backup_path = row[0]
 			dialog.set_current_folder(backup_path)
@@ -99,11 +99,11 @@ class BackupGUI(Gtk.Builder):
 		pty = Vte.Pty.new_sync(Vte.PtyFlags.DEFAULT)
 		self.terminal.set_pty(pty)
 		backup_command = ["%s/pg_dump" % self.bin_path, 
-							"-CWv", "-F", "c", 
-							"-U", sql_user, 
-							"-h", sql_host, 
-							"-p", sql_port, 
-							"-d", DB_NAME, 
+							"-Cwv", "-F", "c",
+							"-U", sql_user,
+							"-h", sql_host,
+							"-p", sql_port,
+							"-d", DB_NAME,
 							"-f", filename]
 		pty.spawn_async(None,
 						backup_command,
@@ -114,10 +114,9 @@ class BackupGUI(Gtk.Builder):
 						-1,
 						None,
 						self.spawn_finished_callback,
-						sql_password,
 						)
 
-	def spawn_finished_callback (self, pty, task, password):
+	def spawn_finished_callback (self, pty, task):
 		try:
 			validity, pid = pty.spawn_finish(task)
 		except Exception as e:
@@ -128,7 +127,6 @@ class BackupGUI(Gtk.Builder):
 		self.get_object('button1').set_sensitive(False)
 		self.terminal.watch_child(pid)
 		self.terminal.connect("child-exited", self.backup_finished_callback)
-		GLib.timeout_add(100, self.feed_password, password)
 
 	def backup_finished_callback (self, terminal, error):
 		self.get_object('button1').set_sensitive(True)
