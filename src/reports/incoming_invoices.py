@@ -293,7 +293,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
 		sp_id = self.service_provider_store[treeiter][0]
-		self.update_service_provider(sp_id, row_id)
+		self.update_service_provider(sp_id)
 
 	def service_provider_renderer_editing_started (self, cellrenderer, celleditable, path):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
@@ -306,13 +306,12 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
 		sp_id = model[treeiter][0]
-		row_id = model[path][0]
-		self.update_service_provider(row_id)
+		self.update_service_provider(sp_id)
 
-	def update_service_provider (self, row_id):
+	def update_service_provider (self, sp_id):
 		selection = self.get_object('incoming_invoices_tree_selection')
 		model, path = selection.get_selected_rows()
-		if path == []:
+		if len(path) != 1: # only one row valid for editing, no more, no less
 			return
 		row_id = model[path][0]
 		c = DB.cursor()
