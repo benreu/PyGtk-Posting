@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 import subprocess, psycopg2
 from decimal import Decimal
 from constants import ui_directory, DB, broadcaster
@@ -193,6 +193,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.populate_incoming_invoice_store()
 
 	def populate_incoming_invoice_store (self):
+		treeselection = self.get_object('incoming_invoices_tree_selection')
+		model, path = treeselection.get_selected_rows()
+		treeview = self.get_object('incoming_invoices_treeview')
+		model = treeview.get_model()
+		treeview.set_model(None)
 		self.incoming_invoice_store.clear()
 		self.invoice_items_store.clear()
 		c = DB.cursor()
@@ -217,6 +222,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		for row in c.fetchall():
 			self.incoming_invoice_store.append(row)
 		DB.rollback()
+		treeview.set_model(model)
+		if path != []: 
+			treeselection.select_path(path)
 
 	def incoming_invoice_selection_changed (self, treeselection):
 		self.invoice_items_store.clear()
@@ -319,7 +327,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					"SET contact_id = %s WHERE id = %s",
 					(sp_id, row_id))
 		DB.commit()
-		self.populate_incoming_invoice_store()
+		GLib.timeout_add(25, self.populate_incoming_invoice_store)
 
 	def date_edited (self, cellrenderertext, path, text):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
