@@ -193,7 +193,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		invoice_amount = self.get_object('spinbutton1').get_text()
 		percent = Decimal(text) / Decimal('100')
 		split_amount = Decimal(invoice_amount) * percent
-		self.expense_percentage_store[path][1] = split_amount
+		self.expense_percentage_store[path][1] = round(split_amount, 2)
 		self.add_expense_totals ()
 
 	def add_expense_totals (self):
