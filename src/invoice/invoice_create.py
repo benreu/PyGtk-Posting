@@ -17,7 +17,6 @@
 
 from gi.repository import Gtk
 import os, subprocess, psycopg2
-from urllib.parse import quote
 from datetime import datetime, timedelta
 from db import transactor
 import printing
@@ -217,18 +216,18 @@ class Setup:
         total = '${:.2f}'.format(float(total)) if total is not None else ''
         customer_name = name_row[0] if name_row else ''
         subject = "Invoice %s" % (self.invoice_id,)
-        body = quote(
-            "Hi %s,\n\n"
-            "Your invoice #%s for the amount of %s is attached. "
-            "Please pay at your earliest convenience.\n\n"
-            "Delete all copies of this email if you are not the correct recipient."
-            % (customer_name, self.invoice_id, total))
-        subprocess.Popen(["thunderbird",
-                          "-compose",
-                          "to=" + email +
-                          ",subject=" + subject + ","
-                          "body=" + body + ","
-                          "attachment=" + self.invoice_pdf])
+        # xdg-email hands this to whichever mail client the desktop is set up
+        # with, and takes its arguments literally, so the body is not quoted
+        body = ("Hi %s,\n\n"
+                "Your invoice #%s for the amount of %s is attached. "
+                "Please pay at your earliest convenience.\n\n"
+                "Delete all copies of this email if you are not the correct "
+                "recipient." % (customer_name, self.invoice_id, total))
+        subprocess.Popen(["xdg-email",
+                          "--subject", subject,
+                          "--body", body,
+                          "--attach", self.invoice_pdf,
+                          email])
 
     def post(self):
         with open(self.invoice_pdf, 'rb') as f:
