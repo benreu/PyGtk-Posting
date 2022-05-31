@@ -273,13 +273,12 @@ class Setup(XCloseListener, unohelper.Base):
 								(self.invoice_id,))
 		cursor.close()
 
-	def email (self, email):
+	def email (self, email_address):
 		document = "/tmp/" + self.document_pdf
-		subprocess.Popen(["thunderbird",
-							"-compose",
-							"to=" + email + 
-							",subject=Invoice,"
-							"attachment=" + document])
+		subprocess.Popen(["xdg-email",
+							"--subject", "Invoice",
+							"--attach", document,
+							email_address])
 
 	def post(self):
 		document = "/tmp/" + self.document_pdf
