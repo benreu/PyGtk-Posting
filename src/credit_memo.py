@@ -529,9 +529,9 @@ class CreditMemoGUI:
 	def check_credit_memo_id (self):
 		if self.credit_memo_id == None:
 			self.cursor.execute("INSERT INTO credit_memos "
-								"(name, customer_id, date_created, total) "
-								"VALUES ('Credit Memo', %s, now(), 0.00) "
-								"RETURNING id", (self.customer_id,))
+								"(name, customer_id, date_created, dated_for, total) "
+								"VALUES ('Credit Memo', %s, now(), %s, 0.00) "
+								"RETURNING id", (self.customer_id, self.date))
 			self.credit_memo_id = self.cursor.fetchone()[0]
 			DB.commit()
 
