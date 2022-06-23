@@ -542,11 +542,17 @@ class CreditMemoGUI:
 
 	def check_credit_memo_id (self):
 		if self.credit_memo_id == None:
+			#dated_for is set here too, otherwise posting a credit memo right
+			#after creating it leaves it unset. Read from the calendar rather
+			#than self.date, which does not exist until a day is selected
 			cursor = DB.cursor()
 			cursor.execute("INSERT INTO credit_memos "
-								"(name, customer_id, date_created, total) "
-								"VALUES ('Credit Memo', %s, now(), 0.00) "
-								"RETURNING id", (self.customer_id,))
+								"(name, customer_id, date_created, dated_for, "
+								"total) "
+								"VALUES ('Credit Memo', %s, now(), %s, 0.00) "
+								"RETURNING id",
+								(self.customer_id,
+								self.date_calendar.get_date()))
 			self.credit_memo_id = cursor.fetchone()[0]
 			cursor.close()
 			DB.commit()
