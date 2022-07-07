@@ -203,7 +203,8 @@ class ProductSearchGUI:
 							"FROM products AS p "
 							"LEFT JOIN vendor_product_numbers AS vpn "
 							"ON vpn.product_id = p.id "
-							"LEFT JOIN contacts AS c ON vpn.vendor_id = c.id")
+							"LEFT JOIN contacts AS c ON vpn.vendor_id = c.id "
+							"WHERE p.deleted = False")
 		p_tuple = c.fetchall()
 		rows = len(p_tuple)
 		for row_count, row in enumerate(p_tuple):
