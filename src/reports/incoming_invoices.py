@@ -195,6 +195,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def populate_incoming_invoice_store (self):
 		treeselection = self.get_object('incoming_invoices_tree_selection')
 		model, path = treeselection.get_selected_rows()
+		current_id = 0
+		iter_to_select= None
+		if path != []:
+			current_id = model[path][0]
 		treeview = self.get_object('incoming_invoices_treeview')
 		model = treeview.get_model()
 		treeview.set_model(None)
@@ -220,11 +224,16 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					self.expense_account_join, 
 					self.fiscal_year_join ))
 		for row in c.fetchall():
-			self.incoming_invoice_store.append(row)
+			if current_id == row[0]:
+				iter_to_select = self.incoming_invoice_store.append(row)
+			else:
+				self.incoming_invoice_store.append(row)
 		DB.rollback()
 		treeview.set_model(model)
-		if path != []: 
-			treeselection.select_path(path)
+		if iter_to_select != None:
+			path = self.incoming_invoice_store.get_path(iter_to_select)
+			c = treeview.get_column(0)
+			treeview.set_cursor(path, c, False)
 
 	def incoming_invoice_selection_changed (self, treeselection):
 		self.invoice_items_store.clear()
