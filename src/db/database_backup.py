@@ -100,10 +100,8 @@ class BackupGUI(Gtk.Builder):
 		self.terminal.set_pty(pty)
 		backup_command = ["%s/pg_dump" % self.bin_path, 
 							"-Cwv", "-F", "c",
-							"-U", sql_user,
-							"-h", sql_host,
-							"-p", sql_port,
-							"-d", DB_NAME,
+							"--dbname=postgresql://%s:%s@%s:%s/%s" % 
+							(sql_user, sql_password, sql_host, sql_port, DB_NAME),
 							"-f", filename]
 		pty.spawn_async(None,
 						backup_command,
