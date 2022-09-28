@@ -39,6 +39,7 @@ class InvoiceHubGUI(Gtk.Builder):
 		window.show_all()
 		window.set_title("Invoice hub (%s)" % invoice_id)
 		self.populate_items()
+		self.populate_serial_numbers()
 		self.populate_metadata ()
 		DB.rollback()
 
@@ -63,6 +64,24 @@ class InvoiceHubGUI(Gtk.Builder):
 						"ili.canceled "
 					"FROM invoice_items AS ili "
 					"JOIN products AS p ON p.id = ili.product_id "
+					"WHERE ili.invoice_id = %s "
+					"ORDER BY ili.sort, ili.id", (self.invoice_id,))
+		for row in c.fetchall():
+			store.append(row)
+		c.close()
+
+	def populate_serial_numbers(self):
+		store = self.get_object('serial_number_store')
+		c = DB.cursor()
+		c.execute("SELECT "
+						"ili.id, "
+						"ili.product_id, "
+						"p.name, "
+						"p.ext_name, "
+						"sn.serial_number "
+					"FROM invoice_items AS ili "
+					"JOIN products AS p ON p.id = ili.product_id "
+					"INNER JOIN serial_numbers AS sn ON sn.invoice_item_id = ili.id "
 					"WHERE ili.invoice_id = %s "
 					"ORDER BY ili.sort, ili.id", (self.invoice_id,))
 		for row in c.fetchall():

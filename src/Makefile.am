@@ -161,7 +161,9 @@ pygtk_posting_PYTHON = \
 	about_window.ui \
 	sqlite_utils.py \
 	admin_utils.py \
-	admin_utils.ui
+	admin_utils.ui \
+	invoice_hub.py \
+	invoice_hub.ui
 	invoice_hub.py \
 	invoice_hub.ui
 
