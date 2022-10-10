@@ -57,7 +57,10 @@ class BackupGUI(Gtk.Builder):
 						"WHERE setting = 'backup_path'")
 		for row in cursor.fetchall():
 			backup_path = row[0]
-			dialog.set_current_folder(backup_path)
+			if os.path.exists(backup_path):
+				dialog.set_current_folder(backup_path)
+			else:
+				dialog.set_current_folder(os.path.expanduser('~'))
 		sqlite.close()
 		if automatic and os.path.exists(backup_path):
 			full_filepath = backup_path + "/" + name
@@ -71,15 +74,12 @@ class BackupGUI(Gtk.Builder):
 				self.backup_database(filename)
 		dialog.destroy()
 
-	def feed_password(self, password):
-		self.terminal.feed_child((password + '\n').encode('utf-8'))
-
 	def backup_file_selection_changed (self, filechooser):
 		name = filechooser.get_current_name()
 		if name[-4:] != '.pbk':
 			name = name + '.pbk'
 		filechooser.set_current_name(name)
-		self.get_object('status_label').set_label(filechooser.get_filename())
+		self.get_object('status_label').set_label(filechooser.get_filename() or "N/A")
 
 	def backup_cancel_clicked (self, button):
 		self.window.destroy()
@@ -100,10 +100,8 @@ class BackupGUI(Gtk.Builder):
 		self.terminal.set_pty(pty)
 		backup_command = ["%s/pg_dump" % self.bin_path, 
 							"-Cwv", "-F", "c",
-							"-U", sql_user,
-							"-h", sql_host,
-							"-p", sql_port,
-							"-d", DB_NAME,
+							"--dbname=postgresql://%s:%s@%s:%s/%s" % 
+							(sql_user, sql_password, sql_host, sql_port, DB_NAME),
 							"-f", filename]
 		pty.spawn_async(None,
 						backup_command,
