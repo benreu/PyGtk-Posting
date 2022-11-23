@@ -114,6 +114,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.COPY)
 		self.treeview.drag_dest_set_target_list([enforce_target])
 		
+		column = self.get_object ('line_number_column')
+		renderer = self.get_object ('line_number_renderer')
+		column.set_cell_data_func(renderer, self.line_number_cell_func)
+		
 		self.populate_vendor_store ()
 		if edit_po_id != None:
 			self.cursor.execute("SELECT name, vendor_id FROM purchase_orders "
@@ -217,6 +221,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 				exportfile.writerow(row)
 			cursor.close()
 		DB.rollback()
+
+	def line_number_cell_func(self, column, cellrenderer, model, iter1, data):
+		line = int(model.get_path(iter1)[0]) + 1
+		cellrenderer.set_property("text" , str(line))
 
 	def help_clicked (self, widget):
 		subprocess.Popen(["yelp", help_dir + "/purchase_order.page"])
@@ -1073,7 +1081,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def new_entry_clicked (self, button):
 		_iter = self.add_entry ()
 		treeview = self.get_object('treeview2')
-		c = treeview.get_column(0)
+		c = treeview.get_column(1)
 		path = self.p_o_store.get_path(_iter)
 		treeview.set_cursor(path, c, True)
 
@@ -1122,7 +1130,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 				if titer is None:
 					titer = tmodel.get_iter_first()
 					path = tmodel.get_path(titer)
-					next_column = columns[0]
+					next_column = columns[1]
 			if keyname == 'Tab':
 				GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
 			elif keyname == 'Escape':
