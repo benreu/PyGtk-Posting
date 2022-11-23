@@ -17,8 +17,7 @@
 
 import psycopg2
 from gi.repository import Gtk, GLib
-from multiprocessing import Process, Queue
-from queue import Empty
+import threading
 from constants import DB, ui_directory
 
 UI_FILE = ui_directory + "/complete_search.ui"
@@ -30,7 +29,6 @@ class CompleteSearchGUI(Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		self.cursor = DB.cursor()
-		self.data_queue = Queue()
 		self.store = self.get_object('search_store')
 		self.treeview = self.get_object('treeview')
 		self.window = self.get_object('window')
@@ -46,55 +44,43 @@ class CompleteSearchGUI(Gtk.Builder):
 		self.search_text = self.get_object('search_entry').get_text()
 		self.treeview.set_model(None)
 		self.store.clear()
-		thread = Process(target=self.get_results)
+		thread = threading.Thread(target=self.get_results)
 		thread.start()
-		GLib.timeout_add(10, self.show_results)
 		self.get_object('search_button').set_sensitive(False)
 		spinner = self.get_object("spinner")
 		spinner.show()
 		spinner.start()
 
 	def get_results(self):
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("SELECT * FROM complete_search(%s)", 
+			cursor.execute("SELECT * FROM complete_search(%s)", 
 												(self.search_text,))
 		except psycopg2.DataError as e:
 			DB.rollback()
-			self.data_queue.put(e)
+			GLib.idle_add(self.show_message, e)
+			GLib.idle_add(self.stop_spinner)
 			return
-		tupl = self.cursor.fetchall()
-		self.data_queue.put(tupl)
-		DB.rollback()
+		tupl = cursor.fetchall()
+		GLib.idle_add(self.show_results, tupl)
+		cursor.close()
 
 	def stop_spinner (self):
 		spinner = self.get_object("spinner")
 		spinner.hide()
 		spinner.stop()
-		self.get_object('search_button').set_sensitive(True)
 
-	def show_results (self):
-		try:
-			result = self.data_queue.get_nowait()
-			if type(result) == psycopg2.DataError:
-				self.show_message(str(result))
-				self.stop_spinner()
-				return False
-			else:
-				tupl = result
-		except Empty:
-			return True
-		count = len(tupl)
+	def show_results (self, tupl):
 		for row in tupl:
 			self.store.append(row)
 			while Gtk.events_pending():
 				Gtk.main_iteration()
 		self.treeview.set_model(self.store)
+		count = len(tupl)
 		self.get_object('label').set_label(str(count))
 		self.get_object('search_button').set_sensitive(True)
-		spinner = self.get_object("spinner")
-		spinner.hide()
-		spinner.stop()
-		DB.commit()
+		self.stop_spinner()
+		DB.rollback()
 
 	def treeview_row_activated (self, treeview, path, treeviewcolumn):
 		schema = self.store[path][0]
