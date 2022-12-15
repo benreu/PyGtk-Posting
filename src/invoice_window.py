@@ -52,8 +52,8 @@ class Item(object):#this is used by py3o library see their example for more info
 
 class InvoiceGUI:
 	def __init__(self, invoice_id = None):
-		
-		self.invoice_id = invoice_id
+
+		self.invoice_id = 0
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -105,18 +105,18 @@ class InvoiceGUI:
 		self.calendar.set_today()
 
 		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
-			self.populate_customer_store ()
-			self.set_widgets_sensitive ()
-			self.populate_invoice_items()
 			cursor = DB.cursor()
 			self.cursor.execute("SELECT customer_id, COALESCE(dated_for, now())"
 								"FROM invoices "
-								"WHERE id = %s", (self.invoice_id,))
+								"WHERE id = %s", (invoice_id,))
 			for row in self.cursor.fetchall():
 				customer_id = row[0]
 				date = row[1]
 				self.calendar.set_date(date)
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
+			self.invoice_id = invoice_id
+			self.set_widgets_sensitive ()
+			self.populate_invoice_items()
 
 		self.tax = 0
 		self.window.show_all()
