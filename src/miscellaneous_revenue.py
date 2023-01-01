@@ -125,17 +125,17 @@ class MiscellaneousRevenueGUI:
 		if self.date == None:
 			button.set_label('No date selected')
 			return
-		total = 0.00
+		total = Decimal('0.00')
 		model = self.builder.get_object('revenue_store')
 		for row in model:
-			total += float(row[3])
+			total += Decimal(row[3])
 			if row[0] == 0:
 				button.set_label('No account selected')
 				return # no account selected
-			if float(row[3]) == 0.00:
+			if Decimal(row[3]) == Decimal('0.00'):
 				button.set_label('Row amount is 0.00')
 				return # row amount is 0.00
-		if total == 0.00:
+		if total == Decimal('0.00'):
 			button.set_label('No revenue rows added')
 			return # row amount is 0.00
 		check_text = self.builder.get_object('entry1').get_text()
@@ -143,7 +143,8 @@ class MiscellaneousRevenueGUI:
 		if check_active == True and check_text == '':
 			button.set_label('No check number')
 			return # no check number
-		if self.builder.get_object('spinbutton1').get_value() != total:
+		value = self.builder.get_object('spinbutton1').get_text()
+		if Decimal(value) != total:
 			button.set_label('Amount does not match total')
 			return
 		button.set_sensitive(True)
