@@ -125,15 +125,15 @@ class PurchaseOrderGUI(Gtk.Builder):
 			for row in self.cursor.fetchall():
 				po_name = row[0]
 				self.vendor_id = row[1]
+				self.get_object('combobox1').set_active_id(str(self.vendor_id))
 				self.get_object('po_name_entry').set_text(po_name)
 				self.get_object('po_number_entry').set_text(str(edit_po_id))
-			self.get_object('combobox1').set_active_id(str(self.vendor_id))
-			self.get_object('button2').set_sensitive(True)
-			self.get_object('button3').set_sensitive(True)
-			self.get_object('menuitem5').set_sensitive(True)
-			self.get_object('menuitem2').set_sensitive(True)
-			self.purchase_order_id = int(edit_po_id)
-			self.populate_purchase_order_items ()
+				self.get_object('button2').set_sensitive(True)
+				self.get_object('button3').set_sensitive(True)
+				self.get_object('menuitem5').set_sensitive(True)
+				self.get_object('menuitem2').set_sensitive(True)
+				self.purchase_order_id = int(edit_po_id)
+				self.populate_purchase_order_items ()
 
 		self.cursor.execute("SELECT print_direct FROM settings")
 		self.get_object('menuitem1').set_active(self.cursor.fetchone()[0]) #set the direct print checkbox
