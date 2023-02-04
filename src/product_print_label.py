@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 import subprocess
 from constants import DB, ui_directory, template_dir, broadcaster
 import barcode_generator, pricing
@@ -71,6 +71,16 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		self.product_id = model[titer][0]
 		self.load_product()
 
+	def barcode_entry_focus_in_event (self, entry, event):
+		GLib.idle_add(entry.select_region, 0, -1)
+
+	def barcode_entry_activated (self, entry):
+		product_id = entry.get_text()
+		if self.get_object('product_combo').set_active_id(product_id):
+			if self.get_object('print_label_checkbutton').get_active():
+				self.print_label()
+		entry.select_region(0, -1)
+
 	def product_combo_changed (self, combobox):
 		product_id = combobox.get_active_id()
 		if product_id != None:
@@ -99,9 +109,12 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		DB.rollback()
 
 	def print_label_clicked (self, button):
+		self.print_label()
+		self.window.destroy()
+
+	def print_label (self):
 		self.generate_label()
 		subprocess.Popen(["soffice", "-p", self.label_file])
-		self.window.destroy()
 
 	def view_label_clicked (self, button):
 		self.generate_label()
@@ -123,6 +136,9 @@ class ProductPrintLabelGUI (Gtk.Builder):
 			label.description = row[1]
 			label.code128 = barcode_generator.makeCode128(row[2])
 			label.barcode = row[2]
+			break
+		else:
+			return
 		price = pricing.product_retail_price (self.product_id)
 		label.price = '${:,.2f}'.format(price)
 		data = dict(label = label)
