@@ -46,7 +46,6 @@ class GUI:
 			self.builder.get_object("grid2").set_sensitive(True)
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
 			self.statusbar.push(1,"Please setup PostgreSQL in the Server (host) tab")
-			self.builder.get_object('window').set_modal(True)
 		
 		self.get_postgre_settings (None)
 		self.window = self.builder.get_object('window')
