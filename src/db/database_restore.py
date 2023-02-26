@@ -59,6 +59,7 @@ class RestoreGUI(Gtk.Builder):
 		if result == Gtk.ResponseType.APPLY:
 			self.dialog.hide()
 			self.restore_database()
+			self.db_file = self.dialog.get_filename()
 		self.dialog.destroy()
 
 	def restore_file_selection_changed (self, filechooser):
@@ -114,14 +115,13 @@ class RestoreGUI(Gtk.Builder):
 			return
 		pty = Vte.Pty.new_sync(Vte.PtyFlags.DEFAULT)
 		self.terminal.set_pty(pty)
-		db_file = self.get_object('restore_dialog').get_filename()
 		restore_command = ["%s/pg_restore" % self.bin_path, 
 							"-v",
 							"-U", self.sql_user, 
 							"-h", self.sql_host, 
 							"-p", self.sql_port, 
 							"-d", self.db_name,
-							db_file]
+							self.db_file]
 		pty.spawn_async(None,
 						restore_command,
 						None,
