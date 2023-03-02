@@ -277,7 +277,7 @@ class MainGUI :
 		import payment_receipt
 		payment_receipt.PaymentReceiptGUI()
 
-	def count_inventory_activated (self, menuitem):
+	def inventory_count_activated (self, menuitem):
 		from inventory import inventory_count
 		inventory_count.InventoryCountGUI()
 

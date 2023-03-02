@@ -516,15 +516,6 @@
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <child>
-                              <object class="GtkMenuItem" id="menuitem51">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Count inventory</property>
-                                <property name="use-underline">True</property>
-                                <signal name="activate" handler="count_inventory_activated" swapped="no"/>
-                              </object>
-                            </child>
-                            <child>
                               <object class="GtkMenuItem" id="menuitem8">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -926,6 +917,15 @@
                         <property name="label" translatable="yes">Compare</property>
                         <property name="use-underline">True</property>
                         <signal name="activate" handler="inventory_compare_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem51">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Count</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="inventory_count_activated" swapped="no"/>
                       </object>
                     </child>
                   </object>
