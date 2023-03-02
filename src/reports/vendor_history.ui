@@ -19,6 +19,14 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
+      <object class="GtkMenuItem" id="edit_attachment_menuitem">
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit attachment</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="edit_attachment_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem2">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -109,6 +117,15 @@
   <object class="GtkMenu" id="toolbar_menu">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <child>
+      <object class="GtkCheckMenuItem" id="edit_mode_checkbutton">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit mode</property>
+        <property name="use-underline">True</property>
+        <signal name="toggled" handler="edit_mode_toggled" swapped="no"/>
+      </object>
+    </child>
     <child>
       <object class="GtkMenuItem">
         <property name="visible">True</property>

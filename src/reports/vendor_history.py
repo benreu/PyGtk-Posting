@@ -19,7 +19,7 @@
 from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
 import subprocess
-from constants import ui_directory, DB
+from constants import ui_directory, DB, broadcaster
 from sqlite_utils import get_apsw_connection
 import admin_utils
 
@@ -58,6 +58,11 @@ class VendorHistoryGUI:
 		
 		self.filter = self.builder.get_object ('purchase_order_items_filter')
 		self.filter.set_visible_func(self.filter_func)
+		
+		self.handler_ids = list()
+		for connection in (("admin_changed", self.admin_changed), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
 		self.window = self.builder.get_object('window1')
 		self.set_window_layout_from_settings ()
@@ -126,7 +131,28 @@ class VendorHistoryGUI:
 			c.execute("REPLACE INTO vendor_history (widget_id, size) "
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
-		
+
+	def admin_changed (self, broadcast_object, value):
+		self.builder.get_object('edit_mode_checkbutton').set_active(False)
+		self.get_object('edit_attachment_menuitem').set_visible(False)
+	
+	def edit_mode_toggled (self, checkmenuitem):
+		if checkmenuitem.get_active() == False:
+			self.builder.get_object('edit_attachment_menuitem').set_visible(False)
+			return # Warning, only check for admin when toggling to True
+		if not admin_utils.check_admin(self.window):
+			checkmenuitem.set_active(False)
+			return True
+		'''some wierdness going on with showing a dialog without letting the
+		checkmenuitem update its state'''
+		checkmenuitem.set_active(True)
+		self.builder.get_object('edit_attachment_menuitem').set_visible(True)
+	
+	def edit_attachment_activated (self, menuitem):
+		import pdf_attachment
+		paw = pdf_attachment.PdfAttachmentWindow(self.window)
+		paw.connect("pdf_optimized", self.optimized_callback)
+
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.po_store[path][0]
 		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders "
@@ -142,6 +168,8 @@ class VendorHistoryGUI:
 
 	def destroy (self, window):
 		self.cursor.close()
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 
 	def populate_vendors (self):
 		self.vendor_store.clear()
@@ -375,18 +403,20 @@ class VendorHistoryGUI:
 			with open(file_url,'wb') as f:
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_url])
+			DB.rollback()
 			break
 		else:
-			self.run_attach_dialog (po_id)
-		DB.rollback()
+			import pdf_attachment
+			paw = pdf_attachment.PdfAttachmentWindow(self.window)
+			paw.connect("pdf_optimized", self.optimized_callback)
 
-	def run_attach_dialog (self, po_id):
-		import pdf_attachment
-		paw = pdf_attachment.PdfAttachmentWindow(self.window)
-		paw.connect("pdf_optimized", self.optimized_callback, po_id)
-
-	def optimized_callback (self, pdf_attachment_window, po_id):
+	def optimized_callback (self, pdf_attachment_window):
 		file_data = pdf_attachment_window.get_pdf ()
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		po_id = model[path][0]
 		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
 							"WHERE id = %s", (file_data, po_id))
 		DB.commit()
