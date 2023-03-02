@@ -772,12 +772,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 	################## end remark
 
 	def product_renderer_changed (self, widget, path, iter_):
-		product_id = self.product_store[iter_][0]
+		product_id = int(self.product_store[iter_][0])
 		_iter = self.p_o_store.get_iter(path)
-		self.save_product (_iter, int(product_id))
+		self.save_product (_iter, product_id)
 
 	def product_renderer_editing_started (self, renderer, combo, path):
-		combo.connect('remove-widget', self.product_widget_removed, path)
 		entry = combo.get_child()
 		row_id = self.p_o_store[path][0]
 		cursor = DB.cursor()
@@ -849,10 +848,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.get_object ('button1').set_sensitive(True)
 		DB.rollback()
 
-	def product_widget_removed (self, combo, path):
+	def product_renderer_edited (self, cellrenderertext, path, product_text):
 		_iter = self.p_o_store.get_iter(path)
-		entry = combo.get_child()
-		product_text = entry.get_text()
 		self.populate_account_store ()
 		self.get_object ('entry4').set_text(product_text)
 		dialog = self.get_object ('non_stock_product_dialog')
@@ -873,10 +870,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.calculate_totals ()
 		self.get_object ('entry3').set_text('')
 		self.get_object ('button1').set_sensitive(False)
-	
-	def product_edited (self, cellrenderertext, text, path):
-		"Posting does not allow product names to be edited directly"
-		DB.rollback () # remove row lock, see editing_canceled
 
 	def save_product (self, _iter, product_id):
 		if self.check_for_duplicate_products (product_id, _iter) == True:
@@ -959,7 +952,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		return True
 
 	def product_match_selected(self, completion, model, iter_):
-		product_id = model[iter_][0]
+		product_id = int(model[iter_][0])
 		product_name = model[iter_][1]
 		selection = self.get_object('treeview-selection')
 		model, path_list = selection.get_selected_rows()
@@ -978,22 +971,40 @@ class PurchaseOrderGUI(Gtk.Builder):
 				qty = row[1]
 				qty_spinbutton = self.get_object('spinbutton1')
 				qty_spinbutton.set_value(int(qty))
-				dialog = self.get_object('duplicate_product_dialog')
-				result = dialog.run()
-				if result == Gtk.ResponseType.ACCEPT :
-					row_id = row[0]
-					qty = qty_spinbutton.get_text()
-					self.cursor.execute("UPDATE purchase_order_items "
-										"SET qty = %s WHERE id = %s", 
-										(qty, row_id))
-					DB.commit()
-					self.calculate_totals ()
-					self.delete_item_activated ()
-				elif result == Gtk.ResponseType.REJECT:
-					self.save_product_without_duplicate_check(_iter, product_id)
-				dialog.hide()
+				self.duplicate_product_id = product_id
+				self.duplicate_product_primary_row = row
+				window = self.get_object('duplicate_product_window')
+				window.show_all()
 				return True
 		return False
+
+	def duplicate_product_cancel_clicked (self, button):
+		self.get_object('duplicate_product_window').hide()
+
+	def duplicate_product_update_qty_clicked (self, button):
+		selection = self.get_object("treeview-selection")
+		model, path = selection.get_selected_rows ()
+		if path == []:
+			return
+		qty_spinbutton = self.get_object('spinbutton1')
+		qty = qty_spinbutton.get_text()
+		self.duplicate_product_primary_row[1] = qty
+		row_id = self.duplicate_product_primary_row[0]
+		self.cursor.execute("UPDATE purchase_order_items "
+							"SET qty = %s WHERE id = %s", 
+							(qty, row_id))
+		DB.commit()
+		self.calculate_totals ()
+		self.get_object('duplicate_product_window').hide()
+
+	def duplicate_product_add_again_clicked (self, button):
+		selection = self.get_object("treeview-selection")
+		model, path = selection.get_selected_rows ()
+		if path == []:
+			return
+		_iter = model.get_iter(path)
+		self.save_product_without_duplicate_check(_iter, self.duplicate_product_id)
+		self.get_object('duplicate_product_window').hide()
 
 	def check_po_item_id (self, _iter):
 		line = self.p_o_store[_iter]

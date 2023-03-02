@@ -507,7 +507,7 @@
                         <property name="model">product_store</property>
                         <property name="text-column">1</property>
                         <signal name="changed" handler="product_renderer_changed" swapped="no"/>
-                        <signal name="edited" handler="product_edited" swapped="no"/>
+                        <signal name="edited" handler="product_renderer_edited" swapped="no"/>
                         <signal name="editing-canceled" handler="editing_canceled" swapped="no"/>
                         <signal name="editing-started" handler="product_renderer_editing_started" swapped="no"/>
                       </object>
@@ -789,7 +789,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Post the invoice</property>
+                <property name="tooltip-text" translatable="yes">Post the PO</property>
                 <signal name="clicked" handler="post_purchase_order" swapped="no"/>
               </object>
               <packing>
@@ -1058,68 +1058,20 @@
       <action-widget response="-1">button10</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkDialog" id="duplicate_product_dialog">
+  <object class="GtkWindow" id="duplicate_product_window">
     <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Duplicate products !</property>
-    <property name="window-position">center</property>
-    <property name="icon-name">pygtk-posting</property>
-    <property name="type-hint">dialog</property>
+    <property name="modal">True</property>
+    <property name="window-position">center-on-parent</property>
+    <property name="destroy-with-parent">True</property>
+    <property name="skip-taskbar-hint">True</property>
+    <property name="decorated">False</property>
     <property name="transient-for">window</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox2">
+    <property name="attached-to">window</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="dialog-action_area2">
-            <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="button6">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button9">
-                <property name="label" translatable="yes">Add again</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button7">
-                <property name="label" translatable="yes">Update qty</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
         <child>
           <object class="GtkBox" id="box5">
             <property name="visible">True</property>
@@ -1147,6 +1099,7 @@ Do you want to update the quantity to </property>
                   <object class="GtkSpinButton" id="spinbutton1">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="text" translatable="yes">0</property>
                     <property name="adjustment">adjustment1</property>
                   </object>
                   <packing>
@@ -1178,16 +1131,64 @@ Do you want to update the quantity to </property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkButton" id="button6">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="duplicate_product_cancel_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button9">
+                <property name="label" translatable="yes">Add again</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="duplicate_product_add_again_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button7">
+                <property name="label" translatable="yes">Update qty</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="duplicate_product_update_qty_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>
       </object>
     </child>
-    <action-widgets>
-      <action-widget response="-6">button6</action-widget>
-      <action-widget response="-4">button9</action-widget>
-      <action-widget response="-3">button7</action-widget>
-    </action-widgets>
   </object>
   <object class="GtkFileChooserDialog" id="filechooserdialog1">
     <property name="can-focus">False</property>
