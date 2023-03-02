@@ -12,4 +12,6 @@ python_PYTHON = __init__.py \
 	inventory_summaries.py \
 	inventory_summaries.ui \
 	inventory_count.py \
-	inventory_count.ui
+	inventory_count.ui \
+	inventory_compare.py \
+	inventory_compare.ui

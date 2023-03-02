@@ -281,6 +281,10 @@ class MainGUI :
 		from inventory import inventory_count
 		inventory_count.InventoryCountGUI()
 
+	def inventory_compare_activated (self, menuitem):
+		from inventory import inventory_compare
+		inventory_compare.InventoryCompareGUI()
+
 	def user_manual_help (self, widget):
 		subprocess.Popen(["yelp", help_dir + "/index.page"])
 
