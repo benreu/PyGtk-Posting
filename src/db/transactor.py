@@ -583,10 +583,10 @@ def credit_card_fee_reward(date, credit_card_account, gl_account, amount,
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
 				"INSERT INTO gl_entries "
-				"(credit_account, debit_account, amount, "
+				"(credit_account, date_inserted, debit_account, amount, "
 				"transaction_description, fees_rewards, gl_transaction_id) "
-				"VALUES (%s, %s, %s, %s, True, (SELECT id FROM new_row))", 
-				(date, credit_card_account, gl_account, amount, description))
+				"VALUES (%s, %s, %s, %s, %s, True, (SELECT id FROM new_row))", 
+				(date, credit_card_account, date, gl_account, amount, description))
 	cursor.close()
 
 def bank_charge(bank_account, date, amount, description, account_number):
