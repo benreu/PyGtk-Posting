@@ -38,6 +38,39 @@
       <column type="gint"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">All reconciled off</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="all_reconciled_off_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">All reconciled on</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="all_reconciled_on_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkCheckMenuItem" id="save_reconciled_checkmenuitem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">When this option is unselected, reconciled rows will have a temporary state, and not be saved to the database for reconciliation. The reconcile button will be disabled.</property>
+        <property name="label" translatable="yes">Save Reconciled rows to database</property>
+        <property name="use-underline">True</property>
+        <property name="active">True</property>
+        <signal name="toggled" handler="save_reconciled_toggled" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="transactions_store">
     <columns>
       <!-- column-name id -->
@@ -172,6 +205,24 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="focus-on-click">False</property>
+                <property name="receives-default">True</property>
+                <property name="popup">menu1</property>
+                <property name="use-popover">False</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
               </packing>
             </child>
           </object>

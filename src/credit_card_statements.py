@@ -38,6 +38,7 @@ class CreditCardStatementGUI:
 									'fees_rewards_description_store')
 
 		self.credit_card_account = None
+		self.date = None
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 
@@ -213,15 +214,44 @@ class CreditCardStatementGUI:
 				amount = '{:,.2f}'.format(amount)
 				self.transactions_store.append([row_id, str(date), date_formatted, 
 											description, '', amount, reconciled])
+		
+	def all_reconciled_off_activated (self, menuitem):
+		for row in self.transactions_store:
+			row[6] = False
+		
+	def all_reconciled_on_activated (self, menuitem):
+		for row in self.transactions_store:
+			row[6] = True
 
 	def reconcile_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
 		row_id = self.transactions_store[path][0]
 		self.transactions_store[path][6] = active
-		self.cursor.execute("UPDATE gl_entries "
+		if self.builder.get_object('save_reconciled_checkmenuitem').get_active():
+			self.cursor.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
 							(active, row_id))
-		DB.commit()
+			DB.commit()
+
+	def save_reconciled_toggled (self, checkmenuitem):
+		self.check_widget_validity()
+
+	def check_widget_validity (self):
+		button = self.builder.get_object('button5')
+		button.set_sensitive(False)
+		if not self.credit_card_account:
+			button.set_label("No card selected")
+			return
+		if self.date == None:
+			button.set_label("No reconcile date")
+			return
+		self.builder.get_object('combobox1').set_sensitive(True)
+		self.builder.get_object('spinbutton2').set_sensitive(True)
+		if not self.builder.get_object('save_reconciled_checkmenuitem').get_active():
+			button.set_label("Reconcile disabled")
+			return
+		button.set_label("Reconcile")
+		button.set_sensitive(True)
 
 	def credit_combo_changed (self, combo):
 		account = combo.get_active_id()
@@ -233,8 +263,7 @@ class CreditCardStatementGUI:
 		self.credit_card_account = account
 		self.populate_statement_treeview ()
 		self.builder.get_object('label9').set_label(str(balance))
-		self.builder.get_object('combobox1').set_sensitive(True)
-		self.builder.get_object('spinbutton2').set_sensitive(True)
+		self.check_widget_validity()
 
 	def fees_rewards_description_changed(self, entry):
 		if entry.get_text() == '':
@@ -306,8 +335,7 @@ class CreditCardStatementGUI:
 		self.date = calendar.get_date()
 		day_text = calendar.get_text()
 		self.builder.get_object('entry4').set_text(day_text)
-		self.builder.get_object('button5').set_label("Reconcile")
-		self.builder.get_object('button5').set_sensitive(True)
+		self.check_widget_validity()
 
 	def calendar_entry_icon_released (self, widget, icon, event):
 		self.calendar.set_relative_to(widget)
