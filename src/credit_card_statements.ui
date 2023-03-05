@@ -82,8 +82,12 @@
       <!-- column-name description -->
       <column type="gchararray"/>
       <!-- column-name debit -->
+      <column type="gfloat"/>
+      <!-- column-name debit_formatted -->
       <column type="gchararray"/>
       <!-- column-name credit -->
+      <column type="gfloat"/>
+      <!-- column-name credit_formatted -->
       <column type="gchararray"/>
       <!-- column-name reconcile -->
       <column type="gboolean"/>
@@ -294,7 +298,7 @@
                         <property name="xalign">1</property>
                       </object>
                       <attributes>
-                        <attribute name="text">4</attribute>
+                        <attribute name="text">5</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -304,13 +308,13 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Credit</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">5</property>
+                    <property name="sort-column-id">6</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext5">
                         <property name="xalign">1</property>
                       </object>
                       <attributes>
-                        <attribute name="text">5</attribute>
+                        <attribute name="text">7</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -320,13 +324,13 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">R</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">6</property>
+                    <property name="sort-column-id">8</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle1">
                         <signal name="toggled" handler="reconcile_toggled" swapped="no"/>
                       </object>
                       <attributes>
-                        <attribute name="active">6</attribute>
+                        <attribute name="active">8</attribute>
                       </attributes>
                     </child>
                   </object>

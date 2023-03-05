@@ -188,7 +188,8 @@ class CreditCardStatementGUI:
 		self.cursor.execute("SELECT "
 								"id, "
 								"transaction_description, "
-								"amount, "
+								"amount::numeric, "
+								"amount::text, "
 								"date_inserted::text, "
 								"format_date(date_inserted), "
 								"reconciled, "
@@ -202,31 +203,32 @@ class CreditCardStatementGUI:
 		for row in self.cursor.fetchall():
 			row_id = row[0]
 			description = row[1]
-			amount = float(row[2])
-			date = row[3]
-			date_formatted = row[4]
-			reconciled = row[5]
-			if str(row[6]) == self.credit_card_account:
-				amount = '{:,.2f}'.format(amount)
+			amount = row[2]
+			amount_formatted = row[3]
+			date = row[4]
+			date_formatted = row[5]
+			reconciled = row[6]
+			if str(row[7]) == self.credit_card_account:
 				self.transactions_store.append([row_id, str(date), date_formatted, 
-											description, amount, '', reconciled])
+											description, amount, amount_formatted, 
+											0.0, '', reconciled])
 			else:
-				amount = '{:,.2f}'.format(amount)
 				self.transactions_store.append([row_id, str(date), date_formatted, 
-											description, '', amount, reconciled])
+											description, 0.0, '',
+											amount, amount_formatted, reconciled])
 		
 	def all_reconciled_off_activated (self, menuitem):
 		for row in self.transactions_store:
-			row[6] = False
+			row[8] = False
 		
 	def all_reconciled_on_activated (self, menuitem):
 		for row in self.transactions_store:
-			row[6] = True
+			row[8] = True
 
 	def reconcile_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
 		row_id = self.transactions_store[path][0]
-		self.transactions_store[path][6] = active
+		self.transactions_store[path][8] = active
 		if self.builder.get_object('save_reconciled_checkmenuitem').get_active():
 			self.cursor.execute("UPDATE gl_entries "
 							"SET reconciled = %s WHERE id = %s", 
