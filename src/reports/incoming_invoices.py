@@ -356,6 +356,22 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		DB.commit()
 		self.populate_incoming_invoice_store()
 
+	def reconciled_toggled (self, cellrenderertoggle, path):
+		if self.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		model = self.get_object('incoming_invoices_store')
+		row_id = model[path][0]
+		reconciled = model[path][8]
+		if reconciled == True:
+			c = DB.cursor()
+			c.execute("WITH cte AS (SELECT gl_entry_id AS id "
+							"FROM incoming_invoices WHERE id = %s) "
+						"UPDATE gl_entries SET (reconciled, date_reconciled) = "
+						"(False, NULL) WHERE id = (SELECT id FROM cte)", (row_id,))
+			DB.commit()
+			model[path][8] = False
+			self.populate_incoming_invoice_store()
+
 	def populate_payment_accounts (self):
 		model = self.get_object('pay_with_account_store')
 		model.clear()
@@ -368,7 +384,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			model.append(row)
 		DB.rollback()
 
-	def edit_mode_toggled (self, checkmenuitem):
+	def edit_mode_checkbutton_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:
 			self.get_object('edit_amount_menuitem').set_visible(False)
 			self.get_object('edit_attachment_menuitem').set_visible(False)

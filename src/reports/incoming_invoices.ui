@@ -105,7 +105,7 @@
       </object>
     </child>
   </object>
-  <object class="GtkMenu" id="menu2">
+  <object class="GtkMenu" id="menu_dropdown">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
@@ -345,9 +345,9 @@
                 <child>
                   <object class="GtkMenuButton">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="popup">menu2</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="popup">menu_dropdown</property>
                     <child>
                       <placeholder/>
                     </child>
@@ -462,7 +462,9 @@
                         <property name="reorderable">True</property>
                         <property name="sort-column-id">8</property>
                         <child>
-                          <object class="GtkCellRendererToggle"/>
+                          <object class="GtkCellRendererToggle">
+                            <signal name="toggled" handler="reconciled_toggled" swapped="no"/>
+                          </object>
                           <attributes>
                             <attribute name="active">8</attribute>
                           </attributes>
