@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkMenu" id="expense_menu">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkMenuItem">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="label" translatable="yes">Export to CSV</property>
         <signal name="activate" handler="expense_export_to_csv_activated" swapped="no"/>
       </object>
@@ -29,75 +29,6 @@
       <pattern>*.csv</pattern>
     </patterns>
   </object>
-  <object class="GtkFileChooserDialog" id="filechooserdialog1">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Save Revenue to CSV</property>
-    <property name="window_position">center</property>
-    <property name="default_width">320</property>
-    <property name="default_height">260</property>
-    <property name="icon_name">pygtk-posting</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">window</property>
-    <property name="action">save</property>
-    <property name="do_overwrite_confirmation">True</property>
-    <property name="filter">filefilter1</property>
-    <property name="local_only">False</property>
-    <child>
-      <placeholder/>
-    </child>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button11">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button4">
-                <property name="label" translatable="yes">Save CSV to file</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="can_default">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <placeholder/>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-6">button11</action-widget>
-      <action-widget response="-3">button4</action-widget>
-    </action-widgets>
-  </object>
   <object class="GtkListStore" id="fiscal_store">
     <columns>
       <!-- column-name fiscal_id -->
@@ -108,13 +39,13 @@
   </object>
   <object class="GtkMenu" id="revenue_menu">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkMenuItem">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="label" translatable="yes">Export to CSV</property>
-        <property name="use_underline">True</property>
+        <property name="use-underline">True</property>
         <signal name="activate" handler="revenue_export_to_csv_activated" swapped="no"/>
       </object>
     </child>
@@ -130,31 +61,28 @@
     </columns>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="can_focus">False</property>
-    <property name="border_width">10</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">10</property>
     <property name="title" translatable="yes">Profit / Loss Report</property>
-    <property name="window_position">center</property>
-    <property name="default_width">600</property>
-    <property name="default_height">400</property>
-    <property name="icon_name">pygtk-posting</property>
+    <property name="window-position">center</property>
+    <property name="default-width">600</property>
+    <property name="default-height">400</property>
+    <property name="icon-name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
-    <child>
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="spacing">5</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="label" translatable="yes">Fiscal year</property>
               </object>
               <packing>
@@ -166,9 +94,9 @@
             <child>
               <object class="GtkComboBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="model">fiscal_store</property>
-                <property name="id_column">0</property>
+                <property name="id-column">0</property>
                 <signal name="changed" handler="fiscal_year_combo_changed" swapped="no"/>
                 <child>
                   <object class="GtkCellRendererText"/>
@@ -186,7 +114,7 @@
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="label" translatable="yes">Income :</property>
               </object>
               <packing>
@@ -198,7 +126,7 @@
             <child>
               <object class="GtkLabel" id="income_amount_label">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="label" translatable="yes">0.00</property>
               </object>
               <packing>
@@ -217,16 +145,16 @@
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_bottom">10</property>
+            <property name="can-focus">False</property>
+            <property name="margin-bottom">10</property>
             <property name="spacing">5</property>
             <property name="homogeneous">True</property>
             <child>
               <object class="GtkButton">
                 <property name="label" translatable="yes">Collapse all</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="collapse_all_clicked" swapped="no"/>
               </object>
               <packing>
@@ -239,8 +167,8 @@
               <object class="GtkButton">
                 <property name="label" translatable="yes">Expand all</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="expand_all_clicked" swapped="no"/>
               </object>
               <packing>
@@ -253,8 +181,8 @@
               <object class="GtkButton">
                 <property name="label" translatable="yes">Report hub (revenue)</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="revenue_report_hub_clicked" swapped="no"/>
               </object>
               <packing>
@@ -267,8 +195,8 @@
               <object class="GtkButton">
                 <property name="label" translatable="yes">Report hub (expense)</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="expense_report_hub_clicked" swapped="no"/>
               </object>
               <packing>
@@ -287,21 +215,21 @@
         <child>
           <object class="GtkPaned">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
+            <property name="can-focus">True</property>
             <property name="position">310</property>
-            <property name="position_set">True</property>
-            <property name="wide_handle">True</property>
+            <property name="position-set">True</property>
+            <property name="wide-handle">True</property>
             <child>
               <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
                 <child>
                   <object class="GtkTreeView" id="revenue_treeview">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="model">revenue_store</property>
-                    <property name="rubber_banding">True</property>
+                    <property name="rubber-banding">True</property>
                     <signal name="button-press-event" handler="revenue_treeview_button_press_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="revenue_selection">
@@ -358,15 +286,15 @@
             <child>
               <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
                 <child>
                   <object class="GtkTreeView" id="expense_treeview">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="model">expense_store</property>
-                    <property name="search_column">0</property>
-                    <property name="rubber_banding">True</property>
+                    <property name="search-column">0</property>
+                    <property name="rubber-banding">True</property>
                     <signal name="button-press-event" handler="expense_treeview_button_press_event" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="expense_selection">
@@ -429,5 +357,71 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkFileChooserDialog" id="filechooserdialog1">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Save Revenue to CSV</property>
+    <property name="window-position">center</property>
+    <property name="default-width">320</property>
+    <property name="default-height">260</property>
+    <property name="icon-name">pygtk-posting</property>
+    <property name="type-hint">dialog</property>
+    <property name="transient-for">window</property>
+    <property name="action">save</property>
+    <property name="do-overwrite-confirmation">True</property>
+    <property name="filter">filefilter1</property>
+    <property name="local-only">False</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="button11">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button4">
+                <property name="label" translatable="yes">Save CSV to file</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="can-default">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-6">button11</action-widget>
+      <action-widget response="-3">button4</action-widget>
+    </action-widgets>
   </object>
 </interface>
