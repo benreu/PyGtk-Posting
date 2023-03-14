@@ -457,6 +457,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			window = self.get_object('edit_amount_window')
 			window.show_all()
 			self.check_edit_validity()
+	
+	def edit_amount_window_delete_event (self, window, event):
+		window.hide()
+		return True
 
 	def save_edits_clicked (self, button):
 		amount = self.get_object('edit_total_spin').get_text()

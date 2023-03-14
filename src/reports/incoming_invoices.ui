@@ -919,6 +919,7 @@
     <property name="border-width">10</property>
     <property name="title" translatable="yes">Edit amounts / accounts</property>
     <property name="window-position">center</property>
+    <signal name="delete-event" handler="edit_amount_window_delete_event" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
