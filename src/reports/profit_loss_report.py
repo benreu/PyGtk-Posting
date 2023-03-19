@@ -30,6 +30,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 		self.connect_signals(self)
 		self.cursor = DB.cursor()
 		self.populate_fiscals ()
+		self.fiscal = None
 
 		self.window = self.get_object("window")
 		self.window.show_all()
@@ -50,42 +51,52 @@ class ProfitLossReportGUI(Gtk.Builder):
 		if fiscal_id == None:
 			return
 		self.fiscal = fiscal_id
+		self.load_profit_loss()
+
+	def refresh_profit_loss_clicked (self, button):
+		if self.fiscal == None:
+			return
+		self.load_profit_loss()
+
+	def load_profit_loss(self):
 		store = self.get_object("revenue_store")
 		store.clear()
 		# Revenues first
-		self.cursor.execute("SELECT is_parent, number::text, name "
+		self.cursor.execute("SELECT is_parent, number, name "
 							"FROM gl_accounts "
 							"WHERE type = 4 AND parent_number IS NULL")
 		for row in self.cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
-			tree_parent = store.append(None, [number, name, '0.00', False])
+			tree_parent = store.append(None, [number, name, 0.00, '0.00', False])
 			revenue = Decimal()
 			for i in self.get_child_accounts(store, 
 												is_parent, 
 												number, 
 												tree_parent):
 				revenue += i
-			store.set_value(tree_parent, 2, str(revenue))
+			store.set_value(tree_parent, 2, float(revenue))
+			store.set_value(tree_parent, 3, str(revenue))
 		# Expenses next
 		store = self.get_object("expense_store")
 		store.clear()
-		self.cursor.execute("SELECT is_parent, number::text, name "
+		self.cursor.execute("SELECT is_parent, number, name "
 							"FROM gl_accounts "
 							"WHERE type = 3 AND parent_number IS NULL")
 		for row in self.cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
-			tree_parent = store.append(None, [number, name, '0.00', False])
+			tree_parent = store.append(None, [number, name, 0.00, '0.00', False])
 			expenses = Decimal()
 			for i in self.get_child_accounts(store, 
 												is_parent, 
 												number, 
 												tree_parent):
 				expenses += i
-			store.set_value(tree_parent, 2, str(expenses))
+			store.set_value(tree_parent, 2, float(expenses))
+			store.set_value(tree_parent, 3, str(expenses))
 		income = revenue - expenses
 		label = self.get_object("income_amount_label")
 		label.set_label('${:,.2f}'.format(income))
@@ -94,7 +105,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 	def get_child_accounts (self, store, is_parent, p_account, parent_tree):
 		c = DB.cursor()
 		if is_parent == True:
-			c.execute("SELECT is_parent, number::text, name, 0.00::text "
+			c.execute("SELECT is_parent, number, name, 0.00::text "
 						"FROM gl_accounts "
 						"WHERE parent_number = %s ORDER BY number", 
 						(p_account,))
@@ -106,6 +117,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 				tree_parent = store.append(parent_tree,[
 														account_number,
 														account_name,
+														0.00,
 														'0.00',
 														False])
 				for i in self.get_child_accounts (store, 
@@ -113,7 +125,8 @@ class ProfitLossReportGUI(Gtk.Builder):
 													account_number, 
 													tree_parent):
 					account_amount += i
-				store.set_value(tree_parent, 2, str(account_amount))
+				store.set_value(tree_parent, 2, float(account_amount))
+				store.set_value(tree_parent, 3, str(account_amount))
 				yield account_amount
 		else:
 			c.execute("SELECT SUM(debits - credits) AS total FROM "
@@ -169,11 +182,11 @@ class ProfitLossReportGUI(Gtk.Builder):
 
 	def expense_calculate_total_toggled (self, cellrenderertoggle, path):
 		store = self.get_object("expense_store")
-		store[path][3] = not store[path][3]
+		store[path][4] = not store[path][4]
 		total = Decimal()
 		root_iter = store.get_iter_first()
-		if store[root_iter][3] == True:
-			total += Decimal(store[root_iter][2])
+		if store[root_iter][4] == True:
+			total += Decimal(store[root_iter][3])
 			if store.iter_has_child(root_iter):
 				childiter = store.iter_children(root_iter)
 				self.clear_children_total_toggle(store, childiter)
@@ -184,11 +197,11 @@ class ProfitLossReportGUI(Gtk.Builder):
 
 	def revenue_calculate_total_toggled (self, cellrenderertoggle, path):
 		store = self.get_object("revenue_store")
-		store[path][3] = not store[path][3]
+		store[path][4] = not store[path][4]
 		total = Decimal()
 		root_iter = store.get_iter_first()
-		if store[root_iter][3] == True:
-			total += Decimal(store[root_iter][2])
+		if store[root_iter][4] == True:
+			total += Decimal(store[root_iter][3])
 			if store.iter_has_child(root_iter):
 				childiter = store.iter_children(root_iter)
 				self.clear_children_total_toggle(store, childiter)
@@ -200,8 +213,8 @@ class ProfitLossReportGUI(Gtk.Builder):
 	def get_children_totals(self, store, tree_iter):
 		child_amount = Decimal()
 		while tree_iter != None:
-			if store[tree_iter][3] == True:
-				child_amount += Decimal(store[tree_iter][2])
+			if store[tree_iter][4] == True:
+				child_amount += Decimal(store[tree_iter][3])
 				if store.iter_has_child(tree_iter):
 					childiter = store.iter_children(tree_iter)
 					self.clear_children_total_toggle(store, childiter)
@@ -214,7 +227,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 	def clear_children_total_toggle(self, store, tree_iter):
 		# unselect all children totals if parent total is selected
 		while tree_iter != None:
-			store[tree_iter][3] = False
+			store[tree_iter][4] = False
 			if store.iter_has_child(tree_iter):
 				childiter = store.iter_children(tree_iter)
 				self.clear_children_total_toggle(store, childiter)
