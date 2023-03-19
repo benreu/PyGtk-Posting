@@ -157,7 +157,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"COALESCE(format_date(i.dated_for), ''), "
 								"COALESCE(poli.purchase_order_id::text, ''), "
 								"COALESCE(po.date_printed::text, ''), "
-								"COALESCE(format_date(po.date_printed), '') "
+								"COALESCE(format_date(po.date_printed), ''), "
+								"COALESCE(pav.version_name, '') "
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh "
@@ -170,10 +171,14 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"ON poli.id = sn.purchase_order_item_id "
 							"LEFT JOIN purchase_orders AS po "
 								"ON po.id = poli.purchase_order_id "
+							"LEFT JOIN manufacturing_projects AS mp "
+								"ON mp.id = manufacturing_id "
+							"LEFT JOIN product_assembly_versions AS pav "
+								"ON pav.id = mp.version_id "
 							"GROUP BY sn.id, p.id, p.name, sn.serial_number, "
 								"sn.date_inserted, invoice_id, poli.id, "
 								"manufacturing_id, i.dated_for, "
-								"po.date_printed "
+								"po.date_printed, pav.version_name "
 							"ORDER BY sn.id")
 		for row in self.cursor.fetchall():
 			store.append(row)
