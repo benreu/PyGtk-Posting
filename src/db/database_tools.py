@@ -290,13 +290,14 @@ class GUI:
 
 	def delete_db(self, widget):
 		self.db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+		cursor = self.db.cursor()
 		try:
-			self.cursor.execute('DROP DATABASE ' + self.db_name)
-			self.status_update("Database deleted")
+			cursor.execute('DROP DATABASE ' + self.db_name)
 		except Exception as e:
 			print (e)
 			if (e.pgcode == "55006"):
 				self.status_update("You cannot delete an active database!")
+		self.status_update("Database deleted")
 		self.retrieve_dbs ()
 		self.set_active_database ()
 		self.warning_dialog.hide()
