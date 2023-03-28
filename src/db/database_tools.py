@@ -63,7 +63,8 @@ class GUI:
 
 	def backup_database_clicked(self, widget):
 		from db.database_backup import BackupGUI 
-		BackupGUI()
+		b = BackupGUI()
+		b.window = self.window
 
 	def restore_database_clicked(self, widget):
 		restore_database_name = self.builder.get_object('entry6').get_text()

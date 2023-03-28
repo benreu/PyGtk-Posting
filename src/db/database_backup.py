@@ -47,6 +47,7 @@ class BackupGUI(Gtk.Builder):
 		self.terminal.set_scrollback_lines(-1)
 		self.automatic = automatic
 		self.get_object('backup_scrolled_window').add(self.terminal)
+		self.window = None
 		day = time.strftime("%Y-%m-%d-%H:%M")
 		name = DB_NAME + "_" + day +".pbk"
 		dialog = self.get_object('backup_dialog')
@@ -71,6 +72,9 @@ class BackupGUI(Gtk.Builder):
 			if result == Gtk.ResponseType.APPLY:
 				filename = dialog.get_filename()
 				dialog.hide()
+				if " " in filename:
+					self.show_error_dialog("Spaces are not allowed in folder names")
+					return
 				self.backup_database(filename)
 		dialog.destroy()
 
