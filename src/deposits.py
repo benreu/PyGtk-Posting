@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+from decimal import Decimal
 from dateutils import DateTimeCalendar
 from db import transactor
 from constants import ui_directory, DB
@@ -35,26 +36,19 @@ class GUI:
 		self.date_calendar.connect('day-selected', self.day_selected)
 		self.date = None
 		
-		self.deposit_store = self.builder.get_object('checks_to_deposit')
+		self.deposit_store = self.builder.get_object('checks_to_deposit_store')
 		self.cash_account_store = self.builder.get_object('cash_account_store')
 		self.populate_account_stores ()
 
-		amount_column = self.builder.get_object ('treeviewcolumn2')
-		amount_renderer = self.builder.get_object ('cellrenderertext2')
-		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
-
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		self.check_if_all_entries_valid()
 
 	def destroy (self, widget):
 		self.cursor.close()
 
 	def focus (self, window, event):
 		self.populate_deposit_store ()
-
-	def amount_cell_func(self, column, cellrenderer, model, iter1, data):
-		qty = '{:,.2f}'.format(model.get_value(iter1, 2))
-		cellrenderer.set_property("text" , qty)
 
 	def date_entry_icon_released (self, entry, icon, event):
 		self.date_calendar.set_relative_to (entry)
@@ -67,27 +61,18 @@ class GUI:
 		self.check_if_all_entries_valid ()
 
 	def populate_deposit_store(self):
-		self.cursor.execute("SELECT p_i.id, amount, payment_text, customer_id,"
-							"name, date_inserted, format_date(date_inserted) "
+		self.cursor.execute("SELECT p_i.id, payment_text, "
+							"amount, amount::text, customer_id, c.name, "
+							"date_inserted::text, format_date(date_inserted), deposit "
 							"FROM payments_incoming AS p_i "
-							"JOIN contacts ON p_i.customer_id = contacts.id "
+							"JOIN contacts AS c ON p_i.customer_id = c.id "
 							"WHERE (check_payment, check_deposited) = "
 							"(True, False)")
 		tupl = self.cursor.fetchall()
 		if len(tupl) != len(self.deposit_store): # something changed; repopulate
 			self.deposit_store.clear()
-			for check_transaction in tupl:
-				transaction_id = check_transaction[0]
-				ck_amount = check_transaction[1]
-				ck_number = check_transaction[2]
-				contact_id = check_transaction[3]
-				ck_name = check_transaction[4]
-				date = check_transaction[5]
-				date_formatted = check_transaction[6]
-				self.deposit_store.append([transaction_id, ck_number, 
-											float(ck_amount), ck_name, str(date), 
-											date_formatted, True])
-											
+			for row in tupl:
+				self.deposit_store.append(row)
 			self.calculate_deposit_total()
 		DB.rollback()
 
@@ -108,43 +93,50 @@ class GUI:
 		DB.rollback()
 		
 	def deposit_check_togglebutton_toggled (self, togglebutton, path):
-		self.deposit_store[path][6] = not togglebutton.get_active()
+		active = not togglebutton.get_active()
+		self.deposit_store[path][8] = active
+		row_id = self.deposit_store[path][0]
+		self.cursor.execute("UPDATE payments_incoming SET deposit = %s "
+							"WHERE id = %s", (active, row_id))
+		DB.commit()
 		self.calculate_deposit_total ()
 
 	def calculate_deposit_total (self):
-		total_money = 0.00
+		amount = Decimal()
 		total_checks = 0
 		for row in self.deposit_store:
-			if row[6] is True:
-				total_money += float(row[2])
+			if row[8] is True:
+				amount += Decimal(row[3])
 				total_checks += 1
-		self.builder.get_object('label6').set_label('${:,.2f}'.format(total_money))
+		self.builder.get_object('label6').set_label('${:,.2f}'.format(amount))
 		self.builder.get_object('label7').set_label(str(total_checks))
-		total_money += self.builder.get_object('spinbutton1').get_value()
-		self.builder.get_object('label3').set_label('${:,.2f}'.format(total_money))
+		amount += Decimal(self.builder.get_object('spinbutton1').get_text())
+		self.builder.get_object('label3').set_label('${:,.2f}'.format(amount))
 
 	def checking_account_combo_changed (self, combo):
 		self.check_if_all_entries_valid ()
 
 	def check_if_all_entries_valid (self):
-		button = self.builder.get_object('button1')
-		button.set_sensitive(False)
+		label = self.builder.get_object('info_label')
+		label.set_visible(True)
+		self.builder.get_object('box3').set_visible(False)
 		cash_account = self.builder.get_object('combobox1').get_active()
 		cash_amount = self.builder.get_object('spinbutton1').get_value()
 		if self.date == None:
-			button.set_label('No date selected')
+			label.set_label('No date selected')
 			return
 		if cash_amount == 0.00 and cash_account > -1:
-			button.set_label('Cash amount is 0.00')
+			label.set_label('Cash amount is 0.00')
 			return
 		elif cash_amount > 0.00 and cash_account == -1:
-			button.set_label('Cash account not selected')
+			label.set_label('Cash account not selected')
 			return
 		if self.builder.get_object('comboboxtext1').get_active() == -1:
-			button.set_label('Bank account not selected')
+			label.set_label('Bank account not selected')
 			return
-		button.set_label('Process Deposit')
-		button.set_sensitive (True)
+		label.set_visible(False)
+		self.builder.get_object('box3').set_visible (True)
+		self.builder.get_object('box3').set_sensitive (True)
 
 	def cash_amount_value_changed (self, spinbutton):
 		if spinbutton.get_value() == 0.00:
@@ -155,30 +147,43 @@ class GUI:
 	def cash_account_combo_changed (self, combo):
 		self.check_if_all_entries_valid ()
 
-	def process_deposit(self, widget):
-		d = transactor.Deposit(self.date)
-		total_amount = 0.00
-		checking_account = self.builder.get_object('comboboxtext1').get_active_id()
+	def get_deposit_total (self):
+		amount = Decimal()
 		for row in self.deposit_store:
-			if row[6] is True:
-				total_amount += float(row[2])
-		if total_amount != 0.00:
-			d.check (total_amount)
+			if row[8] is True:
+				amount += Decimal(row[3])
+		return amount
+
+	def process_deposit(self):
+		d = transactor.Deposit(self.date)
+		checking_account = self.builder.get_object('comboboxtext1').get_active_id()
+		amount = self.get_deposit_total()
+		if amount != 0.00:
+			d.check (amount)
 		cash_amount = self.builder.get_object('spinbutton1').get_value()
 		if cash_amount != 0.00:
-			total_amount += cash_amount
+			amount += cash_amount
 			cash_account = self.builder.get_object('combobox1').get_active_id ()
 			d.cash (cash_amount, cash_account)
-		deposit_id = d.bank (total_amount, checking_account)
+		deposit_id = d.bank (amount, checking_account)
 		for row in self.deposit_store:
-			if row[6] is True:
+			if row[8] is True:
 				row_id = row[0]
 				self.cursor.execute("UPDATE payments_incoming "
 									"SET (check_deposited, "
 										"gl_entries_deposit_id) = (True, %s) "
 									"WHERE id = %s", (deposit_id, row_id))
 		DB.commit()
+
+	def process_deposit_close_window_clicked (self, button):
+		self.builder.get_object('box3').set_sensitive(False)
+		self.process_deposit()
 		self.window.destroy()
 
-		
-		
+	def process_deposit_new_clicked (self, button):
+		self.builder.get_object('box3').set_sensitive(False)
+		self.process_deposit()
+		self.populate_deposit_store()
+
+
+
