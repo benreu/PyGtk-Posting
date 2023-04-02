@@ -210,5 +210,6 @@ CREATE INDEX IF NOT EXISTS gl_entries_gl_transaction_id_idx
 ALTER TABLE payments_incoming ADD COLUMN IF NOT EXISTS deposit boolean;
 ALTER TABLE payments_incoming ALTER COLUMN deposit SET DEFAULT False;
 UPDATE payments_incoming SET deposit = False WHERE deposit IS NULL;
+UPDATE payments_incoming SET deposit = True WHERE check_deposited = True;
 ALTER TABLE payments_incoming ALTER COLUMN deposit SET NOT NULL;
 
