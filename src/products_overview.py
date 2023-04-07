@@ -107,7 +107,8 @@ class ProductsOverviewGUI (Gtk.Builder):
 						'purchasable_column', 
 						'manufactured_column', 
 						'job_column', 
-						'stocked_column']:
+						'stocked_column', 
+						'price_column']:
 			try:
 				width = self.get_object(column).get_width()
 			except Exception as e:
@@ -166,6 +167,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 
 	def refresh_clicked (self, button):
 		self.populate_product_store()
+		self.populate_product_names()
 		button.set_visible(False)
 
 	def populate_product_store (self, widget = None):
@@ -210,9 +212,14 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"p.purchasable, "
 							"p.manufactured, "
 							"p.job, "
-							"p.stock "
+							"p.stock, "
+							"COALESCE(pmp.price, 0.00), "
+							"COALESCE(pmp.price::text, 'N/A') "
 							"FROM products AS p "
 							"JOIN units AS u ON u.id = p.unit "
+							"LEFT JOIN products_markup_prices AS pmp "
+							"ON pmp.product_id = p.id AND pmp.markup_id = "
+							"(SELECT id FROM customer_markup_percent WHERE standard = True) "
 							"%s OR p.id = %s ORDER BY p.name, p.ext_name"
 							% (where, self.product_id))
 		p_tuple = c.fetchall()
@@ -251,9 +258,14 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"p.purchasable, "
 							"p.manufactured, "
 							"p.job, "
-							"p.stock "
+							"p.stock, "
+							"COALESCE(pmp.price, 0.00), "
+							"COALESCE(pmp.price::text, 'N/A') "
 							"FROM products AS p "
 							"JOIN units AS u ON u.id = p.unit "
+							"LEFT JOIN products_markup_prices AS pmp "
+							"ON pmp.product_id = p.id AND pmp.markup_id = "
+							"(SELECT id FROM customer_markup_percent WHERE standard = True) "
 							"WHERE p.id = %s ", (self.product_id,))
 		for row in c.fetchall():
 			self.product_store.append(row)

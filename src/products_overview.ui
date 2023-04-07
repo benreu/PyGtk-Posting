@@ -114,6 +114,10 @@
       <column type="gboolean"/>
       <!-- column-name stocked -->
       <column type="gboolean"/>
+      <!-- column-name standard_price_float -->
+      <column type="gfloat"/>
+      <!-- column-name standard_price_formatted -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkTreeModelFilter" id="filtered_product_store">
@@ -573,6 +577,20 @@
                           <object class="GtkCellRendererToggle"/>
                           <attributes>
                             <attribute name="active">16</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="price_column">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Price</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">17</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">18</attribute>
                           </attributes>
                         </child>
                       </object>
