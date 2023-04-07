@@ -213,7 +213,7 @@ UPDATE payments_incoming SET deposit = False WHERE deposit IS NULL;
 UPDATE payments_incoming SET deposit = True WHERE check_deposited = True;
 ALTER TABLE payments_incoming ALTER COLUMN deposit SET NOT NULL;
 --0.7.3 CREATE FUNCTION public.payment_type
-CREATE FUNCTION public.payment_type(payments_incoming_id bigint) RETURNS character varying
+CREATE OR REPLACE FUNCTION public.payment_type(payments_incoming_id bigint) RETURNS character varying
     LANGUAGE plpgsql
     AS 
 $BODY$ 
