@@ -568,7 +568,7 @@ class InvoiceGUI:
 		DB.rollback()
 			
 	def tax_exemption_combo_changed(self, combo):
-		'''if tax_rate_id is NULL, trigger will use default tax rate'''
+		'''if tax_rate_id = 0, trigger will use default tax rate'''
 		if self.populating == True:
 			return
 		self.tax_rate_id = combo.get_active_id()
@@ -625,7 +625,7 @@ class InvoiceGUI:
 		exemption_combo = self.builder.get_object('comboboxtext1')
 		active = exemption_combo.get_active_id()
 		exemption_combo.remove_all()
-		exemption_combo.append(None, "No exemption")
+		exemption_combo.append('0', "No exemption")
 		final_id = '0'
 		self.cursor.execute("SELECT tax_rates.id, tax_rates.name FROM "
 							"customer_tax_exemptions "

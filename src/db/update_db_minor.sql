@@ -229,3 +229,15 @@ $BODY$
     END IF;
     END;
 $BODY$ 
+--0.7.4 CREATE FUNCTION public.check_tax_rate_id
+CREATE OR REPLACE FUNCTION public.check_tax_rate_id() RETURNS trigger
+    LANGUAGE plpgsql
+    AS 
+$BODY$ 
+    BEGIN 
+    IF (SELECT tax_exemptible FROM products WHERE id = NEW.product_id) = FALSE OR NEW.tax_rate_id IS NULL OR NEW.tax_rate_id = 0 THEN 
+        NEW.tax_rate_id = (SELECT tax_rates.id FROM tax_rates JOIN products ON tax_rates.id = products.tax_rate_id WHERE products.id = NEW.product_id);
+    END IF;
+    RETURN NEW;
+    END;
+$BODY$ 
