@@ -17,9 +17,10 @@
 
 
 from gi.repository import Gtk
-import dateutils
+import dateutils, psycopg2
 from decimal import Decimal
-from constants import ui_directory, DB
+from constants import ui_directory, DB, broadcaster
+import admin_utils
 
 UI_FILE = ui_directory + "/reports/payments_received.ui"
 
@@ -39,12 +40,31 @@ class PaymentsReceivedGUI:
 		self.customer_id = None
 		self.populate_stores()
 		self.populate_payment_store ()
+		self.handler_ids = list()
+		for connection in (("admin_changed", self.admin_changed), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, widget):
 		self.cursor.close()
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+
+	def edit_mode_checkbutton_toggled (self, checkmenuitem):
+		if checkmenuitem.get_active() == False:
+			return # Warning, only check for admin when toggling to True
+		if not admin_utils.check_admin(self.window):
+			checkmenuitem.set_active(False)
+			return True
+		'''some wierdness going on with showing a dialog without letting the
+		checkmenuitem update its state'''
+		checkmenuitem.set_active(True)
+
+	def admin_changed (self, broadcast_object, value):
+		self.builder.get_object('edit_mode_checkbutton').set_active(False)
 
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -113,7 +133,8 @@ class PaymentsReceivedGUI:
 								"contacts.name, "
 								"pay.amount, "
 								"pay.amount::text, "
-								"payment_info(pay.id) "
+								"payment_type(pay.id), "
+								"payment_text "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
@@ -127,7 +148,8 @@ class PaymentsReceivedGUI:
 								"contacts.name, "
 								"pay.amount, "
 								"pay.amount::text, "
-								"payment_info(pay.id) "
+								"payment_type(pay.id), "
+								"payment_text "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
@@ -159,7 +181,8 @@ class PaymentsReceivedGUI:
 								"contacts.name, "
 								"pay.amount, "
 								"pay.amount::text, "
-								"payment_info(pay.id) "
+								"payment_type(pay.id), "
+								"payment_text "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
@@ -174,7 +197,8 @@ class PaymentsReceivedGUI:
 								"contacts.name, "
 								"pay.amount, "
 								"pay.amount::text, "
-								"payment_info(pay.id) "
+								"payment_type(pay.id), "
+								"payment_text "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
@@ -194,9 +218,83 @@ class PaymentsReceivedGUI:
 		self.builder.get_object('label2').set_label(amount_received)
 		DB.rollback()
 
+	def date_edited (self, cellrenderertext, path, date):
+		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		row_id = self.payment_store[path][0]
+		try:
+			self.cursor.execute("UPDATE payments_incoming "
+								"SET date_inserted = %s "
+								"WHERE id = %s;"
+								"SELECT date_inserted::text, "
+								"format_date(date_inserted) "
+								"FROM payments_incoming WHERE id = %s", 
+								(date, row_id, row_id))
+		except psycopg2.DataError as e:
+			DB.rollback()
+			self.show_error_dialog(str(e))
+			return
+		for row in self.cursor.fetchall():
+			date = row[0]
+			date_formatted = row[1]
+			self.payment_store[path][2] = date_formatted
+			self.payment_store[path][1] = date
+		DB.commit()
+	
+	def amount_edited (self, cellrenderertext, path, amount):
+		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		row_id = self.payment_store[path][0]
+		self.cursor.execute("UPDATE payments_incoming "
+								"SET amount = %s "
+								"WHERE id = %s;"
+							"SELECT amount, "
+							"amount::text "
+							"FROM payments_incoming WHERE id = %s", 
+							(amount, row_id, row_id,))
+		for row in self.cursor.fetchall():
+			amount = row[0]
+			amount_formatted = row[1]
+			self.payment_store[path][5] = amount_formatted
+			self.payment_store[path][4] = amount
+		DB.commit()
+	
+	def payment_type_changed (self, cellrenderercombo, path, treeiter):
+		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		model = self.builder.get_object('payment_types_store')
+		payment_column_id = model[treeiter][0]
+		payment_type = model[treeiter][1]
+		row_id = self.payment_store[path][0]
+		c = DB.cursor()
+		c.execute("UPDATE payments_incoming "
+					"SET (cash_payment, check_payment, credit_card_payment) "
+					"= (False, False, False) WHERE id = %s; "
+					"UPDATE payments_incoming SET %s = True WHERE id = %s" %
+					(row_id, payment_column_id, row_id))
+		DB.commit()
+		self.payment_store[path][6] = payment_type
+		
+
+	def description_edited (self, cellrenderertext, path, description):
+		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		row_id = self.payment_store[path][0]
+		self.cursor.execute("UPDATE payments_incoming "
+								"SET payment_text = %s "
+								"WHERE id = %s", (description, row_id))
+		DB.commit()
+		self.payment_store[path][7] = description
+
 	def report_hub_activated (self, menuitem):
 		from reports import report_hub
 		report_hub.ReportHubGUI(self.treeview)
 
-
+	def show_error_dialog (self, error):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (error)
+		dialog.run()
+		dialog.destroy()
 

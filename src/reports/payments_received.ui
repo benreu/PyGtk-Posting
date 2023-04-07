@@ -33,6 +33,15 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
+      <object class="GtkCheckMenuItem" id="edit_mode_checkbutton">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit mode</property>
+        <property name="use-underline">True</property>
+        <signal name="toggled" handler="edit_mode_checkbutton_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -41,6 +50,28 @@
         <signal name="activate" handler="report_hub_activated" swapped="no"/>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="payment_types_store">
+    <columns>
+      <!-- column-name column_id -->
+      <column type="gchararray"/>
+      <!-- column-name payment_type -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">cash_payment</col>
+        <col id="1" translatable="yes">Cash</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">check_payment</col>
+        <col id="1" translatable="yes">Check</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">credit_card_payment</col>
+        <col id="1" translatable="yes">Credit card</col>
+      </row>
+    </data>
   </object>
   <object class="GtkListStore" id="payments_received_store">
     <columns>
@@ -55,6 +86,8 @@
       <!-- column-name amount -->
       <column type="gfloat"/>
       <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
+      <!-- column-name payment_type -->
       <column type="gchararray"/>
       <!-- column-name payment_text -->
       <column type="gchararray"/>
@@ -76,7 +109,7 @@
         <property name="orientation">vertical</property>
         <property name="spacing">5</property>
         <child>
-          <!-- n-columns=4 n-rows=3 -->
+          <!-- n-columns=4 n-rows=2 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -192,18 +225,6 @@
             <child>
               <placeholder/>
             </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -245,7 +266,10 @@
                     <property name="reorderable">True</property>
                     <property name="sort-column-id">1</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                      <object class="GtkCellRendererText" id="cellrenderertext1">
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="date_edited" swapped="no"/>
+                      </object>
                       <attributes>
                         <attribute name="text">2</attribute>
                       </attributes>
@@ -261,6 +285,7 @@
                     <property name="sort-column-id">3</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext2">
+                        <property name="editable">True</property>
                         <property name="ellipsize">middle</property>
                       </object>
                       <attributes>
@@ -278,9 +303,31 @@
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext3">
                         <property name="xalign">1</property>
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="amount_edited" swapped="no"/>
                       </object>
                       <attributes>
                         <attribute name="text">5</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Type</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">6</property>
+                    <child>
+                      <object class="GtkCellRendererCombo" id="payment_type">
+                        <property name="editable">True</property>
+                        <property name="has-entry">False</property>
+                        <property name="model">payment_types_store</property>
+                        <property name="text-column">1</property>
+                        <signal name="changed" handler="payment_type_changed" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">6</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -290,11 +337,14 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Description</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">6</property>
+                    <property name="sort-column-id">7</property>
                     <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext5"/>
+                      <object class="GtkCellRendererText" id="payment_text">
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="description_edited" swapped="no"/>
+                      </object>
                       <attributes>
-                        <attribute name="text">6</attribute>
+                        <attribute name="text">7</attribute>
                       </attributes>
                     </child>
                   </object>
