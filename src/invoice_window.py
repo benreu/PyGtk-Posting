@@ -1086,12 +1086,15 @@ class InvoiceGUI:
 		if path == []:
 			return
 		row_id = model[path][0]
-		self.cursor.execute("WITH deleted AS "
-							"(DELETE FROM invoice_items WHERE id = %s "
-							"RETURNING gl_entries_id) "
-							"DELETE FROM gl_entries WHERE id = "
-							"(SELECT gl_entries_id FROM deleted)"
-							, (row_id,))
+		c = DB.cursor()
+		c.execute("WITH deleted AS "
+					"(UPDATE invoice_items "
+					"SET (qty, price, ext_price, tax, canceled) "
+						"= (0, 0, 0, 0, True) WHERE id = %s "
+					"RETURNING gl_entries_id) "
+					"UPDATE gl_entries SET amount = 0.00 WHERE id = "
+					"(SELECT gl_entries_id FROM deleted)"
+					, (row_id,))
 		DB.commit()
 		self.populate_invoice_items ()
 

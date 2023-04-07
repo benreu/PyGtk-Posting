@@ -297,11 +297,11 @@ class Setup(XCloseListener, unohelper.Base):
 		for row in cursor.fetchall():
 			gl_entries_id = row[0]
 			total = row[1]
-		transactor.post_invoice_receivables(total, self.date, 
-											self.invoice_id, gl_entries_id)
 		cursor.execute("SELECT accrual_based FROM settings")
 		if cursor.fetchone()[0] == True:
-			transactor.post_invoice_accounts (self.date, self.invoice_id)
+			transactor.post_invoice_accounts (self.date, self.invoice_id,
+												total, gl_entries_id)
+		#transactor.post_invoice_receivables()  # FIXME, receivables are for inventory
 		cursor.close()
 		
 		

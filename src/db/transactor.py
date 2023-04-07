@@ -461,11 +461,22 @@ def post_credit_memo(credit_memo_id):
 		
 	c.close()
 
-def post_invoice_receivables (amount, date, invoice_id, gl_entries_id):
+def post_invoice_receivables ():
+	pass
+
+def post_invoice_accounts (date, invoice_id, amount = None, gl_entries_id = None):
 	cursor = DB.cursor()
-	if gl_entries_id != None:
-		cursor.execute("UPDATE gl_entries SET amount = %s WHERE id = %s", 
-														(amount, gl_entries_id))
+	if gl_entries_id != None: # used for updates
+		cursor.execute ("SELECT gl_transactions.id FROM gl_transactions "
+						"JOIN gl_entries "
+							"ON gl_entries.gl_transaction_id = gl_transactions.id "
+						"JOIN invoices ON invoices.gl_entries_id = gl_entries.id "
+						"WHERE invoices.id = %s", (invoice_id,))
+		transaction_id = cursor.fetchone()[0]
+		cursor.execute("UPDATE gl_entries SET amount = 0.00 "
+						"WHERE gl_transaction_id = %s;"
+						"UPDATE gl_entries SET amount = %s WHERE id = %s", 
+						(transaction_id, amount, gl_entries_id))
 	else:
 		cursor.execute("WITH new_row AS "
 								"(INSERT INTO gl_transactions (date_inserted) "
@@ -474,38 +485,39 @@ def post_invoice_receivables (amount, date, invoice_id, gl_entries_id):
 								"(debit_account, amount, gl_transaction_id) "
 								"VALUES ((SELECT account FROM gl_account_flow "
 								"WHERE function = 'post_invoice'), %s, "
-								"(SELECT id FROM new_row)) RETURNING id) "
-						"UPDATE invoices SET (gl_entries_id) = "
-						"((SELECT id FROM entry_row)) WHERE id = %s",
+								"(SELECT id FROM new_row)) RETURNING id), "
+							"update AS (UPDATE invoices SET (gl_entries_id) = "
+								"((SELECT id FROM entry_row)) WHERE id = %s) "
+						"SELECT id FROM new_row",
 						(date, amount, invoice_id))
-	cursor.close()
-
-def post_invoice_accounts (date, invoice_id):
-	cursor = DB.cursor()
-	cursor.execute ("SELECT gl_transactions.id FROM gl_transactions "
-					"JOIN gl_entries "
-						"ON gl_entries.gl_transaction_id = gl_transactions.id "
-					"JOIN invoices ON invoices.gl_entries_id = gl_entries.id "
-					"WHERE invoices.id = %s", (invoice_id,))
-	transaction_id = cursor.fetchone()[0]
-	cursor.execute("SELECT SUM(tax) AS tax, tax_received_account AS account "
+		transaction_id = cursor.fetchone()[0]
+	# update or insert tax
+	cursor.execute("SELECT SUM(tax) AS tax, tax_received_account "
 					"FROM invoice_items AS ili "
 					"JOIN tax_rates ON tax_rates.id = ili.tax_rate_id "
-					"WHERE invoice_id = %s AND gl_entries_id IS NULL "
+					"WHERE invoice_id = %s "
 					"GROUP BY tax_rates.tax_received_account", 
 					(invoice_id,))
 	for row in cursor.fetchall():
 		tax = row[0]
 		account = row[1]
-		cursor.execute("INSERT INTO gl_entries "
-						"(amount, credit_account, gl_transaction_id, "
-						"date_inserted) VALUES "
-						"(%s, %s, %s, %s)", 
-						(tax, account, transaction_id, date))
+		cursor.execute("UPDATE gl_entries SET amount = %s "
+						"WHERE (gl_transaction_id, credit_account) = (%s, %s) "
+						"RETURNING amount", (tax, transaction_id, account))
+		for row in cursor.fetchall(): # check for update
+			break
+		else: # no entry, insert a new one
+			cursor.execute("INSERT INTO gl_entries "
+							"(amount, credit_account, gl_transaction_id, "
+							"date_inserted) VALUES "
+							"(%s, %s, %s, %s)", 
+							(tax, account, transaction_id, date))
+	# insert invoice_items with no gl_entry
 	cursor.execute("SELECT ili.id, ext_price, revenue_account "
 					"FROM invoice_items AS ili "
 					"JOIN products ON products.id = ili.product_id "
-					"WHERE invoice_id = %s AND gl_entries_id IS NULL", 
+					"WHERE (invoice_id, canceled) = (%s, False) "
+					"AND gl_entries_id IS NULL", 
 					(invoice_id,))
 	for row in cursor.fetchall():
 		line_id = row[0]
@@ -518,6 +530,17 @@ def post_invoice_accounts (date, invoice_id):
 						"UPDATE invoice_items SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s", 
 						(revenue, account, transaction_id, date, line_id))
+	# update invoice_items with a gl_entry
+	cursor.execute("SELECT ext_price, gl_entries_id "
+					"FROM invoice_items AS ili "
+					"WHERE (invoice_id, canceled) = (%s, False) "
+					"AND gl_entries_id IS NOT NULL", 
+					(invoice_id,))
+	for row in cursor.fetchall():
+		revenue = row[0]
+		gl_entries_id = row[1]
+		cursor.execute("UPDATE gl_entries SET amount = %s WHERE id = %s", 
+						(revenue, gl_entries_id))
 	cursor.close()
 	
 def post_purchase_order (amount, po_id):

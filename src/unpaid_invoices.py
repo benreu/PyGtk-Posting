@@ -275,6 +275,7 @@ class GUI (Gtk.Builder):
 		self.get_object('button1').set_sensitive(True)
 		self.get_object('button2').set_sensitive(True)
 		self.get_object('button4').set_sensitive(True)
+		self.get_object('edit_invoice').set_sensitive(True)
 
 	def payment_window (self, widget):
 		selection = self.get_object('treeview-selection')
@@ -284,6 +285,21 @@ class GUI (Gtk.Builder):
 		customer_id = model[path][2]
 		import customer_payment
 		customer_payment.GUI(customer_id)
+
+	def edit_invoice_clicked (self, button):
+		treeselection = self.get_object('treeview-selection')
+		model, path = treeselection.get_selected_rows ()
+		if path != []:
+			invoice_id = model[path][0]
+			c = DB.cursor()
+			c.execute("SELECT CURRENT_DATE - dated_for FROM invoices "
+						"WHERE id = %s", (invoice_id,))
+			days = c.fetchone()[0]
+			if days > 30:
+				self.show_message("The invoice is more than 30 days old")
+				return
+			import invoice_window
+			invoice_window.InvoiceGUI(invoice_id)
 
 	def new_statement (self, widget):
 		new_statement.GUI()
