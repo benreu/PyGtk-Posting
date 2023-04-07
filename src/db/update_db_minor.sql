@@ -212,4 +212,20 @@ ALTER TABLE payments_incoming ALTER COLUMN deposit SET DEFAULT False;
 UPDATE payments_incoming SET deposit = False WHERE deposit IS NULL;
 UPDATE payments_incoming SET deposit = True WHERE check_deposited = True;
 ALTER TABLE payments_incoming ALTER COLUMN deposit SET NOT NULL;
-
+--0.7.3 CREATE FUNCTION public.payment_type
+CREATE FUNCTION public.payment_type(payments_incoming_id bigint) RETURNS character varying
+    LANGUAGE plpgsql
+    AS 
+$BODY$ 
+    DECLARE table_record payments_incoming%ROWTYPE; 
+    BEGIN SELECT * FROM payments_incoming WHERE id = payments_incoming_id INTO table_record; 
+    IF table_record.check_payment = True THEN 
+        RETURN 'Check'::varchar; 
+    ELSEIF table_record.cash_payment = True THEN 
+        RETURN 'Cash'::varchar; 
+    ELSEIF table_record.credit_card_payment = True THEN 
+        RETURN 'Credit card'::varchar;
+    ELSE RETURN ''''; 
+    END IF;
+    END;
+$BODY$ 
