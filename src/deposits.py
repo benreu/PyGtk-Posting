@@ -35,7 +35,7 @@ class GUI:
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect('day-selected', self.day_selected)
 		self.date = None
-		self.amount = 0.00
+		self.deposit_amount = 0.00
 		
 		self.deposit_store = self.builder.get_object('checks_to_deposit_store')
 		self.cash_account_store = self.builder.get_object('cash_account_store')
@@ -104,16 +104,16 @@ class GUI:
 		self.check_if_all_entries_valid()
 
 	def calculate_deposit_total (self):
-		self.amount = Decimal()
+		self.deposit_amount = Decimal()
 		total_checks = 0
 		for row in self.deposit_store:
 			if row[8] is True:
-				self.amount += Decimal(row[3])
+				self.deposit_amount += Decimal(row[3])
 				total_checks += 1
-		self.builder.get_object('label6').set_label('${:,.2f}'.format(self.amount))
+		self.builder.get_object('label6').set_label('${:,.2f}'.format(self.deposit_amount))
 		self.builder.get_object('label7').set_label(str(total_checks))
-		self.amount += Decimal(self.builder.get_object('spinbutton1').get_text())
-		self.builder.get_object('label3').set_label('${:,.2f}'.format(self.amount))
+		self.deposit_amount += Decimal(self.builder.get_object('spinbutton1').get_text())
+		self.builder.get_object('label3').set_label('${:,.2f}'.format(self.deposit_amount))
 
 	def checking_account_combo_changed (self, combo):
 		self.check_if_all_entries_valid ()
@@ -136,7 +136,7 @@ class GUI:
 		if self.builder.get_object('comboboxtext1').get_active() == -1:
 			label.set_label('Bank account not selected')
 			return
-		if self.amount == Decimal('0.00'):
+		if self.deposit_amount == Decimal('0.00'):
 			label.set_label('Amount is $0.00')
 			return
 		label.set_visible(False)
