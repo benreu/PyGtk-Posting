@@ -464,7 +464,7 @@ def post_credit_memo(credit_memo_id):
 def post_invoice_receivables ():
 	pass
 
-def post_invoice_accounts (date, invoice_id, amount = None, gl_entries_id = None):
+def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 	cursor = DB.cursor()
 	if gl_entries_id != None: # used for updates
 		cursor.execute ("SELECT gl_transactions.id FROM gl_transactions "
@@ -730,11 +730,12 @@ class MiscRevenueTransaction :
 
 def switch_to_accrual_based ():
 	cursor = DB.cursor()
-	cursor.execute ("SELECT id FROM invoices "
+	cursor.execute ("SELECT id, amount_due FROM invoices "
 					"WHERE (canceled, posted, paid) = (False, True, False)")
 	for row in cursor.fetchall():
 		invoice_id = row[0]
-		post_invoice_accounts (datetime.today(), invoice_id)
+		amount = row[1]
+		post_invoice_accounts (datetime.today(), invoice_id, amount)
 	cursor.execute ("SELECT id FROM purchase_orders "
 					"WHERE (paid, canceled, closed, invoiced) = "
 					"(False, False, True, True)")

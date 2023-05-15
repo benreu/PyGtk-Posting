@@ -354,7 +354,7 @@ class GUI:
 	def pay_invoices_fifo (self):
 		c = DB.cursor()
 		c_id = self.customer_id
-		c.execute("(SELECT id, total - amount_due AS discount FROM "
+		c.execute("(SELECT id, total - amount_due AS discount, amount_due FROM "
 					"(SELECT id, total, amount_due, SUM(amount_due) "
 					"OVER (ORDER BY date_created, id) invoice_totals "
 					"FROM invoices WHERE (paid, posted, canceled, customer_id) "
@@ -386,10 +386,11 @@ class GUI:
 		for row in c.fetchall():
 			invoice_id = row[0]
 			discount = row[1]
+			amount = row[2]
 			if discount != Decimal('0.00'):
 				self.payment.customer_discount (discount)
 			if self.accrual == False:
-				transactor.post_invoice_accounts (self.date, invoice_id)
+				transactor.post_invoice_accounts (self.date, invoice_id, amount)
 			c.execute("UPDATE invoices "
 						"SET (paid, payments_incoming_id, date_paid) "
 						"= (True, %s, %s) "
@@ -404,8 +405,9 @@ class GUI:
 		discount = Decimal('0.00')
 		for row in paths:
 			invoice_id = model[row][0]
+			amount = model[row][5]
 			if self.accrual == False:
-				transactor.post_invoice_accounts (self.date, invoice_id)
+				transactor.post_invoice_accounts (self.date, invoice_id, amount)
 			c.execute("UPDATE invoices "
 						"SET (paid, payments_incoming_id, date_paid) = "
 						"(True, %s, %s) WHERE id = %s "
