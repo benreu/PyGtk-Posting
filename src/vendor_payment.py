@@ -68,6 +68,7 @@ class GUI:
 
 	def refresh_clicked (self, button):
 		self.populate_vendor_liststore()
+		self.populate_vendor_invoice_store()
 
 	def split_cell_func(self, column, cellrenderer, model, iter1, data):
 		price = model.get_value(iter1, 0)
