@@ -358,15 +358,13 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
+		serial_id = model[path][0]
 		product_id = model[path][2]
 		serial_number = model[path][4]
 		window = self.get_object('add_event_window')
 		window.show_all()
 		self.get_object('combobox4').set_active_id(str(product_id))
-		combo = self.get_object('combobox2')
-		combo.set_id_column(1) # serial numbers are the 2nd column
-		combo.set_active_id(serial_number)
-		combo.set_id_column(0) # standard IDs are the 1st column
+		self.get_object('combobox2').set_active_id(str(serial_id))
 
 	def invoice_hub_activated (self, menuitem):
 		selection = self.get_object('serial_number_treeselection')
