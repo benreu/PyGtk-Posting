@@ -165,9 +165,9 @@ class GUI:
 		amount = self.get_deposit_total()
 		if amount != 0.00:
 			d.check (amount)
-		cash_amount = self.builder.get_object('spinbutton1').get_value()
-		if cash_amount != 0.00:
-			amount += cash_amount
+		cash_amount = self.builder.get_object('spinbutton1').get_text()
+		if cash_amount != '0.00':
+			amount += Decimal(cash_amount)
 			cash_account = self.builder.get_object('combobox1').get_active_id ()
 			d.cash (cash_amount, cash_account)
 		deposit_id = d.bank (amount, checking_account)
