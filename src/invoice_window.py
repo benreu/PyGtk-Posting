@@ -785,7 +785,7 @@ class InvoiceGUI:
 							"WHERE invoice_item_id = %s", 
 							(invoice_line_id,))
 		self.cursor.execute("SELECT products.name, ext_name, tax_letter, "
-							"invoice_serial_numbers "
+							"invoice_serial_numbers, tax_rates.id "
 							"FROM products JOIN tax_rates "
 							"ON tax_rates.id = products.tax_rate_id "  
 							"WHERE products.id = %s", (product_id,))
@@ -794,6 +794,7 @@ class InvoiceGUI:
 			ext_name = row[1]
 			tax_letter = row[2]
 			serial_number = row[3]
+			tax_rate_id = row[4]
 			iter_ = self.invoice_store.get_iter(path)
 			if serial_number == True:
 				self.builder.get_object('treeviewcolumn13').set_visible(True)
@@ -808,11 +809,12 @@ class InvoiceGUI:
 			self.invoice_store[iter_][12] = serial_number
 			self.set_product_price (iter_)
 			line_id = self.invoice_store[iter_][0]
-			self.cursor.execute("UPDATE invoice_items SET product_id = %s "
-								"WHERE id = %s;"
+			self.cursor.execute("UPDATE invoice_items "
+								"SET (product_id, tax_rate_id) = "
+								"(%s, %s) WHERE id = %s;"
 								"SELECT price::text, tax::text, ext_price::text "
 								"FROM invoice_items WHERE id = %s", 
-								(product_id, line_id, line_id))
+								(product_id, tax_rate_id, line_id, line_id))
 			for row in self.cursor.fetchall():
 				price = row[0]
 				tax = row[1]
