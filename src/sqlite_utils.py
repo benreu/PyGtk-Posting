@@ -76,7 +76,7 @@ def create_apsw_tables(cursor):
 										"user TEXT NOT NULL, "
 										"password TEXT NOT NULL, "
 										"db_name TEXT NOT NULL, "
-										"default BOOLEAN NOT NULL, "
+										"standard BOOLEAN NOT NULL, "
 										"mobile BOOLEAN NOT NULL)")
 
 def update_apsw_tables(cursor):
@@ -90,7 +90,7 @@ def update_apsw_tables(cursor):
 										"user TEXT NOT NULL, "
 										"password TEXT NOT NULL, "
 										"db_name TEXT NOT NULL, "
-										"default BOOLEAN NOT NULL, "
+										"standard BOOLEAN NOT NULL, "
 										"mobile BOOLEAN NOT NULL)")
 	cursor.execute("INSERT OR IGNORE INTO db_connections VALUES "
 					"('1', 'localhost', '5432', "
