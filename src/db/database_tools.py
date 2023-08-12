@@ -39,13 +39,9 @@ class GUI:
 		self.progressbar = self.builder.get_object("progressbar1")
 		if error == False:
 			self.db = DB
-			self.retrieve_dbs ()
-			self.statusbar.push(1,"Ready to edit databases")
-			self.set_active_database ()
-			self.builder.get_object("box2").set_sensitive(True)
 			self.builder.get_object("grid2").set_sensitive(True)
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
-			self.statusbar.push(1,"Please setup PostgreSQL in the Server (host) tab")
+			self.statusbar.push(1,"Please select a valid database connection")
 		
 		self.get_postgre_settings (None)
 		self.window = self.builder.get_object('window')
@@ -83,15 +79,6 @@ class GUI:
 		else:
 			self.builder.get_object('button8').set_sensitive(True)
 			self.status_update("Ready to restore database")
-		
-	def set_active_database (self ):
-		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT db_name FROM postgres_conn;"):
-			sql_database = row[0]
-		self.builder.get_object('combobox1').set_active_id(sql_database)
-		self.builder.get_object('label10').set_text("Current database : " + sql_database)
-		self.builder.get_object('label14').set_text(sql_database)
-		sqlite.close()
 	
 	def retrieve_dbs(self):
 		sqlite = get_apsw_connection()
@@ -128,12 +115,8 @@ class GUI:
 		iter_ = combo.get_active_iter()
 		if iter_ == None:
 			return
-		db_name = combo.get_active_id()
-		db_version = model[iter_][0]
-		self.builder.get_object('label13').set_label(db_version)
-		self.builder.get_object('label14').set_label(db_name)
 
-	def login_multiple_clicked(self, widget):
+	def login_multiple_clicked(self, widget): # remove-me
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
 			self.error = False
@@ -141,7 +124,7 @@ class GUI:
 			subprocess.Popen(["./src/main.py", 
 								"database %s" % selected, str(LOG_FILE)])
 
-	def login_single_clicked(self, widget):
+	def login_single_clicked(self, widget): # remove-me
 		self.db.close()
 		selected = self.builder.get_object('combobox-entry').get_text()
 		if selected != None:
@@ -154,7 +137,10 @@ class GUI:
 								"database %s" % selected, str(LOG_FILE)])
 			Gtk.main_quit()
 
-	def add_db(self,widget):
+	def save_connection_clicked (self, button):
+		pass
+
+	def create_new_database_clicked (self, button):
 		self.status_update("Creating database...")
 		GLib.idle_add (self.create_db)
 
@@ -169,8 +155,7 @@ class GUI:
 			self.status_update("Ready to restore database")
 
 	def create_db (self):
-		self.db_name_entry = self.builder.get_object("entry1")
-		db_name= self.db_name_entry.get_text()
+		db_name = self.builder.get_object("db_combo_entry").get_text()
 		if db_name == "":
 			print ("No database name!")
 			self.status_update("No database name!")
@@ -214,7 +199,6 @@ class GUI:
 			return
 		self.db.commit()
 		sqlite.cursor().execute("UPDATE postgres_conn SET db_name = ?", (db_name,))
-		self.db_name_entry.set_text("")
 		self.status_update("Done!")
 		subprocess.Popen(["./src/main.py"])
 		GLib.timeout_add_seconds (1, Gtk.main_quit)
@@ -280,15 +264,14 @@ class GUI:
 		with open(sql_file, 'r') as sql:
 			return self.execute_file(sql)
 
-	def delete_button(self,widget):
+	def delete_clicked (self,widget):
 		self.warning_dialog = self.builder.get_object('db_delete_dialog')
 		warning_label = self.builder.get_object('label11')
-		self.db_name = self.builder.get_object('combobox1').get_active_id()
 		warning = 'Do you really want to delete\n "%s" ?' % self.db_name
 		warning_label.set_label(warning)
 		self.warning_dialog.show()
 
-	def delete_db(self, widget):
+	def delete_db (self, widget):
 		self.db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 		cursor = self.db.cursor()
 		try:
@@ -299,7 +282,6 @@ class GUI:
 				self.status_update("You cannot delete an active database!")
 		self.status_update("Database deleted")
 		self.retrieve_dbs ()
-		self.set_active_database ()
 		self.warning_dialog.hide()
 		
 	def close_warning_dialog(self, widget):
@@ -348,24 +330,15 @@ class GUI:
 			print (e)
 			self.message_error()
 			self.builder.get_object("textbuffer1").set_text(str(e))
-			self.builder.get_object("box2").set_sensitive(False)
 			self.builder.get_object("grid2").set_sensitive(False)
 			return
-		sqlite = get_apsw_connection()
-		sqlite.cursor().execute("UPDATE postgres_conn SET "
-						"(user, password, host, port) = "
-						"(?, ?, ?, ?)", 
-						(sql_user, sql_password, sql_host, sql_port))
-		sqlite.close()
 		self.message_success()
-		self.retrieve_dbs ()
+		self.retrieve_dbs()
 		self.builder.get_object("textbuffer1").set_text('')
-		self.builder.get_object("box2").set_sensitive(True)
 		self.builder.get_object("grid2").set_sensitive(True)
 		
 	def message_success(self):
 		self.status_update("Success!")
-		GLib.timeout_add(1000, self.status_update, "Saved to settings")
 
 	def message_error(self):
 		self.status_update("Your criteria did not match!")

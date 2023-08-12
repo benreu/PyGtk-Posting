@@ -69,11 +69,32 @@ def create_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE IF NOT EXISTS product_search "
 										"(widget_id TEXT UNIQUE NOT NULL, "
 										"value INTEGER NOT NULL)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS db_connections "
+										"(id INTEGER PRIMARY KEY, "
+										"server TEXT NOT NULL, "
+										"port TEXT NOT NULL, "
+										"user TEXT NOT NULL, "
+										"password TEXT NOT NULL, "
+										"db_name TEXT NOT NULL, "
+										"default BOOLEAN NOT NULL, "
+										"mobile BOOLEAN NOT NULL)")
 
 def update_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO postgres_conn VALUES "
 					"('1', 'postgres', 'None', "
 					"'localhost', '5432', 'None', 'False', 'False')")
+	cursor.execute("CREATE TABLE IF NOT EXISTS db_connections "
+										"(id INTEGER PRIMARY KEY, "
+										"server TEXT NOT NULL, "
+										"port TEXT NOT NULL, "
+										"user TEXT NOT NULL, "
+										"password TEXT NOT NULL, "
+										"db_name TEXT NOT NULL, "
+										"default BOOLEAN NOT NULL, "
+										"mobile BOOLEAN NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO db_connections VALUES "
+					"('1', 'localhost', '5432', "
+					"'postgres', 'None', 'None', 'False', 'False')")
 	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
 					"('postgres_bin_path', '/usr/bin')")
 	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
