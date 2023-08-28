@@ -44,6 +44,8 @@ class GUI:
 			self.statusbar.push(1,"Please select a valid database connection")
 		
 		self.get_postgre_settings (None)
+		self.populate_databases()
+	
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
 
@@ -79,28 +81,34 @@ class GUI:
 		else:
 			self.builder.get_object('button8').set_sensitive(True)
 			self.status_update("Ready to restore database")
+
+	def populate_databases(self):
+		sqlite = get_apsw_connection()
+		store = self.builder.get_object('connection_store')
+		store.clear()
+		for row in sqlite.cursor().execute("SELECT "
+											"id, name, server, port, user, "
+											"db_name, mobile "
+											"FROM db_connections"):
+			store.append(row)
 	
 	def retrieve_dbs(self):
-		sqlite = get_apsw_connection()
 		db_name_store = self.builder.get_object('db_name_store')
 		db_name_store.clear()
-		for row in sqlite.cursor().execute("SELECT user, password, host, port "
-											"FROM postgres_conn;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
-		sqlite.close()
+		sql_host = self.builder.get_object('server_entry').get_text()
+		sql_port = self.builder.get_object('port_entry').get_text()
+		sql_user = self.builder.get_object('username_entry').get_text()
+		sql_password = self.builder.get_object('password_entry').get_text()
 		cursor = self.db.cursor()
 		cursor.execute("SELECT b.datname FROM pg_catalog.pg_database b ORDER BY 1;")
 		for db_tuple in cursor.fetchall():
 			try:
 				db_name = db_tuple[0]
-				db = psycopg2.connect(  database= db_name, 
-										host= sql_host, 
-										user=sql_user, 
-										password = sql_password, 
-										port = sql_port)
+				db = psycopg2.connect(  database = db_name,
+										host = sql_host,
+										port = sql_port,
+										user = sql_user,
+										password = sql_password )
 				cursor = db.cursor()
 				cursor.execute("SELECT version FROM settings") # valid pygtk posting database
 				version = cursor.fetchone()[0]
@@ -116,29 +124,57 @@ class GUI:
 		if iter_ == None:
 			return
 
-	def login_multiple_clicked(self, widget): # remove-me
-		selected = self.builder.get_object('combobox-entry').get_text()
-		if selected != None:
-			self.error = False
-			self.window.close()
-			subprocess.Popen(["./src/main.py", 
-								"database %s" % selected, str(LOG_FILE)])
+	def connection_name_edited (self, cellrenderertext, path, text):
+		model, row = self.builder.get_object('database_selection').get_selected()
+		row_id = model[row][0]
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE db_connections SET name = ? WHERE id = ?", (text, row_id) )
+		sqlite.close()
+		model[path][1] = text
 
-	def login_single_clicked(self, widget): # remove-me
-		self.db.close()
-		selected = self.builder.get_object('combobox-entry').get_text()
-		if selected != None:
-			sqlite = get_apsw_connection()
-			sqlite.cursor().execute("UPDATE postgres_conn SET db_name = '%s'" 
-																% (selected))
-			self.error = False
-			self.window.close()
-			subprocess.Popen(["./src/main.py", 
-								"database %s" % selected, str(LOG_FILE)])
-			Gtk.main_quit()
+	def set_default_clicked (self, button):
+		model, row = self.builder.get_object('database_selection').get_selected()
+		if row == None:
+			return
+		row_id = model[row][0]
+		sqlite = get_apsw_connection()
+		cursor = sqlite.cursor()
+		cursor.execute("UPDATE postgres_conn SET (host, port, user, password, db_name, mobile) = "
+						"(SELECT server, port, user, password, db_name, mobile FROM db_connections WHERE id = ?)", (row_id,))
+		sqlite.close()
+
+	def open_connection_clicked (self, button):
+		model, row = self.builder.get_object('database_selection').get_selected()
+		if row == None:
+			return
+		row_id = model[row][0]
+		subprocess.Popen(["./src/main.py", 
+							"database %s" % row_id, str(LOG_FILE)])
 
 	def save_connection_clicked (self, button):
-		pass
+		host = self.builder.get_object('server_entry').get_text()
+		port = self.builder.get_object('port_entry').get_text()
+		user = self.builder.get_object('username_entry').get_text()
+		password = self.builder.get_object('password_entry').get_text()
+		db_name = self.builder.get_object('database_combo_entry').get_text()
+		mobile = self.builder.get_object('mobile_checkbutton').get_active()
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("INSERT INTO db_connections "
+								"(server, port, user, password, db_name, standard, mobile) "
+								"VALUES ('%s', '%s', '%s', '%s', '%s', False, '%s') " % 
+								(host, port, user, password, db_name, mobile))
+		self.populate_databases()
+
+	def delete_connection_clicked (self, button):
+		model, row = self.builder.get_object('database_selection').get_selected()
+		if row == None:
+			return
+		row_id = model[row][0]
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("DELETE FROM db_connections WHERE id = ? ",
+								(row_id,))
+		sqlite.close()
+		self.populate_databases()
 
 	def create_new_database_clicked (self, button):
 		self.status_update("Creating database...")
@@ -155,21 +191,21 @@ class GUI:
 			self.status_update("Ready to restore database")
 
 	def create_db (self):
+		host = self.builder.get_object('server_entry').get_text()
+		port = self.builder.get_object('port_entry').get_text()
+		user = self.builder.get_object('username_entry').get_text()
+		password = self.builder.get_object('password_entry').get_text()
 		db_name = self.builder.get_object("db_combo_entry").get_text()
+		mobile = self.builder.get_object('mobile_checkbutton').get_active()
 		if db_name == "":
 			print ("No database name!")
 			self.status_update("No database name!")
 			return
-		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT user, password, host, port "
-											"FROM postgres_conn;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
-		pysql = psycopg2.connect( database= "postgres", host= sql_host, 
-									user=sql_user, password = sql_password, 
-									port = sql_port)
+		pysql = psycopg2.connect(   database= "postgres",
+									host = host,
+									user = user,
+									password = password, 
+									port = port)
 		self.cursor = pysql.cursor()
 		pysql.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 		try:
@@ -181,10 +217,11 @@ class GUI:
 			return
 		while Gtk.events_pending():
 			Gtk.main_iteration()
-		self.db = psycopg2.connect( database= db_name, host= sql_host, 
-								user=sql_user, password = sql_password, 
-								port = sql_port)
-		#self.db_name = db_name
+		self.db = psycopg2.connect( database = db_name,
+									host = host,
+									user = user,
+									password = password, 
+									port = port)
 		if not self.create_tables ():
 			self.close_db (db_name)
 			return
@@ -198,8 +235,9 @@ class GUI:
 			self.close_db (db_name)
 			return
 		self.db.commit()
-		sqlite.cursor().execute("UPDATE postgres_conn SET db_name = ?", (db_name,))
-		self.status_update("Done!")
+		sqlite = get_apsw_connection()
+		sqlite.cursor().execute("UPDATE postgres_conn SET ( host, port, user, password, db_name, mobile) = (?, ?, ?, ?, ?, ?)", (db_name,))
+		self.status_update("Created database, restarting")
 		subprocess.Popen(["./src/main.py"])
 		GLib.timeout_add_seconds (1, Gtk.main_quit)
 
@@ -292,10 +330,10 @@ class GUI:
 		cursor = sqlite.cursor()
 		for row in cursor.execute("SELECT user, password, host, port "
 									"FROM postgres_conn;"):
-			self.builder.get_object("entry2").set_text(row[0])
-			self.builder.get_object("entry3").set_text(row[1])
-			self.builder.get_object("entry4").set_text(row[2])
-			self.builder.get_object("entry5").set_text(row[3])
+			self.builder.get_object("username_entry").set_text(row[0])
+			self.builder.get_object("password_entry").set_text(row[1])
+			self.builder.get_object("server_entry").set_text(row[2])
+			self.builder.get_object("port_entry").set_text(row[3])
 		cursor.execute("SELECT value FROM settings "
 						"WHERE setting = 'postgres_bin_path'")
 		self.bin_path = cursor.fetchone()[0]
@@ -317,10 +355,10 @@ class GUI:
 		sqlite.close()
 
 	def test_connection_clicked (self, widget):
-		sql_user= self.builder.get_object("entry2").get_text()
-		sql_password= self.builder.get_object("entry3").get_text()
-		sql_host= self.builder.get_object("entry4").get_text()
-		sql_port= self.builder.get_object("entry5").get_text()
+		sql_user= self.builder.get_object("username_entry").get_text()
+		sql_password= self.builder.get_object("password_entry").get_text()
+		sql_host= self.builder.get_object("server_entry").get_text()
+		sql_port= self.builder.get_object("port_entry").get_text()
 		try:
 			self.db = psycopg2.connect( host= sql_host, 
 										user=sql_user, 

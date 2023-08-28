@@ -20,7 +20,7 @@ import constants
 
 
 def get_apsw_connection():
-	if constants.dev_mode == True:
+	if constants.installed == False:
 		pref_file = os.path.join(os.getcwd(), 
 											'local_settings')
 	else:
@@ -71,6 +71,7 @@ def create_apsw_tables(cursor):
 										"value INTEGER NOT NULL)")
 	cursor.execute("CREATE TABLE IF NOT EXISTS db_connections "
 										"(id INTEGER PRIMARY KEY, "
+										"name TEXT, "
 										"server TEXT NOT NULL, "
 										"port TEXT NOT NULL, "
 										"user TEXT NOT NULL, "
@@ -85,6 +86,7 @@ def update_apsw_tables(cursor):
 					"'localhost', '5432', 'None', 'False', 'False')")
 	cursor.execute("CREATE TABLE IF NOT EXISTS db_connections "
 										"(id INTEGER PRIMARY KEY, "
+										"name TEXT, "
 										"server TEXT NOT NULL, "
 										"port TEXT NOT NULL, "
 										"user TEXT NOT NULL, "
@@ -93,7 +95,7 @@ def update_apsw_tables(cursor):
 										"standard BOOLEAN NOT NULL, "
 										"mobile BOOLEAN NOT NULL)")
 	cursor.execute("INSERT OR IGNORE INTO db_connections VALUES "
-					"('1', 'localhost', '5432', "
+					"('1', 'name', 'localhost', '5432', "
 					"'postgres', 'None', 'None', 'False', 'False')")
 	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
 					"('postgres_bin_path', '/usr/bin')")

@@ -19,7 +19,7 @@ import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re, psycopg2
 from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
-						help_dir, broadcaster
+						help_dir, broadcaster, mobile
 import admin_utils
 
 UI_FILE = ui_directory + "/main_window.ui"
@@ -98,8 +98,9 @@ class MainGUI :
 		from db import version
 		version.CheckVersion(self)
 		# avoid rollbacks during upgrade process by connecting focus afterwards
-		self.window.connect("focus-in-event", self.focus)
-		self.focus()
+		if mobile == False:
+			self.window.connect("focus-in-event", self.focus)
+			self.focus()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -128,6 +129,10 @@ class MainGUI :
 				menuitem.connect("activate", module.GUI)
 				menuitem.show()
 				menu.append(menuitem)
+
+	def open_company_activated (self, menuitem):
+		import companies
+		companies.OpenCompanyGUI()
 
 	def finance_charge_activated (self, menuitem):
 		import customer_finance_charge

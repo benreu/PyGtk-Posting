@@ -19,12 +19,12 @@
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GObject, GLib
 import psycopg2, apsw, os, shutil, sys, re
 import sqlite_utils
 
 
-def connect_to_db (name):
+def connect_to_db (row_id):
 	import constants
 	sqlite = sqlite_utils.get_apsw_connection()
 	cursor = sqlite.cursor()
@@ -34,28 +34,36 @@ def connect_to_db (name):
 	sqlite = sqlite_utils.get_apsw_connection()
 	constants.sqlite_connection = sqlite
 	cursor = sqlite.cursor()
-	if name == None:
-		for row in cursor.execute("SELECT db_name FROM postgres_conn;"):
-			sql_database = row[0]
+	if row_id == None:
+		for row in cursor.execute("SELECT host, port, user, password, db_name, mobile "
+									"FROM postgres_conn"):
+			host = row[0]
+			port = row[1]
+			user = row[2]
+			password = row[3]
+			database = row[4]
+			mobile = row[5]
 	else:
-		sql_database = name
-	for row in cursor.execute("SELECT user, password, host, port "
-								"FROM postgres_conn;"):
-		sql_user = row[0]
-		sql_password = row[1]
-		sql_host = row[2]
-		sql_port = row[3]
+		for row in cursor.execute("SELECT server, port, user, password, db_name, mobile "
+									"FROM db_connections WHERE id = ?", (row_id,)):
+			host = row[0]
+			port = row[1]
+			user = row[2]
+			password = row[3]
+			database = row[4]
+			mobile = row[5]
 	cursor.close()
 	try:
-		constants.DB = psycopg2.connect ( dbname = sql_database, 
-											host = sql_host, 
-											user = sql_user, 
-											password = sql_password, 
-											port = sql_port)
-		constants.db_name = sql_database
+		constants.DB = psycopg2.connect (   dbname = database, 
+											host = host, 
+											user = user, 
+											password = password, 
+											port = port)
+		constants.db_name = database
+		constants.mobile = mobile
 		constants.start_broadcaster()
 		import accounts
-		accounts.populate_accounts()
+		GLib.idle_add(accounts.populate_accounts)
 		return True
 	except psycopg2.OperationalError as e:
 		print (e.args[0])
