@@ -26,6 +26,8 @@ broadcaster = None
 ACCOUNTS = None
 is_admin = False
 log_file = None
+mobile = False
+installed = False
 
 def start_broadcaster ():
 	global broadcaster, ACCOUNTS
@@ -90,7 +92,7 @@ cur_dir = os.getcwd()
 home = os.path.expanduser('~')
 preferences_path = os.path.join(home, '.config/posting')
 def set_directories ():
-	global help_dir, ui_directory, template_dir, modules_dir, sql_dir
+	global help_dir, ui_directory, template_dir, modules_dir, sql_dir, installed
 	if cur_dir.split('/')[1] == "usr": #posting is launching from an installed .deb
 		help_dir = os.path.relpath("/usr/share/help/C/pygtk-posting")
 		ui_directory = os.path.relpath("/usr/share/pygtk_posting/ui/")
@@ -105,6 +107,7 @@ def set_directories ():
 			shutil.copytree(modules_orig, modules_dir)
 			print ("copied *.py modules to %s" % modules_dir)
 		sql_dir = os.path.realpath("/usr/lib/python3/dist-packages/pygtk_posting/db/")
+		installed = True
 	else:                              # use local files
 		help_dir = os.path.join(cur_dir, "help/C/pygtk-posting")
 		ui_directory = os.path.join(cur_dir, "src")

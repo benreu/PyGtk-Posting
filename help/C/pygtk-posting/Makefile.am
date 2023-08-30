@@ -8,4 +8,5 @@ python_PYTHON = contacts.page \
 	statement.page \
 	tax_exemptions.page \
 	unpaid_invoices.page \
-	index.page
+	index.page \
+	companies.py
