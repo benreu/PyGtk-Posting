@@ -27,8 +27,6 @@ class CheckVersion :
 	def __init__ (self, main):
 
 		from db import database_tools
-		d = database_tools.GUI()
-		d.window.hide()
 		while Gtk.events_pending():
 			Gtk.main_iteration()
 		self.window = main.window
@@ -88,8 +86,10 @@ class CheckVersion :
 				GLib.idle_add(Gtk.main_quit)
 			dialog.hide()
 		if upgrade == True:
+			d = database_tools.GUI()
+			d.window.hide()
 			self.run_updates (d, major_db_version, minor_db_version)
-		d.window.destroy()
+			d.window.destroy()
 
 	def populate_liabilities_store (self):
 		c = DB.cursor()

@@ -90,7 +90,9 @@ class GUI:
 											"id, name, server, port, user, "
 											"db_name, mobile "
 											"FROM db_connections"):
-			store.append(row)
+			row_list = list(row)
+			row_list[6] = row[6] == 'True' 
+			store.append(row_list)
 	
 	def retrieve_dbs(self):
 		db_name_store = self.builder.get_object('db_name_store')
@@ -328,12 +330,6 @@ class GUI:
 	def get_postgre_settings(self, widget):
 		sqlite = get_apsw_connection()
 		cursor = sqlite.cursor()
-		for row in cursor.execute("SELECT user, password, host, port "
-									"FROM postgres_conn;"):
-			self.builder.get_object("username_entry").set_text(row[0])
-			self.builder.get_object("password_entry").set_text(row[1])
-			self.builder.get_object("server_entry").set_text(row[2])
-			self.builder.get_object("port_entry").set_text(row[3])
 		cursor.execute("SELECT value FROM settings "
 						"WHERE setting = 'postgres_bin_path'")
 		self.bin_path = cursor.fetchone()[0]
@@ -355,13 +351,13 @@ class GUI:
 		sqlite.close()
 
 	def test_connection_clicked (self, widget):
-		sql_user= self.builder.get_object("username_entry").get_text()
-		sql_password= self.builder.get_object("password_entry").get_text()
-		sql_host= self.builder.get_object("server_entry").get_text()
-		sql_port= self.builder.get_object("port_entry").get_text()
+		sql_user = self.builder.get_object("username_entry").get_text()
+		sql_password = self.builder.get_object("password_entry").get_text()
+		sql_host = self.builder.get_object("server_entry").get_text()
+		sql_port = self.builder.get_object("port_entry").get_text()
 		try:
-			self.db = psycopg2.connect( host= sql_host, 
-										user=sql_user, 
+			self.db = psycopg2.connect( host = sql_host, 
+										user = sql_user, 
 										password = sql_password, 
 										port = sql_port)
 		except Exception as e:
@@ -386,14 +382,8 @@ class GUI:
 		path = filechooser.get_filename()
 		filechooser.set_tooltip_text(path)
 		buf = self.builder.get_object('postgres_bin_path_buffer')
-		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT user, password, host, port "
-											"FROM postgres_conn;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
-		sqlite.close()
+		sql_host = self.builder.get_object("server_entry").get_text()
+		sql_port = self.builder.get_object("port_entry").get_text()
 		command = ["%s/pg_isready" % path,
 					"-h", sql_host,
 					"-p", sql_port

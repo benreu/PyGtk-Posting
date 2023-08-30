@@ -42,7 +42,7 @@ def connect_to_db (row_id):
 			user = row[2]
 			password = row[3]
 			database = row[4]
-			mobile = row[5]
+			mobile = row[5] == 'True'
 	else:
 		for row in cursor.execute("SELECT server, port, user, password, db_name, mobile "
 									"FROM db_connections WHERE id = ?", (row_id,)):
@@ -51,7 +51,7 @@ def connect_to_db (row_id):
 			user = row[2]
 			password = row[3]
 			database = row[4]
-			mobile = row[5]
+			mobile = row[5] == 'True'
 	cursor.close()
 	try:
 		constants.DB = psycopg2.connect (   dbname = database, 
@@ -59,16 +59,16 @@ def connect_to_db (row_id):
 											user = user, 
 											password = password, 
 											port = port)
-		constants.db_name = database
-		constants.mobile = mobile
-		constants.start_broadcaster()
-		import accounts
-		GLib.idle_add(accounts.populate_accounts)
-		return True
 	except psycopg2.OperationalError as e:
 		print (e.args[0])
 		constants.db_name = 'False'
 		return False
+	constants.db_name = database
+	constants.mobile = mobile
+	constants.start_broadcaster()
+	import accounts
+	GLib.idle_add(accounts.populate_accounts)
+	return True
 
 def main_app():
 	import constants
