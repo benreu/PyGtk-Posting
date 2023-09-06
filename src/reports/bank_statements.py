@@ -21,6 +21,7 @@ from queue import Queue
 from threading import Thread
 import time
 from constants import ui_directory, DB, broadcaster
+import admin_utils
 
 UI_FILE = ui_directory + "/reports/bank_statements.ui"
 
@@ -63,11 +64,18 @@ class BankStatementsGUI:
 		DB.rollback()
 		self.statement_store = self.builder.get_object('statement_store')
 
-		window = self.builder.get_object('window1')
-		window.show_all()
+		self.window = self.builder.get_object('window1')
+		self.window.show_all()
+
+		self.handler_ids = list()
+		for connection in (("admin_changed", self.admin_changed), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		
 	def destroy (self, widget):
 		self.cursor.close()
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 
 	def collapse_all_activated (self, menuitem):
 		self.builder.get_object('treeview1').collapse_all()
@@ -79,6 +87,35 @@ class BankStatementsGUI:
 		treeview = self.builder.get_object('treeview1')
 		from reports import report_hub
 		report_hub.ReportHubGUI(treeview)
+
+	def treeview_button_release_event (self, treeview, event):
+		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		if event.button == 3:
+			menu = self.builder.get_object('treeview_menu')
+			menu.popup_at_pointer()
+
+	def admin_changed (self, broadcast_object, value):
+		self.builder.get_object('edit_mode_checkbutton').set_active(False)
+
+	def edit_mode_toggled (self, checkmenuitem):
+		if checkmenuitem.get_active() == False:
+			return # Warning, only check for admin when toggling to True
+		if not admin_utils.check_admin(self.window):
+			checkmenuitem.set_active(False)
+			return True
+		'''some wierdness going on with showing a dialog without letting the
+		checkmenuitem update its state'''
+		checkmenuitem.set_active(True)
+
+	def edit_gl_entry_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection4')
+		model, iter_ = selection.get_selected()
+		if iter_ == None:
+			return
+		gl_entry_id = model[iter_][0]
+		from admin import edit_gl_entry
+		edit_gl_entry.EditGlEntryGUI(gl_entry_id)
 
 	def reconcile_date_match_selected (self, completion, model, treeiter):
 		date_filter = model[treeiter][0]

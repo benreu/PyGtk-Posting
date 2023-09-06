@@ -22,8 +22,9 @@ from datetime import datetime
 from db import transactor
 from decimal import Decimal
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB
+from constants import ui_directory, DB, broadcaster
 from accounts import expense_tree
+import admin_utils
 
 UI_FILE = ui_directory + "/bank_statement.ui"
 
@@ -58,11 +59,50 @@ class GUI(Gtk.Builder):
 											'transaction_description_store')
 		self.populate_account_stores ()
 
+		self.handler_ids = list()
+		for connection in (("admin_changed", self.admin_changed), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
+
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
+
+	def window_destroy (self, widget):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
+
+	def treeview_button_release_event (self, treeview, event):
+		if self.get_object('edit_mode_checkbutton').get_active() == False:
+			return
+		if event.button == 3:
+			menu = self.get_object('treeview_menu')
+			menu.popup_at_pointer()
+
+	def admin_changed (self, broadcast_object, value):
+		self.get_object('edit_mode_checkbutton').set_active(False)
+
+	def edit_mode_toggled (self, checkmenuitem):
+		if checkmenuitem.get_active() == False:
+			return # Warning, only check for admin when toggling to True
+		if not admin_utils.check_admin(self.window):
+			checkmenuitem.set_active(False)
+			return True
+		'''some wierdness going on with showing a dialog without letting the
+		checkmenuitem update its state'''
+		checkmenuitem.set_active(True)
+
+	def edit_gl_entry_activated (self, menuitem):
+		selection = self.get_object('treeview-selection1')
+		model, iter_ = selection.get_selected()
+		if iter_ == None:
+			return
+		gl_entry_id = model[iter_][0]
+		from admin import edit_gl_entry
+		edit_gl_entry.EditGlEntryGUI(gl_entry_id)
 
 	def view_closed_items(self, check_button):
 		self.populate_treeview ()

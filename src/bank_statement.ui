@@ -59,6 +59,21 @@
     <property name="visible">True</property>
     <property name="can-focus">True</property>
     <child>
+      <object class="GtkCheckMenuItem" id="edit_mode_checkbutton">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit mode</property>
+        <property name="use-underline">True</property>
+        <signal name="toggled" handler="edit_mode_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem1">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -120,6 +135,7 @@
     <property name="default-width">800</property>
     <property name="default-height">600</property>
     <property name="icon-name">pygtk-posting</property>
+    <signal name="destroy" handler="window_destroy" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -239,6 +255,7 @@
                 <property name="can-focus">True</property>
                 <property name="model">bank_transaction_store</property>
                 <property name="enable-grid-lines">both</property>
+                <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>
@@ -956,5 +973,18 @@
       <action-widget response="-6">button4</action-widget>
       <action-widget response="-3">button3</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkMenu" id="treeview_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit GL entry</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="edit_gl_entry_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
 </interface>
