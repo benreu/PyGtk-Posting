@@ -79,6 +79,9 @@ def create_apsw_tables(cursor):
 										"db_name TEXT NOT NULL, "
 										"standard BOOLEAN NOT NULL, "
 										"mobile BOOLEAN NOT NULL)")
+	cursor.execute("INSERT OR IGNORE INTO db_connections VALUES "
+					"('1', 'name', 'localhost', '5432', "
+					"'postgres', 'None', 'None', 'False', 'False')")
 
 def update_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO postgres_conn VALUES "
@@ -94,9 +97,6 @@ def update_apsw_tables(cursor):
 										"db_name TEXT NOT NULL, "
 										"standard BOOLEAN NOT NULL, "
 										"mobile BOOLEAN NOT NULL)")
-	cursor.execute("INSERT OR IGNORE INTO db_connections VALUES "
-					"('1', 'name', 'localhost', '5432', "
-					"'postgres', 'None', 'None', 'False', 'False')")
 	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
 					"('postgres_bin_path', '/usr/bin')")
 	cursor.execute("INSERT OR IGNORE INTO settings VALUES "
