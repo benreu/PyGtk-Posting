@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from constants import DB
 
+all_accounts_tree = Gtk.TreeStore(str, str, str)
 expense_tree = Gtk.TreeStore(str, str, str)
 expense_list = Gtk.ListStore(str, str, str)
 revenue_account = Gtk.TreeStore(int, str, str)
@@ -30,7 +31,8 @@ product_inventory_list = Gtk.ListStore(str, str, str)
 product_revenue_list = Gtk.ListStore(str, str, str)
 
 def populate_accounts():
-	global  expense_tree, \
+	global  all_accounts_tree, \
+			expense_tree, \
 			revenue_account, \
 			revenue_list, \
 			product_expense_tree, \
@@ -139,7 +141,29 @@ def populate_accounts():
 			p = expense_tree.append(parent, [number, name, path])
 			populate_child_expense(number, p, path)
 
+	def populate_child_all ( number, parent, account_path):
+		cursor.execute("SELECT number::text, name, ' / '||name "
+							"FROM gl_accounts WHERE "
+							"parent_number = %s ORDER BY name", (number,))
+		for row in cursor.fetchall():
+			number = row[0]
+			name = row[1]
+			path = account_path + row[2]
+			p = all_accounts_tree.append(parent, [number, name, path])
+			populate_child_all(number, p, path)
+
 	############## finally, populate the accounts
+	all_accounts_tree.clear()
+	cursor.execute("SELECT number::text, name, ' / '||name "
+						"FROM gl_accounts "
+						"WHERE parent_number IS NULL ORDER BY name")
+	for row in cursor.fetchall():
+		number = row[0]
+		name = row[1]
+		path = row[2]
+		parent = all_accounts_tree.append(None, [number, name, path])
+		populate_child_all (number, parent, path)
+	#################################################
 	expense_tree.clear()
 	expense_list.clear()
 	cursor.execute("SELECT number::text, name, ' / '||name "

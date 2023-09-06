@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.38.2 -->
+<interface>
+  <requires lib="gtk+" version="3.24"/>
+  <object class="GtkListStore" id="accounts_store"/>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkListStore" id="gl_entry_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gint"/>
+      <!-- column-name amount_sort -->
+      <column type="gfloat"/>
+      <!-- column-name amount_formatted -->
+      <column type="gchararray"/>
+      <!-- column-name date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name date_formatted -->
+      <column type="gchararray"/>
+      <!-- column-name debit_number -->
+      <column type="glong"/>
+      <!-- column-name debit_account -->
+      <column type="gchararray"/>
+      <!-- column-name credit_number -->
+      <column type="glong"/>
+      <!-- column-name credit_account -->
+      <column type="gchararray"/>
+      <!-- column-name is_debit -->
+      <column type="gboolean"/>
+      <!-- column-name is_credit -->
+      <column type="gboolean"/>
+      <!-- column-name description -->
+      <column type="gchararray"/>
+      <!-- column-name reconciled -->
+      <column type="gboolean"/>
+      <!-- column-name reconcile_date_sort -->
+      <column type="gchararray"/>
+      <!-- column-name reconcile_date_formatted -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkWindow" id="window">
+    <property name="can-focus">False</property>
+    <property name="border-width">10</property>
+    <property name="title" translatable="yes">Edit GL entry</property>
+    <property name="window-position">center</property>
+    <property name="default-width">750</property>
+    <property name="default-height">300</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
+            <child>
+              <object class="GtkTreeView">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="model">gl_entry_store</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Amount</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">1</property>
+                    <child>
+                      <object class="GtkCellRendererSpin">
+                        <property name="editable">True</property>
+                        <property name="adjustment">adjustment1</property>
+                        <property name="digits">2</property>
+                        <signal name="edited" handler="amount_edited" swapped="no"/>
+                        <signal name="editing-started" handler="amount_editing_started" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Date</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">3</property>
+                    <child>
+                      <object class="GtkCellRendererText">
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="date_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">4</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Debit</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">6</property>
+                    <child>
+                      <object class="GtkCellRendererCombo" id="debit_combo">
+                        <property name="has-entry">False</property>
+                        <property name="text-column">1</property>
+                        <signal name="changed" handler="debit_combo_changed" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="editable">9</attribute>
+                        <attribute name="text">6</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Credit</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">8</property>
+                    <child>
+                      <object class="GtkCellRendererCombo" id="credit_combo">
+                        <property name="has-entry">False</property>
+                        <property name="text-column">1</property>
+                        <signal name="changed" handler="credit_combo_changed" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="editable">10</attribute>
+                        <attribute name="text">8</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Description</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">11</property>
+                    <child>
+                      <object class="GtkCellRendererText">
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="description_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">11</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Reconciled</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">12</property>
+                    <child>
+                      <object class="GtkCellRendererToggle"/>
+                      <attributes>
+                        <attribute name="active">12</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Reconcile date</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">13</property>
+                    <child>
+                      <object class="GtkCellRendererText">
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="reconcile_date_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">14</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="save_button">
+            <property name="label" translatable="yes">Save</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <signal name="clicked" handler="save_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
