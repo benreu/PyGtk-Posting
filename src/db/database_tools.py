@@ -65,12 +65,16 @@ class GUI:
 		b.window = self.window
 
 	def restore_database_clicked(self, widget):
-		restore_database_name = self.builder.get_object('entry6').get_text()
-		if restore_database_name == "":
+		host = self.builder.get_object('server_entry').get_text()
+		port = self.builder.get_object('port_entry').get_text()
+		user = self.builder.get_object('username_entry').get_text()
+		password = self.builder.get_object('password_entry').get_text()
+		db_name = self.builder.get_object('entry6').get_text()
+		if db_name == "":
 			self.status_update("Database name is blank!")
 		else:
 			from db.database_restore import RestoreGUI
-			RestoreGUI(restore_database_name, self)
+			RestoreGUI(host, port, user, password, db_name)
 			
 	def restore_name_changed(self, widget):
 		restore_database_name = widget.get_text()
@@ -197,7 +201,7 @@ class GUI:
 		port = self.builder.get_object('port_entry').get_text()
 		user = self.builder.get_object('username_entry').get_text()
 		password = self.builder.get_object('password_entry').get_text()
-		db_name = self.builder.get_object("db_combo_entry").get_text()
+		db_name = self.builder.get_object("new_database_entry").get_text()
 		mobile = self.builder.get_object('mobile_checkbutton').get_active()
 		if db_name == "":
 			print ("No database name!")
@@ -238,7 +242,10 @@ class GUI:
 			return
 		self.db.commit()
 		sqlite = get_apsw_connection()
-		sqlite.cursor().execute("UPDATE postgres_conn SET ( host, port, user, password, db_name, mobile) = (?, ?, ?, ?, ?, ?)", (db_name,))
+		sqlite.cursor().execute("INSERT INTO db_connections "
+								"(host, port, user, password, db_name, mobile) "
+								"VALUES (?, ?, ?, ?, ?, ?)", 
+								(host, port, user, password, db_name, mobile))
 		self.status_update("Created database, restarting")
 		subprocess.Popen(["./src/main.py"])
 		GLib.timeout_add_seconds (1, Gtk.main_quit)
