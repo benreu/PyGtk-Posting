@@ -91,6 +91,7 @@ class GUI:
 					"date_inserted AS dated "
 					"FROM payments_incoming "
 					"WHERE customer_id = %s "
+					"AND misc_income = False "
 					") s "
 				"UNION "
 					"(SELECT "
