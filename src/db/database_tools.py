@@ -167,9 +167,10 @@ class GUI:
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("INSERT INTO db_connections "
 								"(server, port, user, password, db_name, standard, mobile) "
-								"VALUES ('%s', '%s', '%s', '%s', '%s', False, '%s') " % 
+								"VALUES (?, ?, ?, ?, ?, False, ?) ", 
 								(host, port, user, password, db_name, mobile))
 		self.populate_databases()
+		self.builder.get_object('notebook1').set_current_page(0)
 
 	def delete_connection_clicked (self, button):
 		model, row = self.builder.get_object('database_selection').get_selected()
@@ -243,12 +244,11 @@ class GUI:
 		self.db.commit()
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("INSERT INTO db_connections "
-								"(host, port, user, password, db_name, mobile) "
-								"VALUES (?, ?, ?, ?, ?, ?)", 
+								"(server, port, user, password, db_name, standard, mobile) "
+								"VALUES (?, ?, ?, ?, ?, False, ?)", 
 								(host, port, user, password, db_name, mobile))
-		self.status_update("Created database, restarting")
-		subprocess.Popen(["./src/main.py"])
-		GLib.timeout_add_seconds (1, Gtk.main_quit)
+		self.populate_databases()
+		self.builder.get_object('notebook1').set_current_page(0)
 
 	def close_db (self, db_name):
 		self.db.close()
@@ -372,11 +372,13 @@ class GUI:
 			self.message_error()
 			self.builder.get_object("textbuffer1").set_text(str(e))
 			self.builder.get_object("grid2").set_sensitive(False)
+			self.builder.get_object("database_grid").set_sensitive(False)
 			return
 		self.message_success()
 		self.retrieve_dbs()
 		self.builder.get_object("textbuffer1").set_text('')
 		self.builder.get_object("grid2").set_sensitive(True)
+		self.builder.get_object("database_grid").set_sensitive(True)
 		
 	def message_success(self):
 		self.status_update("Success!")

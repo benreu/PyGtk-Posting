@@ -240,7 +240,7 @@
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <!-- n-columns=2 n-rows=10 -->
+                  <!-- n-columns=2 n-rows=7 -->
                   <object class="GtkGrid" id="grid1">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -290,49 +290,6 @@
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Existing database</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">7</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="mobile_checkbutton">
-                        <property name="label" translatable="yes">Mobile</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">When a database is set to Mobile, less data will be used and the info may be less up-to-date</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">6</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="margin-top">5</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">9</property>
-                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -439,102 +396,143 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkFrame">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="label-xalign">0.10000000149011612</property>
+                        <property name="shadow-type">in</property>
                         <child>
-                          <object class="GtkComboBox" id="database_combo">
+                          <object class="GtkAlignment">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="model">db_name_store</property>
-                            <property name="has-entry">True</property>
-                            <property name="entry-text-column">1</property>
-                            <property name="id-column">1</property>
-                            <signal name="changed" handler="db_combo_changed" swapped="no"/>
-                            <child internal-child="entry">
-                              <object class="GtkEntry" id="database_combo_entry">
+                            <property name="top-padding">5</property>
+                            <property name="bottom-padding">5</property>
+                            <property name="left-padding">5</property>
+                            <property name="right-padding">5</property>
+                            <child>
+                              <!-- n-columns=3 n-rows=3 -->
+                              <object class="GtkGrid" id="database_grid">
                                 <property name="visible">True</property>
+                                <property name="sensitive">False</property>
                                 <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="mobile_checkbutton">
+                                    <property name="label" translatable="yes">Mobile</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">When a database is set to Mobile, less data will be used and the info may be less up-to-date</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Existing database</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton">
+                                    <property name="label" translatable="yes">Save connection</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Adds an existing database to the connection list.</property>
+                                    <signal name="clicked" handler="save_connection_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">New database</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="new_database_entry">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton">
+                                    <property name="label" translatable="yes">Create</property>
+                                    <property name="width-request">90</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Creates a new database, and adds it to the connection list</property>
+                                    <signal name="clicked" handler="create_new_database_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBox" id="database_combo">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="model">db_name_store</property>
+                                    <property name="has-entry">True</property>
+                                    <property name="entry-text-column">1</property>
+                                    <property name="id-column">1</property>
+                                    <signal name="changed" handler="db_combo_changed" swapped="no"/>
+                                    <child internal-child="entry">
+                                      <object class="GtkEntry" id="database_combo_entry">
+                                        <property name="can-focus">False</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
                               </object>
                             </child>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
                         </child>
-                        <child>
-                          <object class="GtkButton">
-                            <property name="label" translatable="yes">Save connection</property>
+                        <child type="label">
+                          <object class="GtkLabel">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Adds an existing database to the connection list.</property>
-                            <signal name="clicked" handler="save_connection_clicked" swapped="no"/>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Create database or add existing</property>
                           </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
                         </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">7</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">New database</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">8</property>
+                        <property name="top-attach">6</property>
+                        <property name="width">2</property>
                       </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkEntry" id="new_database_entry">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton">
-                            <property name="label" translatable="yes">Create</property>
-                            <property name="width-request">90</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Creates a new database, and adds it to the connection list</property>
-                            <signal name="clicked" handler="create_new_database_clicked" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">8</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                   <packing>
@@ -603,7 +601,7 @@
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Add connection</property>
+                <property name="label" translatable="yes">Server</property>
               </object>
               <packing>
                 <property name="position">1</property>
