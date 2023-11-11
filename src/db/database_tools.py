@@ -167,7 +167,7 @@ class GUI:
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("INSERT INTO db_connections "
 								"(server, port, user, password, db_name, standard, mobile) "
-								"VALUES (?, ?, ?, ?, ?, False, ?) ", 
+								"VALUES (?, ?, ?, ?, ?, 'False', ?) ", 
 								(host, port, user, password, db_name, mobile))
 		self.populate_databases()
 		self.builder.get_object('notebook1').set_current_page(0)
@@ -245,7 +245,7 @@ class GUI:
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("INSERT INTO db_connections "
 								"(server, port, user, password, db_name, standard, mobile) "
-								"VALUES (?, ?, ?, ?, ?, False, ?)", 
+								"VALUES (?, ?, ?, ?, ?, 'False', ?)", 
 								(host, port, user, password, db_name, mobile))
 		self.populate_databases()
 		self.builder.get_object('notebook1').set_current_page(0)
