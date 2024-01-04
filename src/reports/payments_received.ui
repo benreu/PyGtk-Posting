@@ -91,6 +91,12 @@
       <column type="gchararray"/>
       <!-- column-name payment_text -->
       <column type="gchararray"/>
+      <!-- column-name payment_source -->
+      <column type="gchararray"/>
+      <!-- column-name deposited -->
+      <column type="gboolean"/>
+      <!-- column-name fiscal_active -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -345,6 +351,34 @@
                       </object>
                       <attributes>
                         <attribute name="text">7</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Payment</property>
+                    <property name="reorderable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText">
+                        <property name="editable">True</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">8</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Deposited</property>
+                    <property name="reorderable">True</property>
+                    <child>
+                      <object class="GtkCellRendererToggle"/>
+                      <attributes>
+                        <attribute name="active">9</attribute>
                       </attributes>
                     </child>
                   </object>

@@ -134,10 +134,16 @@ class PaymentsReceivedGUI:
 								"pay.amount, "
 								"pay.amount::text, "
 								"payment_type(pay.id), "
-								"payment_text "
+								"payment_text, "
+								"CASE WHEN pay.misc_income THEN 'Misc' "
+									"ELSE 'Invoice' END, "
+								"pay.deposit, "
+								"fy.active "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
+								"JOIN fiscal_years AS fy ON pay.date_inserted "
+								"BETWEEN fy.start_date AND fy.end_date "
 								"ORDER BY date_inserted;")
 		else:
 			fiscal_id = self.builder.get_object('combobox2').get_active_id()
@@ -149,10 +155,16 @@ class PaymentsReceivedGUI:
 								"pay.amount, "
 								"pay.amount::text, "
 								"payment_type(pay.id), "
-								"payment_text "
+								"payment_text, "
+								"CASE WHEN pay.misc_income THEN 'Misc' "
+									"ELSE 'Invoice' END, "
+								"pay.deposit, "
+								"fy.active "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
+								"JOIN fiscal_years AS fy ON pay.date_inserted "
+								"BETWEEN fy.start_date AND fy.end_date "
 								"WHERE (pay.date_inserted "
 								"BETWEEN (SELECT start_date "
 									"FROM fiscal_years WHERE id = %s) "
@@ -182,10 +194,16 @@ class PaymentsReceivedGUI:
 								"pay.amount, "
 								"pay.amount::text, "
 								"payment_type(pay.id), "
-								"payment_text "
+								"payment_text, "
+								"CASE WHEN pay.misc_income THEN 'Misc' "
+									"ELSE 'Invoice' END, "
+								"pay.deposit, "
+								"fy.active "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
+								"JOIN fiscal_years AS fy ON pay.date_inserted "
+								"BETWEEN fy.start_date AND fy.end_date "
 								"WHERE contacts.id = %s "
 								"ORDER BY date_inserted;", (self.customer_id,))
 		else:
@@ -198,19 +216,20 @@ class PaymentsReceivedGUI:
 								"pay.amount, "
 								"pay.amount::text, "
 								"payment_type(pay.id), "
-								"payment_text "
+								"payment_text, "
+								"CASE WHEN pay.misc_income THEN 'Misc' "
+									"ELSE 'Invoice' END, "
+								"pay.deposit, "
+								"fy.active "
 								"FROM payments_incoming AS pay "
 								"INNER JOIN contacts "
 								"ON pay.customer_id = contacts.id "
+								"JOIN fiscal_years AS fy ON pay.date_inserted "
+								"BETWEEN fy.start_date AND fy.end_date "
 								"WHERE contacts.id = %s "
-								"AND (pay.date_inserted "
-								"BETWEEN (SELECT start_date "
-									"FROM fiscal_years WHERE id = %s) "
-									"AND "
-									"(SELECT end_date "
-									"FROM fiscal_years WHERE id = %s)) "
-								"ORDER BY date_inserted;", (self.customer_id, 
-								fiscal_id, fiscal_id))
+								"AND fy.id = %s "
+								"ORDER BY date_inserted;", 
+								(self.customer_id, fiscal_id))
 		for row in self.cursor.fetchall():
 			total_amount += row[4]
 			self.payment_store.append(row)
@@ -219,7 +238,10 @@ class PaymentsReceivedGUI:
 		DB.rollback()
 
 	def date_edited (self, cellrenderertext, path, date):
-		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+		if date == self.payment_store[path][2]:
+			return
+		if self.payment_store[path][10] == False:
+			self.show_error_dialog("Fiscal year is already closed!")
 			return
 		row_id = self.payment_store[path][0]
 		try:
@@ -242,16 +264,25 @@ class PaymentsReceivedGUI:
 		DB.commit()
 	
 	def amount_edited (self, cellrenderertext, path, amount):
-		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+		if amount == self.payment_store[path][5]:
+			return
+		if self.payment_store[path][9] == True:
+			self.show_error_dialog("Payment is already deposited!")
+			return
+		if self.payment_store[path][10] == False:
+			self.show_error_dialog("Fiscal year is already closed!")
 			return
 		row_id = self.payment_store[path][0]
-		self.cursor.execute("UPDATE payments_incoming "
+		self.cursor.execute("UPDATE gl_entries "
+							"SET amount = %s WHERE id = "
+								"(UPDATE payments_incoming "
 								"SET amount = %s "
-								"WHERE id = %s;"
+								"WHERE id = %s "
+								"RETURNING gl_entries_id);"
 							"SELECT amount, "
 							"amount::text "
 							"FROM payments_incoming WHERE id = %s", 
-							(amount, row_id, row_id,))
+							(amount, amount, row_id, row_id,))
 		for row in self.cursor.fetchall():
 			amount = row[0]
 			amount_formatted = row[1]
@@ -260,11 +291,17 @@ class PaymentsReceivedGUI:
 		DB.commit()
 	
 	def payment_type_changed (self, cellrenderercombo, path, treeiter):
-		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
-			return
 		model = self.builder.get_object('payment_types_store')
 		payment_column_id = model[treeiter][0]
 		payment_type = model[treeiter][1]
+		if payment_type == self.payment_store[path][6]:
+			return
+		if self.payment_store[path][9] == True:
+			self.show_error_dialog("Payment is already deposited!")
+			return
+		if self.payment_store[path][10] == False:
+			self.show_error_dialog("Fiscal year is already closed!")
+			return
 		row_id = self.payment_store[path][0]
 		c = DB.cursor()
 		c.execute("UPDATE payments_incoming "
@@ -274,10 +311,15 @@ class PaymentsReceivedGUI:
 					(row_id, payment_column_id, row_id))
 		DB.commit()
 		self.payment_store[path][6] = payment_type
-		
 
 	def description_edited (self, cellrenderertext, path, description):
-		if self.builder.get_object('edit_mode_checkbutton').get_active() == False:
+		if description == self.payment_store[path][7]:
+			return
+		if self.payment_store[path][9] == True:
+			self.show_error_dialog("Payment is already deposited!")
+			return
+		if self.payment_store[path][10] == False:
+			self.show_error_dialog("Fiscal year is already closed!")
 			return
 		row_id = self.payment_store[path][0]
 		self.cursor.execute("UPDATE payments_incoming "
