@@ -74,15 +74,6 @@ class RestoreGUI(Gtk.Builder):
 	def restore_database(self):
 		self.window = self.get_object('restore_window')
 		self.window.show_all()
-		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT "
-											"user, password, host, port "
-											"FROM postgres_conn;"):
-			self.sql_user = row[0]
-			self.sql_password = row[1]
-			self.sql_host = row[2]
-			self.sql_port = row[3]
-		sqlite.close()
 		pty = Vte.Pty.new_sync(Vte.PtyFlags.DEFAULT)
 		self.terminal.set_pty(pty)
 		create_command = ["%s/createdb" % self.bin_path, 

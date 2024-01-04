@@ -373,12 +373,14 @@ class GUI:
 			self.builder.get_object("textbuffer1").set_text(str(e))
 			self.builder.get_object("grid2").set_sensitive(False)
 			self.builder.get_object("database_grid").set_sensitive(False)
+			self.builder.get_object("backup_restore_box").set_sensitive(False)
 			return
 		self.message_success()
 		self.retrieve_dbs()
 		self.builder.get_object("textbuffer1").set_text('')
 		self.builder.get_object("grid2").set_sensitive(True)
 		self.builder.get_object("database_grid").set_sensitive(True)
+		self.builder.get_object("backup_restore_box").set_sensitive(True)
 		
 	def message_success(self):
 		self.status_update("Success!")
