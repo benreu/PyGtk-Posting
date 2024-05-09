@@ -237,6 +237,9 @@ class GUI:
 			self.builder.get_object('label4').set_label('Select a single invoice')
 			self.builder.get_object('amount_spinbutton').set_value(total)
 		self.builder.get_object('label22').set_label('{:,.2f}'.format(total, 2))
+		self.builder.get_object('fifo_payment_checkbutton').set_active(False)
+		if len(path) == 0:
+			self.builder.get_object('fifo_payment_checkbutton').set_active(True)
 
 	def invoice_treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -299,9 +302,15 @@ class GUI:
 		self.payment_type_id = 2
 
 	def post_payment_clicked (self, widget):
-		comments = 	self.builder.get_object('entry2').get_text()
 		total = self.builder.get_object('amount_spinbutton').get_text()
 		total = Decimal(total)
+		if total == Decimal('0.00'):
+			dialog = self.builder.get_object('zero_payment_dialog')
+			response = dialog.run()
+			dialog.hide()
+			if response != Gtk.ResponseType.OK:
+				return
+		comments = 	self.builder.get_object('entry2').get_text()
 		self.payment = transactor.CustomerInvoicePayment(self.date, total)
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
@@ -356,7 +365,7 @@ class GUI:
 		c_id = self.customer_id
 		c.execute("(SELECT id, total - amount_due AS discount, amount_due FROM "
 					"(SELECT id, total, amount_due, SUM(amount_due) "
-					"OVER (ORDER BY date_created, id) invoice_totals "
+					"OVER (ORDER BY dated_for, id) invoice_totals "
 					"FROM invoices WHERE (paid, posted, canceled, customer_id) "
 					"= (False, True, False, %s)"
 					") i "
