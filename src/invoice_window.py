@@ -308,6 +308,7 @@ class InvoiceGUI:
 		if path == []:
 			return
 		self.set_product_price (path)
+		self.calculate_totals ()
 
 	def customer_combo_populate_popup (self, entry, menu):
 		separator = Gtk.SeparatorMenuItem ()
@@ -565,6 +566,7 @@ class InvoiceGUI:
 										ext_price, tax_rate_id, False, 
 										tax_letter, serial_number])
 		self.check_serial_numbers()
+		self.calculate_totals()
 		DB.rollback()
 			
 	def tax_exemption_combo_changed(self, combo):
