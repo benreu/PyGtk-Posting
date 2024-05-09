@@ -290,16 +290,23 @@ class GUI (Gtk.Builder):
 		treeselection = self.get_object('treeview-selection')
 		model, path = treeselection.get_selected_rows ()
 		if path != []:
+			import invoice_window
 			invoice_id = model[path][0]
 			c = DB.cursor()
-			c.execute("SELECT CURRENT_DATE - dated_for FROM invoices "
+			c.execute("SELECT CURRENT_DATE - date_created FROM invoices "
 						"WHERE id = %s", (invoice_id,))
 			days = c.fetchone()[0]
 			if days > 30:
-				self.show_message("The invoice is more than 30 days old")
-				return
-			import invoice_window
-			invoice_window.InvoiceGUI(invoice_id)
+				dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.INFO,
+											buttons = Gtk.ButtonsType.OK)
+				dialog.set_transient_for(self.window)
+				dialog.set_markup ("This invoice was created more than \n"
+									"30 days ago. The date will not be editable.")
+				dialog.run()
+				dialog.destroy()
+				invoice_window.InvoiceGUI(invoice_id, date_editable = False)
+			else:
+				invoice_window.InvoiceGUI(invoice_id)
 
 	def new_statement (self, widget):
 		new_statement.GUI()

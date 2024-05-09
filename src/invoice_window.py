@@ -51,7 +51,7 @@ class Item(object):#this is used by py3o library see their example for more info
 	pass
 
 class InvoiceGUI:
-	def __init__(self, invoice_id = None):
+	def __init__(self, invoice_id = None, date_editable = True):
 
 		self.invoice_id = 0
 		self.builder = Gtk.Builder()
@@ -98,21 +98,21 @@ class InvoiceGUI:
 		self.populate_customer_store ()
 		self.populate_product_store ()
 		self.builder.get_object('combobox2').set_active(0)
-		
+
 		self.calendar = DateTimeCalendar()
-		self.calendar.connect('day-selected', self.calendar_day_selected)
-		self.calendar.set_relative_to(self.builder.get_object('entry1'))
-		self.calendar.set_today()
+		if date_editable:
+			self.calendar.connect('day-selected', self.calendar_day_selected)
+			self.calendar.set_relative_to(self.builder.get_object('entry1'))
+			self.calendar.set_today()
 
 		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
 			cursor = DB.cursor()
-			self.cursor.execute("SELECT customer_id, COALESCE(dated_for, now())"
+			self.cursor.execute("SELECT customer_id, format_date(dated_for)"
 								"FROM invoices "
 								"WHERE id = %s", (invoice_id,))
 			for row in self.cursor.fetchall():
 				customer_id = row[0]
-				date = row[1]
-				self.calendar.set_date(date)
+				self.builder.get_object('entry1').set_text(row[1])
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
 			self.invoice_id = invoice_id
 			self.set_widgets_sensitive ()
