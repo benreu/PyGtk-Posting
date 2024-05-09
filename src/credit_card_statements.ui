@@ -624,7 +624,7 @@
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="date_error_dialog">
+  <object class="GtkDialog" id="date_reuse_dialog">
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">An error has occured!</property>
     <property name="window-position">center</property>
@@ -641,11 +641,21 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="button4">
+                <property name="label" translatable="yes">Use different date</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <object class="GtkButton" id="button3">
-                <property name="label" translatable="yes">Ok</property>
+                <property name="label" translatable="yes">Use reconcile date again</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -667,7 +677,9 @@
           <object class="GtkLabel" id="label10">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">label</property>
+            <property name="label" translatable="yes">This date has already been used to reconcile this credit card. 
+Typically you want to use a different date to group together
+reconciliations from different time periods.</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -678,7 +690,8 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">button3</action-widget>
+      <action-widget response="-6">button4</action-widget>
+      <action-widget response="-10">button3</action-widget>
     </action-widgets>
   </object>
 </interface>

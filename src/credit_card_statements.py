@@ -126,10 +126,14 @@ class CreditCardStatementGUI:
 							(self.date, self.credit_card_account, 
 							self.credit_card_account))
 		if self.cursor.fetchone():
-			self.show_error_dialog("A reconcile already exists for this "
-									"credit card on this date.\n"
-									"Please choose a different date.")
-			return
+			dialog = self.builder.get_object('date_reuse_dialog')
+			response = dialog.run()
+			dialog.hide()
+			if response == Gtk.ResponseType.CANCEL:
+				self.calendar.show()
+				return
+			elif response != Gtk.ResponseType.APPLY: # user closed window
+				return
 		self.cursor.execute("UPDATE gl_entries "
 							"SET date_reconciled = %s "
 							"WHERE date_reconciled IS NULL "
@@ -162,10 +166,7 @@ class CreditCardStatementGUI:
 		except psycopg2.DataError as e:
 			DB.rollback()
 			print (e)
-			self.builder.get_object('label10').set_label(str(e))
-			dialog = self.builder.get_object('date_error_dialog')
-			dialog.run()
-			dialog.hide()
+			self.show_error_dialog(str(e))
 			return
 		DB.commit()
 		self.transactions_store[path][1] = text
