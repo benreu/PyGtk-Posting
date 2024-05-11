@@ -165,7 +165,9 @@ pygtk_posting_PYTHON = \
 	invoice_hub.py \
 	invoice_hub.ui \
 	companies.py \
-	companies.ui
+	companies.ui \
+	incoming_invoice_edit.py \
+	incoming_invoice_edit.ui
 	invoice_hub.py \
 	invoice_hub.ui
 
