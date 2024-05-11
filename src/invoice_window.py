@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 import os, subprocess, psycopg2, re
+from datetime import datetime
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
@@ -103,20 +104,25 @@ class InvoiceGUI:
 		if date_editable:
 			self.calendar.connect('day-selected', self.calendar_day_selected)
 			self.calendar.set_relative_to(self.builder.get_object('entry1'))
-			self.calendar.set_today()
+		self.datetime = datetime.today()
 
 		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
 			cursor = DB.cursor()
-			self.cursor.execute("SELECT customer_id, format_date(dated_for)"
+			self.cursor.execute("SELECT customer_id, "
+									"COALESCE(dated_for, CURRENT_DATE), "
+									"format_date(COALESCE(dated_for, CURRENT_DATE)) "
 								"FROM invoices "
 								"WHERE id = %s", (invoice_id,))
 			for row in self.cursor.fetchall():
 				customer_id = row[0]
-				self.builder.get_object('entry1').set_text(row[1])
+				self.datetime = row[1] # load separately from calendar, in case date has a problem
+				self.builder.get_object('entry1').set_text(row[2])
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
 			self.invoice_id = invoice_id
 			self.set_widgets_sensitive ()
 			self.populate_invoice_items()
+			
+		self.calendar.set_datetime(self.datetime)
 
 		self.tax = 0
 		self.window.show_all()
