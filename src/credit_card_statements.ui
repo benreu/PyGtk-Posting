@@ -22,6 +22,19 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkMenu" id="edit_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="edit_incoming_invoice_clicked" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="fees_rewards_description_store">
     <columns>
       <!-- column-name description_name -->
@@ -70,6 +83,21 @@
         <signal name="toggled" handler="save_reconciled_toggled" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkCheckMenuItem" id="edit_mode_checkbutton">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit mode</property>
+        <property name="use-underline">True</property>
+        <signal name="toggled" handler="edit_mode_checkbutton_toggled" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="transactions_store">
     <columns>
@@ -91,6 +119,8 @@
       <column type="gchararray"/>
       <!-- column-name reconcile -->
       <column type="gboolean"/>
+      <!-- column-name incoming_invoice_id -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -248,6 +278,7 @@
                 <property name="can-focus">True</property>
                 <property name="vexpand">True</property>
                 <property name="model">transactions_store</property>
+                <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection1"/>
                 </child>

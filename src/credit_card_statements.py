@@ -19,7 +19,8 @@ from gi.repository import Gtk, GLib
 import psycopg2
 from db import transactor
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB
+from constants import ui_directory, DB, broadcaster
+import admin_utils
 
 UI_FILE = ui_directory + "/credit_card_statements.ui"
 
@@ -36,6 +37,11 @@ class CreditCardStatementGUI:
 									'income_expense_accounts_store')
 		self.fees_rewards_store = self.builder.get_object(
 									'fees_rewards_description_store')
+									
+		self.handler_ids = list()
+		for connection in (("admin_changed", self.admin_changed), ):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.credit_card_account = None
 		self.date = None
@@ -49,12 +55,17 @@ class CreditCardStatementGUI:
 
 	def destroy (self, widget):
 		self.cursor.close()
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
 
 	def focus (self, window, event):
 		pass
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
+
+	def admin_changed (self, broadcast_object, value):
+		self.builder.get_object('edit_mode_checkbutton').set_active(False)
 
 	def populate_accounts_combo(self):
 		credit_card_store = self.builder.get_object('credit_card_store')
@@ -187,16 +198,19 @@ class CreditCardStatementGUI:
 	def populate_statement_treeview (self):
 		self.transactions_store.clear()
 		self.cursor.execute("SELECT "
-								"id, "
+								"ge.id, "
 								"transaction_description, "
-								"amount::numeric, "
-								"amount::text, "
+								"ge.amount::numeric, "
+								"ge.amount::text, "
 								"date_inserted::text, "
 								"format_date(date_inserted), "
 								"reconciled, "
 								"debit_account, "
-								"credit_account "
-							"FROM gl_entries "
+								"credit_account, "
+								"COALESCE(ii.id::text, '')"
+							"FROM gl_entries ge "
+							"JOIN incoming_invoices ii ON "
+							"ii.gl_transaction_id = ge.gl_transaction_id "
 							"WHERE (debit_account = %s OR credit_account = %s) "
 							"AND date_reconciled IS NULL ORDER BY date_inserted", 
 							(self.credit_card_account,
@@ -209,14 +223,16 @@ class CreditCardStatementGUI:
 			date = row[4]
 			date_formatted = row[5]
 			reconciled = row[6]
+			incoming_invoice_id = row[9]
 			if str(row[7]) == self.credit_card_account:
 				self.transactions_store.append([row_id, str(date), date_formatted, 
 											description, amount, amount_formatted, 
-											0.0, '', reconciled])
+											0.0, '', reconciled, incoming_invoice_id])
 			else:
 				self.transactions_store.append([row_id, str(date), date_formatted, 
 											description, 0.0, '',
-											amount, amount_formatted, reconciled])
+											amount, amount_formatted, reconciled,
+											incoming_invoice_id])
 		
 	def all_reconciled_off_activated (self, menuitem):
 		for row in self.transactions_store:
@@ -333,6 +349,31 @@ class CreditCardStatementGUI:
 		self.builder.get_object('button2').set_sensitive(False)
 		self.builder.get_object('comboboxtext4').set_sensitive(False)
 		DB.commit()
+
+	def edit_mode_checkbutton_toggled (self, checkmenuitem):
+		if checkmenuitem.get_active() == False:
+			return # Warning, only check for admin when toggling to True
+		if not admin_utils.check_admin(self.window):
+			checkmenuitem.set_active(False)
+			return True
+		'''some wierdness going on with showing a dialog without letting the
+		checkmenuitem update its state'''
+		checkmenuitem.set_active(True)
+
+	def treeview_button_release_event (self, treeview, event):
+		if self.builder.get_object('edit_mode_checkbutton').get_active() == True:
+			if event.button == 3:
+				menu = self.builder.get_object('edit_menu')
+				menu.popup_at_pointer()
+
+	def edit_incoming_invoice_clicked (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_id = model[path][9]
+		from incoming_invoice_edit import EditIncomingInvoiceGUI
+		EditIncomingInvoiceGUI(invoice_id)
 
 	def calendar_day_selected (self, calendar):
 		self.date = calendar.get_date()
