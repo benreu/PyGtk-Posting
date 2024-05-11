@@ -797,12 +797,12 @@ class InvoiceGUI:
 							"FROM products JOIN tax_rates "
 							"ON tax_rates.id = products.tax_rate_id "  
 							"WHERE products.id = %s", (product_id,))
+		tax_rate_id = self.builder.get_object('comboboxtext1').get_active_id()
 		for row in self.cursor.fetchall ():
 			product_name = row[0]
 			ext_name = row[1]
 			tax_letter = row[2]
 			serial_number = row[3]
-			tax_rate_id = row[4]
 			iter_ = self.invoice_store.get_iter(path)
 			if serial_number == True:
 				self.builder.get_object('treeviewcolumn13').set_visible(True)
@@ -1049,7 +1049,7 @@ class InvoiceGUI:
 		price = self.invoice_store[iter_][6]
 		tax = self.invoice_store[iter_][7]
 		ext_price = self.invoice_store[iter_][8]
-		tax_id = self.builder.get_object('comboboxtext1').get_active_id()
+		tax_rate_id = self.builder.get_object('comboboxtext1').get_active_id()
 		if id == 0:
 			self.check_invoice_id()
 			self.cursor.execute("INSERT INTO invoice_items "
@@ -1058,7 +1058,7 @@ class InvoiceGUI:
 								"VALUES (%s, %s, %s, %s, %s, %s, %s) "
 								"RETURNING id", 
 								(self.invoice_id, qty, product_id, remark, 
-								price, False, tax_id))
+								price, False, tax_rate_id))
 			self.invoice_store[iter_][0] = self.cursor.fetchone()[0]
 			DB.commit()
 		self.invoice = None #the generated .odt is no longer valid
