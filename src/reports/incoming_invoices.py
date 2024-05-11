@@ -36,13 +36,10 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 		self.service_provider_store = self.get_object('service_provider_store')
 		self.get_object('expense_account_combobox').set_model(expense_tree)
-		self.get_object('edit_expense_account_combo').set_property('model', expense_tree)
 		self.fiscal_store = self.get_object('fiscal_store')
 		self.incoming_invoice_store = self.get_object('incoming_invoices_store')
 		self.invoice_items_store = self.get_object('invoice_items_store')
-		sp_completion = self.get_object('service_provider_filter_completion')
-		sp_completion.set_match_func(self.sp_match_func)
-		sp_completion = self.get_object('service_provider_edit_completion')
+		sp_completion = self.get_object('service_provider_completion')
 		sp_completion.set_match_func(self.sp_match_func)
 
 		self.search_desc_text = ''
@@ -69,8 +66,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def admin_changed (self, broadcast_object, value):
 		self.get_object('edit_mode_checkbutton').set_active(False)
-		self.get_object('edit_amount_menuitem').set_visible(False)
-		self.get_object('edit_attachment_menuitem').set_visible(False)
+		self.get_object('edit_incoming_invoice_menuitem').set_visible(False)
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -297,38 +293,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	########## admin section
 
-	def service_provider_changed (self, cellrenderercombo, path, treeiter):
-		if self.get_object('edit_mode_checkbutton').get_active() == False:
-			return
-		sp_id = self.service_provider_store[treeiter][0]
-		self.update_service_provider(sp_id)
-
-	def service_provider_renderer_editing_started (self, cellrenderer, celleditable, path):
-		if self.get_object('edit_mode_checkbutton').get_active() == False:
-			return
-		entry = celleditable.get_child()
-		completion = self.get_object('service_provider_edit_completion')
-		entry.set_completion(completion)
-
-	def service_provider_edit_match_selected (self, entrycompletion, model, treeiter):
-		if self.get_object('edit_mode_checkbutton').get_active() == False:
-			return
-		sp_id = model[treeiter][0]
-		self.update_service_provider(sp_id)
-
-	def update_service_provider (self, sp_id):
-		selection = self.get_object('incoming_invoices_tree_selection')
-		model, path = selection.get_selected_rows()
-		if len(path) != 1: # only one row valid for editing, no more, no less
-			return
-		row_id = model[path][0]
-		c = DB.cursor()
-		c.execute("UPDATE incoming_invoices "
-					"SET contact_id = %s WHERE id = %s",
-					(sp_id, row_id))
-		DB.commit()
-		GLib.timeout_add(25, self.populate_incoming_invoice_store)
-
 	def date_edited (self, cellrenderertext, path, text):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
@@ -386,8 +350,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def edit_mode_checkbutton_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:
-			self.get_object('edit_amount_menuitem').set_visible(False)
-			self.get_object('edit_attachment_menuitem').set_visible(False)
+			self.get_object('edit_incoming_invoice_menuitem').set_visible(False)
 			return # Warning, only check for admin when toggling to True
 		if not admin_utils.check_admin(self.window):
 			checkmenuitem.set_active(False)
@@ -395,8 +358,16 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		'''some wierdness going on with showing a dialog without letting the
 		checkmenuitem update its state'''
 		checkmenuitem.set_active(True)
-		self.get_object('edit_amount_menuitem').set_visible(True)
-		self.get_object('edit_attachment_menuitem').set_visible(True)
+		self.get_object('edit_incoming_invoice_menuitem').set_visible(True)
+
+	def edit_incoming_invoice_activated (self, menuitem):
+		selection = self.get_object('incoming_invoices_tree_selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_id = model[path][0]
+		from incoming_invoice_edit import EditIncomingInvoiceGUI
+		EditIncomingInvoiceGUI(invoice_id)
 
 	def incoming_invoice_description_edited (self, cellrenderer, path, text):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
@@ -425,106 +396,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					(text, incoming_invoice_link_id))
 		DB.commit()
 		store[path][5] = text
-
-	def edit_amount_activated (self, menuitem):
-		self.populate_payment_accounts()
-		selection = self.get_object('incoming_invoices_tree_selection')
-		model, path = selection.get_selected_rows()
-		if path == []:
-			return
-		self.edit_incoming_invoice_id = model[path][0]
-		edit_model = self.get_object('edit_account_amount_store')
-		edit_model.clear()
-		c = DB.cursor()
-		c.execute("SELECT ii.gl_transaction_id, "
-					"ii.amount, "
-					"ge.credit_account::text "
-					"FROM incoming_invoices AS ii "
-					"JOIN gl_entries AS ge ON ge.id = ii.gl_entry_id "
-					"WHERE ii.id = %s", (self.edit_incoming_invoice_id,))
-		for row in c.fetchall():
-			tx_id = row[0]
-			amount = row[1]
-			account_number = row[2]
-			self.get_object('edit_total_spin').set_value(amount)
-			self.get_object('edit_account_combo').set_active_id(account_number)
-			c.execute("SELECT ge.id, ge.amount::text, ge.debit_account, name, '' "
-						"FROM gl_entries AS ge "
-						"JOIN gl_accounts AS ga ON ga.number = ge.debit_account "
-						"WHERE ge.gl_transaction_id = %s", (tx_id,))
-			for row in c.fetchall():
-				edit_model.append(row)
-			window = self.get_object('edit_amount_window')
-			window.show_all()
-			self.check_edit_validity()
-	
-	def edit_amount_window_delete_event (self, window, event):
-		window.hide()
-		return True
-
-	def save_edits_clicked (self, button):
-		amount = self.get_object('edit_total_spin').get_text()
-		account_number = self.get_object('edit_account_combo').get_active_id()
-		c = DB.cursor()
-		c.execute("WITH cte AS ( UPDATE incoming_invoices "
-					"SET amount = %s WHERE id = %s RETURNING gl_entry_id) "
-					"UPDATE gl_entries SET (amount, credit_account) = "
-					"(%s, %s) WHERE id = (SELECT gl_entry_id FROM cte)",
-					(amount, self.edit_incoming_invoice_id,
-					amount, account_number))
-		for row in self.get_object('edit_account_amount_store'):
-			row_id = row[0]
-			amount = row[1]
-			account = row[2]
-			c.execute("UPDATE gl_entries SET (amount, debit_account) = "
-						"(%s, %s) WHERE id = %s",
-						(amount, account, row_id))
-		DB.commit()
-		self.get_object('edit_amount_window').hide()
-		self.populate_incoming_invoice_store()
-
-	def edit_total_value_changed (self, spinbutton):
-		self.check_edit_validity()
-
-	def edit_expense_account_changed (self, cellrenderercombo, path, treeiter):
-		account = expense_tree[treeiter][0]
-		account_name = expense_tree[treeiter][1]
-		account_path = expense_tree[treeiter][2]
-		model = self.get_object('edit_account_amount_store')
-		model[path][2] = int(account)
-		model[path][3] = account_name
-		model[path][4] = account_path
-
-	def amount_editing_started (self, cellrenderer, celleditable, path):
-		celleditable.set_numeric(True)
-
-	def edit_amount_changed (self, cellrenderertext, path, amount):
-		model = self.get_object('edit_account_amount_store')
-		model[path][1] = amount
-		self.check_edit_validity()
-
-	def check_edit_validity (self):
-		total = self.get_object('edit_total_spin').get_text()
-		row_amounts = Decimal('0.00')
-		for row in self.get_object('edit_account_amount_store'):
-			row_amounts += Decimal(row[1])
-		button = self.get_object('save_edits_button')
-		if Decimal(total) != row_amounts:
-			button.set_label("Amounts do not match")
-			button.set_sensitive(False)
-		else:
-			button.set_label("Save edits")
-			button.set_sensitive(True)
-
-	def edit_attachment_activated (self, menuitem):
-		selection = self.get_object('incoming_invoices_tree_selection')
-		model, path = selection.get_selected_rows()
-		if path == []:
-			return
-		file_id = model[path][0]
-		import pdf_attachment
-		paw = pdf_attachment.PdfAttachmentWindow(self.window)
-		paw.connect("pdf_optimized", self.optimized_callback, file_id)
 
 	def show_error_dialog (self, error):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

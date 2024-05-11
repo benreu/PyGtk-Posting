@@ -80,19 +80,11 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
-      <object class="GtkMenuItem" id="edit_amount_menuitem">
+      <object class="GtkMenuItem" id="edit_incoming_invoice_menuitem">
         <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Edit amount</property>
+        <property name="label" translatable="yes">Edit incoming invoice</property>
         <property name="use-underline">True</property>
-        <signal name="activate" handler="edit_amount_activated" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="edit_attachment_menuitem">
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Edit attachment</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="edit_attachment_activated" swapped="no"/>
+        <signal name="activate" handler="edit_incoming_invoice_activated" swapped="no"/>
       </object>
     </child>
     <child>
@@ -156,24 +148,7 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkEntryCompletion" id="service_provider_edit_completion">
-    <property name="model">service_provider_store</property>
-    <property name="text-column">1</property>
-    <signal name="match-selected" handler="service_provider_edit_match_selected" swapped="no"/>
-    <child>
-      <object class="GtkCellRendererText"/>
-      <attributes>
-        <attribute name="text">1</attribute>
-      </attributes>
-    </child>
-    <child>
-      <object class="GtkCellRendererText"/>
-      <attributes>
-        <attribute name="text">2</attribute>
-      </attributes>
-    </child>
-  </object>
-  <object class="GtkEntryCompletion" id="service_provider_filter_completion">
+  <object class="GtkEntryCompletion" id="service_provider_completion">
     <property name="model">service_provider_store</property>
     <property name="text-column">1</property>
     <signal name="match-selected" handler="service_provider_match_selected" swapped="no"/>
@@ -249,7 +224,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="width-chars">10</property>
-                        <property name="completion">service_provider_filter_completion</property>
+                        <property name="completion">service_provider_completion</property>
                       </object>
                     </child>
                   </object>
@@ -395,8 +370,6 @@
                             <property name="editable">True</property>
                             <property name="model">service_provider_store</property>
                             <property name="text-column">1</property>
-                            <signal name="changed" handler="service_provider_changed" swapped="no"/>
-                            <signal name="editing-started" handler="service_provider_renderer_editing_started" swapped="no"/>
                           </object>
                           <attributes>
                             <attribute name="text">2</attribute>
@@ -913,191 +886,5 @@
     <property name="upper">1000000</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
-  </object>
-  <object class="GtkWindow" id="edit_amount_window">
-    <property name="can-focus">False</property>
-    <property name="border-width">10</property>
-    <property name="title" translatable="yes">Edit amounts / accounts</property>
-    <property name="window-position">center</property>
-    <signal name="delete-event" handler="edit_amount_window_delete_event" swapped="no"/>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes"> Pay with account  </property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBox" id="edit_account_combo">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="model">pay_with_account_store</property>
-                <property name="has-entry">True</property>
-                <property name="entry-text-column">1</property>
-                <property name="id-column">0</property>
-                <child internal-child="entry">
-                  <object class="GtkEntry">
-                    <property name="can-focus">False</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes"> Total </property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="edit_total_spin">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="width-chars">8</property>
-                <property name="xalign">1</property>
-                <property name="adjustment">total_adjustment</property>
-                <property name="digits">2</property>
-                <property name="numeric">True</property>
-                <signal name="value-changed" handler="edit_total_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScrolledWindow">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="shadow-type">in</property>
-            <child>
-              <object class="GtkTreeView">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="model">edit_account_amount_store</property>
-                <property name="tooltip-column">4</property>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Amount</property>
-                    <property name="reorderable">True</property>
-                    <child>
-                      <object class="GtkCellRendererSpin" id="amount_spin">
-                        <property name="alignment">right</property>
-                        <property name="editable">True</property>
-                        <property name="adjustment">row_amount_adjustment</property>
-                        <property name="digits">2</property>
-                        <signal name="edited" handler="edit_amount_changed" swapped="no"/>
-                        <signal name="editing-started" handler="amount_editing_started" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="text">1</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Account #</property>
-                    <property name="reorderable">True</property>
-                    <child>
-                      <object class="GtkCellRendererText"/>
-                      <attributes>
-                        <attribute name="text">2</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn">
-                    <property name="resizable">True</property>
-                    <property name="title" translatable="yes">Account name</property>
-                    <property name="reorderable">True</property>
-                    <child>
-                      <object class="GtkCellRendererCombo" id="edit_expense_account_combo">
-                        <property name="editable">True</property>
-                        <property name="has-entry">False</property>
-                        <property name="text-column">1</property>
-                        <signal name="changed" handler="edit_expense_account_changed" swapped="no"/>
-                      </object>
-                      <attributes>
-                        <attribute name="text">3</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkButton" id="save_edits_button">
-                <property name="label" translatable="yes">Save edits</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="save_edits_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
   </object>
 </interface>
