@@ -19,7 +19,7 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 import psycopg2
-import subprocess
+import subprocess, glob, os
 import barcode_generator
 from constants import ui_directory, DB, broadcaster, template_dir
 
@@ -58,6 +58,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.populate_product_store()
 		self.populate_contact_store()
 		self.populate_serial_number_history()
+		self.populate_printers()
+		DB.rollback()
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
@@ -117,7 +119,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			if text not in self.contact_store[tree_iter][1].lower():
 				return False
 		return True
-		
+
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
 		self.cursor.execute("SELECT id::text, name, invoice_serial_numbers "
@@ -134,7 +136,30 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"WHERE deleted = False ORDER BY name")
 		for row in self.cursor.fetchall():
 			self.contact_store.append(row)
-		DB.rollback()
+
+	def populate_system_labels(self):
+		store = self.get_object('serial_template_store')
+		store.clear()
+		for path in glob.glob('./templates/serial*.odt'):
+			name = path.replace('./templates/', '')
+			store.append(["odt", name])
+			
+	def populate_zebra_labels(self):
+		store = self.get_object('serial_template_store')
+		store.clear()
+		for path in glob.glob('./templates/Zebra/*'):
+			name = path.replace('./templates/', '')
+			store.append(["zpl", name])
+
+	def populate_printers(self):
+		store = self.get_object('printer_store')
+		store.clear()
+		store.append(['0', 'System', 'None', 0])
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, host, port "
+						"FROM settings.zebra_printers")
+		for row in cursor.fetchall():
+			store.append(row)
 
 	def populate_serial_number_history (self):
 		treeview = self.get_object('serial_number_treeview')
@@ -184,6 +209,23 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			store.append(row)
 		treeview.set_model(original_model)
 		DB.rollback()
+		
+	def printer_combo_changed (self, combobox):
+		printer_id = combobox.get_active_id()
+		if printer_id == None:
+			return
+		if printer_id == '0':
+			self.populate_system_labels()
+		else:
+			self.populate_zebra_labels()
+
+	def printer_template_combo_changed (self, combobox):
+		if combobox.get_active_iter() == None:
+			self.get_object('serial_number_entry').set_sensitive(False)
+			self.get_object('print_serial_number_button').set_sensitive(False)
+		else:
+			self.get_object('serial_number_entry').set_sensitive(True)
+			self.get_object('print_serial_number_button').set_sensitive(True)
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -206,7 +248,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			store.append(row)
 		DB.rollback()
 
-	def add_serial_event_clicked (self, button):
+	def add_serial_event_activated (self, button):
 		window = self.get_object('add_event_window')
 		window.show_all()
 
@@ -241,7 +283,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		window.hide()
 		return True
 
-	def add_serial_number_window_clicked (self, button):
+	def add_serial_number_entry_activated (self, button):
 		self.get_object('exception_label').set_text('')
 		self.get_object('add_serial_number_button').set_sensitive(False)
 		self.get_object('add_serial_number_window').show_all()
@@ -334,18 +376,70 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 	def event_description_changed (self, entry):
 		self.get_object('add_event_button').set_sensitive(True)
 
-	def reprint_serial_number_clicked (self, button):
+	def print_serial_number_clicked (self, button):
 		barcode = self.get_object('serial_number_entry').get_text()
+		self.print_serial_number(barcode, 1)
+
+	def print_serial_number (self, barcode, label_qty):
+		printer_id = self.get_object('printer_combo').get_active_id()
+		if printer_id == None:
+			return
+		template_id = self.get_object('template_combo').get_active_id()
+		if template_id == None:
+			return
+		template_iter = self.get_object('template_combo').get_active_iter()
+		model = self.get_object('serial_template_store')
+		template = model[template_iter][1]
+		try:
+			template_dir = os.path.join( os.getcwd() , "templates")
+			abs_file_path = os.path.join(template_dir, template)
+		except Exception as e:
+			print(e)
+			self.show_message(str(e))
+			return
+		if template_id == 'zpl':
+			self.zebra_print_label(barcode, 1, abs_file_path)
+		elif template_id == 'odt':
+			self.system_print_label(barcode, 1, abs_file_path)
+			
+	def zebra_print_label (self, barcode, label_qty, template_file):
+		printer_iter = self.get_object('printer_combo').get_active_iter()
+		model = self.get_object('printer_store')
+		host = model[printer_iter][2]
+		port = model[printer_iter][3]
+		try:
+			with open(template_file) as template:
+				template_str = template.read()
+		except Exception as e:
+			print (e)
+			return
+		import socket
+		mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		try:
+			mysocket.connect((host, port))
+		except OSError as e:
+			print(e)
+			self.show_message(str(e))
+			return
+		for i in range(label_qty):
+			barcode_str = template_str % barcode 
+			mysocket.send(bytes(barcode_str, 'utf-8'))#using bytes 
+		mysocket.close () #closing connection
+
+	def system_print_label (self, barcode, label_qty, template):
+		printer_iter = self.get_object('printer_combo').get_active_iter()
+		model = self.get_object('printer_store')
 		label = Item()
 		label.code128 = barcode_generator.makeCode128(str(barcode))
 		label.barcode = barcode
+		head, template_name = os.path.split(template)
 		from py3o.template import Template
-		label_file = "/tmp/manufacturing_serial_label.odt"
-		t = Template(template_dir+"/manufacturing_serial_template.odt", 
-															label_file )
+		label_file = os.path.join("/tmp", template_name)
+		t = Template(template, label_file)
 		data = dict(label = label)
-		t.render(data) 
-		subprocess.call(["soffice", "--headless", "-p", label_file])
+		t.render(data)
+		for i in range(label_qty):
+			subprocess.call(["soffice", "--headless", "-p", label_file])
 
 	def treeview_button_release_event (self, widget, event):
 		if event.button != 3:
@@ -384,6 +478,14 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			return
 		serial_number = model[path][4]
 		self.get_object('serial_number_entry').set_text(serial_number)
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
 
 
 

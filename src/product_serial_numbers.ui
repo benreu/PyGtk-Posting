@@ -49,6 +49,40 @@
   <object class="GtkTreeModelSort" id="events_sort">
     <property name="model">events_filter</property>
   </object>
+  <object class="GtkMenu" id="popup_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Add serial number entry</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="add_serial_number_entry_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Add serial number event</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="add_serial_event_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkListStore" id="printer_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name host -->
+      <column type="gchararray"/>
+      <!-- column-name port -->
+      <column type="gint"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="product_store">
     <columns>
       <!-- column-name product_id -->
@@ -185,6 +219,14 @@
   <object class="GtkTreeModelSort" id="serial_number_treeview_sort">
     <property name="model">serial_number_treeview_filter</property>
   </object>
+  <object class="GtkListStore" id="serial_template_store">
+    <columns>
+      <!-- column-name type -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window1">
     <property name="can-focus">False</property>
     <property name="border-width">10</property>
@@ -254,12 +296,40 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton">
-                <property name="label" translatable="yes">Refresh</property>
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">Refresh</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkMenuButton">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="focus-on-click">False</property>
+                    <property name="receives-default">True</property>
+                    <property name="popup">popup_menu</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -513,12 +583,10 @@
             <property name="can-focus">False</property>
             <property name="margin-top">10</property>
             <child>
-              <object class="GtkButton" id="button1">
-                <property name="label" translatable="yes">Add serial number entry</property>
+              <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="add_serial_number_window_clicked" swapped="no"/>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Printer </property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -527,56 +595,96 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button6">
-                <property name="label" translatable="yes">Add serial number event</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="add_serial_event_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
+              <object class="GtkComboBox" id="printer_combo">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="model">printer_store</property>
+                <property name="id-column">0</property>
+                <signal name="changed" handler="printer_combo_changed" swapped="no"/>
                 <child>
-                  <object class="GtkEntry" id="serial_number_entry">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="hexpand">True</property>
-                    <property name="xalign">1</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton">
-                    <property name="label" translatable="yes">Reprint serial number</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <signal name="clicked" handler="reprint_serial_number_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
-                  </packing>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
                 </child>
               </object>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes"> Template </property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="template_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="model">serial_template_store</property>
+                <property name="id-column">0</property>
+                <signal name="changed" handler="printer_template_combo_changed" swapped="no"/>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes"> Serial number </property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="serial_number_entry">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="xalign">1</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="print_serial_number_button">
+                <property name="label" translatable="yes">Print serial number</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="print_serial_number_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
               </packing>
             </child>
           </object>
