@@ -241,3 +241,11 @@ $BODY$
     RETURN NEW;
     END;
 $BODY$ 
+--0.7.5
+CREATE TABLE IF NOT EXISTS settings.zebra_printers (
+	id serial PRIMARY KEY,
+	name varchar NOT NULL,
+	host inet NOT NULL,
+	port int NOT NULL,
+	date_created date NOT NULL DEFAULT now()
+);
