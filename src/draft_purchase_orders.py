@@ -17,9 +17,9 @@
 from gi.repository import Gtk
 from constants import ui_directory, DB
 
-UI_FILE = ui_directory + "/open_purchase_orders.ui"
+UI_FILE = ui_directory + "/draft_purchase_orders.ui"
 
-class OpenPurchaseOrderGUI:
+class DraftPurchaseOrderGUI:
 	def __init__(self):
 		
 		self.builder = Gtk.Builder()
