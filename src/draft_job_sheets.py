@@ -20,10 +20,10 @@ from datetime import datetime
 from invoice_window import create_new_invoice 
 from constants import ui_directory, DB
 
-UI_FILE = ui_directory + "/open_job_sheets.ui"
+UI_FILE = ui_directory + "/draft_job_sheets.ui"
 
 
-class OpenJobSheetsGUI (Gtk.Builder):
+class DraftJobSheetsGUI (Gtk.Builder):
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
