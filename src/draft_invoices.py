@@ -18,9 +18,9 @@ from gi.repository import Gtk
 from constants import ui_directory, DB
 from sqlite_utils import get_apsw_connection
 
-UI_FILE = ui_directory + "/open_invoices.ui"
+UI_FILE = ui_directory + "/draft_invoices.ui"
 
-class OpenInvoicesGUI(Gtk.Builder):
+class DraftInvoicesGUI(Gtk.Builder):
 	def __init__(self):
 
 		Gtk.Builder.__init__(self)
