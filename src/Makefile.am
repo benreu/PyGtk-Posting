@@ -67,8 +67,6 @@ pygtk_posting_PYTHON = \
 	incoming_invoice.ui \
 	product_search.py \
 	product_search.ui \
-	open_invoices.py \
-	open_invoices.ui \
 	employee_payment.py \
 	employee_payment.ui \
 	double_entry_transaction.py \
@@ -88,8 +86,6 @@ pygtk_posting_PYTHON = \
 	product_serial_numbers.ui \
 	fiscal_years.py \
 	fiscal_years.ui \
-	open_purchase_orders.py \
-	open_purchase_orders.ui \
 	miscellaneous_revenue.py \
 	miscellaneous_revenue.ui \
 	accounts_overview.py \
@@ -129,8 +125,6 @@ pygtk_posting_PYTHON = \
 	main_window.py \
 	main_window.ui \
 	accounts.py \
-	open_job_sheets.py \
-	open_job_sheets.ui \
 	expense_products.py \
 	expense_products.ui \
 	mailing_list_printing.py \
@@ -167,7 +161,13 @@ pygtk_posting_PYTHON = \
 	companies.py \
 	companies.ui \
 	incoming_invoice_edit.py \
-	incoming_invoice_edit.ui
+	incoming_invoice_edit.ui \
+	draft_invoices.py \
+	draft_invoices.ui \
+	draft_job_sheets.py \
+	draft_job_sheets.ui \
+	draft_purchase_orders.py \
+	draft_purchase_orders.ui
 	invoice_hub.py \
 	invoice_hub.ui
 

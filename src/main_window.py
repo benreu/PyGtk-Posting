@@ -33,8 +33,8 @@ class MainGUI :
 	keybinding = None
 	prod_loc_class = None
 	unpaid_invoices_window = None
-	open_invoices_window = None
-	open_po = None
+	draft_invoices_window = None
+	draft_po = None
 
 	def __init__(self):
 		self.builder = Gtk.Builder()
@@ -332,9 +332,9 @@ class MainGUI :
 		import statements_to_print
 		statements_to_print.GUI()
 
-	def open_job_sheets_clicked (self, button):
-		import open_job_sheets
-		open_job_sheets.OpenJobSheetsGUI()
+	def draft_job_sheets_clicked (self, button):
+		import draft_job_sheets
+		draft_job_sheets.DraftJobSheetsGUI()
 
 	def charts_activated (self, menuitem):
 		from reports import charts
@@ -368,12 +368,12 @@ class MainGUI :
 		from resources import resource_calendar
 		resource_calendar.ResourceCalendarGUI ()
 
-	def open_invoices (self, widget):
-		if self.open_invoices_window == None:
-			import open_invoices
-			self.open_invoices_window = open_invoices.OpenInvoicesGUI()
+	def draft_invoices (self, widget):
+		if self.draft_invoices_window == None:
+			import draft_invoices
+			self.draft_invoices_window = draft_invoices.DraftInvoicesGUI()
 		else:
-			self.open_invoices_window.present()
+			self.draft_invoices_window.present()
 
 	def account_transaction_window(self, widget):
 		import account_transactions
@@ -515,7 +515,7 @@ class MainGUI :
 					"WHERE (invoiced, completed) = (False, False)")	
 		jobs = 0
 		for row in c.fetchall():
-			jobs = "Open Job Sheets\n           (%s)" % row[0]
+			jobs = "Draft Job Sheets\n           (%s)" % row[0]
 		self.builder.get_object('button10').set_label(jobs)
 		c.execute("SELECT COUNT(id) FROM documents "
 					"WHERE (canceled, invoiced, pending_invoice) = "
@@ -538,16 +538,16 @@ class MainGUI :
 					"WHERE (invoices.canceled, posted, active) = "
 					"(False, False, True)")
 		for row in c.fetchall():
-			open_invoices = "Open invoices\n         (%s)" % row[0]
-		self.builder.get_object('button17').set_label(open_invoices)
+			draft_invoices = "Draft invoices\n         (%s)" % row[0]
+		self.builder.get_object('button17').set_label(draft_invoices)
 		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
 					"LATERAL (SELECT product_id FROM purchase_order_items "
 						"WHERE purchase_order_items.purchase_order_id = "
 						"purchase_orders.id LIMIT 1) ILI "
 					"WHERE (purchase_orders.canceled, closed) = (False, False)")
 		for row in c.fetchall():
-			open_invoices = "Open POs\n         (%s)" % row[0]
-		self.builder.get_object('button13').set_label(open_invoices)
+			draft_invoices = "Draft POs\n         (%s)" % row[0]
+		self.builder.get_object('button13').set_label(draft_invoices)
 		c.close()
 
 	def inventory_history_report (self, widget):
@@ -575,11 +575,11 @@ class MainGUI :
 		import write_check
 		write_check.GUI()
 
-	def open_pos_clicked (self, button):
-		if not self.open_po:
-			import open_purchase_orders
-			self.open_po = open_purchase_orders.OpenPurchaseOrderGUI()
-		self.open_po.window.present()
+	def draft_pos_clicked (self, button):
+		if not self.draft_po:
+			import draft_purchase_orders
+			self.draft_po = draft_purchase_orders.DraftPurchaseOrderGUI()
+		self.draft_po.window.present()
 
 	def about_window(self, widget):
 		import about_window

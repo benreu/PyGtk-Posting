@@ -1252,11 +1252,11 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="button17">
-                            <property name="label" translatable="yes">Open Invoices</property>
+                            <property name="label" translatable="yes">Draft Invoices</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <signal name="clicked" handler="open_invoices" swapped="no"/>
+                            <signal name="clicked" handler="draft_invoices" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -1369,11 +1369,11 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="button13">
-                            <property name="label" translatable="yes">Open POs</property>
+                            <property name="label" translatable="yes">Draft POs</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <signal name="clicked" handler="open_pos_clicked" swapped="no"/>
+                            <signal name="clicked" handler="draft_pos_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -1623,11 +1623,11 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="button10">
-                    <property name="label" translatable="yes">Open Job Sheets</property>
+                    <property name="label" translatable="yes">Draft Job Sheets</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <signal name="clicked" handler="open_job_sheets_clicked" swapped="no"/>
+                    <signal name="clicked" handler="draft_job_sheets_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
