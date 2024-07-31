@@ -291,7 +291,7 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 			if row[4] == 0:
 				payment_button.set_label('Missing expense accounts')
 				return
-		if self.get_object('payment_combo').get_active() > 0:
+		if self.get_object('payment_combo').get_active() >= 0:
 			# bank / credit card selected
 			payment_button.set_label('Save edits')
 			payment_button.set_sensitive(True)
