@@ -260,11 +260,12 @@ class IncomingInvoiceGUI(Gtk.Builder):
 
 	def check_if_all_entries_valid (self):
 		check_button = self.get_object('button3')
+		print_and_post_button = self.get_object('button9')
 		transfer_button = self.get_object('button4')
 		cash_button = self.get_object('button5')
 		credit_card_button = self.get_object('button7')
 		check_button.set_sensitive(False)
-		#transfer_button.set_sensitive(False)
+		print_and_post_button.set_sensitive(False)
 		cash_button.set_sensitive(False)
 		credit_card_button.set_sensitive(False)
 		if self.get_object('combobox1').get_active() == -1:
@@ -300,12 +301,15 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			credit_card_button.set_label('No credit card selected')
 		if self.get_object('combobox2').get_active() > -1:
 			# bank / credit card selected
-			check_button.set_label('Check payment')
+			check_button.set_label('Post cheque payment')
 			check_button.set_sensitive(True)
+			print_and_post_button.set_label('Print cheque & post payment')
+			print_and_post_button.set_sensitive(True)
 			transfer_button.set_label('Transfer payment')
 			transfer_button.set_sensitive(True)
 		else:
 			check_button.set_label('No bank account selected')
+			print_and_post_button.set_label('No bank account selected')
 			transfer_button.set_label('No bank account selected')
 
 	def set_button_message (self, message):
@@ -313,14 +317,15 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.get_object('button4').set_label(message)
 		self.get_object('button5').set_label(message)
 		self.get_object('button7').set_label(message)
+		self.get_object('button9').set_label("")
 
 	def cash_payment_clicked (self, button):
 		total = self.save_incoming_invoice ()
 		cash_account = self.get_object('combobox3').get_active_id()
 		self.invoice.cash_payment (total, cash_account)
 		DB.commit()
-		button.set_sensitive(False)
 		self.emit('invoice_applied')
+		self.set_buttons_insensitive()
 
 	def credit_card_payment_clicked (self, button):
 		total = self.save_incoming_invoice ()
@@ -331,8 +336,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		description = "%s : %s" % (service_provider, transfer_number)
 		self.invoice.credit_card_payment (total, description, credit_card)
 		DB.commit()
-		button.set_sensitive(False)
 		self.emit('invoice_applied')
+		self.set_buttons_insensitive()
 
 	def transfer_clicked (self, button):
 		total = self.save_incoming_invoice ()
@@ -343,14 +348,13 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		description = "%s : %s" % (service_provider, transfer_number)
 		self.invoice.transfer (total, description, checking_account)
 		DB.commit()
-		button.set_sensitive(False)
 		self.emit('invoice_applied')
+		self.set_buttons_insensitive()
 
 	def post_only_clicked (self,button):
-		self.perform_payment()
-		button.set_sensitive(False)
+		self.perform_cheque_payment()
 
-	def perform_payment(self):
+	def perform_cheque_payment(self):
 		total = self.save_incoming_invoice ()
 		checking_account = self.get_object('combobox2').get_active_id()
 		check_number = self.get_object('entry7').get_text()
@@ -362,6 +366,14 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		check_number = get_check_number(checking_account)
 		self.get_object('entry7').set_text(str(check_number))
 		self.file_data = None
+		self.set_buttons_insensitive()
+
+	def set_buttons_insensitive (self):
+		self.get_object('button3').set_sensitive(False)
+		self.get_object('button4').set_sensitive(False)
+		self.get_object('button5').set_sensitive(False)
+		self.get_object('button7').set_sensitive(False)
+		self.get_object('button9').set_sensitive(False)
 
 	def save_incoming_invoice (self):
 		c = DB.cursor()
@@ -431,6 +443,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		total = Decimal(self.get_object('spinbutton1').get_text())
 		check_number = self.get_object('entry7').get_text()
 		bank_account = self.get_object('combobox2').get_active_id()
+		contact_id = self.get_object('combobox1').get_active_id()
 		self.cursor.execute("SELECT "
 								"name, "
 								"checks_payable_to, "
@@ -439,7 +452,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 								"state, "
 								"zip, "
 								"phone "
-							"FROM contacts WHERE id = %s",(self.provider_id,))
+							"FROM contacts WHERE id = %s",(contact_id,))
 		provider = Item()
 		for line in self.cursor.fetchall():
 			provider.name = line[0]
@@ -451,13 +464,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			provider.phone = line[6]
 			pay_to = line[1].split()[0]
 		items = list()
-		'''for row in self.provider_invoice_store:
-			if row[3] == True:'''
 				
 		item = Item()
-		item.po_number = ''#row[0] 
-		item.amount = ''#row[2]
-		item.date = ''#row[4]
+		item.po_number = '' 
+		item.amount = ''
+		item.date = ''
 		items.append(item)
 		check = Item()
 		check.check_number = check_number
@@ -466,8 +477,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		check.amount = total 
 		check.amount_text = get_written_check_amount_text (total)
 		from py3o.template import Template
-		data = dict(contact = provider, check = check, items = items )#- kept this
-		#in case we ever wish to list the accountbreakdown on the check stubs
+		data = dict(contact = provider, check = check, items = items )
 		self.tmp_file = "/tmp/check" + pay_to +".odt"
 		self.tmp_file_pdf = "/tmp/check" + pay_to + ".pdf"
 		t = Template(template_dir+"/vendor_check_template.odt", self.tmp_file, True)
@@ -478,7 +488,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		p.set_parent(self.window)
 		result = p.print_dialog()
 		if result != "user canceled":
-			self.perform_payment()
+			self.perform_cheque_payment()
 
 
 

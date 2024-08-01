@@ -810,7 +810,7 @@
                         <property name="hexpand">True</property>
                         <child>
                           <object class="GtkButton" id="button3">
-                            <property name="label" translatable="yes">Post Only</property>
+                            <property name="label" translatable="yes">Post cheque payment</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can-focus">True</property>
@@ -909,8 +909,9 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="button9">
-                            <property name="label" translatable="yes">Print &amp; Post</property>
+                            <property name="label" translatable="yes">Print cheque &amp; post payment</property>
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <signal name="clicked" handler="print_and_post_clicked" swapped="no"/>
