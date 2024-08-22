@@ -17,6 +17,7 @@
 
 import os, sys, subprocess, time, psycopg2
 from time import strftime
+from decimal import Decimal
 from datetime import datetime, timedelta
 import printing
 from constants import DB, template_dir
@@ -34,7 +35,7 @@ class Setup():
 		self.date = date
 		self.document_type_id = document_type_id
 		self.document_name = document_name
-		self.total = 0.00
+		self.total = Decimal()
 		cursor = DB.cursor()
 		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",(self.contact,))
 		vendor = Item()
@@ -78,14 +79,15 @@ class Setup():
 			item.retailer = i[8]
 			item.remark = i[10]
 			item.priority = i[11]
-			item.price = '${:,.2f}'.format(i[12])
-			item.ext_price = '${:,.2f}'.format(i[13])
+			item.price = i[12]
+			item.s_price = i[13]
+			item.ext_price = i[14]
 			items.append(item)
-			self.total += i[13]
+			self.total += Decimal(i[14])
 		
 		document = Item()
 		cursor.execute("SELECT name FROM document_types WHERE id = %s", (document_type_id, ))
-		document.type = self.cursor.fetchone()[0]
+		document.type = cursor.fetchone()[0]
 		cursor.execute("SELECT * FROM document_types WHERE id = %s", (self.document_type_id))
 		for row in cursor.fetchall():
 			document.text1 = row[2]
@@ -106,7 +108,7 @@ class Setup():
 		
 		date_thirty = date + timedelta(days=30)
 		cursor.execute("SELECT format_date(%s)", (date_thirty,))
-		payment_thirty = self.cursor.fetchone()[0]
+		payment_thirty = cursor.fetchone()[0]
 		document.payment_due = payment_thirty
 
 		document.number = self.document_name
