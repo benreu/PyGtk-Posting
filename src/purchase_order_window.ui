@@ -25,6 +25,20 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="order_number_extended_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name product_name -->
+      <column type="gchararray"/>
+      <!-- column-name product_ext_name -->
+      <column type="gchararray"/>
+      <!-- column-name product_barcode -->
+      <column type="gchararray"/>
+      <!-- column-name order_number -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="order_number_store">
     <columns>
       <!-- column-name product_id -->
@@ -37,6 +51,7 @@
     <property name="model">order_number_store</property>
     <property name="text-column">1</property>
     <signal name="match-selected" handler="order_number_match_selected" swapped="no"/>
+    <signal name="no-matches" handler="order_number_no_match" swapped="no"/>
     <child>
       <object class="GtkCellRendererText" id="cellrenderertext11"/>
       <attributes>
@@ -1186,6 +1201,91 @@ Do you want to update the quantity to </property>
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkWindow" id="extended_order_number_window">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Order number extended search</property>
+    <property name="window-position">center</property>
+    <property name="default-width">500</property>
+    <property name="default-height">500</property>
+    <property name="type-hint">dialog</property>
+    <property name="transient-for">window</property>
+    <signal name="delete-event" handler="extended_order_number_window_delete" swapped="no"/>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="shadow-type">in</property>
+        <child>
+          <object class="GtkTreeView">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="model">order_number_extended_store</property>
+            <property name="activate-on-single-click">True</property>
+            <signal name="row-activated" handler="extended_order_number_row_activated" swapped="no"/>
+            <child internal-child="selection">
+              <object class="GtkTreeSelection"/>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn">
+                <property name="resizable">True</property>
+                <property name="title" translatable="yes">Name</property>
+                <property name="reorderable">True</property>
+                <property name="sort-column-id">1</property>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn">
+                <property name="resizable">True</property>
+                <property name="title" translatable="yes">Ext name</property>
+                <property name="reorderable">True</property>
+                <property name="sort-column-id">2</property>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">2</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn">
+                <property name="resizable">True</property>
+                <property name="title" translatable="yes">Barcode</property>
+                <property name="reorderable">True</property>
+                <property name="sort-column-id">3</property>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">3</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn">
+                <property name="resizable">True</property>
+                <property name="title" translatable="yes">Order number</property>
+                <property name="reorderable">True</property>
+                <property name="sort-column-id">4</property>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">4</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+          </object>
         </child>
       </object>
     </child>

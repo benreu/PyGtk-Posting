@@ -622,6 +622,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		"all rows need to be locked whenever a widget is opened to "
 		"edit an invoice row"
 		DB.rollback() #remove row lock by rolling back
+		#cellrenderer.hide_on_delete()
+		return True
 
 	################## start qty
 
@@ -684,6 +686,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 			entry.set_text(row[0])
 		cursor.close()
 		entry.set_completion(self.order_number_completion)
+		entry.connect('icon-release', self.order_number_icon_released)
+		entry.connect('key-release-event', self.order_number_entry_changed)
 		self.path = path
 
 	def order_number_edited(self, widget, path, text):
@@ -710,6 +714,61 @@ class PurchaseOrderGUI(Gtk.Builder):
 		product_id = store[_iter][0]
 		_iter = self.p_o_store.get_iter(self.path)
 		self.save_product (_iter, product_id)
+
+	def order_number_no_match (self, entrycompletion):
+		pos = Gtk.EntryIconPosition.SECONDARY
+		entry = entrycompletion.get_entry()
+		entry.set_icon_from_icon_name(pos, 'gtk-justify-fill')
+
+	def order_number_icon_released (self, entry, entryiconposition, event):
+		order_number = entry.get_text()
+		self.extended_order_number_search(order_number)
+
+	def extended_order_number_search (self, order_number):
+		store = self.get_object('order_number_extended_store')
+		store.clear()
+		results = False
+		c = DB.cursor()
+		c.execute("SELECT p.id, name, ext_name, barcode, poi.order_number "
+					"FROM products AS p "
+					"JOIN purchase_order_items AS poi ON poi.product_id = p.id "
+					"WHERE poi.order_number ILIKE %s "
+					"GROUP BY poi.order_number, p.id", ('%' + order_number + '%',))
+		for row in c.fetchall():
+			store.append(row)
+			results = True
+		if results:
+			window = self.get_object('extended_order_number_window')
+			window.show_all()
+			window.present()
+		else:
+			dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.INFO,
+										buttons = Gtk.ButtonsType.CLOSE,
+										text = "Extended search found no results",
+										transient_for = self.window)
+			dialog.run()
+			dialog.destroy()
+
+	def order_number_entry_changed (self, entry, event):
+		state = event.get_state()
+		if state & Gdk.ModifierType.CONTROL_MASK:
+			if Gdk.keyval_name(event.keyval) == "Return":
+				order_number = entry.get_text()
+				self.extended_order_number_search(order_number)
+
+	def extended_order_number_row_activated (self, treeview, path, treeviewcolumn):
+		model = treeview.get_model()
+		product_id = model[path][0]
+		selection = self.get_object('treeview-selection')
+		model, path_list = selection.get_selected_rows()
+		path = path_list[0].to_string()
+		_iter = self.p_o_store.get_iter(path)
+		self.save_product (_iter, product_id)
+		self.get_object('extended_order_number_window').hide()
+
+	def extended_order_number_window_delete (self, window, event):
+		window.hide()
+		return True
 
 	def show_temporary_permanent_dialog (self, order_number, product_id):
 		if self.get_object('checkbutton2').get_active() == True:
