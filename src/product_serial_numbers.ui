@@ -665,6 +665,7 @@
                 <property name="can-focus">True</property>
                 <property name="hexpand">True</property>
                 <property name="xalign">1</property>
+                <signal name="activate" handler="serial_number_entry_activated" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 from dateutils import DateTimeCalendar
 import psycopg2
 import subprocess, glob, os
@@ -379,6 +379,11 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 	def print_serial_number_clicked (self, button):
 		barcode = self.get_object('serial_number_entry').get_text()
 		self.print_serial_number(barcode, 1)
+
+	def serial_number_entry_activated (self, entry):
+		barcode = entry.get_text()
+		self.print_serial_number(barcode, 1)
+		GLib.idle_add(entry.select_region, 0, -1)
 
 	def print_serial_number (self, barcode, label_qty):
 		printer_id = self.get_object('printer_combo').get_active_id()
