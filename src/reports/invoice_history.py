@@ -125,12 +125,21 @@ class InvoiceHistoryGUI(Gtk.Builder):
 			menu = self.get_object('invoice_item_menu')
 			menu.popup_at_pointer()
 
-	def view_invoice_activated (self, menuitem):
+	def invoice_hub_activated (self, menuitem):
 		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		invoice_id = model[path][8]
+		invoice_id = model[path][11]
+		import invoice_hub
+		invoice_hub.InvoiceHubGUI(invoice_id)
+
+	def view_invoice_pdf_activated (self, menuitem):
+		selection = self.get_object('treeview-selection2')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_id = model[path][11]
 		self.cursor.execute("SELECT name, pdf_data FROM invoices "
 							"WHERE id = %s", (invoice_id,))
 		for row in self.cursor.fetchall():

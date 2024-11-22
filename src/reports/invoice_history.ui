@@ -33,6 +33,15 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Invoice hub</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="invoice_hub_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem1">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -44,9 +53,9 @@
       <object class="GtkMenuItem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="label" translatable="yes">View invoice</property>
+        <property name="label" translatable="yes">View invoice pdf</property>
         <property name="use-underline">True</property>
-        <signal name="activate" handler="view_invoice_activated" swapped="no"/>
+        <signal name="activate" handler="view_invoice_pdf_activated" swapped="no"/>
       </object>
     </child>
   </object>
