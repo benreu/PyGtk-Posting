@@ -7,7 +7,7 @@
     <property name="upper">3</property>
     <property name="value">1</property>
     <property name="step-increment">0.25</property>
-    <property name="page-increment">10</property>
+    <property name="page-increment">0.01</property>
   </object>
   <object class="GtkListStore" id="customer_store">
     <columns>
