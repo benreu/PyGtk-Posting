@@ -148,7 +148,9 @@ class GUI:
 		return True
 
 	def invoice_clicked (self, canvas_1, canvas_2, event, invoice_id):
-		print (invoice_id)
+		if event.button == 3:
+			import invoice_hub
+			invoice_hub.InvoiceHubGUI(invoice_id)
 		
 	def po_clicked (self, canvas_1, canvas_2, event, po_id):
 		print (po_id)
