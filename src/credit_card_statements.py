@@ -209,7 +209,7 @@ class CreditCardStatementGUI:
 								"credit_account, "
 								"COALESCE(ii.id::text, '')"
 							"FROM gl_entries ge "
-							"JOIN incoming_invoices ii ON "
+							"LEFT JOIN incoming_invoices ii ON "
 							"ii.gl_transaction_id = ge.gl_transaction_id "
 							"WHERE (debit_account = %s OR credit_account = %s) "
 							"AND date_reconciled IS NULL ORDER BY date_inserted", 
@@ -372,6 +372,9 @@ class CreditCardStatementGUI:
 		if path == []:
 			return
 		invoice_id = model[path][9]
+		if invoice_id == '':
+			self.show_error_dialog("Entry not linked to Incoming Invoice!")
+			return False
 		from incoming_invoice_edit import EditIncomingInvoiceGUI
 		EditIncomingInvoiceGUI(invoice_id)
 
