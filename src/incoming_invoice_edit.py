@@ -257,9 +257,9 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		account_number = model[treeiter][0]
 		account_name = model[treeiter][1]
 		account_path = model[treeiter][2]
-		treeview_model[path][2] = int(account_number)
-		treeview_model[path][3] = account_name
-		treeview_model[path][4] = account_path
+		treeview_model[path][4] = int(account_number)
+		treeview_model[path][5] = account_name
+		treeview_model[path][6] = account_path
 		self.check_if_all_entries_valid()
 
 	def remark_edited (self, cellrenderertext, path, text):
