@@ -349,11 +349,12 @@ class GUI:
 		c_c_combo = self.builder.get_object('comboboxtext2')
 		c_c_account_number = c_c_combo.get_active_id()
 		description = self.builder.get_object('entry5').get_text()
+		vendor_name = self.builder.get_object('combobox-entry').get_text()
 		payment = VendorPayment(self.date, self.total, description)
 		for row in self.c_c_multi_payment_store:
 			amount = row[0]
 			date = row[1]
-			payment.credit_card(c_c_account_number, amount, date)
+			payment.credit_card(c_c_account_number, amount, date, vendor_name)
 		self.mark_invoices_paid(payment.transaction_id)
 		DB.commit()
 		self.populate_vendor_liststore ()

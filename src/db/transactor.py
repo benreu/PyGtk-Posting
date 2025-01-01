@@ -315,13 +315,14 @@ class VendorPayment :
 					(total, self.transaction_id, description))
 		c.close()
 		
-	def credit_card (self, c_c_account_number, amount, date):
+	def credit_card (self, c_c_account_number, amount, date, vendor_name):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
 					"(credit_account, amount, date_inserted, "
-					" gl_transaction_id) "
-					"VALUES (%s, %s, %s, %s) RETURNING id", 
-					(c_c_account_number, amount, date, self.transaction_id))
+					" gl_transaction_id, transaction_description) "
+					"VALUES (%s, %s, %s, %s, %s) RETURNING id",
+					(c_c_account_number, amount, date, self.transaction_id,
+					vendor_name))
 		row_id = c.fetchone()[0]
 		c.close()
 		return row_id
