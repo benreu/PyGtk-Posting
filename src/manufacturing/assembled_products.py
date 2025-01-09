@@ -180,7 +180,7 @@ class AssembledProductsGUI:
 
 	def version_clicked (self, button):
 		from manufacturing import assembly_versions
-		assembly_versions.AssembledVersionsGUI ()
+		assembly_versions.AssembledVersionsGUI (self.manufactured_product_id)
 
 	def populate_vendor_store (self):
 		c = DB.cursor()
@@ -201,6 +201,7 @@ class AssembledProductsGUI:
 	def destroy(self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
+		self.save_notes()
 
 	def focus (self, widget, event):
 		self.populate_stores ()
@@ -324,6 +325,7 @@ class AssembledProductsGUI:
 		product_id = combo.get_active_id()
 		if product_id == None:
 			return
+		self.save_notes()
 		self.manufactured_product_id = product_id
 		self.populate_versions ()
 
@@ -335,23 +337,27 @@ class AssembledProductsGUI:
 		return True
 
 	def assembled_completion_match_selected (self, completion, model, t_iter):
+		self.save_notes()
 		self.manufactured_product_id = model[t_iter][0]
 		self.populate_versions ()
 
 ############## version selection
 
 	def populate_versions (self):
+		self.save_notes()
 		self.builder.get_object('version_combobox').set_active(-1)
 		self.assembly_store.clear()
 		self.version_store.clear()
 		c = DB.cursor()
 		c.execute("SELECT id::text, version_name "
 					"FROM product_assembly_versions "
-					"WHERE product_id = %s AND active = True",
+					"WHERE product_id = %s AND active = True "
+					"ORDER BY version_name, date_created",
 					(self.manufactured_product_id,))
 		for row in c.fetchall():
 			self.version_store.append(row)
 		c.close()
+		self.builder.get_object('version_button').set_sensitive(True)
 
 	def version_match_func (self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -410,12 +416,13 @@ class AssembledProductsGUI:
 		self.timeout_id = GLib.timeout_add_seconds(10, self.save_notes)
 
 	def save_notes (self ):
+		if not self.timeout_id:
+			return
+		GLib.source_remove(self.timeout_id)
 		c = DB.cursor()
-		if self.timeout_id:
-			GLib.source_remove(self.timeout_id)
-		c.execute("UPDATE products SET assembly_notes = %s "
+		c.execute("UPDATE product_assembly_versions SET assembly_notes = %s "
 					"WHERE id = %s", 
-					(self.notes, self.manufactured_product_id))
+					(self.notes, self.version_id))
 		DB.commit()
 		c.close()
 		self.timeout_id = None

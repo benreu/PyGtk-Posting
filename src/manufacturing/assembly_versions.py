@@ -22,7 +22,7 @@ UI_FILE = ui_directory + "/manufacturing/assembly_versions.ui"
 
 
 class AssembledVersionsGUI (Gtk.Builder):
-	def __init__(self):
+	def __init__(self, product_id = None):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
@@ -31,6 +31,8 @@ class AssembledVersionsGUI (Gtk.Builder):
 		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
 		self.populate_assembled_products ()
+		if product_id != None:
+			self.get_object('product_combo').set_active_id(product_id)
 		self.window = self.get_object('window')
 		self.window.show_all()
 
@@ -74,7 +76,7 @@ class AssembledVersionsGUI (Gtk.Builder):
 						"format_date(date_created), "
 						"active "
 					"FROM product_assembly_versions "
-					"WHERE product_id = %s",
+					"WHERE product_id = %s ORDER BY version_name, date_created",
 					(self.product_id,))
 		for row in c.fetchall():
 			self.version_store.append(row)
@@ -91,11 +93,16 @@ class AssembledVersionsGUI (Gtk.Builder):
 			new_version_id = c.fetchone()[0]
 			combo = self.get_object('existing_version_combo')
 			old_version_id = combo.get_active_id()
-			c.execute("INSERT INTO product_assembly_items "
-						"(qty, assembly_product_id, version_id)"
-						"SELECT qty, assembly_product_id, %s "
-						"FROM product_assembly_items WHERE version_id = %s",
-						(new_version_id, old_version_id))
+			c.execute("UPDATE product_assembly_versions SET assembly_notes = "
+					"(SELECT assembly_notes FROM product_assembly_versions "
+						"WHERE id = %s)"
+					"WHERE id = %s; "
+					"INSERT INTO product_assembly_items "
+					"(qty, assembly_product_id, version_id)"
+					"SELECT qty, assembly_product_id, %s "
+					"FROM product_assembly_items WHERE version_id = %s",
+					(old_version_id, new_version_id,
+					new_version_id, old_version_id))
 		DB.commit()
 		c.close()
 		self.populate_versions()
