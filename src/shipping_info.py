@@ -54,6 +54,8 @@ class ShippingInfoGUI(Gtk.Builder):
 
 	def destroy (self, widget):
 		self.cursor.close()
+		if self.incoming_invoice:
+			self.incoming_invoice.get_object('window1').destroy()
 
 	def help_clicked (self, button):
 		print ('please add help to shipping info')
@@ -118,20 +120,26 @@ class ShippingInfoGUI(Gtk.Builder):
 		if not self.incoming_invoice:
 			import incoming_invoice
 			self.incoming_invoice = incoming_invoice.IncomingInvoiceGUI()
-			self.incoming_invoice.window.set_transient_for (self.window)
+			box = self.incoming_invoice.get_object('box1')
+			window = self.incoming_invoice.get_object('window1')
+			window.remove(box)
+			window.hide() # do not destroy and thereby disconnect signals
+			self.get_object('payment_box').add(box)
+			stack = self.get_object('stack1')
+			stack.set_visible_child(self.get_object('payment_box'))
 			self.incoming_invoice.connect('invoice_applied', self.incoming_invoice_applied)
 			text = self.get_object('shipping_description_entry').get_text()
 			self.incoming_invoice.set_shipping_description(text)
 			self.incoming_invoice.set_date(self.date)
 		else:
-			self.incoming_invoice.window.show()
+			text = self.get_object('shipping_description_entry').get_text()
+			self.incoming_invoice.set_shipping_description(text)
+			self.incoming_invoice.set_date(self.date)
+			stack = self.get_object('stack1')
+			stack.set_visible_child(self.get_object('payment_box'))
 
 	def incoming_invoice_applied (self, incoming_invoice_object):
 		self.incoming_invoice_id = incoming_invoice_object.invoice_id
-		incoming_invoice_object.window.hide()
-		self.get_object('tracking_number_button').set_sensitive(True)
-
-	def add_tracking_number_clicked (self, button):
 		c = DB.cursor()
 		tracking_number = self.get_object('tracking_number_entry').get_text()
 		try:
@@ -146,9 +154,10 @@ class ShippingInfoGUI(Gtk.Builder):
 		except Exception as e:
 			DB.rollback()
 			self.show_message(str(e))
-		self.get_object('tracking_number_button').set_sensitive(False)
 		c.close()
 		self.populate_shipping_history()
+		stack = self.get_object('stack1')
+		stack.set_visible_child(self.get_object('shipping_box'))
 
 	def populate_shipping_history (self):
 		store = self.get_object('shipping_history_store')
