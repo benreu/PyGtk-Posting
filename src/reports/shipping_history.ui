@@ -2,6 +2,47 @@
 <!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkMenu" id="menu1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkCheckMenuItem" id="edit_mode_checkbutton">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit mode</property>
+        <property name="use-underline">True</property>
+        <signal name="toggled" handler="edit_mode_checkbutton_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Refresh</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="refresh_clicked" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="right_click_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit Incoming Invoice</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="edit_incoming_invoice_clicked" swapped="no"/>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="shipping_store">
     <columns>
       <!-- column-name row_id -->
@@ -22,7 +63,15 @@
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
       <column type="gchararray"/>
+      <!-- column-name incoming_invoice_id -->
+      <column type="gint"/>
     </columns>
+  </object>
+  <object class="GtkTreeModelFilter" id="shipping_store_filter">
+    <property name="child-model">shipping_store</property>
+  </object>
+  <object class="GtkTreeModelSort" id="shipping_store_sort">
+    <property name="model">shipping_store_filter</property>
   </object>
   <object class="GtkWindow" id="window">
     <property name="can-focus">False</property>
@@ -38,6 +87,117 @@
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Tracking number</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="tracking_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="primary-icon-name">edit-find-symbolic</property>
+                <property name="primary-icon-activatable">False</property>
+                <property name="primary-icon-sensitive">False</property>
+                <signal name="search-changed" handler="search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Invoice</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="invoice_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">10</property>
+                <property name="primary-icon-name">edit-find-symbolic</property>
+                <property name="primary-icon-activatable">False</property>
+                <property name="primary-icon-sensitive">False</property>
+                <signal name="search-changed" handler="search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Contact</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSearchEntry" id="contact_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="primary-icon-name">edit-find-symbolic</property>
+                <property name="primary-icon-activatable">False</property>
+                <property name="primary-icon-sensitive">False</property>
+                <signal name="search-changed" handler="search_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="focus-on-click">False</property>
+                <property name="receives-default">True</property>
+                <property name="popup">menu1</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -46,10 +206,11 @@
               <object class="GtkTreeView">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="model">shipping_store</property>
+                <property name="model">shipping_store_sort</property>
                 <property name="search-column">0</property>
+                <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
+                  <object class="GtkTreeSelection" id="tree_selection"/>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">
@@ -147,7 +308,7 @@
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">0</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </object>
