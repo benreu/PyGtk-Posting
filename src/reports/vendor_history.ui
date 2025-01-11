@@ -27,6 +27,15 @@
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">PO hub</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="purchase_order_hub_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem2">
         <property name="visible">True</property>
         <property name="can-focus">False</property>

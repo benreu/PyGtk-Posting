@@ -206,6 +206,15 @@ class VendorHistoryGUI:
 			menu = self.builder.get_object('po_item_menu')
 			menu.popup_at_pointer()
 
+	def purchase_order_hub_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		po_id = model[path][0]
+		import purchase_order_hub
+		purchase_order_hub.PurchaseOrderHubGUI(po_id)
+
 	def product_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
