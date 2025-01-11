@@ -116,8 +116,10 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 						"WHERE iigeei.incoming_invoices_id = %s", (self.invoice_id,))
 		for row in cursor.fetchall():
 			self.expense_percentage_store.append(row)
-		cursor.execute("SELECT credit_account::text, transaction_description, "
-						"COALESCE(check_number, 0) FROM gl_entries ge "
+		cursor.execute("SELECT credit_account::text, "
+							"COALESCE(transaction_description, ''), "
+							"COALESCE(check_number, 0) "
+						"FROM gl_entries ge "
 						"JOIN incoming_invoices ii "
 						"ON ii.gl_entry_id = ge.id "
 						"WHERE ii.id = %s", (self.invoice_id,))
