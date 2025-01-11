@@ -167,7 +167,9 @@ pygtk_posting_PYTHON = \
 	draft_job_sheets.py \
 	draft_job_sheets.ui \
 	draft_purchase_orders.py \
-	draft_purchase_orders.ui
+	draft_purchase_orders.ui \
+	purchase_order_hub.py \
+	purchase_order_hub.ui
 	invoice_hub.py \
 	invoice_hub.ui
 
