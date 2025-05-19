@@ -134,14 +134,14 @@ class ProfitLossReportGUI(Gtk.Builder):
 							"FROM gl_entries AS ge "
 							"JOIN gl_transactions AS gtl "
 								"ON gtl.id = ge.gl_transaction_id "
-							"JOIN fiscal_years AS fy ON gtl.date_inserted "
+							"JOIN fiscal_years AS fy ON ge.date_inserted "
 								"BETWEEN fy.start_date AND fy.end_date "
 							"WHERE debit_account = %s AND fy.id = %s ) d, "
 						"(SELECT COALESCE(SUM(amount),0.00) AS credits "
 							"FROM gl_entries AS ge "
 							"JOIN gl_transactions AS gtl "
 								"ON gtl.id = ge.gl_transaction_id "
-							"JOIN fiscal_years AS fy ON gtl.date_inserted "
+							"JOIN fiscal_years AS fy ON ge.date_inserted "
 								"BETWEEN fy.start_date AND fy.end_date "
 							"WHERE credit_account = %s AND fy.id = %s ) c" , 
 					(p_account, self.fiscal, p_account, self.fiscal))
