@@ -144,6 +144,14 @@ class Setup():
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		self.store = []
 
+	def email (self, email):
+		document = "/tmp/" + self.document_pdf
+		subprocess.Popen(["thunderbird",
+							"-compose",
+							"to=" + email + 
+							",subject=Quote,"
+							"attachment=" + document])
+
 	def post(self, document_id):
 		cursor = DB.cursor()
 		document = "/tmp/" + self.document_pdf		
