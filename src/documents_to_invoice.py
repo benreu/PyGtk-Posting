@@ -17,6 +17,7 @@
 
 
 from gi.repository import Gtk
+import psycopg2
 import invoice_window
 from datetime import datetime
 from constants import ui_directory, DB
@@ -87,47 +88,15 @@ Do you want to append the document items?" % customer_name)
 	def import_document_items_to_invoice(self, document_id, invoice_id):
 		self.cursor.execute("SELECT document_type_id "
 							"FROM documents WHERE id = %s",(document_id,))
-		if self.cursor.fetchone()[0] == 1 :#scale document import
-			freeze_wt = 0
-			self.cursor.execute("SELECT id, product_id, remark, "
-								"retailer_id,type_1 FROM document_items "
-								"WHERE document_id = %s", (document_id,))
-			for row in self.cursor.fetchall():
-				doc_line_id = row[0]
-				product_id = row[1]
-				remark = row[2]
-				retailer_id = row[3]
-				freeze = row[4]
-				tabs = self.create_remark(doc_line_id,product_id,retailer_id)
-				if tabs[0] == 0:
-					pass 
-					
-				else:
-					remark = remark + tabs[1]
-					qty = tabs[2]
-					weight = tabs[3]
-					if freeze == True:
-						freeze_wt = freeze_wt + weight
-					self.cursor.execute("INSERT INTO invoice_items \
-					(invoice_id, qty, product_id, remark,\
-					canceled, imported) VALUES (%s, %s, %s, %s, \
-					False, True)", (invoice_id, qty, product_id, remark))
-			if freeze_wt > 0 :
-				qty = freeze_wt
-				self.cursor.execute("INSERT INTO invoice_items \
-					(invoice_id, qty, product_id, remark,\
-					canceled, imported) VALUES (%s, %s, %s, %s, \
-					False, True)", (invoice_id, qty, 25, remark))
-		else: # Reuben's original
-			self.cursor.execute("SELECT qty, product_id, remark, price FROM document_items WHERE document_id = %s", (document_id,))
-			for row in self.cursor.fetchall():
-				qty = row[0]
-				product_id = row[1]
-				remark = row[2]
-				price = row[3]
-				ext_price = qty * price
-				ext_price = round(ext_price, 2)
-				self.cursor.execute("INSERT INTO invoice_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
+		self.cursor.execute("SELECT qty, product_id, remark, price FROM document_items WHERE document_id = %s", (document_id,))
+		for row in self.cursor.fetchall():
+			qty = row[0]
+			product_id = row[1]
+			remark = row[2]
+			price = row[3]
+			ext_price = qty * price
+			ext_price = round(ext_price, 2)
+			self.cursor.execute("INSERT INTO invoice_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
 		self.cursor.execute("UPDATE documents SET invoiced = True WHERE id = %s", (document_id,))
 		DB.commit()
 		self.populate_document_store()
@@ -141,31 +110,5 @@ Do you want to append the document items?" % customer_name)
 		self.cursor.execute("UPDATE settings SET refresh_documents_price_on_import = %s", (toggle_state,))
 		DB.commit()
 
-	def create_remark(self,doc_line_id,product_id,retailer_id):
-		self.cursor.execute("SELECT SUM(weight),COUNT(weight),MAX(weight),MIN(weight),ROUND(AVG(weight),2) FROM scale_label_line_items_archive WHERE document_line_item_id = %s AND deleted = False ",(doc_line_id,))
-		#print self.cursor.fetchall()
-		for line in self.cursor.fetchall():
-			#print line
-			weight = line[0]
-			count = line[1]
-			
-			if count == 0: #if is 0 no need in wasting time doing other queries
-				return count,
-				
-			maximum = line[2]
-			minimum = line[3]
-			average = line[4]
-			self.cursor.execute("SELECT unit FROM products WHERE id = %s",(product_id,))
-			unit = self.cursor.fetchone()[0]
-			if unit == str(1):
-				qty = round(count,1)
-			else:
-				qty = round(weight,1)
-			self.cursor.execute("SELECT name FROM contacts WHERE id = %s",(retailer_id,))
-			retailer = self.cursor.fetchone()[0]
-			scale_remark = str(weight) +' Lb ' + str(count) + ' Pack labeled for ' + retailer + ' Max wt ' \
-						+ str(maximum) + ' & Min of ' + str(minimum) + ' for ave size of ' + str(average) +' lb'
-		return count,scale_remark,qty,weight
 
 
-		
