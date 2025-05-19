@@ -161,9 +161,9 @@ class SerialNumbersGUI(Gtk.Builder):
 			self.show_message(str(e))
 			return
 		if template_id == 'zpl':
-			self.zebra_print_label(barcode, 1, abs_file_path)
+			self.zebra_print_label(barcode, label_qty, abs_file_path)
 		elif template_id == 'odt':
-			self.system_print_label(barcode, 1, abs_file_path)
+			self.system_print_label(barcode, label_qty, abs_file_path)
 			
 	def zebra_print_label (self, barcode, label_qty, template_file):
 		printer_iter = self.get_object('printer_combo').get_active_iter()
