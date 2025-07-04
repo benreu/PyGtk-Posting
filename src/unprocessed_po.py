@@ -144,6 +144,10 @@ class GUI(Gtk.Builder):
 		import product_hub
 		product_hub.ProductHubGUI(product_id)
 
+	def load_items_from_file_clicked (self, button):
+		import purchase_order_import
+		purchase_order_import.PurchaseOrderImportGUI( self.purchase_order_id )
+
 	def edit_po_clicked (self, widget):
 		import purchase_order_window
 		purchase_order_window.PurchaseOrderGUI(self.purchase_order_id)
