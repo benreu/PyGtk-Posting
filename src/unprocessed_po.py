@@ -356,6 +356,9 @@ class GUI(Gtk.Builder):
 	def ext_price_edited (self, renderer, path, text):
 		ext_price = Decimal(text)
 		self.purchase_order_items_store[path][6] = ext_price
+		qty = Decimal(self.purchase_order_items_store[path][1])
+		price = ext_price / qty
+		self.purchase_order_items_store[path][5] = price
 		self.calculate_totals ()
 		self.save_line_item (path)
 
