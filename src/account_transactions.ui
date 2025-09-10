@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkTreeStore" id="account_transaction_store">
@@ -48,8 +48,8 @@
   </object>
   <object class="GtkEntryCompletion" id="account_completion">
     <property name="model">completion_liststore</property>
-    <property name="text_column">1</property>
-    <property name="inline_completion">True</property>
+    <property name="text-column">1</property>
+    <property name="inline-completion">True</property>
     <signal name="match-selected" handler="account_match_selected" swapped="no"/>
     <child>
       <object class="GtkCellRendererText" id="cellrenderertext1"/>
@@ -73,34 +73,31 @@
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="title" translatable="yes">Account Transactions</property>
-    <property name="window_position">center</property>
-    <property name="default_width">425</property>
-    <property name="default_height">600</property>
-    <property name="icon_name">pygtk-posting</property>
-    <child>
-      <placeholder/>
-    </child>
+    <property name="window-position">center</property>
+    <property name="default-width">425</property>
+    <property name="default-height">600</property>
+    <property name="icon-name">pygtk-posting</property>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="box2">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <child>
               <object class="GtkComboBox" id="combobox1">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="hexpand">False</property>
                 <property name="model">account_treestore</property>
-                <property name="has_entry">True</property>
-                <property name="entry_text_column">0</property>
-                <property name="popup_fixed_width">False</property>
-                <property name="id_column">0</property>
+                <property name="has-entry">True</property>
+                <property name="entry-text-column">0</property>
+                <property name="popup-fixed-width">False</property>
+                <property name="id-column">0</property>
                 <signal name="changed" handler="account_combo_changed" swapped="no"/>
                 <child>
                   <object class="GtkCellRendererText"/>
@@ -111,7 +108,7 @@
                 <child internal-child="entry">
                   <object class="GtkEntry" id="combobox-entry">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="completion">account_completion</property>
                   </object>
                 </child>
@@ -126,8 +123,8 @@
               <object class="GtkButton" id="button2">
                 <property name="label" translatable="yes">Refresh</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="refresh" swapped="no"/>
               </object>
               <packing>
@@ -140,8 +137,8 @@
               <object class="GtkButton" id="button1">
                 <property name="label" translatable="yes">Accounts summary</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="account_summary_clicked" swapped="no"/>
                 <accelerator key="n" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
               </object>
@@ -161,32 +158,20 @@
         <child>
           <object class="GtkBox" id="box4">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="spacing">5</property>
-            <child>
-              <object class="GtkSeparator" id="separator1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">5</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkBox" id="box3">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <child>
                   <object class="GtkRadioButton" id="radiobutton1">
                     <property name="label" translatable="yes">Monthly</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
                     <property name="active">True</property>
-                    <property name="draw_indicator">True</property>
+                    <property name="draw-indicator">True</property>
                     <property name="group">radiobutton3</property>
                     <signal name="clicked" handler="update_treeview_monthly" swapped="no"/>
                   </object>
@@ -200,10 +185,10 @@
                   <object class="GtkRadioButton" id="radiobutton2">
                     <property name="label" translatable="yes">Daily</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
                     <property name="active">True</property>
-                    <property name="draw_indicator">True</property>
+                    <property name="draw-indicator">True</property>
                     <property name="group">radiobutton3</property>
                     <signal name="clicked" handler="update_treeview_daily" swapped="no"/>
                   </object>
@@ -217,10 +202,10 @@
                   <object class="GtkRadioButton" id="radiobutton3">
                     <property name="label" translatable="yes">Individually</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
                     <property name="active">True</property>
-                    <property name="draw_indicator">True</property>
+                    <property name="draw-indicator">True</property>
                     <signal name="clicked" handler="update_treeview_individually" swapped="no"/>
                   </object>
                   <packing>
@@ -237,9 +222,21 @@
               </packing>
             </child>
             <child>
+              <object class="GtkSeparator" id="separator1">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">5</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="label" translatable="yes"> Fiscal </property>
               </object>
               <packing>
@@ -251,9 +248,9 @@
             <child>
               <object class="GtkComboBox" id="combobox2">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="model">fiscal_store</property>
-                <property name="id_column">0</property>
+                <property name="id-column">0</property>
                 <signal name="changed" handler="fiscal_combo_changed" swapped="no"/>
                 <child>
                   <object class="GtkCellRendererText" id="cellrenderertext7"/>
@@ -272,10 +269,10 @@
               <object class="GtkCheckButton" id="fiscal_checkbutton">
                 <property name="label" translatable="yes">All</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="tooltip_text" translatable="yes">Load all fiscal years</property>
-                <property name="draw_indicator">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Load all fiscal years</property>
+                <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="all_fiscal_toggled" swapped="no"/>
               </object>
               <packing>
@@ -294,20 +291,20 @@
         <child>
           <object class="GtkOverlay" id="overlay1">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <property name="shadow_type">in</property>
+                <property name="can-focus">True</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="shadow-type">in</property>
                 <child>
                   <object class="GtkTreeView" id="treeview1">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="model">account_transaction_store</property>
-                    <property name="rubber_banding">True</property>
-                    <property name="enable_grid_lines">vertical</property>
+                    <property name="rubber-banding">True</property>
+                    <property name="enable-grid-lines">vertical</property>
                     <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="cursor_double_clicked" swapped="no"/>
                     <child internal-child="selection">
@@ -401,8 +398,8 @@
             </child>
             <child type="overlay">
               <object class="GtkSpinner" id="spinner1">
-                <property name="can_focus">False</property>
-                <property name="no_show_all">True</property>
+                <property name="can-focus">False</property>
+                <property name="no-show-all">True</property>
               </object>
             </child>
           </object>
@@ -414,9 +411,9 @@
         </child>
         <child>
           <object class="GtkProgressBar" id="progressbar1">
-            <property name="can_focus">False</property>
-            <property name="no_show_all">True</property>
-            <property name="show_text">True</property>
+            <property name="can-focus">False</property>
+            <property name="no-show-all">True</property>
+            <property name="show-text">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -429,13 +426,13 @@
   </object>
   <object class="GtkMenu" id="transaction_menu">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkMenuItem">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="label" translatable="yes">GL entry lookup</property>
-        <property name="use_underline">True</property>
+        <property name="use-underline">True</property>
         <signal name="activate" handler="gl_entry_lookup_activated" swapped="no"/>
       </object>
     </child>
