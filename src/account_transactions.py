@@ -194,11 +194,6 @@ class GUI:
 	def select_account (self, ):
 		account = self.account_number + ' ' + self.account_name
 		self.builder.get_object('combobox-entry').set_text(account)
-		type_ = str(self.account_number)[0]
-		if type_ == '4' or type_ == '5':
-			self.n_col = 6 #the column with negative values
-		else:
-			self.n_col = 4
 		self.load_account_store()
 		self.scroll_window_to_bottom ()
 		
@@ -370,22 +365,15 @@ class GUI:
 			trans_id = transaction[0]
 			date = transaction[1]
 			formatted_date = transaction[2]
+			amount = float(transaction[3])
+			balance += float(transaction[3])
 			debit_account = transaction[4]
 			debit_name = transaction[5]
 			credit_account = transaction[6]
 			credit_name = transaction[7]
 			gl_entry_id = transaction[8]
-			if transaction[self.n_col] == int(self.account_number): # this is a credit with the account id we are searching for
-				amount = float(transaction[3])
-				balance += float(transaction[3])
-				amount_color = Gdk.RGBA(0,0,0,1)
-				balance_color = Gdk.RGBA(0,0,0,1)
-			else:# this is a debit with the account id we are searching for
-				amount = float(transaction[3]) 
-				amount = amount - amount * 2
-				balance -= float(transaction[3])
-				amount_color = Gdk.RGBA(0.4,0,0,1)
-				balance_color = Gdk.RGBA(0.8,0,0,1)
+			amount_color = Gdk.RGBA(0,0,0,1)
+			balance_color = Gdk.RGBA(0,0,0,1)
 			if balance < 0.00:
 				balance_color = Gdk.RGBA(0.7,0,0,1)
 			parent = self.account_treestore.append (None, [str(date), 
