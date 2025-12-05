@@ -307,6 +307,7 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		description = self.get_object('entry1').get_text()
 		total = Decimal(self.get_object('spinbutton1').get_text())
 		tx_description = self.get_object('transaction_description_entry').get_text()
+		payment_account = self.get_object('payment_combo').get_active_id()
 		cheque_number = self.get_object('cheque_number_spin').get_text()
 		if tx_description == '':
 			tx_description = None
@@ -320,12 +321,12 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 						"attached_pdf) "
 					"= (%s, %s, %s, %s, %s) WHERE id = %s;"
 					"UPDATE gl_entries SET "
-					"(transaction_description, check_number) = (%s, %s) "
+					"(transaction_description, check_number, credit_account) = (%s, %s, %s) "
 					"WHERE id = (SELECT gl_entry_id "
 						"FROM incoming_invoices WHERE id = %s)", 
 					(contact_id, self.date, total, description, 
 					self.file_data, self.invoice_id, 
-					tx_description, cheque_number, self.invoice_id))
+					tx_description, cheque_number, payment_account, self.invoice_id))
 		for row in self.expense_percentage_store:
 			row_id = row[0]
 			amount = row[3]
