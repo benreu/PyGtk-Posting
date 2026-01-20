@@ -1,4 +1,5 @@
 ^XA
 ^FO45,50^BY3
 ^A0N,70,70^BCN,100,Y,N,N,A
-^FD%s^FS^XZ
+^FD%s^FS
+^XZ
