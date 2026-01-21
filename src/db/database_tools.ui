@@ -611,7 +611,7 @@
             <child>
               <object class="GtkBox" id="backup_restore_box">
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
+                <property name="sensitive">True</property>
                 <property name="can-focus">False</property>
                 <property name="margin-top">10</property>
                 <property name="margin-bottom">10</property>
