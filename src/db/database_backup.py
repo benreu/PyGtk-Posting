@@ -18,7 +18,7 @@
 import gi
 gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Vte
-import time, os
+import time, os, signal
 from constants import DB, ui_directory
 from constants import db_name as DB_NAME
 from sqlite_utils import get_apsw_connection
@@ -47,7 +47,8 @@ class BackupGUI(Gtk.Builder):
 		self.terminal.set_scrollback_lines(-1)
 		self.automatic = automatic
 		self.get_object('backup_scrolled_window').add(self.terminal)
-		self.window = None
+		self.database_tools_window = None
+		self.child_pid = None
 		day = time.strftime("%Y-%m-%d-%H:%M")
 		name = DB_NAME + "_" + day +".pbk"
 		dialog = self.get_object('backup_dialog')
@@ -86,6 +87,19 @@ class BackupGUI(Gtk.Builder):
 		self.get_object('status_label').set_label(filechooser.get_filename() or "N/A")
 
 	def backup_cancel_clicked (self, button):
+		self.cancel_backup()
+
+	def destroy (self, window):
+		self.cancel_backup()
+
+	def cancel_backup(self):
+		# If a backup child process is running, terminate it; then close the window
+		if self.child_pid:
+			try:
+				os.kill(self.child_pid, signal.SIGTERM)
+			except Exception as e:
+				print(e)
+			self.child_pid = None
 		self.window.destroy()
 
 	def backup_database (self, filename):
@@ -120,18 +134,20 @@ class BackupGUI(Gtk.Builder):
 
 	def spawn_finished_callback (self, pty, task):
 		try:
-			validity, pid = pty.spawn_finish(task)
+			validity, self.child_pid = pty.spawn_finish(task)
 		except Exception as e:
 			print(e)
 			self.show_error_dialog(str(e))
-			self.window.destroy()
 			return
-		self.get_object('button1').set_sensitive(False)
-		self.terminal.watch_child(pid)
+		self.get_object('button1').set_label('Cancel')
+		self.terminal.watch_child(self.child_pid)
 		self.terminal.connect("child-exited", self.backup_finished_callback)
 
 	def backup_finished_callback (self, terminal, error):
 		self.get_object('button1').set_sensitive(True)
+		# restore original label once backup finishes
+		self.get_object('button1').set_label('Close')
+		self.child_pid = None
 		if error != 0:
 			self.get_object('status_label').set_label('Backup failed!')
 		else:
@@ -140,6 +156,8 @@ class BackupGUI(Gtk.Builder):
 			button.set_sensitive(True)
 			if self.automatic:
 				self.save_backup_date()
+		if self.database_tools_window:
+			self.database_tools_window.destroy()
 			
 	def save_backup_date_clicked (self, button):
 		self.save_backup_date()
