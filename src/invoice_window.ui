@@ -641,6 +641,7 @@
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext2">
                                 <property name="editable">True</property>
+                                <property name="xalign">1</property>
                                 <signal name="edited" handler="qty_edited" swapped="no"/>
                               </object>
                               <attributes>
@@ -713,6 +714,7 @@
                             <child>
                               <object class="GtkCellRendererText" id="cellrenderertext5">
                                 <property name="editable">True</property>
+                                <property name="xalign">1</property>
                                 <signal name="edited" handler="price_edited" swapped="no"/>
                               </object>
                               <attributes>
@@ -728,7 +730,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort-column-id">7</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext6"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext6">
+                                <property name="xalign">1</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">7</attribute>
                               </attributes>
@@ -742,7 +746,9 @@
                             <property name="reorderable">True</property>
                             <property name="sort-column-id">8</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext7"/>
+                              <object class="GtkCellRendererText" id="cellrenderertext7">
+                                <property name="xalign">1</property>
+                              </object>
                               <attributes>
                                 <attribute name="text">8</attribute>
                               </attributes>
