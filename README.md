@@ -126,8 +126,8 @@ All required Python packages are listed in `requirements.txt`:
 
 ### From Debian Package
 ```bash
-# Install the .deb package
-sudo dpkg -i pygtk_posting_0.5.34-1.deb
+# Install the .deb package (replace <version> with the actual version number)
+sudo dpkg -i pygtk_posting_<version>.deb
 
 # Install any missing dependencies
 sudo apt-get install -f
