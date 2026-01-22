@@ -338,13 +338,18 @@ Generates payment receipt (optional)
 - Consider property-based testing for accounting rules
 
 #### 2. **Potential SQL Injection Risks**
-Found instances of string formatting in SQL queries:
+Found 4 SQL injection vulnerabilities using string formatting in SQL queries.
 
-Files with potential issues:
-- `src/kit_products.py`
-- `src/db/transactor.py`
-- `src/purchase_ordering.py`
-- `src/payroll/pay_stub.py`
+**Vulnerable Files (see SQL_INJECTION_ANALYSIS.md for details):**
+- `src/kit_products.py` - Line 61 (HIGH severity, currently dead code)
+- `src/documents_window.py` - Line 112 (HIGH severity, exploitable via drag-and-drop)
+- `src/complete_search.py` - Lines 90-91 (HIGH severity, exploitable via TreeView)
+- `src/db/database_tools.py` - Line 219 (MEDIUM severity, database name validation needed)
+
+**False Positives (verified safe):**
+- `src/db/transactor.py` - Uses proper parameterized queries
+- `src/purchase_ordering.py` - Uses proper parameterized queries
+- `src/payroll/pay_stub.py` - Uses proper parameterized queries
 
 **Example pattern to review:**
 ```python
@@ -353,7 +358,7 @@ cursor.execute("SELECT * FROM table WHERE id = %s" % user_input)  # UNSAFE
 cursor.execute("SELECT * FROM table WHERE id = %s", (user_input,))  # SAFE
 ```
 
-**Recommendation:** Audit all SQL queries and use parameterized queries consistently
+**Recommendation:** See [SQL_INJECTION_ANALYSIS.md](SQL_INJECTION_ANALYSIS.md) for detailed vulnerability analysis, exploitation scenarios, and remediation steps. Prioritize fixing `documents_window.py` and `complete_search.py` immediately as they are actively exploitable.
 
 #### 3. **Large Monolithic Files**
 Several files exceed 1000 lines:
