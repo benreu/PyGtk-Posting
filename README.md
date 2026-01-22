@@ -1,13 +1,8 @@
-# PyGtk-Posting
-
-A comprehensive open-source accounting and business management system for Linux, designed as a modern replacement for QuickBooks and Peachtree.
-
 ## Overview
 
-PyGtk-Posting is a full-featured ERP (Enterprise Resource Planning) system that combines accounting, inventory management, payroll, and manufacturing capabilities into a single integrated application. Built with Python 3, GTK+ 3, and PostgreSQL, it provides a native Linux desktop experience with enterprise-grade functionality.
+PyGtk-Posting is an ERP (Enterprise Resource Planning) system that combines accounting, inventory management, payroll, and manufacturing capabilities into a single integrated application. Built with Python 3, GTK+ 3, and PostgreSQL, it provides a native Linux desktop experience.
 
-**Status:** Alpha (actively maintained and used in production by multiple businesses)  
-**Version:** 0.5.34  
+**Status:** Alpha
 **License:** GPL v3
 
 ## Key Features
@@ -22,7 +17,7 @@ PyGtk-Posting is a full-featured ERP (Enterprise Resource Planning) system that 
 
 ### 👥 Customer Management
 - Complete customer database with contact information
-- **Invoice creation** and management
+- **Invoice** creation and management  (draft and completed)
 - **Payment tracking** and receipt generation
 - **Credit memos** and finance charges
 - **Customer statements** with payment history
@@ -35,8 +30,8 @@ PyGtk-Posting is a full-featured ERP (Enterprise Resource Planning) system that 
 - **Vendor payments** and history tracking
 - Vendor statement reconciliation
 
-### 📦 Inventory Management
-- Complete product catalog with barcode support
+### 📦 Inventory Management (incomplete)
+- Product catalog with barcode support
 - **Inventory tracking** with real-time quantity updates
 - **Inventory adjustments** and counts
 - **Product locations** and warehouse management
@@ -50,7 +45,7 @@ PyGtk-Posting is a full-featured ERP (Enterprise Resource Planning) system that 
 - Bill of materials and component tracking
 - Manufacturing history and reporting
 
-### 💰 Payroll
+### 💰 Payroll (unfinished)
 - **Employee management** with contact information
 - **Pay stub generation** and history
 - Time tracking integration
@@ -126,8 +121,8 @@ All required Python packages are listed in `requirements.txt`:
 
 ### From Debian Package
 ```bash
-# Install the .deb package
-sudo dpkg -i pygtk_posting_0.5.34-1.deb
+# Install the .deb package (replace <version> with the actual version number)
+sudo dpkg -i pygtk_posting_<version>.deb
 
 # Install any missing dependencies
 sudo apt-get install -f
@@ -202,8 +197,6 @@ This is an open, user-driven project! Contributions are welcome:
 - Help test and improve the application
 - Submit patches and improvements
 
-The project is actively maintained and used in production environments.
-
 ## License
 
 PyGtk-Posting is released under the **GNU General Public License v3 (GPL-3.0)**.
@@ -212,18 +205,13 @@ See `LICENSE.md` and `COPYING` for full license text.
 
 ## Contact
 
-- **Email**: pygtk.posting@gmail.com
 - **GitHub**: https://github.com/benreu/PyGtk-Posting
-- **SourceForge**: https://sourceforge.net/projects/pygtk-posting/
 
 ## Support
 
 If you use PyGtk-Posting for your business, please consider:
 - Contributing code or documentation
 - Reporting bugs and suggesting features
-- Sharing your experience with other users
 - Testing new features and releases
 
 ---
-
-**Note**: PyGtk-Posting is in active development and used by multiple businesses in production. While in alpha status, it provides a stable, feature-rich accounting solution for Linux users.
