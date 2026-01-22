@@ -25,7 +25,12 @@ UI_FILE = ui_directory + "/unpaid_invoices.ui"
 
 class GUI (Gtk.Builder):
 	def __init__(self):
-
+		"""Initialize the unpaid invoices window.
+		
+		Sets up the GTK builder, loads the UI file, connects signals,
+		initializes the database cursor, configures the window layout
+		from saved settings, and creates the date calendar widget.
+		"""
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
@@ -40,6 +45,12 @@ class GUI (Gtk.Builder):
 		self.date_calendar.connect("day-selected", self.date_selected)
 
 	def set_window_layout_from_settings(self):
+		"""Restore window layout and column settings from the database.
+		
+		Retrieves and applies saved window dimensions, sort order, and
+		column widths from the unpaid_invoices settings table. Columns
+		with zero width are hidden, others are set to their saved widths.
+		"""
 		sqlite = get_apsw_connection()
 		c = sqlite.cursor()
 		c.execute("SELECT value FROM unpaid_invoices "
@@ -73,6 +84,13 @@ class GUI (Gtk.Builder):
 		sqlite.close()
 
 	def save_window_layout_activated (self, menuitem):
+		"""Save current window layout and column settings to the database.
+		
+		Stores the current window dimensions, sort column, sort order,
+		and column widths to the unpaid_invoices settings table. This
+		allows the window to be restored to the same configuration on
+		the next launch.
+		"""
 		sqlite = get_apsw_connection()
 		c = sqlite.cursor()
 		width, height = self.window.get_size()
@@ -113,11 +131,22 @@ class GUI (Gtk.Builder):
 		return True
 	
 	def treeview_button_release_event (self, widget, event):
+		"""Handle button release events on the treeview.
+		
+		Shows the right-click context menu when button 3 (right button)
+		is clicked on the treeview.
+		"""
 		if event.button == 3:
 			menu = self.get_object('right_click_menu')
 			menu.popup_at_pointer()
 
 	def contact_hub_activated (self, menuitem):
+		"""Open the contact hub for the selected customer.
+		
+		Retrieves the customer ID from the currently selected invoice
+		row and opens the contact hub window for that customer. Returns
+		early if no row is selected.
+		"""
 		selection = self.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
@@ -127,6 +156,14 @@ class GUI (Gtk.Builder):
 		contact_hub.ContactHubGUI(customer_id)
 
 	def invoice_chart_clicked (self, button):
+		"""Generate and display a pie chart of unpaid invoices by customer.
+		
+		Creates a new window with a matplotlib pie chart showing the
+		distribution of unpaid invoice amounts across all customers.
+		Each customer's total unpaid amount is displayed as a percentage
+		of the total. If there are no unpaid invoices, displays a single
+		"None" slice.
+		"""
 		window = Gtk.Window()
 		box = Gtk.VBox()
 		window.add (box)
@@ -174,6 +211,11 @@ class GUI (Gtk.Builder):
 		self.date_calendar.show_all()
 
 	def date_selected (self, calendar):
+		"""Handle date selection from the calendar widget.
+		
+		Updates the date entry field and enables the invoice cancellation
+		button when a date is selected from the calendar.
+		"""
 		self.date = calendar.get_date()
 		button = self.get_object('button6')
 		button.set_sensitive(True)
@@ -181,7 +223,15 @@ class GUI (Gtk.Builder):
 		entry = self.get_object('entry1')
 		entry.set_text(calendar.get_text())
 		
-	def cancel_dialog (self, widget):		
+	def cancel_dialog (self, widget):
+		"""Show confirmation dialog and cancel the selected invoice.
+		
+		Displays a confirmation dialog to cancel the selected invoice.
+		If confirmed, marks the invoice as canceled in the database,
+		creates the necessary accounting transactions, and removes
+		serial number associations. Refreshes the unpaid invoices list
+		after cancellation. This operation is not reversible.
+		"""
 		button = self.get_object('button6')
 		button.set_sensitive(False)
 		button.set_label("No date selected")
@@ -206,6 +256,12 @@ class GUI (Gtk.Builder):
 		
 		
 	def view_invoice(self, widget):
+		"""Open and display the PDF of the selected invoice.
+		
+		Retrieves the PDF data from the database for the selected invoice,
+		saves it to a temporary file, and opens it with the system's
+		default PDF viewer using xdg-open.
+		"""
 		treeselection = self.get_object('treeview-selection')
 		model, path = treeselection.get_selected_rows ()
 		if path != []:
@@ -226,6 +282,13 @@ class GUI (Gtk.Builder):
 		self.populate_unpaid_invoices()
 
 	def populate_unpaid_invoices(self):
+		"""Load and display all unpaid invoices in the treeview.
+		
+		Queries the database for all posted, unpaid, non-canceled invoices
+		and displays them in the treeview. Calculates and updates the total
+		unpaid invoice amount and the accounts receivable balance. Preserves
+		the current selection if it still exists after refresh.
+		"""
 		unpaid_invoice_amount = decimal.Decimal()
 		treeview_selection = self.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
@@ -268,6 +331,12 @@ class GUI (Gtk.Builder):
 		DB.rollback()
 
 	def row_activated(self, treeview, path, treeviewcolumn):
+		"""Handle double-click or Enter key on an invoice row.
+		
+		Stores the invoice ID, name, and contact ID from the selected row
+		and enables the action buttons (view, cancel, payment, edit) for
+		the selected invoice.
+		"""
 		treeiter = self.store.get_iter(path)
 		self.invoice_id = self.store.get_value(treeiter, 0)
 		self.invoice_name = self.store.get_value(treeiter, 1)
@@ -278,6 +347,12 @@ class GUI (Gtk.Builder):
 		self.get_object('edit_invoice').set_sensitive(True)
 
 	def payment_window (self, widget):
+		"""Open the customer payment window for the selected invoice.
+		
+		Retrieves the customer ID from the selected invoice and opens
+		the customer payment window for that customer. Returns early
+		if no invoice is selected.
+		"""
 		selection = self.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()
 		if path == []:
@@ -287,6 +362,13 @@ class GUI (Gtk.Builder):
 		customer_payment.GUI(customer_id)
 
 	def edit_invoice_clicked (self, button):
+		"""Open the invoice editor for the selected invoice.
+		
+		Opens the invoice editing window for the selected invoice.
+		If the invoice was created more than 30 days ago, displays
+		a warning dialog and opens the editor with the date field
+		disabled to prevent modification.
+		"""
 		treeselection = self.get_object('treeview-selection')
 		model, path = treeselection.get_selected_rows ()
 		if path != []:
@@ -312,6 +394,11 @@ class GUI (Gtk.Builder):
 		new_statement.GUI()
 
 	def show_message (self, message):
+		"""Display an error message dialog to the user.
+		
+		Creates and shows a modal error dialog with the specified message.
+		The dialog is closed when the user clicks the close button.
+		"""
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
 									buttons = Gtk.ButtonsType.CLOSE)
 		dialog.set_transient_for(self.window)
