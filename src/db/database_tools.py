@@ -62,7 +62,7 @@ class GUI:
 	def backup_database_clicked(self, widget):
 		from db.database_backup import BackupGUI 
 		b = BackupGUI()
-		b.window = self.window
+		b.database_tools_window = self.window
 
 	def restore_database_clicked(self, widget):
 		host = self.builder.get_object('server_entry').get_text()
