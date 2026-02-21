@@ -76,13 +76,11 @@ class RestoreGUI(Gtk.Builder):
 		self.window.show_all()
 		pty = Vte.Pty.new_sync(Vte.PtyFlags.DEFAULT)
 		self.terminal.set_pty(pty)
-		create_command = ["%s/createdb" % self.bin_path, 
-							"-e",
-							"-h", self.host,
-							"-p", self.port,
-							"-U", self.user,
-							"-Ttemplate0",
-							self.db_name]
+		create_command = ["%s/psql" % self.bin_path,
+							"postgresql://%s:%s@%s:%s/postgres" %
+							(self.user, self.password, self.host, self.port),
+							"-c",
+							"CREATE DATABASE %s" % self.db_name]
 		pty.spawn_async(None,
 						create_command,
 						None,
@@ -93,15 +91,6 @@ class RestoreGUI(Gtk.Builder):
 						None,
 						self.create_spawn_callback
 						)
-		self.password_job = GLib.timeout_add(100, self.enter_password)
-
-	def enter_password (self):
-		feedback = self.terminal.get_text()
-		if feedback[0][0:9] == 'Password:':
-			self.terminal.feed_child(self.password.encode())
-			self.terminal.feed_child('\n'.encode())
-			return False
-		return True
 
 	def create_spawn_callback (self, pty, task):
 		try:
@@ -122,10 +111,8 @@ class RestoreGUI(Gtk.Builder):
 		self.terminal.set_pty(pty)
 		restore_command = ["%s/pg_restore" % self.bin_path, 
 							"-v",
-							"-U", self.user,
-							"-h", self.host,
-							"-p", self.port,
-							"-d", self.db_name,
+							"--dbname=postgresql://%s:%s@%s:%s/%s" % 
+							(self.user, self.password, self.host, self.port, self.db_name),
 							self.db_file]
 		pty.spawn_async(None,
 						restore_command,
@@ -137,7 +124,6 @@ class RestoreGUI(Gtk.Builder):
 						None,
 						self.restore_spawn_callback
 						)
-		self.password_job = GLib.timeout_add(100, self.enter_password)
 
 	def restore_spawn_callback (self, pty, task):
 		try:
@@ -156,7 +142,6 @@ class RestoreGUI(Gtk.Builder):
 		else:
 			label = "Successfully restored %s" % self.db_name
 			self.get_object('status_label').set_label(label)
-		GLib.source_remove(self.password_job)
 
 	def close_clicked (self, button):
 		self.window.destroy()
