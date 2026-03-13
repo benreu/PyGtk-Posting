@@ -39,7 +39,6 @@ class GUI:
 		self.progressbar = self.builder.get_object("progressbar1")
 		if error == False:
 			self.db = DB
-			self.builder.get_object("grid2").set_sensitive(True)
 		else:#if error is true we have problems connecting so we have to force the user to reconnect
 			self.statusbar.push(1,"Please select a valid database connection")
 		
@@ -59,10 +58,21 @@ class GUI:
 		else:
 			return True
 
+	def backup_database_changed (self, combobox):
+		iter_ = combobox.get_active_iter()
+		if iter_ == None:
+			self.builder.get_object('backup_database_button').set_sensitive(False)
+		else:
+			self.builder.get_object('backup_database_button').set_sensitive(True)
+
 	def backup_database_clicked(self, widget):
-		from db.database_backup import BackupGUI 
-		b = BackupGUI()
-		b.database_tools_window = self.window
+		host = self.builder.get_object('server_entry').get_text()
+		port = self.builder.get_object('port_entry').get_text()
+		user = self.builder.get_object('username_entry').get_text()
+		password = self.builder.get_object('password_entry').get_text()
+		db_name = self.builder.get_object('backup_database_entry').get_text()
+		from db.database_backup import BackupGUI
+		b = BackupGUI( host, port, user, password, db_name )
 
 	def restore_database_clicked(self, widget):
 		host = self.builder.get_object('server_entry').get_text()
@@ -358,15 +368,16 @@ class GUI:
 		sqlite.close()
 
 	def test_connection_clicked (self, widget):
-		sql_user = self.builder.get_object("username_entry").get_text()
-		sql_password = self.builder.get_object("password_entry").get_text()
-		sql_host = self.builder.get_object("server_entry").get_text()
-		sql_port = self.builder.get_object("port_entry").get_text()
+		test_host = self.builder.get_object("server_entry").get_text()
+		test_port = self.builder.get_object("port_entry").get_text()
+		test_user = self.builder.get_object("username_entry").get_text()
+		test_password = self.builder.get_object("password_entry").get_text()
+		test_db_name = self.builder.get_object('entry6').get_text()
 		try:
-			self.db = psycopg2.connect( host = sql_host, 
-										user = sql_user, 
-										password = sql_password, 
-										port = sql_port)
+			self.db = psycopg2.connect( host = test_host, 
+										user = test_user, 
+										password = test_password, 
+										port = test_port)
 		except Exception as e:
 			print (e)
 			self.message_error()
@@ -381,6 +392,10 @@ class GUI:
 		self.builder.get_object("grid2").set_sensitive(True)
 		self.builder.get_object("database_grid").set_sensitive(True)
 		self.builder.get_object("backup_restore_box").set_sensitive(True)
+		self.builder.get_object("backup_restore_server").set_text(test_host)
+		self.builder.get_object("backup_restore_port").set_text(test_port)
+		self.builder.get_object("backup_restore_user").set_text(test_user)
+		self.builder.get_object("backup_restore_database").set_text(test_db_name)
 		
 	def message_success(self):
 		self.status_update("Success!")

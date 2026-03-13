@@ -2,6 +2,13 @@
 <!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkEntry" id="backup_restore_database">
+    <property name="visible">True</property>
+    <property name="can-focus">True</property>
+    <property name="editable">False</property>
+    <property name="width-chars">1</property>
+    <property name="placeholder-text" translatable="yes">Your postgreSQL database</property>
+  </object>
   <object class="GtkListStore" id="connection_store">
     <columns>
       <!-- column-name id -->
@@ -601,7 +608,7 @@
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Server</property>
+                <property name="label" translatable="yes">Connection</property>
               </object>
               <packing>
                 <property name="position">1</property>
@@ -611,23 +618,61 @@
             <child>
               <object class="GtkBox" id="backup_restore_box">
                 <property name="visible">True</property>
-                <property name="sensitive">True</property>
                 <property name="can-focus">False</property>
                 <property name="margin-top">10</property>
                 <property name="margin-bottom">10</property>
                 <property name="orientation">vertical</property>
+                <property name="spacing">25</property>
                 <child>
-                  <!-- n-columns=2 n-rows=2 -->
+                  <!-- n-columns=2 n-rows=3 -->
                   <object class="GtkGrid" id="grid2">
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">False</property>
+                    <property name="border-width">10</property>
                     <child>
-                      <object class="GtkLabel" id="label10">
+                      <object class="GtkEntry" id="backup_restore_port">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="width-chars">1</property>
+                        <property name="text" translatable="yes">5432</property>
+                        <property name="progress-pulse-step">0</property>
+                        <property name="placeholder-text" translatable="yes">Usually: 5432</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label13">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Username</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label14">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Port</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label15">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="hexpand">True</property>
-                        <property name="label" translatable="yes">Current database :</property>
+                        <property name="label" translatable="yes">Server</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -635,49 +680,179 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button7">
-                        <property name="label" translatable="yes">Backup</property>
+                      <object class="GtkEntry" id="backup_restore_user">
+                        <property name="width-request">300</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <signal name="clicked" handler="backup_database_clicked" swapped="no"/>
+                        <property name="editable">False</property>
+                        <property name="width-chars">1</property>
+                        <property name="text" translatable="yes">postgres</property>
+                        <property name="progress-pulse-step">0</property>
+                        <property name="placeholder-text" translatable="yes">Example: postgres</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="backup_restore_server">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="width-chars">1</property>
+                        <property name="text" translatable="yes">localhost</property>
+                        <property name="progress-pulse-step">0</property>
+                        <property name="placeholder-text" translatable="yes">Example: localhost</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button8">
-                        <property name="label" translatable="yes">Restore</property>
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <signal name="clicked" handler="restore_database_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="entry6">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="placeholder-text" translatable="yes">Database name for restore</property>
-                        <signal name="changed" handler="restore_name_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label-xalign">0</property>
+                    <property name="shadow-type">in</property>
+                    <child>
+                      <object class="GtkAlignment">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="top-padding">10</property>
+                        <property name="bottom-padding">10</property>
+                        <property name="left-padding">10</property>
+                        <property name="right-padding">10</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkButton" id="backup_database_button">
+                                <property name="label" translatable="yes">Backup database</property>
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <signal name="clicked" handler="backup_database_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBox" id="database_combo1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="model">db_name_store</property>
+                                <property name="has-entry">True</property>
+                                <property name="entry-text-column">1</property>
+                                <property name="id-column">1</property>
+                                <signal name="changed" handler="backup_database_changed" swapped="no"/>
+                                <child internal-child="entry">
+                                  <object class="GtkEntry" id="backup_database_entry">
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Backup</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFrame">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label-xalign">0</property>
+                    <property name="shadow-type">in</property>
+                    <child>
+                      <object class="GtkAlignment">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="top-padding">10</property>
+                        <property name="bottom-padding">10</property>
+                        <property name="left-padding">10</property>
+                        <property name="right-padding">10</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkEntry" id="entry6">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="placeholder-text" translatable="yes">Database name for restore</property>
+                                <signal name="changed" handler="restore_name_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="button8">
+                                <property name="label" translatable="yes">Restore from file</property>
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <signal name="clicked" handler="restore_database_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Restore</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
