@@ -20,7 +20,6 @@ gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Vte
 import time, os, signal
 from constants import DB, ui_directory
-from constants import db_name as DB_NAME
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_backup.ui"
@@ -36,7 +35,7 @@ def get_postgres_bin_path ():
 
 
 class BackupGUI(Gtk.Builder):
-	def __init__(self, automatic = False):
+	def __init__(self, server, port, user, password, db_name, automatic = False):
 		
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
@@ -45,12 +44,12 @@ class BackupGUI(Gtk.Builder):
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 		self.terminal.set_scrollback_lines(-1)
+		self.server, self.port, self.user, self.password, self.db_name = server, port, user, password, db_name
 		self.automatic = automatic
 		self.get_object('backup_scrolled_window').add(self.terminal)
-		self.database_tools_window = None
 		self.child_pid = None
 		day = time.strftime("%Y-%m-%d-%H:%M")
-		name = DB_NAME + "_" + day +".pbk"
+		name = self.db_name + "_" + day +".pbk"
 		dialog = self.get_object('backup_dialog')
 		dialog.set_current_name(name)
 		sqlite = get_apsw_connection()
@@ -105,21 +104,12 @@ class BackupGUI(Gtk.Builder):
 	def backup_database (self, filename):
 		self.window = self.get_object('backup_window')
 		self.window.show_all()
-		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT "
-											"user, password, host, port "
-											"FROM postgres_conn;"):
-			sql_user = row[0]
-			sql_password = row[1]
-			sql_host = row[2]
-			sql_port = row[3]
-		sqlite.close()
 		pty = Vte.Pty.new_sync(Vte.PtyFlags.DEFAULT)
 		self.terminal.set_pty(pty)
 		backup_command = ["%s/pg_dump" % self.bin_path, 
 							"-Cwv", "-F", "c",
 							"--dbname=postgresql://%s:%s@%s:%s/%s" % 
-							(sql_user, sql_password, sql_host, sql_port, DB_NAME),
+							(self.user, self.password, self.server, self.port, self.db_name),
 							"-f", filename]
 		pty.spawn_async(None,
 						backup_command,
@@ -156,8 +146,6 @@ class BackupGUI(Gtk.Builder):
 			button.set_sensitive(True)
 			if self.automatic:
 				self.save_backup_date()
-		if self.database_tools_window:
-			self.database_tools_window.destroy()
 			
 	def save_backup_date_clicked (self, button):
 		self.save_backup_date()
