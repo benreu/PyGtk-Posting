@@ -115,9 +115,10 @@ class RestoreGUI(Gtk.Builder):
 			self.window.destroy()
 			return
 		self.terminal.watch_child(pid)
-		self.terminal.connect("child-exited", self.create_finished_callback)
+		self.handler_id = self.terminal.connect("child-exited", self.create_finished_callback)
 
 	def create_finished_callback (self, terminal, error):
+		terminal.disconnect(self.handler_id)
 		if error != 0:
 			self.get_object('status_label').set_label('Create failed!')
 			return
@@ -148,9 +149,10 @@ class RestoreGUI(Gtk.Builder):
 			self.window.destroy()
 			return
 		self.terminal.watch_child(pid)
-		self.terminal.connect("child-exited", self.restore_finished_callback)
+		self.handler_id = self.terminal.connect("child-exited", self.restore_finished_callback)
 
 	def restore_finished_callback (self, terminal, error):
+		terminal.disconnect(self.handler_id)
 		if error != 0:
 			self.get_object('status_label').set_label('Restore failed!')
 		else:
