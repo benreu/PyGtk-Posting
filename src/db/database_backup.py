@@ -44,6 +44,7 @@ class BackupGUI(Gtk.Builder):
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 		self.terminal.set_scrollback_lines(-1)
+		self.terminal.connect("button-press-event", self.on_button_press)
 		self.server, self.port, self.user, self.password, self.db_name = server, port, user, password, db_name
 		self.automatic = automatic
 		self.get_object('backup_scrolled_window').add(self.terminal)
@@ -78,6 +79,19 @@ class BackupGUI(Gtk.Builder):
 				self.backup_database(filename)
 		dialog.destroy()
 
+	def on_button_press(self, widget, event):
+		if event.button == 3 and self.terminal.get_has_selection():
+			menu = Gtk.Menu()
+			copy_item = Gtk.MenuItem(label="Copy")
+			copy_item.connect("activate", self.on_copy)
+			menu.append(copy_item)
+			menu.show_all()
+			menu.popup_at_pointer(event)
+			return True
+
+	def on_copy(self, widget):
+		self.terminal.copy_clipboard_format(Vte.Format.TEXT)
+	
 	def backup_file_selection_changed (self, filechooser):
 		name = filechooser.get_current_name()
 		if name[-4:] != '.pbk':
@@ -85,7 +99,7 @@ class BackupGUI(Gtk.Builder):
 		filechooser.set_current_name(name)
 		self.get_object('status_label').set_label(filechooser.get_filename() or "N/A")
 
-	def backup_cancel_clicked (self, button):
+	def backup_close_clicked (self, button):
 		self.cancel_backup()
 
 	def destroy (self, window):
@@ -99,7 +113,7 @@ class BackupGUI(Gtk.Builder):
 			except Exception as e:
 				print(e)
 			self.child_pid = None
-		self.window.destroy()
+		self.get_object('backup_window').destroy()
 
 	def backup_database (self, filename):
 		self.window = self.get_object('backup_window')
@@ -155,10 +169,10 @@ class BackupGUI(Gtk.Builder):
 		c.execute("UPDATE settings SET last_backup = CURRENT_DATE")
 		DB.commit()
 		c.close()
-		self.window.destroy()
+		self.get_object('backup_window').destroy()
 
 	def show_error_dialog (self, error):
-		dialog = Gtk.MessageDialog(	transient_for = self.window,
+		dialog = Gtk.MessageDialog(	transient_for = self.get_object('backup_window'),
 									message_type = Gtk.MessageType.ERROR,
 									buttons = Gtk.ButtonsType.CLOSE,
 									text = error)
