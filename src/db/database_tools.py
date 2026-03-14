@@ -320,26 +320,6 @@ class GUI:
 		sql_file = os.path.join(sql_dir, 'insert_basic.sql')
 		with open(sql_file, 'r') as sql:
 			return self.execute_file(sql)
-
-	def delete_clicked (self,widget):
-		self.warning_dialog = self.builder.get_object('db_delete_dialog')
-		warning_label = self.builder.get_object('label11')
-		warning = 'Do you really want to delete\n "%s" ?' % self.db_name
-		warning_label.set_label(warning)
-		self.warning_dialog.show()
-
-	def delete_db (self, widget):
-		self.db.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-		cursor = self.db.cursor()
-		try:
-			cursor.execute('DROP DATABASE ' + self.db_name)
-		except Exception as e:
-			print (e)
-			if (e.pgcode == "55006"):
-				self.status_update("You cannot delete an active database!")
-		self.status_update("Database deleted")
-		self.retrieve_dbs ()
-		self.warning_dialog.hide()
 		
 	def close_warning_dialog(self, widget):
 		self.warning_dialog.hide()
