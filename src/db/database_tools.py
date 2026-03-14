@@ -375,7 +375,6 @@ class GUI:
 		self.builder.get_object("backup_restore_server").set_text(test_host)
 		self.builder.get_object("backup_restore_port").set_text(test_port)
 		self.builder.get_object("backup_restore_user").set_text(test_user)
-		self.builder.get_object("backup_restore_database").set_text(test_db_name)
 		
 	def message_success(self):
 		self.status_update("Success!")
