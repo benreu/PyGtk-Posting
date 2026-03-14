@@ -49,6 +49,7 @@ class RestoreGUI(Gtk.Builder):
 		self.terminal = Vte.Terminal()
 		self.terminal.set_scroll_on_output(True)
 		self.terminal.set_scrollback_lines(-1)
+		self.terminal.connect("button-press-event", self.on_button_press)
 		self.get_object('restore_scrolled_window').add(self.terminal)
 		self.dialog = self.get_object('restore_dialog')
 		sqlite = get_apsw_connection()
@@ -66,6 +67,19 @@ class RestoreGUI(Gtk.Builder):
 			self.db_file = self.dialog.get_filename()
 		self.dialog.destroy()
 
+	def on_button_press(self, widget, event):
+		if event.button == 3 and self.terminal.get_has_selection():
+			menu = Gtk.Menu()
+			copy_item = Gtk.MenuItem(label="Copy")
+			copy_item.connect("activate", self.on_copy)
+			menu.append(copy_item)
+			menu.show_all()
+			menu.popup_at_pointer(event)
+			return True
+
+	def on_copy(self, widget):
+		self.terminal.copy_clipboard_format(Vte.Format.TEXT)
+	
 	def restore_file_selection_changed (self, filechooser):
 		filename = filechooser.get_filename()
 		if filename != None:
