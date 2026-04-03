@@ -211,8 +211,8 @@ class AssembledProductsGUI:
 		self.product_store.clear()
 		self.assembled_product_store.clear()
 		c.execute("SELECT id::text, name FROM products "
-					"WHERE (deleted, purchasable, stock) = "
-					"(False, True, True) ORDER BY name")
+					"WHERE (deleted, stock) = "
+					"(False, True) ORDER BY name")
 		for row in c.fetchall():
 			self.product_store.append(row)
 		c.execute("SELECT id::text, name FROM products "
