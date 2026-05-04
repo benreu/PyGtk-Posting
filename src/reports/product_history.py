@@ -289,8 +289,8 @@ class ProductHistoryGUI (Gtk.Builder):
 							"FROM invoices AS i "
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"JOIN invoice_items AS ii ON ii.invoice_id = i.id "
-							"WHERE (product_id, i.canceled) = "
-							"(%s, False) ORDER BY dated_for", 
+							"WHERE (product_id, i.canceled, ii.canceled) = "
+							"(%s, False, False) ORDER BY dated_for", 
 							(self.product_id,))
 		for row in self.cursor.fetchall():
 			count += 1
