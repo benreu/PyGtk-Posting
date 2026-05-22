@@ -116,7 +116,8 @@ class GUI:
 									x=360,
 									y=previous_position + (amount / 2), 
 									anchor = GooCanvas.CanvasAnchorType.WEST)
-			t.connect("button-release-event", self.po_clicked, row[2])
+			is_credit_memo = row[0].startswith('Credit Memo')
+			t.connect("button-release-event", self.payment_clicked, row[2], is_credit_memo)
 			previous_position += amount
 		if previous_position + 100 > self.canvas.get_size_request().height:
 			self.canvas.set_size_request(800,  previous_position)
@@ -152,8 +153,16 @@ class GUI:
 			import invoice_hub
 			invoice_hub.InvoiceHubGUI(invoice_id)
 		
-	def po_clicked (self, canvas_1, canvas_2, event, po_id):
-		print (po_id)
+	def payment_clicked (self, canvas_1, canvas_2, event, payment_id, is_credit_memo):
+		if event.button == 3:
+			if not is_credit_memo:
+				c = DB.cursor()
+				c.execute("SELECT customer_id FROM payments_incoming WHERE id = %s", (payment_id,))
+				customer_id = c.fetchone()[0]
+				c.close()
+				DB.rollback()
+				from reports import payments_received
+				payments_received.PaymentsReceivedGUI(customer_id, payment_id)
 		
 	def slider_value_changed (self, slider, scrolltype, arg):
 		self.canvas.set_scale(slider.get_value())

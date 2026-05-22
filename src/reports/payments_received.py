@@ -25,7 +25,7 @@ import admin_utils
 UI_FILE = ui_directory + "/reports/payments_received.ui"
 
 class PaymentsReceivedGUI:
-	def __init__(self):
+	def __init__(self, customer_id=None, payment_id=None):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -44,14 +44,27 @@ class PaymentsReceivedGUI:
 		for connection in (("admin_changed", self.admin_changed), ):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		
+
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		if customer_id is not None:
+			self.builder.get_object('combobox1').set_active_id(str(customer_id))
+			self.builder.get_object('checkbutton1').set_active(True)
+			if payment_id is not None:
+				self.select_payment(payment_id)
 
 	def destroy (self, widget):
 		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
+
+	def select_payment (self, payment_id):
+		for i, row in enumerate(self.payment_store):
+			if row[0] == payment_id:
+				path = Gtk.TreePath(i)
+				self.treeview.get_selection().select_path(path)
+				self.treeview.scroll_to_cell(path, None, True, 0.5, 0.0)
+				break
 
 	def edit_mode_checkbutton_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:
