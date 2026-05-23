@@ -105,6 +105,8 @@
       <column type="gchararray"/>
       <!-- column-name paid -->
       <column type="gboolean"/>
+      <!-- column-name payment_text -->
+      <column type="gchararray"/>
       <!-- column-name posted -->
       <column type="gboolean"/>
       <!-- column-name comments -->
@@ -359,7 +361,7 @@
                     <property name="search-column">3</property>
                     <property name="rubber-banding">True</property>
                     <property name="enable-grid-lines">both</property>
-                    <property name="tooltip-column">9</property>
+                    <property name="tooltip-column">10</property>
                     <signal name="button-release-event" handler="po_treeview_button_release_event" swapped="no"/>
                     <signal name="row-activated" handler="row_activated" swapped="no"/>
                     <child internal-child="selection">
@@ -450,7 +452,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkTreeViewColumn" id="paid_column">
+                      <object class="GtkTreeViewColumn">
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Paid</property>
                         <property name="reorderable">True</property>
@@ -464,15 +466,29 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkTreeViewColumn" id="paid_column">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Payment</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">8</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">8</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkTreeViewColumn" id="posted_column">
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Posted</property>
                         <property name="reorderable">True</property>
-                        <property name="sort-column-id">8</property>
+                        <property name="sort-column-id">9</property>
                         <child>
                           <object class="GtkCellRendererToggle"/>
                           <attributes>
-                            <attribute name="active">8</attribute>
+                            <attribute name="active">9</attribute>
                           </attributes>
                         </child>
                       </object>
