@@ -86,6 +86,9 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		for i in self.serial_number.split():
 			if i not in model[tree_iter][4].lower():
 				return False
+		for i in self.contact_name.split():
+			if i not in model[tree_iter][16].lower():
+				return False
 		return True
 
 	def serial_number_sort_func (self, model, iter_a, iter_b, arg):
@@ -183,11 +186,13 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"COALESCE(poli.purchase_order_id::text, ''), "
 								"COALESCE(po.date_printed::text, ''), "
 								"COALESCE(format_date(po.date_printed), ''), "
-								"COALESCE(pav.version_name, '') "
+								"COALESCE(pav.version_name, ''), "
+								"COALESCE(STRING_AGG(DISTINCT c.name, ', '), '') "
 							"FROM serial_numbers AS sn "
 							"JOIN products AS p ON p.id = sn.product_id "
 							"LEFT JOIN serial_number_history AS snh "
 								"ON snh.serial_number_id = sn.id "
+							"LEFT JOIN contacts AS c ON c.id = snh.contact_id "
 							"LEFT JOIN invoice_items AS ili "
 								"ON ili.id = sn.invoice_item_id "
 							"LEFT JOIN invoices AS i "

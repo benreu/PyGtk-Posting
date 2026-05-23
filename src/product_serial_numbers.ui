@@ -211,6 +211,8 @@
       <column type="gchararray"/>
       <!-- column-name revision -->
       <column type="gchararray"/>
+      <!-- column-name contact_names -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkTreeModelFilter" id="serial_number_treeview_filter">
@@ -282,7 +284,6 @@
               <object class="GtkSearchEntry" id="searchentry3">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="editable">False</property>
                 <property name="primary-icon-name">edit-find-symbolic</property>
                 <property name="primary-icon-activatable">False</property>
                 <property name="primary-icon-sensitive">False</property>
