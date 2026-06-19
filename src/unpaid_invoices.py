@@ -16,7 +16,7 @@
 from gi.repository import Gtk
 from db import transactor
 from dateutils import DateTimeCalendar
-import subprocess, decimal
+import subprocess, decimal, tempfile, os, shutil
 
 from constants import ui_directory, DB
 from sqlite_utils import get_apsw_connection
@@ -276,6 +276,7 @@ class GUI (Gtk.Builder):
 		self.get_object('button2').set_sensitive(True)
 		self.get_object('button4').set_sensitive(True)
 		self.get_object('edit_invoice').set_sensitive(True)
+		self.get_object('customer_invoices_pdf_menuitem').set_sensitive(True)
 
 	def payment_window (self, widget):
 		selection = self.get_object('treeview-selection')
@@ -310,6 +311,129 @@ class GUI (Gtk.Builder):
 
 	def new_statement (self, widget):
 		new_statement.GUI()
+
+	def customer_invoices_pdf_clicked(self, widget):
+		import threading
+		from gi.repository import GLib
+		c = DB.cursor()
+		c.execute("SELECT i.id, i.pdf_data, ct.name FROM invoices AS i "
+					"JOIN contacts AS ct ON ct.id = i.customer_id "
+					"WHERE i.customer_id = %s "
+					"AND (i.canceled, i.paid, i.posted) = (False, False, True) "
+					"ORDER BY i.id",
+					(self.contact_id,))
+		invoices = c.fetchall()
+		c.close()
+		DB.rollback()
+		if not invoices:
+			self.show_message("No unpaid invoices found for this customer.")
+			return
+		customer_name = invoices[0][2]
+
+		progress_window = Gtk.Window()
+		progress_window.set_title("Generating customer invoices PDF")
+		progress_window.set_transient_for(self.window)
+		progress_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+		progress_window.set_default_size(420, 220)
+		progress_window.set_border_width(10)
+		vbox = Gtk.VBox(spacing=6)
+		progress_window.add(vbox)
+		scrolled = Gtk.ScrolledWindow()
+		scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+		text_view = Gtk.TextView()
+		text_view.set_editable(False)
+		text_view.set_wrap_mode(Gtk.WrapMode.WORD)
+		text_buf = text_view.get_buffer()
+		scrolled.add(text_view)
+		vbox.pack_start(scrolled, True, True, 0)
+		progress_window.show_all()
+
+		def log(msg):
+			def _append():
+				text_buf.insert(text_buf.get_end_iter(), msg + "\n")
+				text_view.scroll_to_iter(text_buf.get_end_iter(), 0, False, 0, 0)
+				return False
+			GLib.idle_add(_append)
+
+		def finish():
+			GLib.idle_add(progress_window.destroy)
+
+		def generate():
+			from reportlab.pdfgen import canvas
+			from reportlab.lib.pagesizes import letter
+			from reportlab.lib.utils import ImageReader
+			log("Found %d unpaid invoice(s) for %s" % (len(invoices), customer_name))
+			tmp_dir = tempfile.mkdtemp()
+			images = []
+			try:
+				for inv_id, pdf_bytes, _ in invoices:
+					if pdf_bytes is None:
+						log("Invoice %s: no PDF data, skipping" % inv_id)
+						continue
+					log("Converting invoice %s to image..." % inv_id)
+					pdf_path = os.path.join(tmp_dir, "%s.pdf" % inv_id)
+					png_path = os.path.join(tmp_dir, "%s.png" % inv_id)
+					with open(pdf_path, 'wb') as f:
+						f.write(bytes(pdf_bytes))
+					subprocess.call([
+						'gs', '-dNOPAUSE', '-dBATCH', '-dSAFER',
+						'-sDEVICE=pngalpha', '-r150',
+						'-dFirstPage=1', '-dLastPage=1',
+						'-sOutputFile=' + png_path,
+						pdf_path
+					])
+					if os.path.exists(png_path):
+						images.append(png_path)
+						log("Invoice %s: done" % inv_id)
+					else:
+						log("Invoice %s: conversion failed" % inv_id)
+				if not images:
+					log("No images generated, aborting.")
+					return
+				safe_name = "".join(ch if ch.isalnum() or ch in (' ', '_', '-') else '_'
+									for ch in customer_name).strip()
+				output_path = "/tmp/%s_unpaid_invoices.pdf" % safe_name
+				log("Building combined PDF...")
+				page_w, page_h = letter
+				margin = 18
+				gap = 6
+				cell_w = (page_w - 2 * margin - gap) / 2
+				cell_h = (page_h - 2 * margin - gap) / 2
+				positions = [
+					(margin, margin + gap + cell_h),
+					(margin + gap + cell_w, margin + gap + cell_h),
+					(margin, margin),
+					(margin + gap + cell_w, margin),
+				]
+				cnv = canvas.Canvas(output_path, pagesize=letter)
+				for i, img_path in enumerate(images):
+					pos_idx = i % 4
+					if pos_idx == 0 and i > 0:
+						cnv.showPage()
+					x, y = positions[pos_idx]
+					img_reader = ImageReader(img_path)
+					img_w, img_h = img_reader.getSize()
+					scale = min(cell_w / img_w, cell_h / img_h)
+					draw_w = img_w * scale
+					draw_h = img_h * scale
+					img_x = x + (cell_w - draw_w) / 2
+					img_y = y + (cell_h - draw_h) / 2
+					cnv.drawImage(img_reader, img_x, img_y,
+									width=draw_w, height=draw_h)
+					cnv.setStrokeColorRGB(0, 0, 0)
+					cnv.setLineWidth(0.5)
+					cnv.rect(img_x, img_y, draw_w, draw_h)
+				cnv.save()
+				log("PDF saved, opening...")
+				subprocess.call(["xdg-open", output_path])
+				log("Done.")
+			except Exception as e:
+				log("Error: %s" % str(e))
+			finally:
+				shutil.rmtree(tmp_dir, ignore_errors=True)
+				finish()
+
+		threading.Thread(target=generate, daemon=True).start()
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

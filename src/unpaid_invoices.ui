@@ -14,6 +14,16 @@
         <signal name="activate" handler="save_window_layout_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem" id="customer_invoices_pdf_menuitem">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Customer invoices PDF</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="customer_invoices_pdf_clicked" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkFileFilter" id="plot_file_filter">
     <patterns>
