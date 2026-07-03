@@ -334,7 +334,7 @@ class GUI (Gtk.Builder):
 		progress_window.set_title("Generating customer invoices PDF")
 		progress_window.set_transient_for(self.window)
 		progress_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-		progress_window.set_default_size(420, 220)
+		progress_window.set_default_size(420, 260)
 		progress_window.set_border_width(10)
 		vbox = Gtk.VBox(spacing=6)
 		progress_window.add(vbox)
@@ -346,7 +346,19 @@ class GUI (Gtk.Builder):
 		text_buf = text_view.get_buffer()
 		scrolled.add(text_view)
 		vbox.pack_start(scrolled, True, True, 0)
+		button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+		view_button = Gtk.Button(label="View PDF")
+		view_button.set_sensitive(False)
+		email_button = Gtk.Button(label="Send via email")
+		email_button.set_sensitive(False)
+		close_button = Gtk.Button(label="Close")
+		button_box.pack_start(close_button, False, False, 0)
+		button_box.pack_end(email_button, False, False, 0)
+		button_box.pack_end(view_button, False, False, 0)
+		vbox.pack_start(button_box, False, False, 0)
 		progress_window.show_all()
+
+		pdf_result = [None]
 
 		def log(msg):
 			def _append():
@@ -356,7 +368,35 @@ class GUI (Gtk.Builder):
 			GLib.idle_add(_append)
 
 		def finish():
-			GLib.idle_add(progress_window.destroy)
+			def _enable():
+				if pdf_result[0]:
+					view_button.set_sensitive(True)
+					email_button.set_sensitive(True)
+				return False
+			GLib.idle_add(_enable)
+
+		def on_view_clicked(_):
+			subprocess.Popen(["xdg-open", pdf_result[0]])
+
+		def on_email_clicked(_):
+			c = DB.cursor()
+			c.execute("SELECT name, email FROM contacts WHERE id = %s",
+						(self.contact_id,))
+			row = c.fetchone()
+			c.close()
+			DB.rollback()
+			if row is not None and row[1]:
+				name, addr = row
+				to = "%s <%s>" % (name, addr)
+			else:
+				to = ""
+			subprocess.Popen(["thunderbird", "-compose",
+								"to=%s,subject=Unpaid invoices,attachment=%s"
+								% (to, pdf_result[0])])
+
+		view_button.connect("clicked", on_view_clicked)
+		email_button.connect("clicked", on_email_clicked)
+		close_button.connect("clicked", lambda _: progress_window.destroy())
 
 		def generate():
 			from reportlab.pdfgen import canvas
@@ -392,7 +432,7 @@ class GUI (Gtk.Builder):
 					return
 				safe_name = "".join(ch if ch.isalnum() or ch in (' ', '_', '-') else '_'
 									for ch in customer_name).strip()
-				output_path = "/tmp/%s_unpaid_invoices.pdf" % safe_name
+				output_path = "/tmp/%s unpaid invoices.pdf" % safe_name
 				log("Building combined PDF...")
 				page_w, page_h = letter
 				margin = 18
@@ -424,8 +464,7 @@ class GUI (Gtk.Builder):
 					cnv.setLineWidth(0.5)
 					cnv.rect(img_x, img_y, draw_w, draw_h)
 				cnv.save()
-				log("PDF saved, opening...")
-				subprocess.call(["xdg-open", output_path])
+				pdf_result[0] = output_path
 				log("Done.")
 			except Exception as e:
 				log("Error: %s" % str(e))
