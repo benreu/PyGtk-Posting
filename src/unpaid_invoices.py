@@ -399,41 +399,24 @@ class GUI (Gtk.Builder):
 		close_button.connect("clicked", lambda _: progress_window.destroy())
 
 		def generate():
-			from reportlab.pdfgen import canvas
+			from pypdf import PdfWriter, PdfReader, Transformation
+			from reportlab.pdfgen import canvas as rl_canvas
 			from reportlab.lib.pagesizes import letter
-			from reportlab.lib.utils import ImageReader
+			import io as _io
 			log("Found %d unpaid invoice(s) for %s" % (len(invoices), customer_name))
-			tmp_dir = tempfile.mkdtemp()
-			images = []
 			try:
+				invoice_pages = []
 				for inv_id, pdf_bytes, _ in invoices:
 					if pdf_bytes is None:
 						log("Invoice %s: no PDF data, skipping" % inv_id)
 						continue
-					log("Converting invoice %s to image..." % inv_id)
-					pdf_path = os.path.join(tmp_dir, "%s.pdf" % inv_id)
-					png_path = os.path.join(tmp_dir, "%s.png" % inv_id)
-					with open(pdf_path, 'wb') as f:
-						f.write(bytes(pdf_bytes))
-					subprocess.call([
-						'gs', '-dNOPAUSE', '-dBATCH', '-dSAFER',
-						'-sDEVICE=pngalpha', '-r150',
-						'-dFirstPage=1', '-dLastPage=1',
-						'-sOutputFile=' + png_path,
-						pdf_path
-					])
-					if os.path.exists(png_path):
-						images.append(png_path)
-						log("Invoice %s: done" % inv_id)
-					else:
-						log("Invoice %s: conversion failed" % inv_id)
-				if not images:
-					log("No images generated, aborting.")
+					log("Reading invoice %s..." % inv_id)
+					reader = PdfReader(_io.BytesIO(bytes(pdf_bytes)))
+					if reader.pages:
+						invoice_pages.append((inv_id, reader.pages[0]))
+				if not invoice_pages:
+					log("No invoice pages found, aborting.")
 					return
-				safe_name = "".join(ch if ch.isalnum() or ch in (' ', '_', '-') else '_'
-									for ch in customer_name).strip()
-				output_path = "/tmp/%s unpaid invoices.pdf" % safe_name
-				log("Building combined PDF...")
 				page_w, page_h = letter
 				margin = 18
 				gap = 6
@@ -445,31 +428,48 @@ class GUI (Gtk.Builder):
 					(margin, margin),
 					(margin + gap + cell_w, margin),
 				]
-				cnv = canvas.Canvas(output_path, pagesize=letter)
-				for i, img_path in enumerate(images):
-					pos_idx = i % 4
-					if pos_idx == 0 and i > 0:
-						cnv.showPage()
-					x, y = positions[pos_idx]
-					img_reader = ImageReader(img_path)
-					img_w, img_h = img_reader.getSize()
-					scale = min(cell_w / img_w, cell_h / img_h)
-					draw_w = img_w * scale
-					draw_h = img_h * scale
-					img_x = x + (cell_w - draw_w) / 2
-					img_y = y + (cell_h - draw_h) / 2
-					cnv.drawImage(img_reader, img_x, img_y,
-									width=draw_w, height=draw_h)
+				writer = PdfWriter()
+				num_pages = (len(invoice_pages) + 3) // 4
+				for g in range(num_pages):
+					log("Building page %d of %d..." % (g + 1, num_pages))
+					group = invoice_pages[g * 4 : g * 4 + 4]
+					output_page = writer.add_blank_page(page_w, page_h)
+					borders = []
+					for i, (inv_id, inv_page) in enumerate(group):
+						cell_x, cell_y = positions[i]
+						mb = inv_page.mediabox
+						pw = float(mb.width)
+						ph = float(mb.height)
+						scale = min(cell_w / pw, cell_h / ph)
+						draw_w = pw * scale
+						draw_h = ph * scale
+						img_x = cell_x + (cell_w - draw_w) / 2
+						img_y = cell_y + (cell_h - draw_h) / 2
+						tx = img_x - scale * float(mb.left)
+						ty = img_y - scale * float(mb.bottom)
+						output_page.merge_transformed_page(
+							inv_page, Transformation((scale, 0, 0, scale, tx, ty)))
+						borders.append((img_x, img_y, draw_w, draw_h))
+					border_buf = _io.BytesIO()
+					cnv = rl_canvas.Canvas(border_buf, pagesize=letter)
 					cnv.setStrokeColorRGB(0, 0, 0)
 					cnv.setLineWidth(0.5)
-					cnv.rect(img_x, img_y, draw_w, draw_h)
-				cnv.save()
+					for (img_x, img_y, draw_w, draw_h) in borders:
+						cnv.rect(img_x, img_y, draw_w, draw_h)
+					cnv.save()
+					border_buf.seek(0)
+					output_page.merge_page(PdfReader(border_buf).pages[0])
+				safe_name = "".join(ch if ch.isalnum() or ch in (' ', '_', '-') else '_'
+									for ch in customer_name).strip()
+				output_path = "/tmp/%s_unpaid_invoices.pdf" % safe_name
+				log("Saving PDF...")
+				with open(output_path, 'wb') as f:
+					writer.write(f)
 				pdf_result[0] = output_path
 				log("Done.")
 			except Exception as e:
 				log("Error: %s" % str(e))
 			finally:
-				shutil.rmtree(tmp_dir, ignore_errors=True)
 				finish()
 
 		threading.Thread(target=generate, daemon=True).start()
