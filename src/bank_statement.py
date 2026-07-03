@@ -106,6 +106,7 @@ class GUI(Gtk.Builder):
 
 	def view_closed_items(self, check_button):
 		self.populate_treeview ()
+		DB.rollback()
 
 	def voided_cheque_activated (self, menuitem):
 		dialog = self.get_object('check_dialog')
@@ -200,6 +201,17 @@ class GUI(Gtk.Builder):
 			self.account_number = 0
 			self.bank_transaction_store.clear()
 			return
+		self.account_number = account_number
+		self.create_temp_view()
+		self.calculate_bank_account_total()
+		self.get_object('button2').set_sensitive(True)
+		self.get_object('refresh_button').set_sensitive(True)
+		self.populate_treeview ()
+		self.calculate_reconciled_balance ()
+		DB.commit()
+
+	def create_temp_view(self):
+		c = DB.cursor()
 		c.execute("CREATE OR REPLACE TEMP VIEW "
 					"bank_statement_view AS "
 					"WITH account_numbers AS "
@@ -219,18 +231,10 @@ class GUI(Gtk.Builder):
 						"date_reconciled, FALSE AS debit, TRUE AS credit "
 						"FROM gl_entries WHERE credit_account "
 						"IN (SELECT * FROM account_numbers)"
-						, (account_number, account_number))
+						, (self.account_number, self.account_number))
 		c.close()
-		DB.commit()
-		self.calculate_bank_account_total(account_number)
-		self.get_object('button2').set_sensitive(True)
-		self.get_object('refresh_button').set_sensitive(True)
-		self.get_object('label13').set_label(str(self.bank_account_total))
-		self.account_number = account_number
-		self.populate_treeview ()
-		self.calculate_reconciled_balance ()
 
-	def calculate_bank_account_total(self, account_number): 
+	def calculate_bank_account_total(self): 
 		c = DB.cursor()
 		c.execute("SELECT SUM(debits - credits) AS total FROM "
 					"(SELECT COALESCE(SUM(amount),0.00) AS debits "
@@ -241,10 +245,14 @@ class GUI(Gtk.Builder):
 					"WHERE credit = True) c  ")
 		bank_account_total = c.fetchone()[0]
 		c.close()
-		self.bank_account_total = bank_account_total
+		self.get_object('label13').set_label(str(bank_account_total))
 
 	def refresh_clicked (self, button):
+		self.create_temp_view()
+		self.calculate_bank_account_total()
 		self.populate_treeview()
+		self.calculate_reconciled_balance()
+		DB.commit()
 
 	def populate_treeview(self ):
 		c = DB.cursor()
@@ -272,7 +280,6 @@ class GUI(Gtk.Builder):
 		for row in c.fetchall():
 			self.bank_transaction_store.append(row)
 		c.close()
-		DB.rollback()
 
 	def on_reconciled_toggled(self, widget, path):
 		iter_ = self.bank_transaction_store.get_iter(path)
@@ -303,7 +310,6 @@ class GUI(Gtk.Builder):
 		t = '${:,.2f}'.format(float(self.reconciled_total))
 		self.get_object('entry2').set_text(t)
 		c.close()
-		DB.rollback()
 
 	def statement_balance_spinbutton_changed (self, entry):
 		self.account_statement_difference ()
@@ -345,9 +351,9 @@ class GUI(Gtk.Builder):
 					"AND reconciled = True", 
 					(self.account_number, self.account_number,
 					self.reconcile_date))
-		DB.commit()
 		c.close()
 		self.populate_treeview ()
+		DB.commit()
 		self.get_object('spinbutton1').set_value(0.00)
 
 	def add_bank_charge_clicked (self, button):
@@ -365,10 +371,9 @@ class GUI(Gtk.Builder):
 			transactor.bank_charge(self.account_number, 
 									self.date, self.amount, 
 									self.description, expense_account_number)
-			DB.commit()
-			self.calculate_bank_account_total(self.account_number)
-			self.get_object('label13').set_label(str(self.bank_account_total))
+			self.calculate_bank_account_total()
 			self.populate_treeview()
+			DB.commit()
 
 	def number_edited (self, renderer, path, text):
 		iter_ = self.bank_transaction_store.get_iter(path)
@@ -415,9 +420,9 @@ class GUI(Gtk.Builder):
 			dialog = self.get_object('dialog2')
 			dialog.run()
 			dialog.hide()
-		DB.commit()
 		c.close()
 		self.populate_treeview ()
+		DB.commit()
 
 	def expense_treeview_row_activate (self, treeview, path, treeview_column):
 		self.check_bank_charge_validity()
