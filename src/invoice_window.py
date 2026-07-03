@@ -532,7 +532,7 @@ class InvoiceGUI:
 				email = row[9]
 				if email != "":
 					email = "%s < %s >" % (name, email)
-					self.invoice.email(email)
+					self.invoice.email(email, self.invoice.total)
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		from inventory import inventorying
 		inventorying.sell(self.invoice_store, location_id, self.customer_id, self.datetime)

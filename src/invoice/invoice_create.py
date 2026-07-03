@@ -17,6 +17,7 @@
 
 from gi.repository import GLib, Gtk
 import os, subprocess, time, psycopg2, re
+from urllib.parse import quote
 import uno, unohelper
 from com.sun.star.connection import NoConnectException
 from com.sun.star.uno import RuntimeException
@@ -273,12 +274,26 @@ class Setup(XCloseListener, unohelper.Base):
 								(self.invoice_id,))
 		cursor.close()
 
-	def email (self, email):
+	def email (self, email, total):
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.contact_id,))
+		name_row = cursor.fetchone()
+		cursor.close()
+		total = '${:.2f}'.format(float(total)) if total is not None else ''
+		customer_name = name_row[0] if name_row else ''
+		subject = "Invoice %s" % (self.invoice_id,)
+		body = quote(
+				"Hi %s,\n\n"
+				"Your invoice #%s for the amount of %s is attached. "
+				"Please pay at your earliest convenience.\n\n"
+				"Delete all copies of this email if you are not the correct recipient."
+				% (customer_name, self.invoice_id, total))
 		document = "/tmp/" + self.document_pdf
 		subprocess.Popen(["thunderbird",
 							"-compose",
-							"to=" + email + 
-							",subject=Invoice,"
+							"to=" + email +
+							",subject=" + subject + ","
+							"body=" + body + ","
 							"attachment=" + document])
 
 	def post(self):
@@ -297,6 +312,7 @@ class Setup(XCloseListener, unohelper.Base):
 		for row in cursor.fetchall():
 			gl_entries_id = row[0]
 			total = row[1]
+		self.total = total
 		cursor.execute("SELECT accrual_based FROM settings")
 		if cursor.fetchone()[0] == True:
 			transactor.post_invoice_accounts (self.date, self.invoice_id,
