@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 from db import transactor
 from dateutils import DateTimeCalendar
-import subprocess, decimal, tempfile, os, shutil
+import subprocess, decimal, tempfile, os, shutil, psycopg2
 
 from constants import ui_directory, DB
 from sqlite_utils import get_apsw_connection
@@ -126,6 +126,128 @@ class GUI (Gtk.Builder):
 		import contact_hub
 		contact_hub.ContactHubGUI(customer_id)
 
+	def reprint_invoice_activated(self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		tree_iter = model.get_iter(path[0])
+		invoice_id = model.get_value(tree_iter, 0)
+		c = DB.cursor()
+		c.execute("SELECT pdf_data FROM invoices WHERE id = %s", (invoice_id,))
+		row = c.fetchone()
+		c.close()
+		DB.rollback()
+		if row is None or row[0] is None:
+			self.show_message("No saved PDF found for this invoice.")
+			return
+		pdf_data = bytes(row[0])
+
+		from gi.repository import Gio
+		import printing
+		print_op = printing.Operation(settings_file="invoice")
+		print_op.set_parent(self.window)
+		stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes(pdf_data))
+		print_op.set_bytes_to_print(stream)
+		result = print_op.print_dialog()
+
+		if result == Gtk.PrintOperationResult.APPLY:
+			c = DB.cursor()
+			c.execute("UPDATE invoices SET date_printed = CURRENT_DATE "
+						"WHERE id = %s", (invoice_id,))
+			c.execute("INSERT INTO invoice_reprints (invoice_id, pdf_data) "
+						"VALUES (%s, %s)", (invoice_id, psycopg2.Binary(pdf_data)))
+			DB.commit()
+			c.close()
+			self.populate_unpaid_invoices()
+
+	def show_reprint_history_activated(self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		tree_iter = model.get_iter(path[0])
+		customer_id = model.get_value(tree_iter, 2)
+		customer_name = model.get_value(tree_iter, 3)
+
+		c = DB.cursor()
+		c.execute("SELECT r.id, i.id, i.name, format_timestamp(r.time_printed), "
+					"r.time_printed::text "
+					"FROM invoice_reprints AS r "
+					"JOIN invoices AS i ON i.id = r.invoice_id "
+					"WHERE i.customer_id = %s "
+					"AND (i.canceled, i.paid, i.posted) = (False, False, True) "
+					"ORDER BY r.time_printed DESC", (customer_id,))
+		rows = c.fetchall()
+		c.close()
+		DB.rollback()
+
+		if not rows:
+			self.show_message("No reprints found for this customer's unpaid invoices.")
+			return
+
+		history_window = Gtk.Window()
+		history_window.set_title("Reprint history - %s" % customer_name)
+		history_window.set_transient_for(self.window)
+		history_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+		history_window.set_default_size(380, 320)
+		history_window.set_border_width(10)
+		vbox = Gtk.VBox(spacing=6)
+		history_window.add(vbox)
+
+		history_store = Gtk.ListStore(int, int, str, str, str)
+		for reprint_id, invoice_number, invoice_name, formatted, raw in rows:
+			history_store.append(
+				[reprint_id, invoice_number, invoice_name, formatted, raw])
+		treeview = Gtk.TreeView(model=history_store)
+		number_column = Gtk.TreeViewColumn(
+			"Number", Gtk.CellRendererText(), text=1)
+		number_column.set_sort_column_id(1)
+		invoice_column = Gtk.TreeViewColumn(
+			"Invoice", Gtk.CellRendererText(), text=2)
+		invoice_column.set_sort_column_id(2)
+		reprinted_column = Gtk.TreeViewColumn(
+			"Reprinted", Gtk.CellRendererText(), text=3)
+		reprinted_column.set_sort_column_id(4)
+		treeview.append_column(number_column)
+		treeview.append_column(invoice_column)
+		treeview.append_column(reprinted_column)
+		scrolled = Gtk.ScrolledWindow()
+		scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+		scrolled.add(treeview)
+		vbox.pack_start(scrolled, True, True, 0)
+
+		button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+		view_button = Gtk.Button(label="View PDF")
+		close_button = Gtk.Button(label="Close")
+		button_box.pack_start(close_button, False, False, 0)
+		button_box.pack_end(view_button, False, False, 0)
+		vbox.pack_start(button_box, False, False, 0)
+
+		def on_view_clicked(_):
+			history_selection = treeview.get_selection()
+			history_model, history_iter = history_selection.get_selected()
+			if history_iter is None:
+				return
+			reprint_id = history_model.get_value(history_iter, 0)
+			invoice_name = history_model.get_value(history_iter, 2)
+			c2 = DB.cursor()
+			c2.execute("SELECT pdf_data FROM invoice_reprints WHERE id = %s",
+						(reprint_id,))
+			pdf_row = c2.fetchone()
+			c2.close()
+			DB.rollback()
+			if pdf_row is None:
+				return
+			file_name = "%s_reprint_%s.pdf" % (invoice_name, reprint_id)
+			with open("/tmp/" + file_name, 'wb') as f:
+				f.write(bytes(pdf_row[0]))
+			subprocess.call("xdg-open /tmp/" + file_name, shell=True)
+
+		view_button.connect("clicked", on_view_clicked)
+		close_button.connect("clicked", lambda _: history_window.destroy())
+		history_window.show_all()
+
 	def invoice_chart_clicked (self, button):
 		window = Gtk.Window()
 		box = Gtk.VBox()
@@ -209,15 +331,15 @@ class GUI (Gtk.Builder):
 		treeselection = self.get_object('treeview-selection')
 		model, path = treeselection.get_selected_rows ()
 		if path != []:
-			tree_iter = model.get_iter(path)
+			tree_iter = model.get_iter(path[0])
 			invoice_id = model.get_value(tree_iter, 0)
 			self.cursor.execute("SELECT name, pdf_data FROM invoices "
-								"WHERE id = %s", (invoice_id ,))
+								"WHERE id = %s", (invoice_id,))
 			for cell in self.cursor.fetchall():
 				file_name = cell[0] + ".pdf"
 				file_data = cell[1]
 				f = open("/tmp/" + file_name,'wb')
-				f.write(file_data)		
+				f.write(file_data)
 				subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 				f.close()
 			DB.rollback()
@@ -239,10 +361,14 @@ class GUI (Gtk.Builder):
 						"format_date(dated_for), "
 						"dated_for::text, "
 						"amount_due::text, "
-						"amount_due::float "
+						"amount_due::float, "
+						"COALESCE(r.reprint_count, 0) "
 					"FROM invoices AS i "
 					"JOIN contacts AS c ON i.customer_id = c.id "
-					"WHERE (canceled, paid, posted) = "
+					"LEFT JOIN (SELECT invoice_id, COUNT(*) AS reprint_count "
+						"FROM invoice_reprints GROUP BY invoice_id) AS r "
+						"ON r.invoice_id = i.id "
+					"WHERE (i.canceled, i.paid, i.posted) = "
 					"(False, False, True) "
 					"ORDER BY i.id")
 		tupl = c.fetchall()

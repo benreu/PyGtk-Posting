@@ -43,6 +43,24 @@
         <signal name="activate" handler="contact_hub_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem" id="reprint_invoice_menuitem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Reprint invoice</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="reprint_invoice_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="show_reprint_history_menuitem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Show reprint history</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="show_reprint_history_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="unpaid_invoice_store">
     <columns>
@@ -62,6 +80,8 @@
       <column type="gchararray"/>
       <!-- column-name invoice_amount_sort -->
       <column type="gfloat"/>
+      <!-- column-name reprint_count -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
@@ -163,6 +183,22 @@
                       </object>
                       <attributes>
                         <attribute name="text">6</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="reprint_count_column">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Reprints</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">8</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext6">
+                        <property name="xalign">1</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>
