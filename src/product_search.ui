@@ -83,6 +83,8 @@
       <column type="gboolean"/>
       <!-- column-name manufactured -->
       <column type="gboolean"/>
+      <!-- column-name on_hand -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkTreeModelFilter" id="filtered_product_store">
@@ -444,6 +446,20 @@
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle4"/>
                       <attributes>
                         <attribute name="active">11</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="on_hand_column">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">On hand</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">12</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">12</attribute>
                       </attributes>
                     </child>
                   </object>

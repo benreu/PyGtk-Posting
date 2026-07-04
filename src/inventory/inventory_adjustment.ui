@@ -306,6 +306,21 @@
                 <property name="top_attach">0</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="label_no_inventory_account">
+                <property name="visible">False</property>
+                <property name="no_show_all">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">This product has no inventory account configured. Set one on the product's edit screen before adjusting inventory.</property>
+                <property name="wrap">True</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">4</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>

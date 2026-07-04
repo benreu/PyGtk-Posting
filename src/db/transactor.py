@@ -465,6 +465,21 @@ def post_credit_memo(credit_memo_id):
 def post_invoice_receivables ():
 	pass
 
+def post_inventory_adjustment (date, description, amount, debit_account, credit_account):
+	cursor = DB.cursor()
+	cursor.execute("WITH new_row AS "
+						"(INSERT INTO gl_transactions (date_inserted) "
+						"VALUES (%s) RETURNING id) "
+					"INSERT INTO gl_entries "
+					"(debit_account, credit_account, amount, date_inserted, "
+					"transaction_description, gl_transaction_id) "
+					"VALUES (%s, %s, %s, %s, %s, (SELECT id FROM new_row)) "
+					"RETURNING id",
+					(date, debit_account, credit_account, amount, date, description))
+	gl_entries_id = cursor.fetchone()[0]
+	cursor.close()
+	return gl_entries_id
+
 def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 	cursor = DB.cursor()
 	if gl_entries_id != None: # used for updates

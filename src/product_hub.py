@@ -29,11 +29,16 @@ class ProductHubGUI:
 		self.cursor = DB.cursor()
 
 		self.product_id = product_id
-		self.cursor.execute ("SELECT name FROM products WHERE id = %s", 
+		self.cursor.execute ("SELECT name FROM products WHERE id = %s",
 														(product_id,))
 		self.name = self.cursor.fetchone()[0]
+		self.cursor.execute ("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+							"FROM inventory_transactions WHERE product_id = %s",
+														(product_id,))
+		on_hand = self.cursor.fetchone()[0]
 		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
+		self.builder.get_object('label_on_hand').set_label("On hand: %s" % on_hand)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 

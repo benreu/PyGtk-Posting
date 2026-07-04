@@ -107,8 +107,9 @@ class ProductsOverviewGUI (Gtk.Builder):
 						'purchasable_column', 
 						'manufactured_column', 
 						'job_column', 
-						'stocked_column', 
-						'price_column']:
+						'stocked_column',
+						'price_column',
+						'on_hand_column']:
 			try:
 				width = self.get_object(column).get_width()
 			except Exception as e:
@@ -214,7 +215,9 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"p.job, "
 							"p.stock, "
 							"COALESCE(pmp.price, 0.00), "
-							"COALESCE(pmp.price::text, 'N/A') "
+							"COALESCE(pmp.price::text, 'N/A'), "
+							"(SELECT COALESCE(SUM(qty_in - qty_out), 0)::text "
+								"FROM inventory_transactions WHERE product_id = p.id) "
 							"FROM products AS p "
 							"JOIN units AS u ON u.id = p.unit "
 							"LEFT JOIN products_markup_prices AS pmp "
@@ -260,7 +263,9 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"p.job, "
 							"p.stock, "
 							"COALESCE(pmp.price, 0.00), "
-							"COALESCE(pmp.price::text, 'N/A') "
+							"COALESCE(pmp.price::text, 'N/A'), "
+							"(SELECT COALESCE(SUM(qty_in - qty_out), 0)::text "
+								"FROM inventory_transactions WHERE product_id = p.id) "
 							"FROM products AS p "
 							"JOIN units AS u ON u.id = p.unit "
 							"LEFT JOIN products_markup_prices AS pmp "
@@ -330,7 +335,8 @@ class ProductsOverviewGUI (Gtk.Builder):
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI()
 		pe.get_object('product_completion').set_model(self.product_name_store)
-		pe.select_product(product_id)
+		if pe.select_product(product_id) == False:
+			return
 		pe.window.set_transient_for(self.window)
 
 	def new_clicked (self, button):

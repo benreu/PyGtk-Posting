@@ -118,6 +118,8 @@
       <column type="gfloat"/>
       <!-- column-name standard_price_formatted -->
       <column type="gchararray"/>
+      <!-- column-name on_hand -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkTreeModelFilter" id="filtered_product_store">
@@ -591,6 +593,20 @@
                           <object class="GtkCellRendererText"/>
                           <attributes>
                             <attribute name="text">18</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="on_hand_column">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">On hand</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">19</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">19</attribute>
                           </attributes>
                         </child>
                       </object>

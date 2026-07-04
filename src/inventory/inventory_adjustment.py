@@ -16,7 +16,9 @@
 
 from gi.repository import Gtk
 from datetime import datetime
+from decimal import Decimal
 from constants import ui_directory, DB
+from db import transactor
 
 UI_FILE = ui_directory + "/inventory/inventory_adjustment.ui"
 
@@ -75,9 +77,12 @@ class InventoryAdjustmentGUI:
 		self.product_selected (self.product_id)
 
 	def product_selected (self, product_id):
-		self.cursor.execute("SELECT inventory_enabled FROM products "
+		self.cursor.execute("SELECT inventory_enabled, cost, inventory_account, "
+							"default_expense_account FROM products "
 							"WHERE id = %s", (product_id,))
-		if self.cursor.fetchone()[0] == True:
+		(inventory_enabled, self.cost, self.inventory_account,
+			self.default_expense_account) = self.cursor.fetchone()
+		if inventory_enabled == True:
 			self.populate_adjustment_reason_combobox ()
 		else:
 			combo = self.builder.get_object('comboboxtext3')
@@ -91,6 +96,9 @@ class InventoryAdjustmentGUI:
 		for row in self.cursor.fetchall():
 			inventory = row[0]
 		self.builder.get_object('label24').set_text(str(inventory))
+		self.builder.get_object('label_no_inventory_account').set_visible(
+													self.inventory_account == None)
+		self.inventory_adjustment_combobox_changed(None)
 		DB.rollback()
 
 	def inventory_history_clicked (self, widget):
@@ -110,7 +118,7 @@ class InventoryAdjustmentGUI:
 		DB.rollback()
 
 	def inventory_adjustment_combobox_changed(self, widget):
-		if self.product_id != 0:
+		if self.product_id != 0 and self.inventory_account != None:
 			self.builder.get_object('button2').set_sensitive(True)
 		else:
 			self.builder.get_object('button2').set_sensitive(False)
@@ -120,12 +128,19 @@ class InventoryAdjustmentGUI:
 		adjustment_reason = self.builder.get_object('comboboxtext3').get_active_text()
 		location_id = self.builder.get_object('combobox3').get_active_id()
 		if adjustment_amount != 0:
+			gl_entries_id = None
+			if adjustment_amount > 0:
+				amount = self.cost * Decimal(str(adjustment_amount))
+				gl_entries_id = transactor.post_inventory_adjustment(
+									datetime.today(), adjustment_reason, amount,
+									self.inventory_account, self.default_expense_account)
 			self.cursor.execute("INSERT INTO inventory_transactions "
 								"(product_id, qty_in, date_inserted, "
-								"location_id, price, reason) "
-								"VALUES (%s, %s, %s, %s, 210, %s)", 
-								(self.product_id, adjustment_amount, 
-								datetime.today(), location_id, adjustment_reason))
+								"location_id, price, reason, gl_entries_id) "
+								"VALUES (%s, %s, %s, %s, %s, %s, %s)",
+								(self.product_id, adjustment_amount,
+								datetime.today(), location_id, self.cost,
+								adjustment_reason, gl_entries_id))
 		self.cursor.execute("UPDATE products SET inventory_enabled = True "
 							"WHERE id = %s", (self.product_id,))
 		DB.commit()
