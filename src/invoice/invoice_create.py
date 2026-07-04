@@ -151,6 +151,17 @@ class Setup:
         self.document_pdf = document.name + ".pdf"
         self.invoice_pdf = "/tmp/" + self.document_pdf
 
+        cursor.execute(
+            "SELECT p.name, sn.serial_number "
+            "FROM serial_numbers AS sn "
+            "JOIN invoice_items AS ii ON ii.id = sn.invoice_item_id "
+            "JOIN products AS p ON p.id = sn.product_id "
+            "WHERE ii.invoice_id = %s "
+            "ORDER BY p.name, sn.serial_number",
+            (self.invoice_id,))
+        serial_rows = cursor.fetchall()
+        serial_numbers = [{'product': r[0], 'number': r[1]} for r in serial_rows]
+
         from jinja2 import Environment, FileSystemLoader
         import weasyprint
 
@@ -162,6 +173,7 @@ class Setup:
             contact=customer,
             terms=terms,
             company=company,
+            serial_numbers=serial_numbers,
         )
         weasyprint.HTML(string=html).write_pdf(self.invoice_pdf)
         cursor.close()

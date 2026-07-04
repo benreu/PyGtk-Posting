@@ -46,7 +46,10 @@
   table.items tfoot td.ta  { text-align: right; }
   table.items tfoot td.comment-cell { padding: 3pt 5pt; vertical-align: top; }
 
-  .footer { margin-top: 0.35in; }
+  .serial-section { margin-top: 0.2in; font-size: 10pt; }
+  .serial-section p { margin-bottom: 2pt; }
+
+  .footer { margin-top: 0.25in; }
   .footer p { line-height: 1.7; }
 </style>
 </head>
@@ -119,6 +122,15 @@
   </tfoot>
 </table>
 </div>
+
+{% if serial_numbers %}
+<div class="serial-section">
+  <p><strong>Serial Numbers</strong></p>
+  {% for product, sns in serial_numbers | groupby('product') %}
+  <p>{{ product }}: {% for sn in sns %}{{ sn.number }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  {% endfor %}
+</div>
+{% endif %}
 
 <div class="footer">
   <p>{% if terms.text1 %}{{ terms.text1 }}{% endif %}
