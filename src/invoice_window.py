@@ -719,6 +719,8 @@ class InvoiceGUI:
 			price = row[1]
 			ext_price = row[2]
 			tax = row[3]
+			if self.invoice_store[iter_][12] == True:
+				qty = qty.split('.')[0] # only whole numbers for inventory
 			self.invoice_store[iter_][1] = qty
 			self.invoice_store[iter_][6] = price
 			self.invoice_store[iter_][7] = tax
@@ -867,7 +869,7 @@ class InvoiceGUI:
 			if row[12] == True:
 				box.set_visible(True)
 				invoice_line_id = row[0]
-				qty = int(row[1])
+				qty = row[1].split('.')[0] # only whole numbers for serial numbers
 				product_id = row[2]
 				product_name = row[3]
 				self.cursor.execute("SELECT COUNT(id) FROM serial_numbers "
