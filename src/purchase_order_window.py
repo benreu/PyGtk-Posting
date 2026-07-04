@@ -520,7 +520,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 													self.datetime, 
 													self.purchase_order_id)
 		if self.get_object('menuitem1').get_active() == True:
-			result = purchase_order.print_directly()
+			result = purchase_order.print_directly(self.window)
 		else:
 			result = purchase_order.print_dialog(self.window)
 		purchase_order.post(self.purchase_order_id, self.vendor_id,

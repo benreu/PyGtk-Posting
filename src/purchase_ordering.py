@@ -17,8 +17,6 @@
 
 from gi.repository import Gtk
 import subprocess, re
-from datetime import timedelta
-from decimal import Decimal
 import printing
 from constants import DB, template_dir
 
@@ -32,7 +30,6 @@ class Setup():
 		self.vendor_id = contact
 		self.comment = comment
 		self.datetime = datetime
-		self.total = Decimal()
 		self.purchase_order_id = purchase_order_id
 		
 		cursor = DB.cursor()
@@ -94,12 +91,9 @@ class Setup():
 		cursor.execute("SELECT "
 								"poi.qty, "
 								"poi.remark, "
-								"poi.price::money, "
-								"poi.qty*poi.price::money, "
 								"COALESCE(order_number, vendor_sku, 'No sku'), "
 								"products.name, "
-								"products.ext_name, "
-								"poi.qty*poi.price "
+								"products.ext_name "
 							"FROM purchase_order_items AS poi "
 							"JOIN products ON products.id = poi.product_id "
 							"JOIN purchase_orders AS po "
@@ -108,34 +102,24 @@ class Setup():
 							"ON (vpn.vendor_id, vpn.product_id) "
 							"= (poi.product_id, po.vendor_id) "
 							"WHERE (purchase_order_id, hold) = (%s, False) "
-							"ORDER BY poi.id", 
+							"ORDER BY poi.id",
 							(self.purchase_order_id, ) )
 		for row in cursor.fetchall():
 			item = Item()
 			item.qty = row[0]
 			if row[1] != '':
 				item.remark = " : " + row[1]
-			item.price = row[2]
-			item.ext_price = row[3]
-			item.order_number = row[4]
-			item.product_name = row[5]
-			item.product_ext_name = row[6]
+			item.order_number = row[2]
+			item.product_name = row[3]
+			item.product_ext_name = row[4]
 			items.append(item)
-			self.total += row[7]
-		
+
 		document = Item()
-		document.total = '${:,.2f}'.format(self.total)
 		document.comment = self.comment
 		document.date = self.datetime
 
-		date_thirty = datetime + timedelta(days=30)
-		cursor.execute("SELECT format_date(%s), format_date(%s)", 
-											(date_thirty, datetime))
-		for row in cursor.fetchall():
-			payment_due_text = row[0]
-			date_text = row[1]
-		document.payment_due = payment_due_text
-		document.date = date_text
+		cursor.execute("SELECT format_date(%s)", (datetime,))
+		document.date = cursor.fetchone()[0]
 		
 		split_name = name.split(' ')
 		name_str = ""
@@ -144,59 +128,53 @@ class Setup():
 		name = name_str.lower()
 		po_name_date = re.sub(" ", "_", str(self.datetime))
 		document.number = "PO_" + str(purchase_order_id) + "_"  + name + "_" + po_name_date[0:10]
+		document.po_number = str(purchase_order_id)
 
 		self.document_name = document.number
-		self.document_odt = document.number + ".odt"
 		self.document_pdf = document.number + ".pdf"
-		self.data = dict(items=items, document=document,
+		self.purchase_order_pdf = "/tmp/" + self.document_pdf
+
+		from jinja2 import Environment, FileSystemLoader
+		import weasyprint
+
+		env = Environment(loader=FileSystemLoader(template_dir))
+		template = env.get_template('purchase_order_template.html')
+		html = template.render(items=items, document=document,
 							contact=vendor, company=company)
+		weasyprint.HTML(string=html).write_pdf(self.purchase_order_pdf)
 		cursor.close()
 
 	def view(self):
-		from py3o.template import Template 
-		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(template_dir+"/purchase_order_template.odt", purchase_order_file , True)
-		t.render(self.data) #the self.data holds all the info of the purchase_order
-		subprocess.Popen("libreoffice " + purchase_order_file, shell = True)
+		subprocess.Popen(["xdg-open", self.purchase_order_pdf])
 
 	def print_dialog(self, window):
-		cursor = DB.cursor()
-		from py3o.template import Template
-		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(template_dir+"/purchase_order_template.odt", purchase_order_file , True)
-		t.render(self.data)  #the self.data holds all the info of the purchase_order
-		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		p = printing.Operation(settings_file = 'purchase_order')
 		p.set_parent(window)
-		p.set_file_to_print("/tmp/" + self.document_pdf)
+		p.set_file_to_print(self.purchase_order_pdf)
 		result = p.print_dialog()
 		if result == Gtk.PrintOperationResult.APPLY:
+			cursor = DB.cursor()
 			cursor.execute("UPDATE purchase_orders SET date_printed = "
-								"CURRENT_DATE WHERE id = %s", 
+								"CURRENT_DATE WHERE id = %s",
 								(self.purchase_order_id,))
-		cursor.close()
+			cursor.close()
 		return result
-		
-	def print_directly(self):
-		cursor = DB.cursor()
-		from py3o.template import Template
-		purchase_order_file = "/tmp/" + self.document_odt
-		t = Template(template_dir+"/purchase_order_template.odt", purchase_order_file , True)
-		t.render(self.data)
-		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
+
+	def print_directly(self, window):
 		p = printing.Operation(settings_file = 'purchase_order')
 		p.set_parent(window)
-		p.set_file_to_print("/tmp/" + self.document_pdf)
-		result = p.print_direct()
+		p.set_file_to_print(self.purchase_order_pdf)
+		result = p.print_directly()
 		if result == Gtk.PrintOperationResult.APPLY:
+			cursor = DB.cursor()
 			cursor.execute("UPDATE purchase_orders SET date_printed = "
-								"CURRENT_DATE WHERE id = %s", 
+								"CURRENT_DATE WHERE id = %s",
 								(self.purchase_order_id,))
-		cursor.close()
+			cursor.close()
 		return result
 
 	def post(self, purchase_order_id, vendor_id, datetime):
-		document = "/tmp/" + self.document_pdf
+		document = self.purchase_order_pdf
 		f = open(document,'rb')
 		dat = f.read()
 		f.close()
