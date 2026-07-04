@@ -16,13 +16,14 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
-import subprocess, psycopg2
+import subprocess
 from constants import 	broadcaster, \
 						DB, \
 						ui_directory, \
 						is_admin, \
 						help_dir, \
-						template_dir
+						template_dir, \
+						PRODUCT_LOCK_CLASSID
 from accounts import 	product_revenue_tree, \
 						product_expense_tree, \
 						product_inventory_tree, \
@@ -67,6 +68,7 @@ class Item(object):#this is used by py3o library see their example for more info
 
 class ProductEditMainGUI (Gtk.Builder):
 	product_id = 0
+	product_lock_acquired = False
 	def __init__(self, product_overview = None):
 
 		Gtk.Builder.__init__(self)
@@ -122,7 +124,13 @@ class ProductEditMainGUI (Gtk.Builder):
 
 	def destroy(self, window):
 		self.window = None
-		DB.rollback() # unlock the row, in case the user didn't save
+		if self.product_lock_acquired:
+			c = DB.cursor()
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(PRODUCT_LOCK_CLASSID, self.product_id))
+			c.close()
+			self.product_lock_acquired = False
+		DB.rollback()
 
 	def help_button_activated (self, menuitem):
 		subprocess.Popen(["yelp", help_dir + "/products.page"])
@@ -303,30 +311,33 @@ class ProductEditMainGUI (Gtk.Builder):
 	def select_product (self, product_id):
 		self.product_id = product_id
 		c = DB.cursor()
-		try:
-			c.execute("SELECT name, description, barcode, unit, "
-						"cost, tax_rate_id, sellable, purchasable, "
-						"min_inventory, reorder_qty, tax_exemptible, "
-						"manufactured, weight, tare, ext_name, "
-							"(SELECT name FROM gl_accounts "
-							"WHERE number = p.default_expense_account), "
-						"default_expense_account, "
-							"(SELECT name FROM gl_accounts "
-							"WHERE number = p.revenue_account), "
-						"p.revenue_account, "
-							"COALESCE ((SELECT name FROM gl_accounts "
-							"WHERE number = p.inventory_account), ''), "
-						"p.inventory_account, "
-						"manufacturer_sku, job, invoice_serial_numbers, stock "
-						"FROM products AS p "
-						"WHERE id = %s FOR UPDATE NOWAIT", (self.product_id,))
-		except psycopg2.OperationalError as e:
-			DB.rollback()
+		c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+					(PRODUCT_LOCK_CLASSID, self.product_id))
+		locked = c.fetchone()[0]
+		if not locked:
 			c.close()
-			error = str(e) + "Hint: somebody else is editing this product"
+			DB.rollback()
+			error = "Somebody else is editing this product"
 			self.show_message (error)
 			self.window.destroy()
 			return False
+		self.product_lock_acquired = True
+		c.execute("SELECT name, description, barcode, unit, "
+					"cost, tax_rate_id, sellable, purchasable, "
+					"min_inventory, reorder_qty, tax_exemptible, "
+					"manufactured, weight, tare, ext_name, "
+						"(SELECT name FROM gl_accounts "
+						"WHERE number = p.default_expense_account), "
+					"default_expense_account, "
+						"(SELECT name FROM gl_accounts "
+						"WHERE number = p.revenue_account), "
+					"p.revenue_account, "
+						"COALESCE ((SELECT name FROM gl_accounts "
+						"WHERE number = p.inventory_account), ''), "
+					"p.inventory_account, "
+					"manufacturer_sku, job, invoice_serial_numbers, stock "
+					"FROM products AS p "
+					"WHERE id = %s", (self.product_id,))
 		for row in c.fetchall():
 			self.get_object('id_label').set_label(str(self.product_id))
 			self.get_object('entry1').set_text(row[0])
@@ -356,6 +367,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.get_object('checkbutton7').set_active(row[23])
 			self.get_object('stock_checkbutton').set_active(row[24])
 		c.close()
+		DB.rollback()
 		self.load_product_terms_prices ()
 
 	def expense_account_combo_changed (self, combo):
@@ -480,6 +492,10 @@ class ProductEditMainGUI (Gtk.Builder):
 				self.show_message(str(e))
 		self.save_product_terms_prices()
 		DB.commit()
+		if self.product_lock_acquired:
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(PRODUCT_LOCK_CLASSID, self.product_id))
+			self.product_lock_acquired = False
 		c.close()
 		self.window.destroy()
 

@@ -120,7 +120,6 @@
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
     <property name="title" translatable="yes">New product</property>
-    <property name="modal">True</property>
     <property name="window_position">center-always</property>
     <property name="default_width">600</property>
     <property name="default_height">300</property>

@@ -28,6 +28,7 @@ is_admin = False
 log_file = None
 mobile = False
 installed = False
+PRODUCT_LOCK_CLASSID = 1
 
 
 def start_broadcaster():
