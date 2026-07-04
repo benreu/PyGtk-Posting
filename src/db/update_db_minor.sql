@@ -249,3 +249,10 @@ CREATE TABLE IF NOT EXISTS settings.zebra_printers (
 	port int NOT NULL,
 	date_created date NOT NULL DEFAULT now()
 );
+--0.7.6
+CREATE TABLE IF NOT EXISTS invoice_reprints (
+	id bigserial primary key,
+	invoice_id bigint NOT NULL REFERENCES invoices ON UPDATE CASCADE ON DELETE RESTRICT,
+	pdf_data bytea NOT NULL,
+	time_printed timestamp with time zone NOT NULL DEFAULT now()
+);
