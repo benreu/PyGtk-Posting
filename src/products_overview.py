@@ -316,7 +316,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 		product_id = model[path][0]
 		import product_edit_location
 		pel = product_edit_location.ProductEditLocationGUI(product_id)
-		pel.window.set_transient_for(self.window)
 
 	def edit_clicked (self, widget):
 		model, path = self.get_object('treeview-selection').get_selected_rows()
