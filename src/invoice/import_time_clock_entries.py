@@ -24,7 +24,7 @@ from constants import ui_directory, DB
 UI_FILE = ui_directory + "/invoice/import_time_clock_entries.ui"
 
 class ImportGUI():
-	def __init__(self, contact_id, invoice_id):
+	def __init__(self, parent_window, contact_id, invoice_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -43,6 +43,7 @@ class ImportGUI():
 		completion.set_match_func(self.product_match_string)
 
 		self.window = self.builder.get_object('window1')
+		self.window.set_transient_for(parent_window)
 		self.window.show_all()
 
 	def destroy (self, widget):

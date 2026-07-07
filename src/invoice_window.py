@@ -254,7 +254,7 @@ class InvoiceGUI:
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
 		from invoice import import_time_clock_entries as itce
-		self.time_clock_import = itce.ImportGUI(self.customer_id, self.invoice_id)		
+		self.time_clock_import = itce.ImportGUI(self.window, self.customer_id, self.invoice_id)
 
 	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
 		list_ = data.get_text().split(' ')
