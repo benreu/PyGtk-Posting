@@ -255,9 +255,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 		if path == []:
 			return
 		contact_id = model[path][0]
-		import contact_edit_files 
-		cf = contact_edit_files.ContactEditFilesGUI(contact_id)
-		cf.window.set_transient_for(self.window)
+		import contact_edit_files
+		cf = contact_edit_files.ContactEditFilesGUI(self.window, contact_id)
 
 	def open_company_letter_head_activated (self, menuitem):
 		contact = Item()
