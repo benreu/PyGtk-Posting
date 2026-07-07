@@ -376,7 +376,13 @@ def cancel_invoice (datetime, invoice_id):
 				"JOIN gl_entries AS ge ON ge.gl_transaction_id = gt.id "
 				"JOIN invoices ON invoices.gl_entries_id = ge.id "
 				"WHERE invoices.id = %s", (invoice_id,))
-	t_id = c.fetchone()[0]
+	row = c.fetchone()
+	if row is None:
+		# Cash-basis invoices have no GL transaction until paid,
+		# so there's nothing to reverse.
+		c.close()
+		return
+	t_id = row[0]
 	c.execute("WITH credits AS "
 				"(SELECT amount, credit_account, gl_transaction_id FROM gl_entries "
 				"WHERE gl_transaction_id = %s AND credit_account IS NOT NULL"
