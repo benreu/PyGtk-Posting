@@ -1,0 +1,13 @@
+{
+    "openInExternalApp.openMapper": [
+        {
+            "extensionName": "ui",
+            "apps": [
+                {
+                    "title": "Glade",
+                    "openCommand": "glade"
+                }
+            ]
+        }
+    ]
+}
