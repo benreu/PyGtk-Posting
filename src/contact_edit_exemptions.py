@@ -6,7 +6,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
-#
+
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -16,13 +16,13 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import psycopg2, subprocess
-from constants import ui_directory, DB
+from constants import ui_directory, DB, CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/contact_edit_exemptions.ui"
 
 class ContactEditExemptionsGUI(Gtk.Builder):
-	def __init__(self, contact_id):
+	lock_acquired = False
+	def __init__(self, parent_window, contact_id):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
@@ -30,10 +30,19 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		self.cursor = DB.cursor()
 		self.contact_id = contact_id
 		self.window = self.get_object('window1')
+		self.window.set_transient_for(parent_window)
+		self.cursor.execute("SELECT name FROM contacts WHERE id = %s",
+							(contact_id,))
+		contact_name = self.cursor.fetchone()[0]
+		self.window.set_title("'%s' exemptions" % contact_name)
 		self.window.show_all()
 		self.populate_tax_exemptions()
 
 	def destroy (self, widget):
+		if self.lock_acquired:
+			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID, self.contact_id))
+			self.lock_acquired = False
 		self.cursor.close()
 		DB.rollback()
 
@@ -41,26 +50,31 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		tax_exemption_store = self.get_object("tax_exemption_store")
 		tax_exemption_store.clear()
 		c = DB.cursor()
-		try:
-			c.execute("SELECT "
-							"tax_rates.id, "
-							"tax_rates.name, "
-							"cte.id, "
-							"TRUE, "
-							"cte.pdf_available "
-						"FROM customer_tax_exemptions AS cte "
-						"JOIN tax_rates "
-						"ON cte.tax_rate_id = tax_rates.id "
-						"AND cte.customer_id = %s "
-						"WHERE tax_rates.exemption = True "
-						"ORDER BY tax_rates.name FOR UPDATE NOWAIT",
-						(self.contact_id, ))
-		except psycopg2.OperationalError as e:
-			DB.rollback()
-			error = str(e) + "Hint: somebody else is editing these exemptions"
-			self.show_message (error)
-			self.window.destroy()
-			return
+		if not self.lock_acquired:
+			c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+						(CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID, self.contact_id))
+			locked = c.fetchone()[0]
+			if not locked:
+				DB.rollback()
+				c.close()
+				error = "Somebody else is editing these exemptions"
+				self.show_message (error)
+				self.window.destroy()
+				return
+			self.lock_acquired = True
+		c.execute("SELECT "
+						"tax_rates.id, "
+						"tax_rates.name, "
+						"cte.id, "
+						"TRUE, "
+						"cte.pdf_available "
+					"FROM customer_tax_exemptions AS cte "
+					"JOIN tax_rates "
+					"ON cte.tax_rate_id = tax_rates.id "
+					"AND cte.customer_id = %s "
+					"WHERE tax_rates.exemption = True "
+					"ORDER BY tax_rates.name",
+					(self.contact_id, ))
 		for row in c.fetchall():
 			tax_exemption_store.append(row)
 		c.execute("SELECT "
@@ -122,6 +136,7 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 			pdf_data = row[0]
 			with open("/tmp/exemption.pdf",'wb') as f:
 				f.write(pdf_data)
+			import subprocess
 			subprocess.Popen(["xdg-open", "/tmp/exemption.pdf"])
 
 	def close_clicked (self, button):

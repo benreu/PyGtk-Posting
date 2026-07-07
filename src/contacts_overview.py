@@ -246,9 +246,8 @@ class ContactsOverviewGUI(Gtk.Builder):
 		if path == []:
 			return
 		contact_id = model[path][0]
-		import contact_edit_exemptions 
-		ce = contact_edit_exemptions.ContactEditExemptionsGUI(contact_id)
-		ce.window.set_transient_for(self.window)
+		import contact_edit_exemptions
+		ce = contact_edit_exemptions.ContactEditExemptionsGUI(self.window, contact_id)
 
 	def contact_files_clicked (self, button):
 		model, path = self.get_object('treeview-selection2').get_selected_rows()
