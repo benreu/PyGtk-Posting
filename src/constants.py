@@ -59,7 +59,10 @@ class Broadcast(GObject.GObject):
     def __init__(self):
         global DB_PROCESS_ID
         GObject.GObject.__init__(self)
-        GLib.timeout_add_seconds(1, self.poll_connection)
+        self.io_watch_id = GLib.io_add_watch(
+            DB.fileno(), GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self.on_db_readable
+        )
+        self.connect("shutdown", self.on_shutdown)
         c = DB.cursor()
         c.execute("LISTEN products;"
                   "LISTEN contacts;"
@@ -71,8 +74,11 @@ class Broadcast(GObject.GObject):
         DB.commit()
         DB_PROCESS_ID = DB.get_backend_pid()
 
-    def poll_connection(self):
-        if DB.closed == 1:
+    def on_shutdown(self, broadcaster):
+        GLib.source_remove(self.io_watch_id)
+
+    def on_db_readable(self, source, condition):
+        if condition & (GLib.IO_HUP | GLib.IO_ERR) or DB.closed == 1:
             return False
         DB.poll()
         while DB.notifies:
