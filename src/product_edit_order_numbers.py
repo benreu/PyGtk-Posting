@@ -17,12 +17,13 @@
 
 from gi.repository import Gtk
 import psycopg2
-from constants import DB, ui_directory
+from constants import DB, ui_directory, ORDER_NUMBER_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/product_edit_order_numbers.ui"
 
 class ProductsEditOrderNumbersGUI (Gtk.Builder):
 	product_id = 0
+	order_number_lock_acquired = False
 	def __init__(self, ):
 		
 		Gtk.Builder.__init__(self)
@@ -42,30 +43,44 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 
 	def populate_product_order_numbers(self):
 		c = DB.cursor()
+		if not self.order_number_lock_acquired:
+			c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+						(ORDER_NUMBER_LOCK_CLASSID, self.product_id))
+			locked = c.fetchone()[0]
+			if not locked:
+				DB.rollback()
+				c.close()
+				error = "Somebody else is editing this product's order numbers"
+				self.show_message (error)
+				self.window.destroy()
+				return False
+			self.order_number_lock_acquired = True
+			c.execute("SELECT name FROM products WHERE id = %s",
+						(self.product_id,))
+			name = c.fetchone()[0]
+			self.window.set_title("'" + name + "' order numbers")
 		store = self.get_object('order_number_store')
 		store.clear()
-		try:
-			c.execute("SELECT vpn.id, c.id, c.name, vendor_sku, "
-						"vendor_barcode, qty::int, price::text "
-						"FROM vendor_product_numbers AS vpn "
-						"JOIN contacts AS c ON c.id = vpn.vendor_id "
-						"AND vendor = True "
-						"WHERE (product_id, vpn.deleted) = (%s, False) "
-						"ORDER BY c.name FOR UPDATE NOWAIT", 
-						(self.product_id,))
-		except psycopg2.OperationalError as e:
-			DB.rollback()
-			c.close()
-			hint = "Hint: somebody else is editing this product's order numbers"
-			error = str(e) + hint
-			self.show_message (error)
-			self.window.destroy()
-			return False
+		c.execute("SELECT vpn.id, c.id, c.name, vendor_sku, "
+					"vendor_barcode, qty::int, price::text "
+					"FROM vendor_product_numbers AS vpn "
+					"JOIN contacts AS c ON c.id = vpn.vendor_id "
+					"AND vendor = True "
+					"WHERE (product_id, vpn.deleted) = (%s, False) "
+					"ORDER BY c.name",
+					(self.product_id,))
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
-		
+		DB.commit() # catch all edits
+
 	def window_destroy (self, widget):
+		if self.order_number_lock_acquired:
+			c = DB.cursor()
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(ORDER_NUMBER_LOCK_CLASSID, self.product_id))
+			c.close()
+			self.order_number_lock_acquired = False
 		DB.rollback()
 	
 	def delete_row_clicked (self, button):
@@ -169,6 +184,12 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		c.close()
 
 	def save_clicked (self, button):
+		if self.order_number_lock_acquired:
+			c = DB.cursor()
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(ORDER_NUMBER_LOCK_CLASSID, self.product_id))
+			c.close()
+			self.order_number_lock_acquired = False
 		DB.commit()
 		self.window.destroy()
 

@@ -30,6 +30,7 @@ mobile = False
 installed = False
 PRODUCT_LOCK_CLASSID = 1
 CONTACT_LOCK_CLASSID = 2
+ORDER_NUMBER_LOCK_CLASSID = 3
 
 
 def start_broadcaster():
