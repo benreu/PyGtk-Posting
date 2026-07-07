@@ -18,7 +18,7 @@ from db import transactor
 from dateutils import DateTimeCalendar
 import subprocess, decimal, tempfile, os, shutil, psycopg2
 
-from constants import ui_directory, DB
+from constants import ui_directory, DB, broadcaster
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/unpaid_invoices.ui"
@@ -38,6 +38,11 @@ class GUI (Gtk.Builder):
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect("day-selected", self.date_selected)
+
+		broadcaster.connect("invoices_changed", self.invoices_changed)
+
+	def invoices_changed(self, broadcaster, invoice_id):
+		self.populate_unpaid_invoices()
 
 	def set_window_layout_from_settings(self):
 		sqlite = get_apsw_connection()
@@ -389,6 +394,8 @@ class GUI (Gtk.Builder):
 		unpaid_invoice_amount = decimal.Decimal()
 		treeview_selection = self.get_object('treeview-selection')
 		model, path = treeview_selection.get_selected_rows()
+		vadjustment = self.get_object('scrolledwindow1').get_vadjustment()
+		scroll_position = vadjustment.get_value()
 		model.clear()
 		c = DB.cursor()
 		c.execute("SELECT "
@@ -415,7 +422,7 @@ class GUI (Gtk.Builder):
 			unpaid_invoice_amount += decimal.Decimal(row[6])
 		if path != [] and tupl != []:
 			treeview_selection.select_path(path)
-			self.get_object('treeview1').scroll_to_cell(path)
+		GLib.idle_add(vadjustment.set_value, scroll_position)
 		c.execute("SELECT "
 					"COALESCE(i.amount_due - (pi.amount + cm.amount), 0.00)::money "
 					"FROM (SELECT SUM(amount_due) AS amount_due FROM invoices "
