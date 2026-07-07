@@ -409,7 +409,6 @@ class ContactsOverviewGUI(Gtk.Builder):
 			return
 		import contact_edit_individual
 		ced_gui = contact_edit_individual.ContactEditIndividualGUI(self)
-		ced_gui.window.set_transient_for(self.window)
 		ced_gui.contact_id = self.contact_id
 
 	def individual_row_activated (self, treeview, path, treeviewcolumn):
@@ -428,7 +427,6 @@ class ContactsOverviewGUI(Gtk.Builder):
 	def edit_contact_individual (self, individual_id):
 		import contact_edit_individual as ced
 		ced_gui = ced.ContactEditIndividualGUI(self, individual_id)
-		ced_gui.window.set_transient_for(self.window)
 
 
 

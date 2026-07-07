@@ -11,10 +11,11 @@
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
     <property name="title" translatable="yes"> </property>
-    <property name="modal">True</property>
     <property name="window_position">center</property>
+    <property name="destroy_with_parent">True</property>
     <property name="icon_name">pygtk-posting</property>
     <property name="skip_taskbar_hint">True</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <object class="GtkBox" id="box15">
         <property name="visible">True</property>
