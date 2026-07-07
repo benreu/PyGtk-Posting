@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="tax_exemption_store">
@@ -17,28 +17,24 @@
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="title" translatable="yes">   </property>
-    <property name="modal">True</property>
-    <property name="window_position">center</property>
-    <property name="default_width">400</property>
-    <property name="default_height">300</property>
-    <property name="icon_name">pygtk-posting</property>
-    <property name="skip_taskbar_hint">True</property>
+    <property name="window-position">center</property>
+    <property name="default-width">400</property>
+    <property name="default-height">300</property>
+    <property name="destroy-with-parent">True</property>
+    <property name="icon-name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
-    <child>
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox" id="box12">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="border_width">10</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">10</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkLabel" id="label1">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="label" translatable="yes">All additions / deletions are automatically saved.</property>
             <property name="ellipsize">start</property>
             <attributes>
@@ -54,15 +50,15 @@
         <child>
           <object class="GtkScrolledWindow" id="scrolledwindow1">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="shadow_type">in</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
             <child>
               <object class="GtkTreeView" id="treeview2">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
+                <property name="can-focus">True</property>
                 <property name="model">tax_exemption_store</property>
-                <property name="search_column">0</property>
-                <property name="activate_on_single_click">True</property>
+                <property name="search-column">0</property>
+                <property name="activate-on-single-click">True</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection2"/>
                 </child>
@@ -72,7 +68,7 @@
                     <property name="title" translatable="yes">Name</property>
                     <property name="expand">True</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">1</property>
+                    <property name="sort-column-id">1</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext3"/>
                       <attributes>
@@ -87,7 +83,7 @@
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">Available</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">2</property>
+                    <property name="sort-column-id">2</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle1"/>
                       <attributes>
@@ -102,7 +98,7 @@
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">File scanned</property>
                     <property name="reorderable">True</property>
-                    <property name="sort_column_id">3</property>
+                    <property name="sort-column-id">3</property>
                     <child>
                       <object class="GtkCellRendererToggle" id="cellrenderertoggle2"/>
                       <attributes>
@@ -123,14 +119,14 @@
         <child>
           <object class="GtkBox" id="box13">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="homogeneous">True</property>
             <child>
               <object class="GtkButton">
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="close_clicked" swapped="no"/>
               </object>
               <packing>
@@ -143,8 +139,8 @@
               <object class="GtkButton" id="button4">
                 <property name="label" translatable="yes">View exemption</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="view_exemption_clicked" swapped="no"/>
               </object>
               <packing>
@@ -157,8 +153,8 @@
               <object class="GtkButton" id="button2">
                 <property name="label" translatable="yes">Add exemption</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <signal name="clicked" handler="add_exemption_clicked" swapped="no"/>
               </object>
               <packing>
