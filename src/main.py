@@ -22,53 +22,8 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, GLib
 import psycopg2, apsw, os, shutil, sys, re
 import sqlite_utils
+import db_connection
 
-
-def connect_to_db (row_id):
-	import constants
-	sqlite = sqlite_utils.get_apsw_connection()
-	cursor = sqlite.cursor()
-	sqlite_utils.create_apsw_tables(cursor)
-	sqlite_utils.update_apsw_tables(cursor)
-	sqlite.close() # unlock file after updating
-	sqlite = sqlite_utils.get_apsw_connection()
-	constants.sqlite_connection = sqlite
-	cursor = sqlite.cursor()
-	if row_id == None:
-		for row in cursor.execute("SELECT host, port, user, password, db_name, mobile "
-									"FROM postgres_conn"):
-			host = row[0]
-			port = row[1]
-			user = row[2]
-			password = row[3]
-			database = row[4]
-			mobile = row[5] == 'True'
-	else:
-		for row in cursor.execute("SELECT server, port, user, password, db_name, mobile "
-									"FROM db_connections WHERE id = ?", (row_id,)):
-			host = row[0]
-			port = row[1]
-			user = row[2]
-			password = row[3]
-			database = row[4]
-			mobile = row[5] == 'True'
-	cursor.close()
-	try:
-		constants.DB = psycopg2.connect (   dbname = database, 
-											host = host, 
-											user = user, 
-											password = password, 
-											port = port)
-	except psycopg2.OperationalError as e:
-		print (e.args[0])
-		constants.db_name = 'False'
-		return False
-	constants.db_name = database
-	constants.mobile = mobile
-	constants.start_broadcaster()
-	import accounts
-	GLib.idle_add(accounts.populate_accounts)
-	return True
 
 def main_app():
 	import constants
@@ -89,7 +44,7 @@ def main_app():
 		constants.dev_mode = True
 	constants.set_directories()
 	constants.log_file = log_file
-	result = connect_to_db(database_to_connect)
+	result = db_connection.connect(database_to_connect)
 	if result == True:
 		import main_window
 		app = main_window.MainGUI()
