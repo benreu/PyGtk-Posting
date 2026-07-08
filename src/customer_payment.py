@@ -211,12 +211,12 @@ class GUI:
 								"date_created::text, "
 								"format_date(date_created), "
 								"total, "
-								"amount_due "
+								"amount_due, "
+								"COALESCE(finance_charge, False) "
 							"FROM invoices AS i "
-							"JOIN contacts AS c ON i.customer_id = c.id "
 							"WHERE (canceled, paid, posted) = "
 							"(False, False, True) "
-							"AND customer_id = %s ORDER BY i.date_created", 
+							"AND customer_id = %s ORDER BY i.date_created",
 							(self.customer_id,))
 		for row in self.cursor.fetchall():
 			self.invoice_store.append(row)
@@ -228,10 +228,14 @@ class GUI:
 		for row in path:
 			total += model[row][5]
 		if len(path) == 1:
-			invoice_id = model[path][0]
 			amount_due = model[path][5]
 			self.builder.get_object('amount_spinbutton').set_value(amount_due)
-			self.calculate_invoice_discount (invoice_id)
+			if not model[path][6]:
+				invoice_id = model[path][0]
+				self.calculate_invoice_discount (invoice_id)
+			else:
+				self.builder.get_object('label9').set_label('N/A')
+				self.builder.get_object('label4').set_label('N/A')
 		else:
 			self.builder.get_object('label9').set_label('Select a single invoice')
 			self.builder.get_object('label4').set_label('Select a single invoice')
@@ -247,6 +251,8 @@ class GUI:
 			menu.popup_at_pointer()
 
 	def amount_due_edited (self, renderer, path, amount):
+		if self.invoice_store[path][6]:
+			return
 		invoice_id = self.invoice_store[path][0]
 		if amount == '' or Decimal(amount) > self.invoice_store[path][4]:
 			amount = self.invoice_store[path][4]
@@ -257,7 +263,10 @@ class GUI:
 		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
 
 	def amount_due_editing_started (self, renderer, spinbutton, path):
-		upper_limit = self.invoice_store[path][4]
+		if self.invoice_store[path][6]:
+			upper_limit = self.invoice_store[path][5]
+		else:
+			upper_limit = self.invoice_store[path][4]
 		spinbutton.set_numeric(True)
 		self.builder.get_object('amount_due_adjustment').set_upper(upper_limit)
 		spinbutton.set_value(self.invoice_store[path][5])
@@ -266,6 +275,8 @@ class GUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
+			return
+		if model[path][6]:
 			return
 		amount = model[path][5]
 		self.builder.get_object('spinbutton3').set_value(amount)
@@ -363,9 +374,10 @@ class GUI:
 	def pay_invoices_fifo (self):
 		c = DB.cursor()
 		c_id = self.customer_id
-		c.execute("(SELECT id, total - amount_due AS discount, amount_due FROM "
-					"(SELECT id, total, amount_due, SUM(amount_due) "
-					"OVER (ORDER BY dated_for, id) invoice_totals "
+		c.execute("(SELECT id, total - amount_due AS discount, amount_due, "
+					"COALESCE(finance_charge, False) AS is_fc FROM "
+					"(SELECT id, total, amount_due, finance_charge, "
+					"SUM(amount_due) OVER (ORDER BY dated_for, id) invoice_totals "
 					"FROM invoices WHERE (paid, posted, canceled, customer_id) "
 					"= (False, True, False, %s)"
 					") i "
@@ -391,19 +403,20 @@ class GUI:
 									") cm "
 							") pt "
 						")"
-					"ORDER BY id);", (c_id, c_id, c_id, c_id ))
+					"ORDER BY id);", (c_id, c_id, c_id, c_id))
 		for row in c.fetchall():
 			invoice_id = row[0]
 			discount = row[1]
 			amount = row[2]
+			is_fc = row[3]
 			if discount != Decimal('0.00'):
 				self.payment.customer_discount (discount)
-			if self.accrual == False:
+			if not is_fc and self.accrual == False:
 				transactor.post_invoice_accounts (self.date, invoice_id, amount)
 			c.execute("UPDATE invoices "
 						"SET (paid, payments_incoming_id, date_paid) "
 						"= (True, %s, %s) "
-						"WHERE id = %s", 
+						"WHERE id = %s",
 						(self.payment_id, self.date, invoice_id))
 		c.close()
 		
@@ -413,14 +426,15 @@ class GUI:
 		model, paths = selection.get_selected_rows()
 		discount = Decimal('0.00')
 		for row in paths:
+			is_fc = model[row][6]
 			invoice_id = model[row][0]
 			amount = model[row][5]
-			if self.accrual == False:
+			if not is_fc and self.accrual == False:
 				transactor.post_invoice_accounts (self.date, invoice_id, amount)
 			c.execute("UPDATE invoices "
 						"SET (paid, payments_incoming_id, date_paid) = "
 						"(True, %s, %s) WHERE id = %s "
-						"RETURNING total - amount_due AS discount", 
+						"RETURNING total - amount_due AS discount",
 						(self.payment_id, self.date, invoice_id))
 			discount += c.fetchone()[0]
 		if discount != Decimal('0.00'):
@@ -462,7 +476,9 @@ class GUI:
 			pay_by_day_of_month_active = row[5]
 		self.cursor.execute("SELECT id, total, date_created FROM invoices "
 								"WHERE (customer_id, paid, posted) "
-								"= (%s, False, True)", (self.customer_id,))
+								"= (%s, False, True) "
+								"AND (finance_charge = False OR finance_charge IS NULL)",
+								(self.customer_id,))
 		if cash_only == True:			
 			for row in self.cursor.fetchall():
 				invoice_id = row[0]

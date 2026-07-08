@@ -471,6 +471,21 @@ def post_credit_memo(credit_memo_id):
 def post_invoice_receivables ():
 	pass
 
+def post_inventory_adjustment (date, description, amount, debit_account, credit_account):
+	cursor = DB.cursor()
+	cursor.execute("WITH new_row AS "
+						"(INSERT INTO gl_transactions (date_inserted) "
+						"VALUES (%s) RETURNING id) "
+					"INSERT INTO gl_entries "
+					"(debit_account, credit_account, amount, date_inserted, "
+					"transaction_description, gl_transaction_id) "
+					"VALUES (%s, %s, %s, %s, %s, (SELECT id FROM new_row)) "
+					"RETURNING id",
+					(date, debit_account, credit_account, amount, date, description))
+	gl_entries_id = cursor.fetchone()[0]
+	cursor.close()
+	return gl_entries_id
+
 def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 	cursor = DB.cursor()
 	if gl_entries_id != None: # used for updates
@@ -750,6 +765,29 @@ def switch_to_accrual_based ():
 		po_id = row[0]
 		post_purchase_order_accounts (po_id, datetime.today())
 	cursor.close()
+
+def post_finance_charge(invoice_id):
+	c = DB.cursor()
+	c.execute("WITH gl_transaction AS "
+					"(INSERT INTO gl_transactions (date_inserted) "
+					"VALUES (CURRENT_DATE) RETURNING id), "
+				"gl_entry AS "
+				"(INSERT INTO gl_entries "
+					"(debit_account, credit_account, amount, "
+					"gl_transaction_id, date_inserted) "
+				"VALUES "
+					"((SELECT account FROM gl_account_flow "
+						"WHERE function = 'post_invoice'), "
+					"(SELECT account FROM gl_account_flow "
+						"WHERE function = 'finance_charge_income'), "
+					"(SELECT total FROM invoices WHERE id = %s), "
+					"(SELECT id FROM gl_transaction), "
+					"CURRENT_DATE) RETURNING id) "
+				"UPDATE invoices "
+				"SET gl_entries_id = (SELECT id FROM gl_entry) "
+				"WHERE id = %s",
+				(invoice_id, invoice_id))
+	c.close()
 
 def create_loan (date, amount, liability_account):
 	cursor = DB.cursor()

@@ -87,6 +87,8 @@
       <column type="PyObject"/>
       <!-- column-name invoice_amount_due -->
       <column type="PyObject"/>
+      <!-- column-name finance_charge -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">

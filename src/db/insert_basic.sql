@@ -36,6 +36,7 @@ VALUES
 	('COGS Account', 3, 3100, 3000 ),
 	('Credit Card Penalty', 3, 3200, 3000 ),
 	('Product Revenue', 4, 4100, 4000),
+	('Finance Charge Income', 4, 4200, 4000),
 	('Accounts Payable', 5, 5100, 5000), 
 	('Taxes', 5, 5200, 5000),
 	('Sales Tax Collected', 5, 5210, 5200),
@@ -118,7 +119,8 @@ VALUES
 	('sales_tax', 5210), 
 	('post_invoice', 1100),
 	('post_credit_memo', 5110),
-	('credit_memo_returned_taxes', 5120)
+	('credit_memo_returned_taxes', 5120),
+	('finance_charge_income', 4200)
 ;
 --Insert blank company info
 INSERT INTO company_info 

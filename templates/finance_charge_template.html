@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: letter; margin: 0.75in; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Liberation Serif", "Times New Roman", serif;
+    font-size: 11pt;
+    margin: 0; padding: 0; color: #000;
+  }
+  p { margin: 0; line-height: 1.4; }
+
+  table.header { width: 100%; border-collapse: collapse; }
+  .header-left { vertical-align: top; width: 50%; }
+  .header-right { vertical-align: top; width: 50%; text-align: center; }
+  .doc-type   { font-size: 24pt; font-weight: bold; margin-bottom: 4pt; }
+  .doc-number { font-size: 14pt; font-weight: bold; }
+  .doc-date   { font-size: 14pt; font-weight: bold; }
+
+  .spacer  { height: 0.7in; }
+  .company { margin-bottom: 12pt; font-size: 14pt; }
+  hr { border: none; border-top: 1.5pt solid #000; margin: 8pt 0; }
+
+  table.items { width: 100%; border-collapse: collapse; border: 1pt solid #000; }
+  table.items thead th {
+    border: 1pt solid #000; padding: 3pt 5pt; font-weight: bold;
+  }
+  table.items thead th.r { text-align: right; }
+  table.items tbody td { padding: 2pt 5pt; }
+  table.items tbody td.r { text-align: right; }
+  .fold-wrapper { position: relative; }
+  .fold-mark {
+    position: absolute;
+    left: -0.5in;
+    top: 0.0in;
+    width: 0.2in;
+    border-top: 0.3pt solid #000;
+  }
+
+  table.items tfoot tr:first-child td { border-top: 1pt solid #000; }
+  table.items tfoot td.tl,
+  table.items tfoot td.ta  { border: 1pt solid #000; padding: 3pt 6pt; }
+  table.items tfoot td.ta  { text-align: right; }
+  table.items tfoot td.comment-cell { padding: 3pt 5pt; vertical-align: top; }
+</style>
+</head>
+<body>
+
+<table class="header">
+  <tr>
+    <td class="header-left">
+      <p>{{ company.name }}</p>
+      <p>{{ company.street }}</p>
+      <p>{{ company.city }} {{ company.state }} {{ company.zip }}</p>
+    </td>
+    <td class="header-right">
+      <p class="doc-type">Finance Charge</p>
+      <p class="doc-number"># {{ document.number }}</p>
+      <p class="doc-date">{{ document.date }}</p>
+    </td>
+  </tr>
+</table>
+
+<div class="spacer"></div>
+
+<div class="company">
+  <p>{{ contact.name }}</p>
+  <p>{{ contact.street }}</p>
+  <p>{{ contact.city }}, {{ contact.state }} {{ contact.zip }}</p>
+</div>
+
+<div style="height: 40pt;"></div>
+
+<div class="fold-wrapper">
+<div class="fold-mark"></div>
+<table class="items">
+  <thead>
+    <tr>
+      <th>Invoice #</th>
+      <th>Date</th>
+      <th class="r">Balance Unpaid</th>
+      <th class="r">Finance Charge</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.name }}</td>
+      <td>{{ item.date }}</td>
+      <td class="r">{{ item.amount_unpaid }}</td>
+      <td class="r">{{ item.fee }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="2" rowspan="2" class="comment-cell">
+        {% if document.comment %}{{ document.comment }}{% endif %}
+      </td>
+      <td class="tl">Total Balance Due</td>
+      <td class="ta">{{ document.balance_due }}</td>
+    </tr>
+    <tr>
+      <td class="tl"><strong>Finance Charge ({{ document.rate }})</strong></td>
+      <td class="ta"><strong>{{ document.total }}</strong></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+</body>
+</html>
