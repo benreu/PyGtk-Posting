@@ -246,18 +246,16 @@ class ContactsOverviewGUI(Gtk.Builder):
 		if path == []:
 			return
 		contact_id = model[path][0]
-		import contact_edit_exemptions 
-		ce = contact_edit_exemptions.ContactEditExemptionsGUI(contact_id)
-		ce.window.set_transient_for(self.window)
+		import contact_edit_exemptions
+		ce = contact_edit_exemptions.ContactEditExemptionsGUI(self.window, contact_id)
 
 	def contact_files_clicked (self, button):
 		model, path = self.get_object('treeview-selection2').get_selected_rows()
 		if path == []:
 			return
 		contact_id = model[path][0]
-		import contact_edit_files 
-		cf = contact_edit_files.ContactEditFilesGUI(contact_id)
-		cf.window.set_transient_for(self.window)
+		import contact_edit_files
+		cf = contact_edit_files.ContactEditFilesGUI(self.window, contact_id)
 
 	def open_company_letter_head_activated (self, menuitem):
 		contact = Item()
@@ -411,7 +409,6 @@ class ContactsOverviewGUI(Gtk.Builder):
 			return
 		import contact_edit_individual
 		ced_gui = contact_edit_individual.ContactEditIndividualGUI(self)
-		ced_gui.window.set_transient_for(self.window)
 		ced_gui.contact_id = self.contact_id
 
 	def individual_row_activated (self, treeview, path, treeviewcolumn):
@@ -430,7 +427,6 @@ class ContactsOverviewGUI(Gtk.Builder):
 	def edit_contact_individual (self, individual_id):
 		import contact_edit_individual as ced
 		ced_gui = ced.ContactEditIndividualGUI(self, individual_id)
-		ced_gui.window.set_transient_for(self.window)
 
 
 

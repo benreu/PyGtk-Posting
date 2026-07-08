@@ -17,13 +17,13 @@
 
 
 from gi.repository import Gtk, GLib
-import psycopg2
-from constants import ui_directory, DB, broadcaster
+from constants import ui_directory, DB, broadcaster, MANUFACTURING_PROJECT_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/manufacturing/project_edit_main.ui"
 
 
 class ProjectEditGUI(Gtk.Builder):
+	project_lock_acquired = False
 	def __init__(self, parent_class, project_id = None):
 
 		Gtk.Builder.__init__(self)
@@ -122,22 +122,24 @@ class ProjectEditGUI(Gtk.Builder):
 
 	def load_project (self):
 		cursor = DB.cursor()
-		try:
-			cursor.execute("SELECT product_id::text, "
-							"qty, "
-							"name, "
-							"batch_notes, "
-							"version_id::text "
-							"FROM manufacturing_projects WHERE id = %s "
-							"FOR UPDATE NOWAIT",
-							(self.project_id, ))
-		except psycopg2.OperationalError as e:
+		cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
+					(MANUFACTURING_PROJECT_LOCK_CLASSID, self.project_id))
+		locked = cursor.fetchone()[0]
+		if not locked:
 			DB.rollback()
 			cursor.close()
-			error = str(e) + "Hint: somebody else is editing this project"
+			error = "Somebody else is editing this project"
 			self.show_message (error)
 			self.window.destroy()
 			return False
+		self.project_lock_acquired = True
+		cursor.execute("SELECT product_id::text, "
+						"qty, "
+						"name, "
+						"batch_notes, "
+						"version_id::text "
+						"FROM manufacturing_projects WHERE id = %s",
+						(self.project_id, ))
 		for row in cursor.fetchall():
 			self.get_object('product_combo').set_active_id(row[0])
 			self.get_object('units_spinbutton').set_value(row[1])
@@ -151,6 +153,12 @@ class ProjectEditGUI(Gtk.Builder):
 		self.window.destroy()
 
 	def destroy (self, window):
+		if self.project_lock_acquired:
+			cursor = DB.cursor()
+			cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(MANUFACTURING_PROJECT_LOCK_CLASSID, self.project_id))
+			cursor.close()
+			self.project_lock_acquired = False
 		DB.rollback()
 		
 	def focus_out_event (self, widget, event):
@@ -190,6 +198,10 @@ class ProjectEditGUI(Gtk.Builder):
 							"(%s, %s, CURRENT_DATE) "
 							"WHERE id = %s",
 							(name, active, time_clock_projects_id))
+		if self.project_lock_acquired:
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(MANUFACTURING_PROJECT_LOCK_CLASSID, self.project_id))
+			self.project_lock_acquired = False
 		DB.commit()
 		c.close()
 		self.window.destroy ()

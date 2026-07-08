@@ -16,12 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import psycopg2
-from constants import ui_directory, DB
+from constants import ui_directory, DB, CONTACT_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/contact_edit_main.ui"
 
 class ContactEditMainGUI(Gtk.Builder):
+	contact_lock_acquired = False
 	def __init__(self, contact_id = None, overview_class = None):
 
 		Gtk.Builder.__init__(self)
@@ -39,7 +39,12 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.overview_class = overview_class
 		
 	def destroy(self, window):
+		if self.contact_lock_acquired:
+			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(CONTACT_LOCK_CLASSID, self.contact_id))
+			self.contact_lock_acquired = False
 		self.cursor.close()
+		DB.rollback()
 
 	def populate_zip_codes (self):
 		zip_code_store = self.get_object("zip_code_store")
@@ -99,39 +104,42 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.window.set_title(editable.get_text())
 
 	def load_contact (self):
-		try:
-			self.cursor.execute("SELECT "
-									"name, "
-									"ext_name, "
-									"address, "
-									"zip, "
-									"city, "
-									"state, "
-									"phone, "
-									"fax, "
-									"email, "
-									"checks_payable_to, "
-									"label, "
-									"tax_number, "
-									"custom1, "
-									"custom2, "
-									"custom3, "
-									"custom4, "
-									"notes, "
-									"customer, "
-									"vendor, "
-									"employee, "
-									"service_provider, "
-									"terms_and_discounts_id::text, "
-									"markup_percent_id::text "
-								"FROM contacts WHERE id = %s FOR UPDATE NOWAIT", 
-								(self.contact_id, ))
-		except psycopg2.OperationalError as e:
+		self.cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
+					(CONTACT_LOCK_CLASSID, self.contact_id))
+		locked = self.cursor.fetchone()[0]
+		if not locked:
 			DB.rollback()
-			error = str(e) + "Hint: somebody else is editing this contact"
+			error = "Somebody else is editing this contact"
 			self.show_message (error)
 			self.window.destroy()
 			return
+		self.contact_lock_acquired = True
+		self.cursor.execute("SELECT "
+								"name, "
+								"ext_name, "
+								"address, "
+								"zip, "
+								"city, "
+								"state, "
+								"phone, "
+								"fax, "
+								"email, "
+								"checks_payable_to, "
+								"label, "
+								"tax_number, "
+								"custom1, "
+								"custom2, "
+								"custom3, "
+								"custom4, "
+								"notes, "
+								"customer, "
+								"vendor, "
+								"employee, "
+								"service_provider, "
+								"terms_and_discounts_id::text, "
+								"markup_percent_id::text "
+							"FROM contacts WHERE id = %s",
+							(self.contact_id, ))
 		for row in self.cursor.fetchall():
 			self.get_object('id_label').set_label(str(self.contact_id))
 			self.get_object('entry1').set_text(row[0])
@@ -157,7 +165,8 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.get_object('checkbutton4').set_active(row[20])
 			self.get_object('combobox1').set_active_id(row[21])
 			self.get_object('combobox2').set_active_id(row[22])
-		
+		DB.rollback()
+
 	def cancel_clicked (self, button):
 		self.window.destroy()
 
@@ -207,6 +216,10 @@ class ContactEditMainGUI(Gtk.Builder):
 								custom1, custom2, custom3, custom4, notes, 
 								term_id, service_provider, checks_payable_to,
 								markup_id, self.contact_id))
+			if self.contact_lock_acquired:
+				self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+							(CONTACT_LOCK_CLASSID, self.contact_id))
+				self.contact_lock_acquired = False
 			DB.commit()
 		else:
 			self.cursor.execute("INSERT INTO contacts " 

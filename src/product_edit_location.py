@@ -16,12 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import psycopg2
-from constants import DB, ui_directory
+from constants import DB, ui_directory, PRODUCT_LOCATION_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/product_edit_location.ui"
 
 class ProductEditLocationGUI (Gtk.Builder):
+	product_lock_acquired = False
 	def __init__(self, product_id):
 
 		Gtk.Builder.__init__(self)
@@ -29,17 +29,38 @@ class ProductEditLocationGUI (Gtk.Builder):
 		self.connect_signals(self)
 		self.window = self.get_object('window')
 		self.window.show_all()
-		store = self.get_object('location_store')
+		self.product_id = product_id
 		c = DB.cursor()
+		c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+					(PRODUCT_LOCATION_LOCK_CLASSID, product_id))
+		locked = c.fetchone()[0]
+		if not locked:
+			c.close()
+			DB.rollback()
+			error = "Somebody else is editing this product's locations"
+			self.show_message (error)
+			self.window.destroy()
+			return
+		self.product_lock_acquired = True
+		store = self.get_object('location_store')
 		c.execute("SELECT id::text, name FROM locations ORDER BY name")
 		for row in c.fetchall():
 			store.append(row)
+		c.execute("SELECT name FROM products WHERE id = %s",
+					(self.product_id,))
+		name = c.fetchone()[0]
+		self.window.set_title("'" + name + "' location")
 		c.close()
 		DB.rollback()
-		self.product_id = product_id
 		self.get_object('location_combo').set_active(0)
-	
+
 	def window_destroy (self, widget):
+		if self.product_lock_acquired:
+			c = DB.cursor()
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(PRODUCT_LOCATION_LOCK_CLASSID, self.product_id))
+			c.close()
+			self.product_lock_acquired = False
 		DB.rollback()
 
 	def cancel_clicked (self, button):
@@ -70,6 +91,10 @@ class ProductEditLocationGUI (Gtk.Builder):
 					cart, shelf, cabinet, drawer, _bin_, 
 					aisle, rack, cart, shelf, cabinet, drawer, _bin_, 
 					self.product_id, location_id))
+		if self.product_lock_acquired:
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(PRODUCT_LOCATION_LOCK_CLASSID, self.product_id))
+			self.product_lock_acquired = False
 		DB.commit()
 		c.close()
 		self.window.destroy()
@@ -77,19 +102,10 @@ class ProductEditLocationGUI (Gtk.Builder):
 	def location_combo_changed (self, combobox):
 		location_id = combobox.get_active_id()
 		c = DB.cursor()
-		try:
-			c.execute("SELECT aisle, rack, cart, shelf, cabinet, drawer, bin "
-						"FROM product_location "
-						"WHERE (product_id, location_id) = (%s, %s) "
-						"FOR UPDATE NOWAIT", 
-						(self.product_id, location_id))
-		except psycopg2.OperationalError as e:
-			DB.rollback()
-			c.close()
-			error = str(e) + "Hint: somebody else is editing this product location"
-			self.show_message (error)
-			self.window.destroy()
-			return False
+		c.execute("SELECT aisle, rack, cart, shelf, cabinet, drawer, bin "
+					"FROM product_location "
+					"WHERE (product_id, location_id) = (%s, %s)",
+					(self.product_id, location_id))
 		for row in c.fetchall():
 			self.get_object('entry5').set_text(row[0])
 			self.get_object('entry6').set_text(row[1])

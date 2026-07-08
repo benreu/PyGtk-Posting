@@ -16,13 +16,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-import psycopg2, subprocess
-from constants import ui_directory, DB
+import subprocess
+from constants import ui_directory, DB, CONTACT_FILES_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/contact_edit_files.ui"
 
 class ContactEditFilesGUI(Gtk.Builder):
-	def __init__(self, contact_id):
+	lock_acquired = False
+	def __init__(self, parent_window, contact_id):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
@@ -30,34 +31,43 @@ class ContactEditFilesGUI(Gtk.Builder):
 		self.cursor = DB.cursor()
 		self.contact_id = contact_id
 		self.window = self.get_object('window1')
+		self.window.set_transient_for(parent_window)
 		self.window.show_all()
 		self.populate_file_store()
 
 	def destroy (self, widget):
+		if self.lock_acquired:
+			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(CONTACT_FILES_LOCK_CLASSID, self.contact_id))
+			self.lock_acquired = False
 		self.cursor.close()
 		DB.rollback()
 
 	def populate_file_store (self):
+		c = DB.cursor()
+		if not self.lock_acquired:
+			c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+						(CONTACT_FILES_LOCK_CLASSID, self.contact_id))
+			locked = c.fetchone()[0]
+			if not locked:
+				DB.rollback()
+				c.close()
+				error = "Somebody else is editing these files"
+				self.show_message (error)
+				self.window.destroy()
+				return
+			self.lock_acquired = True
 		store = self.get_object('files_store')
 		store.clear()
-		c = DB.cursor()
-		try:
-			c.execute("SELECT "
-							"id, "
-							"name, "
-							"(octet_length(file_data)/1000)::text || ' Kb', "
-							"date_inserted::text, "
-							"format_date(date_inserted) "
-						"FROM files "
-						"WHERE contact_id = %s ORDER BY name "
-						"FOR UPDATE NOWAIT", 
-						(self.contact_id,))
-		except psycopg2.OperationalError as e:
-			DB.rollback()
-			error = str(e) + "Hint: somebody else is editing these files"
-			self.show_message (error)
-			self.window.destroy()
-			return
+		c.execute("SELECT "
+						"id, "
+						"name, "
+						"(octet_length(file_data)/1000)::text || ' Kb', "
+						"date_inserted::text, "
+						"format_date(date_inserted) "
+					"FROM files "
+					"WHERE contact_id = %s ORDER BY name",
+					(self.contact_id,))
 		for row in c.fetchall():
 			store.append(row)
 		c.close()

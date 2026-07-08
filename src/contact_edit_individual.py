@@ -16,48 +16,62 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import psycopg2
-from constants import ui_directory, DB
+from constants import ui_directory, DB, CONTACT_INDIVIDUALS_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/contact_edit_individual.ui"
 
 class ContactEditIndividualGUI (Gtk.Builder):
+	lock_acquired = False
 	def __init__(self, overview_class, individual_id = None):
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.cursor = DB.cursor()
 		self.overview_class = overview_class
 		self.individual_id = individual_id
 		self.contact_id = None
+		self.window = self.get_object('window')
+		self.window.set_transient_for(overview_class.window)
+		self.window.show_all()
 		if individual_id != None:
 			self.populate_individual ()
-		self.window = self.get_object('window')
-		self.window.show_all()
+
+	def destroy (self, widget):
+		if self.lock_acquired:
+			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(CONTACT_INDIVIDUALS_LOCK_CLASSID, self.individual_id))
+			self.lock_acquired = False
+		self.cursor.close()
+		DB.rollback()
 
 	def populate_individual (self):
 		c = DB.cursor()
-		try:
-			c.execute("SELECT "
-						"name, "
-						"ext_name, "
-						"address, "
-						"city, "
-						"state, "
-						"zip, "
-						"phone, "
-						"fax, "
-						"email, "
-						"notes "
-					"FROM contact_individuals WHERE id = %s "
-					"FOR UPDATE NOWAIT", 
-					(self.individual_id,))
-		except psycopg2.OperationalError as e:
-			DB.rollback()
-			error = str(e) + "Hint: somebody else is editing this individual"
-			self.show_message (error)
-			self.window.destroy()
-			return
+		if not self.lock_acquired:
+			c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+						(CONTACT_INDIVIDUALS_LOCK_CLASSID, self.individual_id))
+			locked = c.fetchone()[0]
+			if not locked:
+				DB.rollback()
+				c.close()
+				error = "Somebody else is editing this individual"
+				self.show_message (error)
+				self.window.destroy()
+				return
+			self.lock_acquired = True
+		c.execute("SELECT "
+					"name, "
+					"ext_name, "
+					"address, "
+					"city, "
+					"state, "
+					"zip, "
+					"phone, "
+					"fax, "
+					"email, "
+					"notes "
+				"FROM contact_individuals WHERE id = %s",
+				(self.individual_id,))
 		for row in c.fetchall():
 			self.get_object('entry1').set_text(row[0])
 			self.get_object('entry2').set_text(row[1])

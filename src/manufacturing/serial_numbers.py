@@ -18,7 +18,7 @@
 from gi.repository import Gtk, GLib
 import os, subprocess, glob
 import barcode_generator
-from constants import ui_directory, template_dir, DB
+from constants import ui_directory, template_dir, DB, MANUFACTURING_SERIAL_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/manufacturing/serial_numbers.ui"
 
@@ -26,6 +26,7 @@ class Item (object):
 	pass
 
 class SerialNumbersGUI(Gtk.Builder):
+	lock_acquired = False
 	def __init__(self, parent, manufacturing_id, serials_required):
 
 		Gtk.Builder.__init__(self)
@@ -37,15 +38,27 @@ class SerialNumbersGUI(Gtk.Builder):
 		self.serials_required = serials_required
 		self.cursor = DB.cursor()
 		self.window = self.get_object('window')
+		self.cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
+							(MANUFACTURING_SERIAL_LOCK_CLASSID, manufacturing_id))
+		locked = self.cursor.fetchone()[0]
+		if not locked:
+			DB.rollback()
+			error = "Somebody else is working on serial numbers"
+			self.show_message (error)
+			self.window.destroy()
+			return
+		self.lock_acquired = True
 		self.window.show_all()
 		self.populate_serial_numbers()
 		self.populate_printers()
 
 	def window_destroy (self, widget):
 		self.parent.populate_projects()
-		self.cursor.execute("SELECT pg_advisory_unlock(%s) "
-							"FROM serial_numbers",
-							(self.manufacturing_id,))
+		if self.lock_acquired:
+			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+								(MANUFACTURING_SERIAL_LOCK_CLASSID,
+								self.manufacturing_id))
+			self.lock_acquired = False
 		DB.commit()
 		self.cursor.close()
 
@@ -82,8 +95,7 @@ class SerialNumbersGUI(Gtk.Builder):
 							(self.manufacturing_id,))
 		for row in self.cursor.fetchall():
 			store.append(row)
-		self.cursor.execute("SELECT p.id, p.serial_number, "
-							"pg_try_advisory_lock(mp.id) "
+		self.cursor.execute("SELECT p.id, p.serial_number "
 							"FROM products AS p "
 							"JOIN manufacturing_projects AS mp "
 							"ON mp.product_id = p.id "
@@ -92,12 +104,6 @@ class SerialNumbersGUI(Gtk.Builder):
 		for row in self.cursor.fetchall():
 			self.product_id = row[0]
 			serial_start = row[1]
-			if row[2] == False:
-				DB.rollback()
-				error = "Somebody else is working on serial numbers"
-				self.show_message (error)
-				self.window.destroy()
-				return
 		self.get_object('serial_number_adjustment').set_lower(serial_start)
 		self.get_object('serial_number_spinbutton').set_value(serial_start)
 		self.serials_generated = len(store)

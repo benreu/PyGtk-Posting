@@ -297,22 +297,54 @@ class GUI (Gtk.Builder):
 
 	def date_selected (self, calendar):
 		self.date = calendar.get_date()
-		button = self.get_object('button6')
-		button.set_sensitive(True)
-		button.set_label("Yes, cancel invoice")
-		entry = self.get_object('entry1')
-		entry.set_text(calendar.get_text())
-		
-	def cancel_dialog (self, widget):		
-		button = self.get_object('button6')
-		button.set_sensitive(False)
-		button.set_label("No date selected")
-		cancel_dialog = self.get_object('dialog1')
-		message = "Do you want to cancel %s ?\nThis is not reversible!" % self.invoice_name
-		self.get_object('label1').set_label(message)
-		response = cancel_dialog.run()
-		cancel_dialog.hide()
-		if response == Gtk.ResponseType.ACCEPT:
+		self.cancel_confirm_button.set_sensitive(True)
+		self.cancel_confirm_button.set_label("Yes, cancel invoice")
+		self.cancel_entry.set_text(calendar.get_text())
+
+	def cancel_dialog (self, widget):
+		cancel_window = Gtk.Window()
+		cancel_window.set_title("Cancel Invoice")
+		cancel_window.set_transient_for(self.window)
+		cancel_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+		cancel_window.set_default_size(400, 300)
+		cancel_window.set_icon_name("pygtk-posting")
+		cancel_window.set_border_width(10)
+
+		vbox = Gtk.VBox(spacing=6)
+		cancel_window.add(vbox)
+
+		date_box = Gtk.Box(spacing=6)
+		date_label = Gtk.Label(label="Date ")
+		date_entry = Gtk.Entry()
+		date_entry.set_editable(False)
+		date_entry.set_icon_from_stock(Gtk.EntryIconPosition.PRIMARY, "gtk-find")
+		date_entry.connect("icon-release", self.date_entry_icon_released)
+		date_box.pack_start(date_label, False, False, 0)
+		date_box.pack_start(date_entry, False, False, 0)
+		vbox.pack_start(date_box, False, False, 0)
+
+		message = ("Do you want to cancel %s ?\nThis is not reversible!"
+					% self.invoice_name)
+		message_label = Gtk.Label(label=message)
+		message_label.set_valign(Gtk.Align.CENTER)
+		message_label.set_vexpand(True)
+		vbox.pack_start(message_label, True, True, 0)
+
+		button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+		no_button = Gtk.Button(label="No, go back")
+		yes_button = Gtk.Button(label="No date selected")
+		yes_button.set_sensitive(False)
+		button_box.pack_start(no_button, False, False, 0)
+		button_box.pack_end(yes_button, False, False, 0)
+		vbox.pack_start(button_box, False, False, 0)
+
+		self.cancel_entry = date_entry
+		self.cancel_confirm_button = yes_button
+
+		def on_no_clicked(_):
+			cancel_window.destroy()
+
+		def on_yes_clicked(_):
 			transactor.cancel_invoice(self.date, self.invoice_id)
 			self.cursor.execute("UPDATE invoices SET canceled = True "
 								"WHERE id = %s"
@@ -321,11 +353,17 @@ class GUI (Gtk.Builder):
 								"SET invoice_item_id = NULL "
 								"WHERE invoice_item_id IN "
 								"(SELECT id FROM invoice_items "
-								"WHERE invoice_id = %s)", 
+								"WHERE invoice_id = %s)",
 								(self.invoice_id, self.invoice_id))
 			DB.commit()
 			self.populate_unpaid_invoices ()
-		
+			cancel_window.destroy()
+
+		no_button.connect("clicked", on_no_clicked)
+		yes_button.connect("clicked", on_yes_clicked)
+
+		cancel_window.show_all()
+
 		
 	def view_invoice(self, widget):
 		treeselection = self.get_object('treeview-selection')

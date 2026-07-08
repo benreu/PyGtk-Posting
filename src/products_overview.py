@@ -313,7 +313,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 		peon = product_edit_order_numbers.ProductsEditOrderNumbersGUI()
 		peon.product_id = product_id
 		peon.populate_product_order_numbers ()
-		peon.window.set_transient_for(self.window)
 
 	def product_location_clicked (self, widget):
 		model, path = self.get_object('treeview-selection').get_selected_rows()
@@ -322,7 +321,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 		product_id = model[path][0]
 		import product_edit_location
 		pel = product_edit_location.ProductEditLocationGUI(product_id)
-		pel.window.set_transient_for(self.window)
 
 	def edit_clicked (self, widget):
 		model, path = self.get_object('treeview-selection').get_selected_rows()
