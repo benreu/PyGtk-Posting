@@ -256,3 +256,14 @@ CREATE TABLE IF NOT EXISTS invoice_reprints (
 	pdf_data bytea NOT NULL,
 	time_printed timestamp with time zone NOT NULL DEFAULT now()
 );
+
+
+--0.7.8
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS finance_rate numeric(12,6) NOT NULL DEFAULT 0.00;
+INSERT INTO public.gl_accounts (name, type, number, parent_number)
+SELECT 'Finance Charge Income', 4, 4200, 4000
+WHERE NOT EXISTS (SELECT 1 FROM public.gl_accounts WHERE number = 4200);
+INSERT INTO public.gl_account_flow (function, account)
+SELECT 'finance_charge_income', 4200
+WHERE NOT EXISTS (SELECT 1 FROM public.gl_account_flow WHERE function = 'finance_charge_income');
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS finance_rate numeric(12,6);

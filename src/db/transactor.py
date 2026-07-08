@@ -760,6 +760,29 @@ def switch_to_accrual_based ():
 		post_purchase_order_accounts (po_id, datetime.today())
 	cursor.close()
 
+def post_finance_charge(invoice_id):
+	c = DB.cursor()
+	c.execute("WITH gl_transaction AS "
+					"(INSERT INTO gl_transactions (date_inserted) "
+					"VALUES (CURRENT_DATE) RETURNING id), "
+				"gl_entry AS "
+				"(INSERT INTO gl_entries "
+					"(debit_account, credit_account, amount, "
+					"gl_transaction_id, date_inserted) "
+				"VALUES "
+					"((SELECT account FROM gl_account_flow "
+						"WHERE function = 'post_invoice'), "
+					"(SELECT account FROM gl_account_flow "
+						"WHERE function = 'finance_charge_income'), "
+					"(SELECT total FROM invoices WHERE id = %s), "
+					"(SELECT id FROM gl_transaction), "
+					"CURRENT_DATE) RETURNING id) "
+				"UPDATE invoices "
+				"SET gl_entries_id = (SELECT id FROM gl_entry) "
+				"WHERE id = %s",
+				(invoice_id, invoice_id))
+	c.close()
+
 def create_loan (date, amount, liability_account):
 	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "

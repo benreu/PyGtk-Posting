@@ -367,7 +367,8 @@ CREATE TABLE public.invoices (
     payments_incoming_id bigint REFERENCES public.payments_incoming(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     dated_for date,
-    finance_charge boolean NOT NULL DEFAULT false
+    finance_charge boolean NOT NULL DEFAULT false,
+    finance_rate numeric(12,6)
 );
 --CREATE TABLE public.invoice_items
 CREATE TABLE public.invoice_items (
