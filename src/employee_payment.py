@@ -33,7 +33,6 @@ class EmployeePaymentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.datetime = datetime.today()
 		date_text = datetime_to_text(self.datetime)
 		self.builder.get_object('entry8').set_text(date_text)
@@ -57,21 +56,23 @@ class EmployeePaymentGUI:
 		self.populate_employees ()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def focus_in_event (self, window, event):
 		self.populate_employees ()
 
 	def populate_employees (self):
 		self.employee_store.clear()
-		self.cursor.execute("SELECT employee_id::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT employee_id::text, name "
 							"FROM time_clock_entries "
 							"JOIN contacts ON contacts.id = "
 							"time_clock_entries.employee_id "
 							"WHERE employee_paid = False "
 							"GROUP BY employee_id, name ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.employee_store.append(row)
+		cursor.close()
 
 	def employee_combo_changed (self, combo):
 		employee_id = combo.get_active_id()
@@ -95,20 +96,21 @@ class EmployeePaymentGUI:
 		if self.employee_id == 0:
 			return
 		self.employee_payment_store.clear()
-		self.cursor.execute("SELECT id "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id "
 							"FROM time_clock_entries "
 							"WHERE (employee_id, employee_paid) = "
 							"(%s, False) "
 							"AND stop_time < %s",
 							(self.employee_id, self.stop_time))
-		self.time_clock_entries_ids = self.cursor.fetchall()
-		self.cursor.execute("SELECT SUM(actual_seconds), SUM(adjusted_seconds) "
+		self.time_clock_entries_ids = cursor.fetchall()
+		cursor.execute("SELECT SUM(actual_seconds), SUM(adjusted_seconds) "
 							"FROM time_clock_entries "
 							"WHERE (employee_id, employee_paid) = "
 							"(%s, False) "
 							"AND stop_time < %s",
 							(self.employee_id, self.stop_time))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.actual_seconds = row[0]
 			self.adjusted_seconds = row[1]
 			if self.actual_seconds == None:
@@ -126,6 +128,7 @@ class EmployeePaymentGUI:
 		self.builder.get_object('entry4').set_text(cost_sharing_time)
 		self.builder.get_object('entry5').set_text(profit_sharing_time)
 		self.builder.get_object('entry7').set_text(str(self.efficiency))
+		cursor.close()
 		DB.rollback()
 
 	def post_employee_payment_clicked (self, button):
@@ -134,29 +137,31 @@ class EmployeePaymentGUI:
 		cost_sharing_hours = self.cost_sharing_seconds / 3600
 		profit_sharing_hours = self.profit_sharing_seconds / 3600
 		wage = self.builder.get_object('spinbutton1').get_value()
-		self.cursor.execute ("INSERT INTO pay_stubs "
+		cursor = DB.cursor()
+		cursor.execute ("INSERT INTO pay_stubs "
 							"(employee_id, date_inserted, regular_hours, "
 							"cost_sharing_hours, profit_sharing_hours, "
 							"hourly_wage) "
 							"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
 							(self.employee_id, datetime.today(), adjusted_hours,
 							cost_sharing_hours, profit_sharing_hours, wage))
-		self.pay_stub_id = self.cursor.fetchone()[0]		
+		self.pay_stub_id = cursor.fetchone()[0]
 		self.view_report ()
 		subprocess.call('odt2pdf ' + self.time_file, shell = True)
 		f = open(self.time_file_pdf,'rb')
 		data = f.read()
 		binary = psycopg2.Binary(data)
 		f.close()
-		self.cursor.execute("UPDATE pay_stubs SET pdf_data = %s WHERE id = %s",
+		cursor.execute("UPDATE pay_stubs SET pdf_data = %s WHERE id = %s",
 							(binary, self.pay_stub_id))
-							
+
 		for row in self.time_clock_entries_ids:
 			row_id = row[0]
-			self.cursor.execute("UPDATE time_clock_entries SET "
+			cursor.execute("UPDATE time_clock_entries SET "
 								"(employee_paid, pay_stub_id) = "
 								"(True, %s) WHERE id = %s",
 								(self.pay_stub_id, row_id))
+		cursor.close()
 		DB.commit()
 		self.populate_employees ()
 		self.builder.get_object('button1').set_sensitive(False)
@@ -165,10 +170,11 @@ class EmployeePaymentGUI:
 		self.view_report ()
 		
 	def view_report (self):
-		self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)",
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",
 								[self.employee_id])
 		customer = Item()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_id = row[0]
 			customer.name = row[1]
 			name = row[1]
@@ -181,8 +187,8 @@ class EmployeePaymentGUI:
 			customer.phone = row[8]
 			customer.email = row[9]
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -194,6 +200,7 @@ class EmployeePaymentGUI:
 			company.email = row[9]
 			company.website = row[10]
 			company.tax_number = row[11]
+		cursor.close()
 		actual_hours = self.actual_seconds / 3600
 		adjusted_hours = self.adjusted_seconds / 3600
 		cost_sharing_hours = self.cost_sharing_seconds / 3600

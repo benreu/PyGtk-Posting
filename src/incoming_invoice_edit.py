@@ -43,7 +43,6 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_service_providers ),):
@@ -81,7 +80,6 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 	def destroy (self, widget):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def provider_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
@@ -127,6 +125,7 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 			self.get_object('payment_combo').set_active_id(row[0])
 			self.get_object('transaction_description_entry').set_text(row[1])
 			self.get_object('cheque_number_spin').set_value(row[2])
+		cursor.close()
 		self.add_expense_totals ()
 		if attached_pdf != None:
 			dialog = self.get_object('attachment_dialog')
@@ -140,18 +139,21 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		combo = self.get_object('contact_combobox')
 		active_sp = combo.get_active_id()
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE service_provider = True "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.service_provider_store.append(row)
+		cursor.close()
 		combo.set_active_id(active_sp)
 		self.populating = False
 
 	def populate_stores (self):
 		store = self.get_object('payment_store')
 		store.clear()
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE check_writing = True "
 							"UNION "
 							"SELECT number::text, name FROM gl_accounts "
@@ -160,8 +162,9 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 							"SELECT number::text, name FROM gl_accounts "
 							"WHERE credit_card_account = True "
 							"ORDER BY name ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 
 	def set_shipping_description (self, text):
 		self.get_object('entry1').set_text(text)

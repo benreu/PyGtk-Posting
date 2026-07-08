@@ -27,7 +27,6 @@ class JobSheetHistoryGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.customer_text = ''
 		self.ext_name = ''
@@ -48,7 +47,7 @@ class JobSheetHistoryGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.customer_text.split():
@@ -76,14 +75,17 @@ class JobSheetHistoryGUI(Gtk.Builder):
 	def remark_edited(self, widget, path, text):
 		_id_ = self.job_sheet_line_item_store[path][0]
 		self.job_sheet_line_item_store[path][3] = text
-		self.cursor.execute("UPDATE job_sheet_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheet_items "
 							"SET remark = %s WHERE id = %s", (text, _id_))
+		cursor.close()
 		DB.commit()
 
 	def populate_job_sheet_treeview (self):
 		self.job_sheet_store.clear()
 		self.job_sheet_line_item_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"js.id, "
 								"c.name, "
 								"c.ext_name, "
@@ -94,8 +96,9 @@ class JobSheetHistoryGUI(Gtk.Builder):
 							"FROM job_sheets AS js "
 							"JOIN contacts AS c ON c.id = contact_id "
 							"JOIN job_types AS jt ON jt.id = job_type_id")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.job_sheet_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def job_sheet_treeview_activate(self, treeview, path, treeviewcolumn):
@@ -104,14 +107,16 @@ class JobSheetHistoryGUI(Gtk.Builder):
 
 	def populate_job_sheet_line_item_treeview (self, job_sheet_id):
 		self.job_sheet_line_item_store.clear()
-		self.cursor.execute("SELECT jsi.id, qty, qty::text, p.name, remark "
+		cursor = DB.cursor()
+		cursor.execute("SELECT jsi.id, qty, qty::text, p.name, remark "
 							"FROM job_sheet_items AS jsi "
 							"JOIN products AS p ON p.id = "
 							"jsi.product_id "
 							"WHERE job_sheet_id = %s ORDER BY id",
 							(job_sheet_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.job_sheet_line_item_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def refresh_clicked (self, button):

@@ -31,21 +31,21 @@ class BankStatementsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.progressbar = self.builder.get_object('progressbar')
 
 		self.date_filter = ''
 		self.account_number = None
 		self.bank_account_store = self.builder.get_object('bank_account_store')
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE deposits = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.bank_account_store.append(row)
 		self.reconcile_date_store = self.builder.get_object('reconcile_date_store')
 		self.reconcile_date_store.append(['0', 'No filter'])
 		self.reconcile_date_store.append(['1', 'All reconciled'])
 		self.reconcile_date_store.append(['2', 'All unreconciled'])
-		self.cursor.execute("WITH bank_accounts AS "
+		cursor.execute("WITH bank_accounts AS "
 							"(SELECT number FROM gl_accounts "
 							"WHERE deposits = True) "
 							"SELECT date_reconciled::text AS date_sort, "
@@ -58,8 +58,9 @@ class BankStatementsGUI:
 							"AND date_reconciled IS NOT NULL "
 							"GROUP BY date_reconciled "
 							"ORDER BY date_sort")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.reconcile_date_store.append(row)
+		cursor.close()
 		self.builder.get_object('reconcile_date_combo').set_active(0)
 		DB.rollback()
 		self.statement_store = self.builder.get_object('statement_store')
@@ -73,7 +74,6 @@ class BankStatementsGUI:
 			self.handler_ids.append(handler)
 		
 	def destroy (self, widget):
-		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 

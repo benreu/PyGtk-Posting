@@ -39,7 +39,6 @@ class ResourceCalendarGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.date_time = datetime.today ()
 		self.day_detail_store = self.builder.get_object('day_detail_store')
@@ -150,20 +149,18 @@ class ResourceCalendarGUI:
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
 
-	def destroy (self, widget):
-		self.cursor.close()
-
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
 		self.category_store.clear()
-		self.cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
+		cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
 							"FROM resource_tags WHERE finished = False "
 							"ORDER BY tag")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			tag_id = row[0]
 			tag_name = row[1]
 			rgba = Gdk.RGBA(1, 1, 1, 1)
@@ -173,10 +170,11 @@ class ResourceCalendarGUI:
 			rgba.alpha = row[5]
 			self.category_store.append([tag_id, tag_name])
 		self.type_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM resource_types "
+		cursor.execute("SELECT id::text, name FROM resource_types "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.type_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def row_height_value_changed (self, spinbutton):
@@ -208,15 +206,19 @@ class ResourceCalendarGUI:
 	def subject_edited (self, renderer, path, text):
 		row_id = self.day_detail_store[path][0]
 		self.day_detail_store[path][1] = text
-		self.cursor.execute("UPDATE resources SET subject = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources SET subject = %s "
 							"WHERE id = %s", (text, row_id))
+		cursor.close()
 		DB.commit()
 
 	def qty_edited (self, cellrenderertext, path, text):
 		row_id = self.day_detail_store[path][0]
 		self.day_detail_store[path][2] = int(text)
-		self.cursor.execute("UPDATE resources SET qty = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources SET qty = %s "
 							"WHERE id = %s", (text, row_id))
+		cursor.close()
 		DB.commit()
 
 	def type_changed (self, cellrenderercombo, path, treeiter):
@@ -225,17 +227,20 @@ class ResourceCalendarGUI:
 		type_name = self.type_store[treeiter][1]
 		self.day_detail_store[path][3] = int(type_id)
 		self.day_detail_store[path][4] = type_name
-		self.cursor.execute("UPDATE resources SET resource_type_id = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources SET resource_type_id = %s "
 							"WHERE id = %s", (type_id, row_id))
+		cursor.close()
 		DB.commit()
 
 	def tag_combo_changed (self, combo, path, tree_iter):
 		row_id = self.day_detail_store[path][0]
 		tag_id = self.category_store[tree_iter][0]
-		self.cursor.execute("SELECT tag, red, green, blue, alpha "
+		cursor = DB.cursor()
+		cursor.execute("SELECT tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"WHERE id = %s", (tag_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			tag_name = row[0]
 			red = row[1]
 			green = row[2]
@@ -245,8 +250,9 @@ class ResourceCalendarGUI:
 			self.day_detail_store[path][7] = int(tag_id)
 			self.day_detail_store[path][8] = tag_name
 			self.day_detail_store[path][9] = rgba
-		self.cursor.execute("UPDATE resources SET tag_id = %s "
+		cursor.execute("UPDATE resources SET tag_id = %s "
 							"WHERE id = %s", (tag_id, row_id))
+		cursor.close()
 		DB.commit()
 
 	def edit_calendar_day_selected (self, calendar):
@@ -256,8 +262,10 @@ class ResourceCalendarGUI:
 			return # no row selected
 		date = calendar.get_date ()
 		resource_id = model[path][0]
-		self.cursor.execute ("UPDATE resources SET dated_for = %s "
+		cursor = DB.cursor()
+		cursor.execute ("UPDATE resources SET dated_for = %s "
 							"WHERE id = %s", (date, resource_id))
+		cursor.close()
 		DB.commit()
 		calendar.emit('day-selected')
 
@@ -288,17 +296,21 @@ class ResourceCalendarGUI:
 		row_id = model[path][0]
 		model[path][5] = int(contact_id)
 		model[path][6] = contact_name
-		self.cursor.execute ("UPDATE resources SET contact_id = %s "
+		cursor = DB.cursor()
+		cursor.execute ("UPDATE resources SET contact_id = %s "
 							"WHERE id = %s", (contact_id, row_id))
+		cursor.close()
 		DB.commit()
 
 	def new_resource_clicked (self, button):
 		black = Gdk.RGBA(0, 0, 0, 1)
-		self.cursor.execute("INSERT INTO resources "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO resources "
 							"(subject, dated_for, diary) "
 							"VALUES ('New subject', %s, False) "
 							"RETURNING id", (self.date_time,))
-		row_id = self.cursor.fetchone()[0]
+		row_id = cursor.fetchone()[0]
+		cursor.close()
 		DB.commit()
 		iter = self.day_detail_store.append([row_id, 
 											'New Subject', 
@@ -320,8 +332,10 @@ class ResourceCalendarGUI:
 		model, path = selection.get_selected_rows ()
 		if path != []:
 			resource_id = model[path][0]
-			self.cursor.execute("DELETE FROM resources "
+			cursor = DB.cursor()
+			cursor.execute("DELETE FROM resources "
 								"WHERE id = %s", (resource_id,))
+			cursor.close()
 			DB.commit ()
 		self.calendar.emit('day-selected')
 	
@@ -350,7 +364,8 @@ class ResourceCalendarGUI:
 
 	def populate_day_detail_store (self):
 		self.day_detail_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 							"rm.id, "
 							"rm.subject, "
 							"rm.qty, "
@@ -372,9 +387,9 @@ class ResourceCalendarGUI:
 							"ON rm.tag_id = rt.id "
 							"LEFT JOIN resource_types AS ry "
 							"ON ry.id = rm.resource_type_id "
-							"WHERE dated_for = %s", 
+							"WHERE dated_for = %s",
 							(self.date_time,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			row_id = row[0]
 			subject = row[1]
 			qty = row[2]
@@ -395,8 +410,9 @@ class ResourceCalendarGUI:
 				rgba = Gdk.RGBA(red, green, blue, alpha)
 			self.day_detail_store.append([row_id, subject, qty, type_id,
 											type_name, contact_id, 
-											contact_name, tag_id, tag_name, 
+											contact_name, tag_id, tag_name,
 											rgba])
+		cursor.close()
 		DB.rollback()
 
 	def populate_day_statistics (self):
@@ -518,16 +534,17 @@ class ResourceCalendarGUI:
 		date_time = datetime.strptime(date, "%m %d %Y")
 		string = str()
 		string += self.get_holiday_description (date_time)
-		self.cursor.execute("SELECT subject, red, green, blue, alpha, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT subject, red, green, blue, alpha, "
 							"COALESCE(' : ' || name, '') "
 							"FROM resources AS rm "
 							"LEFT JOIN contacts "
 							"ON contacts.id = rm.contact_id "
 							"JOIN resource_tags AS rmt "
 							"ON rm.tag_id = rmt.id WHERE dated_for = '%s' "
-							"AND finished != True %s" % 
+							"AND finished != True %s" %
 							(date_time, self.where_clause))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			subject = row[0]
 			red = row[1]
 			green = row[2]
@@ -540,6 +557,7 @@ class ResourceCalendarGUI:
 												int(alpha*255))
 			string += "<span foreground='%s' weight='bold'>%s%s</span>\n" % (
 											hex_color, subject, contact_name)
+		cursor.close()
 		DB.rollback()
 		return string
 

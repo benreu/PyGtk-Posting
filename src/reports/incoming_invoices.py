@@ -32,7 +32,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.service_provider_store = self.get_object('service_provider_store')
 		self.get_object('expense_account_combobox').set_model(expense_tree)
@@ -60,7 +59,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 
@@ -89,10 +87,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if path == []:
 			return
 		file_id = model[path][0]
-		self.cursor.execute("SELECT attached_pdf FROM incoming_invoices "
+		cursor = DB.cursor()
+		cursor.execute("SELECT attached_pdf FROM incoming_invoices "
 							"WHERE id = %s "
 							"AND attached_pdf IS NOT NULL", (file_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/Attachment.pdf"
 			file_data = row[0]
 			with open(file_name,'wb') as f:
@@ -104,30 +103,37 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			import pdf_attachment
 			paw = pdf_attachment.PdfAttachmentWindow(self.window)
 			paw.connect("pdf_optimized", self.optimized_callback, file_id)
+		cursor.close()
 
 	def optimized_callback (self, pdf_attachment_window, file_id):
 		file_data = pdf_attachment_window.get_pdf ()
-		self.cursor.execute("UPDATE incoming_invoices "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE incoming_invoices "
 							"SET attached_pdf = %s "
 							"WHERE id = %s", (file_data, file_id))
+		cursor.close()
 		DB.commit()
 
 	def populate_service_provider_store (self):
 		self.service_provider_store.clear()
 		self.service_provider_store.append(['0', "All service providers", ''])
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE service_provider = True ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.service_provider_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def populate_fiscal_store (self):
 		self.fiscal_store.clear()
 		self.fiscal_store.append(['0', "All fiscal years"])
-		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM fiscal_years "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.fiscal_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def sp_match_func(self, completion, key, iter_):
@@ -239,7 +245,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def populate_invoice_items (self, treeselection):
 		model, path = treeselection.get_selected_rows()
 		row_id = model[path][0]
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"ge.id, "
 								"ge.amount, "
 								"ge.amount::text, "
@@ -254,8 +261,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 								"ge.debit_account "
 							"WHERE incoming_invoices_id = %s",
 							(row_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.invoice_items_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def show_incoming_invoice_stats (self, treeselection):
@@ -314,9 +322,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 							"(SELECT gl_transaction_id FROM update_ii)",
 						(text, row_id, text, text))
 		except psycopg2.DataError as e:
+			c.close()
 			DB.rollback()
 			self.show_error_dialog(str(e))
 			return
+		c.close()
 		DB.commit()
 		self.populate_incoming_invoice_store()
 
@@ -332,6 +342,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 							"FROM incoming_invoices WHERE id = %s) "
 						"UPDATE gl_entries SET (reconciled, date_reconciled) = "
 						"(False, NULL) WHERE id = (SELECT id FROM cte)", (row_id,))
+			c.close()
 			DB.commit()
 			model[path][8] = False
 			self.populate_incoming_invoice_store()
@@ -380,6 +391,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		c.execute("UPDATE incoming_invoices "
 					"SET description = %s WHERE id = %s",
 					(text, incoming_invoice_id))
+		c.close()
 		DB.commit()
 		self.populate_incoming_invoice_store()
 
@@ -394,6 +406,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		c.execute("UPDATE incoming_invoices_gl_entry_expenses_ids "
 					"SET remark = %s WHERE id = %s",
 					(text, incoming_invoice_link_id))
+		c.close()
 		DB.commit()
 		store[path][5] = text
 

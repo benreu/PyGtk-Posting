@@ -31,7 +31,6 @@ class PaymentReceiptGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.payment_store = self.builder.get_object('payment_store')
@@ -44,18 +43,20 @@ class PaymentReceiptGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_customer_store (self):
 		self.customer_store.clear()
-		self.cursor.execute ("SELECT contacts.id::text, contacts.name, ext_name "
+		cursor = DB.cursor()
+		cursor.execute ("SELECT contacts.id::text, contacts.name, ext_name "
 							"FROM payments_incoming "
 							"JOIN contacts "
 							"ON contacts.id = payments_incoming.customer_id "
 							"GROUP BY contacts.id, contacts.name, ext_name "
 							"ORDER BY contacts.name, contacts.ext_name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def customer_combo_changed (self, combo):
@@ -84,8 +85,9 @@ class PaymentReceiptGUI:
 	def populate_payment_store (self):
 		self.payment_store.clear()
 		customer_id = self.builder.get_object('combobox1').get_active_id()
+		cursor = DB.cursor()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"p.id, "
 									"date_inserted::text, "
 									"format_date(date_inserted), "
@@ -100,7 +102,7 @@ class PaymentReceiptGUI:
 								"LEFT JOIN invoices ON invoices.payments_incoming_id = p.id "
 								"ORDER BY c.name")
 		else:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"p.id, "
 									"date_inserted::text, "
 									"format_date(date_inserted), "
@@ -113,10 +115,11 @@ class PaymentReceiptGUI:
 								"FROM payments_incoming AS p "
 								"JOIN contacts AS c ON c.id = p.customer_id "
 								"LEFT JOIN invoices ON invoices.payments_incoming_id = p.id "
-								"WHERE c.id = %s ORDER BY c.name", 
+								"WHERE c.id = %s ORDER BY c.name",
 								(customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.payment_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def view_payment_receipt_clicked (self, button):
@@ -125,17 +128,20 @@ class PaymentReceiptGUI:
 		if path == []:
 			return
 		row_id = model[path][0]
-		self.cursor.execute("SELECT payment_receipt_pdf FROM payments_incoming "
+		cursor = DB.cursor()
+		cursor.execute("SELECT payment_receipt_pdf FROM payments_incoming "
 							"WHERE id = %s", (row_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/Payment_receipt.pdf"
 			file_data = row[0]
 			if file_data == None:
+				cursor.close()
 				return
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.call(["xdg-open", file_name])
 			f.close()
+		cursor.close()
 		DB.rollback()
 
 	def generate_payment_receipt (self, button):
@@ -161,9 +167,11 @@ class PaymentReceiptGUI:
 		dat = f.read()
 		binary = psycopg2.Binary(dat)
 		f.close()
-		self.cursor.execute("UPDATE payments_incoming "
-							"SET payment_receipt_pdf = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE payments_incoming "
+							"SET payment_receipt_pdf = %s WHERE id = %s",
 							(binary, self.payment_id))
+		cursor.close()
 		DB.commit()
 		p = printing.PrintDialog("/tmp/" + self.document_pdf)
 		p.run_print_dialog(self.window)
@@ -178,10 +186,11 @@ class PaymentReceiptGUI:
 		payment.invoice_number = line[8]
 		payment.invoice_name = line[9]
 		contact_id = line[3]
-		self.cursor.execute("SELECT * FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM contacts "
 							"WHERE id = (%s)", [contact_id])
 		customer = Item()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_id = row[0]
 			customer.name = row[1]
 			name = row[1]
@@ -197,8 +206,8 @@ class PaymentReceiptGUI:
 			customer.tax_exempt = row[11]
 			customer.tax_exempt_number = row[12]
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -210,6 +219,7 @@ class PaymentReceiptGUI:
 			company.email = row[9]
 			company.website = row[10]
 			company.tax_number = row[11]
+		cursor.close()
 
 		document_name = "payment_receipt"
 		self.document_name = document_name

@@ -27,8 +27,7 @@ class ResourceCategoriesGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.category_store = self.get_object('category_store')
 		self.populate_category_store()
 		self.create_new_tag ()
@@ -37,14 +36,15 @@ class ResourceCategoriesGUI(Gtk.Builder):
 		self.window.show_all() 
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_category_store (self):
 		self.category_store.clear()
-		self.cursor.execute("SELECT id, tag, red, green, blue, alpha, finished "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, tag, red, green, blue, alpha, finished "
 							"FROM resource_tags "
 							"ORDER BY tag")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			tag_id = row[0]
 			tag_name = row[1]
 			red = row[2]
@@ -54,6 +54,7 @@ class ResourceCategoriesGUI(Gtk.Builder):
 			finished = row[6]
 			rgba = Gdk.RGBA(red, green, blue, alpha)
 			self.category_store.append([tag_id, tag_name, rgba, finished])
+		cursor.close()
 		DB.rollback()
 
 	def save_tag_clicked (self, button):
@@ -63,18 +64,20 @@ class ResourceCategoriesGUI(Gtk.Builder):
 		green = rgba.green
 		blue = rgba.blue
 		alpha = rgba.alpha
+		cursor = DB.cursor()
 		if self.tag_id == 0:
-			self.cursor.execute ("INSERT INTO resource_tags "
+			cursor.execute ("INSERT INTO resource_tags "
 								"(tag, red, green, blue, alpha, finished) VALUES "
-								"(%s, %s, %s, %s, %s, False) RETURNING id", 
+								"(%s, %s, %s, %s, %s, False) RETURNING id",
 								(tag_name, red, green, blue, alpha))
-			self.tag_id = self.cursor.fetchone()[0]
+			self.tag_id = cursor.fetchone()[0]
 		else:
-			self.cursor.execute ("UPDATE resource_tags SET "
+			cursor.execute ("UPDATE resource_tags SET "
 								"(tag, red, green, blue, alpha) = "
-								"(%s, %s, %s, %s, %s) WHERE id = %s", 
-								(tag_name, red, green, blue, alpha, 
+								"(%s, %s, %s, %s, %s) WHERE id = %s",
+								(tag_name, red, green, blue, alpha,
 								self.tag_id))
+		cursor.close()
 		DB.commit()
 		self.populate_category_store ()
 
@@ -90,10 +93,11 @@ class ResourceCategoriesGUI(Gtk.Builder):
 
 	def row_activated (self, treeview, path, treeviewcolumn):
 		self.tag_id = self.category_store[path][0]
-		self.cursor.execute("SELECT tag, red, green, blue, alpha "
+		cursor = DB.cursor()
+		cursor.execute("SELECT tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"WHERE id = %s", (self.tag_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			tag_name = row[0]
 			red = row[1]
 			green = row[2]
@@ -102,15 +106,18 @@ class ResourceCategoriesGUI(Gtk.Builder):
 			rgba = Gdk.RGBA(red, green, blue, alpha)
 			self.get_object('entry2').set_text(tag_name)
 			self.get_object('colorbutton1').set_rgba(rgba)
+		cursor.close()
 		DB.rollback()
 
 	def finished_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
 		self.category_store[path][3] = active
 		row_id = self.category_store[path][0]
-		self.cursor.execute("UPDATE resource_tags "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resource_tags "
 									"SET finished = %s "
 									"WHERE id = %s",(active, row_id))
+		cursor.close()
 		DB.commit()
 
 

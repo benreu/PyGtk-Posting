@@ -28,7 +28,6 @@ class ResourceSearchGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()

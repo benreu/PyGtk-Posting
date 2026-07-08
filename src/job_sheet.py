@@ -34,7 +34,6 @@ class JobSheetGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_customer_store ), 
@@ -79,27 +78,28 @@ class JobSheetGUI(Gtk.Builder):
 		if self.job_id == 0:
 			return
 		qty, product_id = list_[0], list_[1]
-		self.cursor.execute("SELECT 0, %s::float, id, name, '' FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT 0, %s::float, id, name, '' FROM products "
 							"WHERE id = %s", (qty, product_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			iter_ = self.job_store.append(row)
-		self.cursor.execute("INSERT INTO job_sheet_items "
+		cursor.execute("INSERT INTO job_sheet_items "
 							"(job_sheet_id, qty, product_id) "
-							"VALUES (%s, %s, %s) RETURNING id, qty", 
+							"VALUES (%s, %s, %s) RETURNING id, qty",
 							(self.job_id, qty, product_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.job_store[iter_][0] = row[0] #set the line id
 			self.job_store[iter_][1] = row[1] #set the formatted qty
+		cursor.close()
 		path = self.job_store.get_path(iter_)
 		treeview = self.get_object('treeview1')
 		column = treeview.get_column(0)
 		treeview.set_cursor(path, column, False)
 		DB.commit()
-		
+
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -131,9 +131,11 @@ class JobSheetGUI(Gtk.Builder):
 		self.job_store[iter_][2] = int(product_id)
 		self.job_store[iter_][3] = product_name
 		line_id = self.job_store[iter_][0]
-		self.cursor.execute("UPDATE job_sheet_items "
-							"SET product_id = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheet_items "
+							"SET product_id = %s WHERE id = %s",
 							(product_id, line_id))
+		cursor.close()
 		DB.commit()
 		# retrieve path again after all sorting has happened for the updates
 		path = self.job_store.get_path(iter_)
@@ -144,21 +146,25 @@ class JobSheetGUI(Gtk.Builder):
 	def qty_edited (self, spin, path, text):
 		iter_ = self.job_store.get_iter(path) 
 		line_id = self.job_store[iter_][0]
-		self.cursor.execute("UPDATE job_sheet_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheet_items "
 							"SET qty = %s WHERE id = %s; "
 							"SELECT qty FROM job_sheet_items "
-							"WHERE id = %s", 
+							"WHERE id = %s",
 							(text, line_id, line_id))
 		DB.commit()
-		self.job_store[iter_][1] = self.cursor.fetchone()[0]
-		
+		self.job_store[iter_][1] = cursor.fetchone()[0]
+		cursor.close()
+
 	def remark_edited(self, widget, path, text):
-		iter_ = self.job_store.get_iter(path) 
+		iter_ = self.job_store.get_iter(path)
 		line_id = self.job_store[iter_][0]
 		self.job_store[iter_][4] = text
-		self.cursor.execute("UPDATE job_sheet_items "
-							"SET remark = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheet_items "
+							"SET remark = %s WHERE id = %s",
 							(text, line_id))
+		cursor.close()
 		DB.commit()
 
 	def job_window(self, widget):
@@ -197,12 +203,14 @@ class JobSheetGUI(Gtk.Builder):
 
 	def populate_product_store (self, m=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id::text, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, "
 							"name || ' {' || ext_name || '}' FROM products "
 							"WHERE (deleted, stock, sellable) = "
 							"(False, True, True) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def focus(self, window, void):
@@ -219,10 +227,12 @@ class JobSheetGUI(Gtk.Builder):
 		job = job_combo.get_active_id()
 		model = job_combo.get_model()
 		model.clear()
-		self.cursor.execute("SELECT id::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name "
 							"FROM job_types ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			model.append(row)
+		cursor.close()
 		job_combo.set_active_id(job)
 		DB.rollback()
 
@@ -230,26 +240,31 @@ class JobSheetGUI(Gtk.Builder):
 		existing_job_combo = self.get_object('comboboxtext2')
 		existing_job = existing_job_combo.get_active_id()
 		existing_job_combo.remove_all()
-		self.cursor.execute("SELECT js.id::text, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT js.id::text, "
 							"jt.name || ' : ' || js.description "
 							"FROM job_sheets AS js "
 							"JOIN job_types AS jt ON jt.id = js.job_type_id "
 							"WHERE (completed, invoiced, contact_id) "
-							"= (False, False, %s)", (self.customer_id,)) 
-		for row in self.cursor.fetchall():
+							"= (False, False, %s)", (self.customer_id,))
+		for row in cursor.fetchall():
 			existing_job_combo.append(row[0], row[1])
+		cursor.close()
 		existing_job_combo.set_active_id(existing_job)
 		DB.rollback()
 
 	def delete_existing_job	(self, widget):
 		job_id = widget.get_active_id()
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("DELETE FROM job_sheets WHERE id = %s", 
+			cursor.execute("DELETE FROM job_sheets WHERE id = %s",
 															(job_id,))
 		except psycopg2.IntegrityError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_message(str(e))
 			return
+		cursor.close()
 		DB.commit()
 		self.populate_existing_job_combobox ()
 		self.job_store.clear()
@@ -260,21 +275,23 @@ class JobSheetGUI(Gtk.Builder):
 		if self.job_id == 0:
 			return # no active project
 		available = widget.get_active()
-		self.cursor.execute("UPDATE job_sheets "
-							"SET time_clock = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheets "
+							"SET time_clock = %s WHERE id = %s",
 							(available, self.job_id))
 		if available == True:
-			self.cursor.execute("INSERT INTO time_clock_projects "
+			cursor.execute("INSERT INTO time_clock_projects "
 								"(name, start_date, active, permanent, "
 								"job_sheet_id) "
-								"VALUES (%s, %s, True, False, %s)", 
-								(self.project_name, datetime.today(), 
+								"VALUES (%s, %s, True, False, %s)",
+								(self.project_name, datetime.today(),
 								self.job_id))
 		else:
-			self.cursor.execute("UPDATE time_clock_projects "
+			cursor.execute("UPDATE time_clock_projects "
 								"SET (active, stop_date) = (%s, %s) "
-								"WHERE job_sheet_id = %s", 
+								"WHERE job_sheet_id = %s",
 								(available, datetime.today(), self.job_id))
+		cursor.close()
 		DB.commit()
 
 	def new_job_combo_changed(self, combo):
@@ -302,14 +319,16 @@ class JobSheetGUI(Gtk.Builder):
 			self.get_object('entry1').set_sensitive(False)
 			self.job_id = widget.get_active_id()
 			self.populate_job_treeview()
-			self.cursor.execute("SELECT id FROM time_clock_projects "
-								"WHERE (job_sheet_id, active) = (%s, True)", 
+			cursor = DB.cursor()
+			cursor.execute("SELECT id FROM time_clock_projects "
+								"WHERE (job_sheet_id, active) = (%s, True)",
 								(self.job_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.get_object('checkbutton2').set_active(True)
 				break
 			else:
 				self.get_object('checkbutton2').set_active(False)
+			cursor.close()
 		else:
 			self.get_object('button7').set_sensitive(False)
 			self.get_object('button5').set_sensitive(False)
@@ -354,23 +373,25 @@ class JobSheetGUI(Gtk.Builder):
 		iter_ = self.get_object('job_type_combo').get_active_iter()
 		job_name = self.job_type_store[iter_][1]
 		job_name_description = self.get_object('entry1').get_text()
-		self.cursor.execute("INSERT INTO job_sheets "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO job_sheets "
 							"(description, job_type_id, time_clock, "
 							"date_inserted, invoiced, completed, contact_id) "
 							"VALUES (%s, %s, %s, %s, %s, %s, %s) "
-							"RETURNING id", 
-							(description, self.job_type_id, time_clock_project, 
-							datetime.today(), False, False, 
+							"RETURNING id",
+							(description, self.job_type_id, time_clock_project,
+							datetime.today(), False, False,
 							self.customer_id))
-		self.job_id = self.cursor.fetchone()[0]
+		self.job_id = cursor.fetchone()[0]
 		self.project_name = job_name + " : " + job_name_description
 		if time_clock_project == True:
-			self.cursor.execute("INSERT INTO time_clock_projects "
+			cursor.execute("INSERT INTO time_clock_projects "
 								"(name, start_date, active, permanent, "
 								"job_sheet_id) "
-								"VALUES (%s, %s, True, False, %s)", 
-								(self.project_name, datetime.today(), 
+								"VALUES (%s, %s, True, False, %s)",
+								(self.project_name, datetime.today(),
 								self.job_id))
+		cursor.close()
 		DB.commit()
 		self.populate_existing_job_combobox ()
 		self.get_object('comboboxtext2').set_active_id(str(self.job_id))
@@ -386,26 +407,30 @@ class JobSheetGUI(Gtk.Builder):
 		store, path = selection.get_selected_rows ()
 		if path != []: # a row is selected
 			job_line_id = store[path][0]
-			self.cursor.execute("DELETE FROM job_sheet_items "
+			cursor = DB.cursor()
+			cursor.execute("DELETE FROM job_sheet_items "
 								"WHERE id = %s", (job_line_id,))
+			cursor.close()
 			DB.commit()
 			self.populate_job_treeview ()
-			
+
 	def new_line (self, widget = None):
-		self.cursor.execute("INSERT INTO job_sheet_items "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO job_sheet_items "
 							"(job_sheet_id, qty, product_id) "
 							"VALUES (%s, 1, (SELECT id FROM products "
 								"WHERE deleted = False LIMIT 1)) "
 							"RETURNING job_sheet_items.id ",
 							(self.job_id,))
-		line_id = self.cursor.fetchone()[0]
-		self.cursor.execute("SELECT jsi.id, qty, p.id, p.name, remark "
+		line_id = cursor.fetchone()[0]
+		cursor.execute("SELECT jsi.id, qty, p.id, p.name, remark "
 							"FROM job_sheet_items AS jsi "
 							"JOIN products AS p ON p.id = jsi.product_id "
-							"WHERE jsi.id = %s", 
+							"WHERE jsi.id = %s",
 							(line_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			iter_ = self.job_store.append(row)
+		cursor.close()
 		DB.commit()
 		path = self.job_store.get_path(iter_)
 		treeview = self.get_object('treeview1')
@@ -458,12 +483,14 @@ class JobSheetGUI(Gtk.Builder):
 		treeselection = self.get_object('treeview-selection1')
 		model, path = treeselection.get_selected_rows ()
 		self.job_store.clear()
-		self.cursor.execute("SELECT jsi.id, qty, p.id, p.name, remark "
+		cursor = DB.cursor()
+		cursor.execute("SELECT jsi.id, qty, p.id, p.name, remark "
 							"FROM job_sheet_items AS jsi "
 							"JOIN products AS p ON p.id = jsi.product_id "
 							"WHERE job_sheet_id = %s", (self.job_id ,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.job_store.append(row)
+		cursor.close()
 		if path != [] : # a row is selected
 			tree_iter = model.get_iter(path)
 			treeselection.select_iter(tree_iter)
@@ -477,12 +504,14 @@ class JobSheetGUI(Gtk.Builder):
 		return True
 
 	def populate_customer_store (self, m=None, i=None):
-		self.customer_store.clear()	
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		self.customer_store.clear()
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE (deleted, customer) = (False, True) "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def window_key_release_event_ (self, window, event):

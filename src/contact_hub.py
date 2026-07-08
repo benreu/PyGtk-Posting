@@ -26,26 +26,28 @@ class ContactHubGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.contact_id = contact_id
-		self.cursor.execute("SELECT name, vendor, customer, service_provider "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, vendor, customer, service_provider "
 							"FROM contacts WHERE id = %s", (contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.name = row[0]
 			self.builder.get_object('button4').set_sensitive(row[1])
 			self.builder.get_object('button2').set_sensitive(row[2])
 			self.builder.get_object('button7').set_sensitive(row[2])
 			break
 		else:
+			cursor.close()
 			raise Exception ("Contact not found")
+		cursor.close()
 		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, window):
-		self.cursor.close()
+		pass
 
 	def invoice_to_payment_matching_clicked (self, button):
 		from reports import invoice_to_payment_matching

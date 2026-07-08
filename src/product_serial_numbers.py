@@ -34,7 +34,6 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.product_store = self.get_object('product_store')
 		self.contact_store = self.get_object('contact_store')
 		self.handler_ids = list()
@@ -70,7 +69,6 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def search_changed (self, entry):
 		'''This signal is hooked up to all search entries'''
@@ -125,20 +123,24 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id::text, name, invoice_serial_numbers "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, invoice_serial_numbers "
 							"FROM products "
 							"WHERE (deleted, stock, sellable) = "
 							"(False, True, True) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
-		
+
 	def populate_contact_store (self, m=None, i=None):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
+		cursor.close()
 
 	def populate_system_labels(self):
 		store = self.get_object('serial_template_store')
@@ -163,6 +165,7 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 						"FROM settings.zebra_printers")
 		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 
 	def populate_serial_number_history (self):
 		treeview = self.get_object('serial_number_treeview')
@@ -170,7 +173,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		treeview.set_model(None)
 		store = self.get_object('serial_number_treeview_store')
 		store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"sn.id, "
 								"COALESCE(manufacturing_id::text, ''), "
 								"p.id, "
@@ -210,8 +214,9 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 								"manufacturing_id, i.dated_for, "
 								"po.date_printed, pav.version_name "
 							"ORDER BY sn.id")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		treeview.set_model(original_model)
 		DB.rollback()
 		
@@ -240,7 +245,8 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 	def populate_serial_event_store (self, serial_id):
 		store = self.get_object('events_store')
 		store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"snh.id, "
 								"c.name, "
 								"snh.date_inserted::text, "
@@ -249,8 +255,9 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 							"FROM serial_number_history AS snh "
 							"JOIN contacts AS c ON c.id = snh.contact_id "
 							"WHERE serial_number_id = %s", (serial_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def add_serial_event_activated (self, button):
@@ -263,12 +270,14 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		start_iter = buf.get_start_iter()
 		end_iter = buf.get_end_iter()
 		description = buf.get_text(start_iter, end_iter, True)
-		self.cursor.execute("INSERT INTO serial_number_history "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO serial_number_history "
 							"(contact_id, "
 							"date_inserted, description, serial_number_id) "
-							"VALUES (%s, %s, %s, %s)", 
-							(self.contact_id, self.date, 
+							"VALUES (%s, %s, %s, %s)",
+							(self.contact_id, self.date,
 							description, self.serial_id))
+		cursor.close()
 		DB.commit()
 		self.populate_serial_number_history ()
 		self.get_object('combobox2').set_sensitive(False)
@@ -295,16 +304,19 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 
 	def add_serial_number_clicked (self, button):
 		serial_number = self.get_object('entry2').get_text()
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("INSERT INTO serial_numbers "
+			cursor.execute("INSERT INTO serial_numbers "
 								"(product_id, serial_number, "
 								"date_inserted) "
-								"VALUES (%s, %s, %s)", 
+								"VALUES (%s, %s, %s)",
 								(self.product_id, serial_number, self.date))
+			cursor.close()
 			DB.commit()
 			self.get_object('add_serial_number_window').hide()
 			self.populate_serial_number_history ()
 		except psycopg2.IntegrityError as e:
+			cursor.close()
 			self.get_object('exception_label').set_text(str(e))
 			DB.rollback()
 
@@ -339,12 +351,14 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			self.get_object('combobox2').set_sensitive(True)
 			store = self.get_object('serial_number_store')
 			store.clear()
-			self.cursor.execute("SELECT id::text, serial_number "
+			cursor = DB.cursor()
+			cursor.execute("SELECT id::text, serial_number "
 								"FROM serial_numbers "
 								"WHERE product_id = %s "
 								"ORDER BY serial_number", (product_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				store.append(row)
+			cursor.close()
 		DB.rollback()
 
 	def add_product_combo_changed (self, combo):

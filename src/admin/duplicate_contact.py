@@ -25,7 +25,6 @@ class DuplicateContactGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.name_filter = ''
 		self.ext_name_filter = ''
@@ -51,7 +50,7 @@ class DuplicateContactGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def filter_text_edited (self, store, path, text):
 		store[path][1] = text
@@ -108,39 +107,41 @@ class DuplicateContactGUI:
 		selection = self.builder.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
 		final_contact_id = model[path][0]
+		cursor = DB.cursor()
 		for p in self.paths:
 			contact_id = model[p][0]
-			self.cursor.execute("UPDATE files SET contact_id = %s "
-								"WHERE contact_id = %s", 
+			cursor.execute("UPDATE files SET contact_id = %s "
+								"WHERE contact_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE incoming_invoices "
-								"SET contact_id = %s WHERE contact_id = %s", 
+			cursor.execute("UPDATE incoming_invoices "
+								"SET contact_id = %s WHERE contact_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE invoices "
-								"SET customer_id = %s WHERE customer_id = %s", 
+			cursor.execute("UPDATE invoices "
+								"SET customer_id = %s WHERE customer_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE job_sheets "
-								"SET contact_id = %s WHERE contact_id = %s", 
+			cursor.execute("UPDATE job_sheets "
+								"SET contact_id = %s WHERE contact_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE payments_incoming "
-								"SET customer_id = %s WHERE customer_id = %s", 
+			cursor.execute("UPDATE payments_incoming "
+								"SET customer_id = %s WHERE customer_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE purchase_orders "
-								"SET vendor_id = %s WHERE vendor_id = %s", 
+			cursor.execute("UPDATE purchase_orders "
+								"SET vendor_id = %s WHERE vendor_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE resources "
-								"SET contact_id = %s WHERE contact_id = %s", 
+			cursor.execute("UPDATE resources "
+								"SET contact_id = %s WHERE contact_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("UPDATE statements "
-								"SET customer_id = %s WHERE customer_id = %s", 
+			cursor.execute("UPDATE statements "
+								"SET customer_id = %s WHERE customer_id = %s",
 								(final_contact_id, contact_id))
-			self.cursor.execute("DELETE FROM vendor_product_numbers "
-								"WHERE vendor_id = %s", 
+			cursor.execute("DELETE FROM vendor_product_numbers "
+								"WHERE vendor_id = %s",
 								(contact_id,))
-			self.cursor.execute("DELETE FROM contacts WHERE id = %s", 
+			cursor.execute("DELETE FROM contacts WHERE id = %s",
 								(contact_id,))
-			self.cursor.execute("UPDATE contacts SET deleted = False "
+			cursor.execute("UPDATE contacts SET deleted = False "
 								"WHERE id = %s", (final_contact_id,))
+		cursor.close()
 		DB.commit()
 		selection.unselect_all()
 		self.populate_duplicate_contact_store ()
@@ -165,15 +166,17 @@ class DuplicateContactGUI:
 
 	def populate_duplicate_contact_store (self):
 		self.duplicate_contact_store.clear()
-		self.cursor.execute("SELECT id, name, ext_name, address, city, state, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, ext_name, address, city, state, "
 							"zip, fax, phone, email FROM contacts c_outer "
 							"WHERE (SELECT count(%s) FROM contacts c_inner "
 							"WHERE c_inner.%s = c_outer.%s) > 1 "
-							"AND c_outer.%s != ''" % 
-							(self.search, self.search, 
+							"AND c_outer.%s != ''" %
+							(self.search, self.search,
 							self.search, self.search))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.duplicate_contact_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 

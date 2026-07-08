@@ -28,7 +28,6 @@ class PurchaseOrderImportGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.po_id = po_id
 		self.get_object('reload_button').set_label("Reload PO " + po_id)

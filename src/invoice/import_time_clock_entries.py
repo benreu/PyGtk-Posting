@@ -29,7 +29,6 @@ class ImportGUI():
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.contact_id = contact_id
 		self.invoice_id = invoice_id
@@ -47,7 +46,7 @@ class ImportGUI():
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def product_match_string(self, completion, key, iter):
 		split_search_text = key.split()
@@ -102,32 +101,36 @@ class ImportGUI():
 		price = get_customer_product_price (self.contact_id, self.product_id)
 		ext_price = round(float(self.invoicing_time ) * float(price), 2)
 		description = self.builder.get_object('entry1').get_text()
-		self.cursor.execute("INSERT INTO invoice_items "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO invoice_items "
 							"(invoice_id, qty, product_id, price, ext_price, "
 							"remark, canceled, imported) "
 							"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
-							"RETURNING id", 
-							(self.invoice_id, self.invoicing_time, 
-							self.product_id, price, ext_price, description, 
+							"RETURNING id",
+							(self.invoice_id, self.invoicing_time,
+							self.product_id, price, ext_price, description,
 							False, True))
-		line_item_id = self.cursor.fetchone()[0]
+		line_item_id = cursor.fetchone()[0]
 		for row in self.import_store:
 			if row[6] == True:
 				row_id = row[0]
-				self.cursor.execute("UPDATE time_clock_entries "
+				cursor.execute("UPDATE time_clock_entries "
 									"SET (invoiced, invoice_line_id) = "
-									"(True, %s) WHERE id = %s", 
+									"(True, %s) WHERE id = %s",
 									(line_item_id, row_id))
+		cursor.close()
 		DB.commit()
 		self.window.destroy()
-					
+
 	def populate_product_store (self):
-		self.cursor.execute("SELECT id::text, name FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (sellable, purchasable, manufactured, "
 							"deleted) = (True, False, False, False) "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def import_renderer_toggled(self, cell_renderer, path):

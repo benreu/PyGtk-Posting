@@ -28,7 +28,6 @@ class TimeClockToolGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.employee_project_store = self.get_object('employee_project_store')
 		self.time_clock_entries_store = self.get_object('time_clock_entries_store')
@@ -40,15 +39,16 @@ class TimeClockToolGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT id::text, name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE (employee, deleted) = "
 							"(True, False) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.employee_store.append(row)
-		self.cursor.execute("SELECT project_id::text, time_clock_projects.name "
+		cursor.execute("SELECT project_id::text, time_clock_projects.name "
 							"FROM time_clock_entries "
 							"JOIN time_clock_projects "
 							"ON time_clock_projects.id = "
@@ -56,8 +56,9 @@ class TimeClockToolGUI(Gtk.Builder):
 							"WHERE (employee_paid) = (False) "
 							"GROUP BY project_id, time_clock_projects.name "
 							"ORDER BY time_clock_projects.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.project_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def view_all_employees_toggled (self, checkbutton):
@@ -161,7 +162,8 @@ class TimeClockToolGUI(Gtk.Builder):
 		
 	def populate_time_clock_entries_store (self):
 		self.time_clock_entries_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"format_timestamp(start_time), "
 								"format_timestamp(stop_time), "
@@ -169,10 +171,11 @@ class TimeClockToolGUI(Gtk.Builder):
 								"adjusted_seconds::text "
 							"FROM time_clock_entries "
 							"WHERE (employee_id, project_id) "
-							"= (%s, %s) ORDER BY start_time", 
+							"= (%s, %s) ORDER BY start_time",
 							(self.employee_id, self.project_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.time_clock_entries_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def employee_project_row_activated (self, treeview, path, treeviewcolumn):
@@ -199,10 +202,11 @@ class TimeClockToolGUI(Gtk.Builder):
 		self.get_object('combobox3').set_active_id(
 														str(self.employee_id))
 		entry_id = self.time_clock_entries_store[path][0]
-		self.cursor.execute("SELECT start_time, stop_time "
-							"FROM time_clock_entries WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT start_time, stop_time "
+							"FROM time_clock_entries WHERE id = %s",
 							(entry_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.start_time = row[0]
 			self.original_start_time = self.start_time
 			self.stop_time = row[1]
@@ -217,26 +221,27 @@ class TimeClockToolGUI(Gtk.Builder):
 		dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
 			employee_id = self.get_object('combobox3').get_active_id()
-			self.cursor.execute("UPDATE time_clock_entries "
+			cursor.execute("UPDATE time_clock_entries "
 								"SET (employee_id, start_time, stop_time) = "
-								"(%s, %s, %s) WHERE id = %s", (employee_id, 
+								"(%s, %s, %s) WHERE id = %s", (employee_id,
 								self.start_time, self.stop_time, entry_id))
-		elif response == -2: # Duplicate the entry button ....emmission changed 
+		elif response == -2: # Duplicate the entry button ....emmission changed
 			#because the original was the same as the x button in the corner
 			employee_id = self.get_object('combobox3').get_active_id()
-			self.cursor.execute("INSERT INTO time_clock_entries "
+			cursor.execute("INSERT INTO time_clock_entries "
 								"(employee_id, start_time, stop_time, "
 								"project_id, state, invoiced, employee_paid) "
 								"VALUES (%s, %s, %s, %s, 'complete', False, "
-								"False) RETURNING id", 
+								"False) RETURNING id",
 								(employee_id, self.start_time,
 								self.stop_time, self.project_id))
-			id = self.cursor.fetchone()[0] #following is needed for triggers
-			self.cursor.execute("UPDATE time_clock_entries SET stop_time = %s "
-								"WHERE id = %s", (self.stop_time, id)) 
+			id = cursor.fetchone()[0] #following is needed for triggers
+			cursor.execute("UPDATE time_clock_entries SET stop_time = %s "
+								"WHERE id = %s", (self.stop_time, id))
 		elif response == -5: #Delete the entry
-			self.cursor.execute("DELETE FROM time_clock_entries "
+			cursor.execute("DELETE FROM time_clock_entries "
 								"WHERE id = %s", (entry_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_employee_project_store ()
 

@@ -28,7 +28,6 @@ class NetWorthGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.account_treestore = self.get_object("net_worth_store")
 		self.populate_net_worth ()
@@ -37,13 +36,14 @@ class NetWorthGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_net_worth (self):
+		cursor = DB.cursor()
 		# Assets first
-		self.cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
+		cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
 							"WHERE type = 1 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
@@ -55,9 +55,9 @@ class NetWorthGUI(Gtk.Builder):
 				assets += i[1]
 			self.account_treestore.set_value(tree_parent, 2, str(assets))
 		# Liabilities next
-		self.cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
+		cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
 							"WHERE type = 5 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
@@ -69,9 +69,9 @@ class NetWorthGUI(Gtk.Builder):
 				liabilities += i[1]
 			self.account_treestore.set_value(tree_parent, 2, str(liabilities))
 		# and Equities
-		self.cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
+		cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
 							"WHERE type = 2 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
@@ -84,6 +84,7 @@ class NetWorthGUI(Gtk.Builder):
 			self.account_treestore.set_value(tree_parent, 2, str(equities))
 		net_worth = assets - liabilities + equities
 		self.get_object("income_amount_label").set_label(str(net_worth))
+		cursor.close()
 		DB.rollback()
 
 	def get_child_accounts (self, is_parent, parent_account, parent_tree):

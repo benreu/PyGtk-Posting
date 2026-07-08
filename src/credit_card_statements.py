@@ -30,8 +30,7 @@ class CreditCardStatementGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.transactions_store = self.builder.get_object('transactions_store')
 		self.income_expense_accounts_store = self.builder.get_object(
 									'income_expense_accounts_store')
@@ -54,7 +53,6 @@ class CreditCardStatementGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 
@@ -70,7 +68,8 @@ class CreditCardStatementGUI:
 	def populate_accounts_combo(self):
 		credit_card_store = self.builder.get_object('credit_card_store')
 		credit_card_store.clear()
-		self.cursor.execute("SELECT number, name, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name, "
 							"(SELECT COALESCE(SUM(amount), 0.00) FROM gl_entries "
 							"WHERE credit_account = gla.number) "
 							"- "
@@ -78,7 +77,7 @@ class CreditCardStatementGUI:
 							"WHERE debit_account = gla.number) "
 							"FROM gl_accounts AS gla "
 							"WHERE credit_card_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
 			amount = row[2]
@@ -87,71 +86,78 @@ class CreditCardStatementGUI:
 		checking_account_combo = self.builder.get_object('comboboxtext4')
 		active_account = checking_account_combo.get_active_id()
 		checking_account_combo.remove_all()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE bank_account = True")
-		for i in self.cursor.fetchall():
+		for i in cursor.fetchall():
 			number = i[0]
 			name = i[1]
 			checking_account_combo.append(str(number), name)
 		checking_account_combo.set_active_id (active_account)
 		####################################################
 		self.fees_rewards_store.clear()
-		self.cursor.execute("SELECT DISTINCT transaction_description "
+		cursor.execute("SELECT DISTINCT transaction_description "
 							"FROM gl_entries "
 							"WHERE fees_rewards = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			description = row[0]
 			self.fees_rewards_store.append([description])
 		####################################################
 		self.income_expense_accounts_store.clear()
-		self.cursor.execute("SELECT number, name, type FROM gl_accounts "
+		cursor.execute("SELECT number, name, type FROM gl_accounts "
 							"WHERE (type = 3 OR type = 4) "
 							"AND parent_number IS NULL ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = str(row[0])
 			account_name = row[1]
 			account_type = row[2]
-			p = self.income_expense_accounts_store.append(None, 
-														[account_number, 
-														account_name, 
+			p = self.income_expense_accounts_store.append(None,
+														[account_number,
+														account_name,
 														account_type])
 			self.get_child_accounts(account_number, p)
+		cursor.close()
 
 	def get_child_accounts (self, number, parent):
-		self.cursor.execute("SELECT number, name, type FROM gl_accounts WHERE "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name, type FROM gl_accounts WHERE "
 							"parent_number = %s", (number,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = str(row[0])
 			account_name = row[1]
 			account_type = row[2]
 			p = self.income_expense_accounts_store.append(parent,
-															[account_number, 
+															[account_number,
 															account_name,
 															account_type])
 			self.get_child_accounts (account_number, p)
+		cursor.close()
 
 	def reconcile_clicked (self, widget):
-		self.cursor.execute("SELECT 1 FROM gl_entries "
+		cursor = DB.cursor()
+		cursor.execute("SELECT 1 FROM gl_entries "
 							"WHERE date_reconciled = %s "
 							"AND (credit_account = %s OR debit_account = %s)",
-							(self.date, self.credit_card_account, 
+							(self.date, self.credit_card_account,
 							self.credit_card_account))
-		if self.cursor.fetchone():
+		if cursor.fetchone():
 			dialog = self.builder.get_object('date_reuse_dialog')
 			response = dialog.run()
 			dialog.hide()
 			if response == Gtk.ResponseType.CANCEL:
+				cursor.close()
 				self.calendar.show()
 				return
 			elif response != Gtk.ResponseType.APPLY: # user closed window
+				cursor.close()
 				return
-		self.cursor.execute("UPDATE gl_entries "
+		cursor.execute("UPDATE gl_entries "
 							"SET date_reconciled = %s "
 							"WHERE date_reconciled IS NULL "
 							"AND reconciled = True "
-							"AND (credit_account = %s OR debit_account = %s) ", 
-							(self.date, self.credit_card_account, 
+							"AND (credit_account = %s OR debit_account = %s) ",
+							(self.date, self.credit_card_account,
 							self.credit_card_account))
+		cursor.close()
 		DB.commit()
 		self.populate_statement_treeview ()
 		self.date = None
@@ -161,24 +167,29 @@ class CreditCardStatementGUI:
 
 	def description_edited (self, renderer, path, text):
 		row_id = self.transactions_store[path][0]
-		self.cursor.execute("UPDATE gl_entries SET transaction_description = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE gl_entries SET transaction_description = %s "
 							"WHERE id = %s", (text, row_id))
+		cursor.close()
 		DB.commit()
 		self.transactions_store[path][3] = text
 
 	def date_renderer_edited (self, renderer, path, text):
 		row_id = self.transactions_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE gl_entries SET date_inserted = %s "
-							"WHERE id = %s RETURNING format_date(date_inserted)", 
+			cursor.execute("UPDATE gl_entries SET date_inserted = %s "
+							"WHERE id = %s RETURNING format_date(date_inserted)",
 							(text, row_id))
 			#Postgres has a powerful date resolver, let it figure out the date
-			date_formatted = self.cursor.fetchone()[0]
+			date_formatted = cursor.fetchone()[0]
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			print (e)
 			self.show_error_dialog(str(e))
 			return
+		cursor.close()
 		DB.commit()
 		self.transactions_store[path][1] = text
 		self.transactions_store[path][2] = date_formatted
@@ -197,7 +208,8 @@ class CreditCardStatementGUI:
 
 	def populate_statement_treeview (self):
 		self.transactions_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"ge.id, "
 								"transaction_description, "
 								"ge.amount::numeric, "
@@ -212,10 +224,10 @@ class CreditCardStatementGUI:
 							"LEFT JOIN incoming_invoices ii ON "
 							"ii.gl_transaction_id = ge.gl_transaction_id "
 							"WHERE (debit_account = %s OR credit_account = %s) "
-							"AND date_reconciled IS NULL ORDER BY date_inserted", 
+							"AND date_reconciled IS NULL ORDER BY date_inserted",
 							(self.credit_card_account,
 							self.credit_card_account))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			row_id = row[0]
 			description = row[1]
 			amount = row[2]
@@ -233,7 +245,8 @@ class CreditCardStatementGUI:
 											description, 0.0, '',
 											amount, amount_formatted, reconciled,
 											incoming_invoice_id])
-		
+		cursor.close()
+
 	def all_reconciled_off_activated (self, menuitem):
 		for row in self.transactions_store:
 			row[8] = False
@@ -247,9 +260,11 @@ class CreditCardStatementGUI:
 		row_id = self.transactions_store[path][0]
 		self.transactions_store[path][8] = active
 		if self.builder.get_object('save_reconciled_checkmenuitem').get_active():
-			self.cursor.execute("UPDATE gl_entries "
-							"SET reconciled = %s WHERE id = %s", 
+			cursor = DB.cursor()
+			cursor.execute("UPDATE gl_entries "
+							"SET reconciled = %s WHERE id = %s",
 							(active, row_id))
+			cursor.close()
 			DB.commit()
 
 	def save_reconciled_toggled (self, checkmenuitem):

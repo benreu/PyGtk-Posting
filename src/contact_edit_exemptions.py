@@ -27,23 +27,25 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.contact_id = contact_id
 		self.window = self.get_object('window1')
 		self.window.set_transient_for(parent_window)
-		self.cursor.execute("SELECT name FROM contacts WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM contacts WHERE id = %s",
 							(contact_id,))
-		contact_name = self.cursor.fetchone()[0]
+		contact_name = cursor.fetchone()[0]
+		cursor.close()
 		self.window.set_title("'%s' exemptions" % contact_name)
 		self.window.show_all()
 		self.populate_tax_exemptions()
 
 	def destroy (self, widget):
 		if self.lock_acquired:
-			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+			cursor = DB.cursor()
+			cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 						(CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID, self.contact_id))
+			cursor.close()
 			self.lock_acquired = False
-		self.cursor.close()
 		DB.rollback()
 
 	def populate_tax_exemptions (self):
@@ -107,19 +109,21 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		binary = pdf_attachment_window.get_pdf ()
 		selection = self.get_object('treeview-selection2')
 		model, path = selection.get_selected_rows()
+		cursor = DB.cursor()
 		if model[path][3] == False:
-			self.cursor.execute("INSERT INTO customer_tax_exemptions "
+			cursor.execute("INSERT INTO customer_tax_exemptions "
 								"(pdf_data, customer_id, tax_rate_id, "
 								"pdf_available) "
 								"VALUES (%s, %s, %s, True) ",
 								(binary, self.contact_id, exemption_id))
 		else:
-			self.cursor.execute("UPDATE customer_tax_exemptions "
+			cursor.execute("UPDATE customer_tax_exemptions "
 								"SET (pdf_data, pdf_available) = "
 								"(%s, True) "
 								"WHERE (customer_id, tax_rate_id) = "
-								"(%s, %s)", 
+								"(%s, %s)",
 								(binary, self.contact_id, exemption_id))
+		cursor.close()
 		DB.commit()
 		self.populate_tax_exemptions ()
 
@@ -130,14 +134,16 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 			self.show_message("No exemption file scanned yet")
 			return # no exemption file available
 		customer_exemption_id = model[path][2]
-		self.cursor.execute("SELECT pdf_data FROM customer_tax_exemptions "
+		cursor = DB.cursor()
+		cursor.execute("SELECT pdf_data FROM customer_tax_exemptions "
 							"WHERE id = %s", (customer_exemption_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			pdf_data = row[0]
 			with open("/tmp/exemption.pdf",'wb') as f:
 				f.write(pdf_data)
 			import subprocess
 			subprocess.Popen(["xdg-open", "/tmp/exemption.pdf"])
+		cursor.close()
 
 	def close_clicked (self, button):
 		self.window.destroy()

@@ -33,7 +33,6 @@ class ContactHistoryGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		contact_completion = self.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
@@ -41,15 +40,17 @@ class ContactHistoryGUI (Gtk.Builder):
 		self.invoice_history = None
 
 		self.contact_store = self.get_object('contact_store')
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id::text, "
 								"name, "
 								"ext_name "
 							"FROM contacts "
 							"WHERE deleted = False "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
+		cursor.close()
 		self.window = self.get_object('window1')
 		self.window.show_all()
 
@@ -86,7 +87,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			dest_notebook.child_set_property(widget, 'tab-expand', True)
 
 	def destroy (self, window):
-		self.cursor.close()
+		pass
 
 	def contact_hub_clicked (self, button):
 		if self.contact_id == None:
@@ -97,17 +98,20 @@ class ContactHistoryGUI (Gtk.Builder):
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, pdf_data FROM invoices WHERE id = %s",
 																	(file_id ,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/" + row[0]
 			if file_name == None:
+				cursor.close()
 				return
 			file_data = row[1]
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.call(["xdg-open", file_name])
 			f.close()
+		cursor.close()
 		DB.rollback()
 
 	def shipping_treeview_button_release_event (self, treeview, event):
@@ -258,7 +262,8 @@ class ContactHistoryGUI (Gtk.Builder):
 		incoming_invoice_store = self.get_object('incoming_invoice_store')
 		incoming_invoice_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"date_created::text, "
 								"format_date(date_created), "
@@ -268,9 +273,10 @@ class ContactHistoryGUI (Gtk.Builder):
 							"FROM incoming_invoices "
 							"WHERE contact_id = %s "
 							"ORDER BY date_created;", (self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			incoming_invoice_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label9').set_label('Incoming invoices')
 		else:
@@ -281,7 +287,8 @@ class ContactHistoryGUI (Gtk.Builder):
 		warranty_store = self.get_object('warranty_store')
 		warranty_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"snh.id, "
 								"p.name, "
 								"sn.serial_number, "
@@ -292,11 +299,12 @@ class ContactHistoryGUI (Gtk.Builder):
 							"JOIN serial_numbers AS sn "
 							"ON sn.id = snh.serial_number_id "
 							"JOIN products AS p ON p.id = sn.product_id "
-							"WHERE contact_id = %s ORDER by date_inserted", 
+							"WHERE contact_id = %s ORDER by date_inserted",
 							(self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			warranty_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label8').set_label('Warranty')
 		else:
@@ -389,7 +397,8 @@ class ContactHistoryGUI (Gtk.Builder):
 		statement_store = self.get_object('statements_store')
 		statement_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"date_inserted::text, "
 								"format_date(date_inserted), "
@@ -400,11 +409,12 @@ class ContactHistoryGUI (Gtk.Builder):
 								"format_date(print_date) "
 							"FROM statements AS s "
 							"WHERE customer_id = %s "
-							"ORDER BY date_inserted, id", 
+							"ORDER BY date_inserted, id",
 							(self.contact_id, ))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			statement_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label7').set_label('Statements')
 		else:
@@ -415,7 +425,8 @@ class ContactHistoryGUI (Gtk.Builder):
 		resource_store = self.get_object('resource_store')
 		resource_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"r.id, "
 								"subject, "
 								"dated_for::text, "
@@ -429,9 +440,9 @@ class ContactHistoryGUI (Gtk.Builder):
 								"phone_number "
 							"FROM resources AS r "
 							"JOIN resource_tags AS rt "
-							"ON rt.id = r.tag_id WHERE contact_id = %s", 
+							"ON rt.id = r.tag_id WHERE contact_id = %s",
 							(self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			rgba = Gdk.RGBA(1, 1, 1, 1)
 			row_id = row[0]
@@ -445,8 +456,9 @@ class ContactHistoryGUI (Gtk.Builder):
 			rgba.blue = row[8]
 			rgba.alpha = row[9]
 			phone = row[10]
-			resource_store.append([row_id, subject, dated_for, date_formatted, 
+			resource_store.append([row_id, subject, dated_for, date_formatted,
 									notes, tag_name, rgba, phone])
+		cursor.close()
 		if count == 0:
 			self.get_object('label4').set_label('Resources')
 		else:
@@ -457,7 +469,8 @@ class ContactHistoryGUI (Gtk.Builder):
 		payment_store = self.get_object('payments_store')
 		payment_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"date_inserted::text, "
 								"format_date(date_inserted), "
@@ -468,9 +481,10 @@ class ContactHistoryGUI (Gtk.Builder):
 							"FROM payments_incoming "
 							"WHERE customer_id = %s "
 							"ORDER BY date_inserted;", (self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			payment_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label3').set_label('Payments received')
 		else:
@@ -481,7 +495,8 @@ class ContactHistoryGUI (Gtk.Builder):
 		invoice_store = self.get_object('invoice_store')
 		invoice_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"i.id, "
 								"dated_for::text, "
 								"format_date(dated_for), "
@@ -493,11 +508,12 @@ class ContactHistoryGUI (Gtk.Builder):
 								"format_date(date_printed) "
 							"FROM invoices AS i "
 							"WHERE (customer_id, canceled) = "
-							"(%s, False) ORDER BY dated_for", 
+							"(%s, False) ORDER BY dated_for",
 							(self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			invoice_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label2').set_label('Invoices')
 		else:

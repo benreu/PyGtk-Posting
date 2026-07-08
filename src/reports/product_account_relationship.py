@@ -32,7 +32,6 @@ class ProductAccountRelationshipGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.product_account_store = self.builder.get_object('product_account_store')
 		self.filtered_store = self.builder.get_object('product_account_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
@@ -41,7 +40,7 @@ class ProductAccountRelationshipGUI:
 		self.populate_product_account_store ()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
@@ -99,7 +98,8 @@ class ProductAccountRelationshipGUI:
 
 	def populate_product_account_store (self):
 		self.product_account_store.clear()
-		self.cursor.execute("SELECT p.id, p.name, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT p.id, p.name, "
 							"COALESCE((SELECT name FROM gl_accounts "
 							"WHERE number = p.default_expense_account), ''), "
 							"COALESCE((SELECT name FROM gl_accounts "
@@ -107,8 +107,9 @@ class ProductAccountRelationshipGUI:
 							"COALESCE((SELECT name FROM gl_accounts "
 							"WHERE number = p.inventory_account), '') "
 							"FROM products AS p ORDER BY p.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_account_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 

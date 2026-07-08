@@ -30,7 +30,6 @@ class TimeClockGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.timeout_id = None
 		self.handler_ids = list()
@@ -51,7 +50,6 @@ class TimeClockGUI(Gtk.Builder):
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def focus_in (self, widget, event):
 		self.stack.set_visible_child_name('employee_page')
@@ -72,7 +70,8 @@ class TimeClockGUI(Gtk.Builder):
 
 	def populate_employees (self, main_class = None):
 		self.employee_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"c.id, "
 								"c.name, "
 								"COALESCE(format_timestamp(start_time), ''), "
@@ -87,8 +86,9 @@ class TimeClockGUI(Gtk.Builder):
 								"ON tcp.id = tce.project_id "
 							"WHERE (employee, deleted) = (True, False) "
 							"ORDER BY c.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.employee_store.append(row)
+		cursor.close()
 		selection = self.get_object('employee_selection')
 		GLib.idle_add(selection.unselect_all)
 		DB.rollback()
@@ -123,14 +123,17 @@ class TimeClockGUI(Gtk.Builder):
 			self.stack.set_visible_child_name ('punchout_page')
 			self.get_object('punchout_button').grab_focus()
 			DB.commit()
-			self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
-			self.clock_in_out_time = int(self.cursor.fetchone()[0])
+			cursor = DB.cursor()
+			cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP)")
+			self.clock_in_out_time = int(cursor.fetchone()[0])
+			cursor.close()
 			self.show_date_from_seconds ()
 		DB.rollback()
 
 	def populate_job_store (self):
 		self.project_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"tcp.id, "
 								"'Previous project     -     '||tcp.name "
 							"FROM time_clock_entries AS tce "
@@ -155,8 +158,9 @@ class TimeClockGUI(Gtk.Builder):
 							"UNION ALL "
 							"SELECT 0, 'Cancel'", 
 							(self.employee_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.project_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def scan_job_id_activated (self, entry):
@@ -181,8 +185,10 @@ class TimeClockGUI(Gtk.Builder):
 		self.stack.set_visible_child_name ('punchin_page')
 		self.get_object('punchin_button').grab_focus()
 		DB.commit()
-		self.cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
-		self.clock_in_out_time = int(self.cursor.fetchone()[0])
+		cursor = DB.cursor()
+		cursor.execute("SELECT EXTRACT ('epoch' FROM CURRENT_TIMESTAMP);")
+		self.clock_in_out_time = int(cursor.fetchone()[0])
+		cursor.close()
 		c = DB.cursor()
 		c.execute("SELECT "
 						"to_char(now() - start_time, 'HH24:MI:SS'), "
@@ -207,7 +213,8 @@ class TimeClockGUI(Gtk.Builder):
 		self.show_date_from_seconds ()
 
 	def punch_in_clicked (self, button):
-		self.cursor.execute("INSERT INTO time_clock_entries "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO time_clock_entries "
 							"(employee_id, "
 							"project_id, "
 							"running, "
@@ -215,14 +222,16 @@ class TimeClockGUI(Gtk.Builder):
 							"employee_paid, "
 							"start_time) "
 							"VALUES "
-							"(%s, %s, True, False, False, CURRENT_TIMESTAMP)", 
+							"(%s, %s, True, False, False, CURRENT_TIMESTAMP)",
 							(self.employee_id, self.project_id))
+		cursor.close()
 		DB.commit()
 		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def manual_punch_in_clicked (self, button):
-		self.cursor.execute("INSERT INTO time_clock_entries "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO time_clock_entries "
 								"(employee_id, "
 								"project_id, "
 								"running, "
@@ -235,29 +244,34 @@ class TimeClockGUI(Gtk.Builder):
 								"True, "
 								"False, "
 								"False, "
-								"CAST(TO_TIMESTAMP(%s) AS timestamptz))", 
-							(self.employee_id, 
-							self.project_id, 
+								"CAST(TO_TIMESTAMP(%s) AS timestamptz))",
+							(self.employee_id,
+							self.project_id,
 							self.clock_in_out_time))
+		cursor.close()
 		DB.commit()
 		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def punch_out_clicked (self, button):
-		self.cursor.execute("UPDATE time_clock_entries "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE time_clock_entries "
 							"SET (running, stop_time) = "
 							"(False, CURRENT_TIMESTAMP) "
 							"WHERE id = %s", (self.entry_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
 
 	def manual_punch_out_clicked (self, button):
-		self.cursor.execute("UPDATE time_clock_entries "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE time_clock_entries "
 							"SET (running, stop_time) = "
 							"(False, CAST(TO_TIMESTAMP(%s) AS timestamptz)) "
-							"WHERE id = %s", 
+							"WHERE id = %s",
 							(self.clock_in_out_time, self.entry_id))
+		cursor.close()
 		DB.commit()
 		self.populate_employees ()
 		self.stack.set_visible_child_name ('employee_page')
@@ -313,17 +327,19 @@ class TimeClockGUI(Gtk.Builder):
 	def show_punched_in_calculated_time (self):
 		''' self.entry_id may be 0, resulting in nothing'''
 		DB.commit()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"DATE_TRUNC('second',("
 									"CAST(TO_TIMESTAMP(%s) AS timestamptz) - "
 									"start_time "
 									")"
 								")::text "
-							"FROM time_clock_entries WHERE id = %s", 
+							"FROM time_clock_entries WHERE id = %s",
 							(self.clock_in_out_time, self.entry_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			interval = row[0]
 			self.get_object('time_label_manual_out').set_label(interval)
+		cursor.close()
 		DB.rollback()
 
 	def time_renderer_editing_started (self, cellrenderer, celleditable, path):
@@ -331,14 +347,16 @@ class TimeClockGUI(Gtk.Builder):
 		celleditable.set_alignment(1.00)
 		entry_id = self.employee_store[path][4]
 		DB.commit()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"'     '||"
 								"DATE_TRUNC('second',("
 									"CURRENT_TIMESTAMP - start_time)"
 								")||'     '"
-							"FROM time_clock_entries WHERE id = %s", 
+							"FROM time_clock_entries WHERE id = %s",
 							(entry_id,))
-		interval = self.cursor.fetchone()[0]
+		interval = cursor.fetchone()[0]
+		cursor.close()
 		celleditable.set_text(interval)
 		celleditable.select_region(-1, -1)
 		DB.rollback()

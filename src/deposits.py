@@ -30,7 +30,6 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect('day-selected', self.day_selected)
@@ -46,7 +45,7 @@ class GUI:
 		self.check_if_all_entries_valid()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def focus (self, window, event):
 		self.populate_deposit_store ()
@@ -62,14 +61,16 @@ class GUI:
 		self.check_if_all_entries_valid ()
 
 	def populate_deposit_store(self):
-		self.cursor.execute("SELECT p_i.id, payment_text, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT p_i.id, payment_text, "
 							"amount, amount::text, customer_id, c.name, "
 							"date_inserted::text, format_date(date_inserted), deposit "
 							"FROM payments_incoming AS p_i "
 							"JOIN contacts AS c ON p_i.customer_id = c.id "
 							"WHERE (check_payment, check_deposited) = "
 							"(True, False)")
-		tupl = self.cursor.fetchall()
+		tupl = cursor.fetchall()
+		cursor.close()
 		if len(tupl) != len(self.deposit_store): # something changed; repopulate
 			self.deposit_store.clear()
 			for row in tupl:
@@ -81,24 +82,28 @@ class GUI:
 		bank_combo = self.builder.get_object('comboboxtext1')
 		bank_id = bank_combo.get_active_id()
 		bank_combo.remove_all()
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE deposits = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			bank_combo.append(row[0], row[1])
 		bank_combo.set_active_id(bank_id)
 		self.cash_account_store.clear()
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE cash_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.cash_account_store.append(row)
+		cursor.close()
 		DB.rollback()
-		
+
 	def deposit_check_togglebutton_toggled (self, togglebutton, path):
 		active = not togglebutton.get_active()
 		self.deposit_store[path][8] = active
 		row_id = self.deposit_store[path][0]
-		self.cursor.execute("UPDATE payments_incoming SET deposit = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE payments_incoming SET deposit = %s "
 							"WHERE id = %s", (active, row_id))
+		cursor.close()
 		DB.commit()
 		self.calculate_deposit_total()
 		self.check_if_all_entries_valid()
@@ -171,13 +176,15 @@ class GUI:
 			cash_account = self.builder.get_object('combobox1').get_active_id ()
 			d.cash (cash_amount, cash_account)
 		deposit_id = d.bank (amount, checking_account)
+		cursor = DB.cursor()
 		for row in self.deposit_store:
 			if row[8] is True:
 				row_id = row[0]
-				self.cursor.execute("UPDATE payments_incoming "
+				cursor.execute("UPDATE payments_incoming "
 									"SET (check_deposited, "
 										"gl_entries_deposit_id) = (True, %s) "
 									"WHERE id = %s", (deposit_id, row_id))
+		cursor.close()
 		DB.commit()
 
 	def process_deposit_close_window_clicked (self, button):

@@ -26,7 +26,6 @@ class BudgetConfigurationGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.populate_budgets()
 		self.populate_fiscals()
 		self.account_store = self.builder.get_object('account_store')
@@ -36,57 +35,67 @@ class BudgetConfigurationGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
 
 	def populate_accounts(self):
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE parent_number IS NULL ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
 			parent = self.account_store.append(None, row)
 			self.populate_child_accounts(parent, number)
+		cursor.close()
 		DB.rollback()
 
 	def populate_child_accounts (self, parent, number):
-		self.cursor.execute("SELECT number::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name "
 						"FROM gl_accounts WHERE parent_number = %s "
 						"ORDER BY name", (number,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			number = row[0]
 			p = self.account_store.append(parent, row)
 			self.populate_child_accounts (p, number)
+		cursor.close()
 
 	def add_budget_clicked (self, button):
 		name = self.builder.get_object('budget_name_entry').get_text()
 		fiscal_id = self.builder.get_object('fiscal_combo').get_active_id()
 		total = self.builder.get_object('total_spinbutton').get_value()
-		self.cursor.execute("INSERT INTO budgets "
-							"(name, fiscal_id, total) VALUES (%s, %s, %s)", 
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO budgets "
+							"(name, fiscal_id, total) VALUES (%s, %s, %s)",
 							(name, fiscal_id, total))
+		cursor.close()
 		DB.commit()
 		self.populate_budgets ()
 
 	def populate_budgets (self):
 		budget_store = self.builder.get_object('budget_store')
 		budget_store.clear()
-		self.cursor.execute("SELECT id::text, name, total::text, active "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, total::text, active "
 							"FROM budgets "
 							"WHERE active = True "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			budget_store.append(row)
+		cursor.close()
 
 	def populate_fiscals (self):
 		fiscal_store = self.builder.get_object('fiscal_store')
 		fiscal_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM fiscal_years "
 							"WHERE active = True ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			fiscal_store.append(row)
+		cursor.close()
 
 	def remove_amount_clicked (self, button):
 		selection = self.builder.get_object('amount_selection')
@@ -99,26 +108,32 @@ class BudgetConfigurationGUI:
 		name = self.builder.get_object('amount_name_entry').get_text()
 		amount = self.builder.get_object('amount_spinbutton').get_value()
 		account = self.builder.get_object('amount_account_combo').get_active_id()
-		self.cursor.execute("INSERT INTO budget_amounts "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO budget_amounts "
 							"(budget_id, name, amount, account) "
 							"VALUES (%s, %s, %s, %s) ",
 							(self.budget_id, name, amount, account))
+		cursor.close()
 		DB.commit()
 		self.populate_budget_amounts()
 
 	def amount_edited (self, cellrenderertext, path, amount):
 		store = self.builder.get_object('amount_store')
 		amount_id = store[path][0]
-		self.cursor.execute("UPDATE budget_amounts SET amount = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE budget_amounts SET amount = %s "
 							"WHERE id = %s", (amount, amount_id))
+		cursor.close()
 		DB.commit()
 		self.populate_budget_amounts()
 
 	def amount_name_edited (self, cellrenderertext, path, text):
 		store = self.builder.get_object('amount_store')
 		amount_id = store[path][0]
-		self.cursor.execute("UPDATE budget_amounts SET name = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE budget_amounts SET name = %s "
 							"WHERE id = %s", (text, amount_id))
+		cursor.close()
 		DB.commit()
 		self.populate_budget_amounts()
 
@@ -137,7 +152,8 @@ class BudgetConfigurationGUI:
 	def populate_budget_amounts (self):
 		store = self.builder.get_object('amount_store')
 		store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 							"ba.id, "
 							"ba.name, "
 							"gl.name, "
@@ -149,17 +165,18 @@ class BudgetConfigurationGUI:
 							"WHERE budget_id = %s "
 							"ORDER BY ba.id",
 							(self.budget_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 							"ROUND((SUM(ba.amount)/b.total)*100, 2)::varchar "
 							"FROM budget_amounts AS ba "
 							"JOIN budgets AS b ON b.id = ba.budget_id "
 							"WHERE budget_id = %s "
 							"GROUP BY ba.budget_id, b.total",
 							(self.budget_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.builder.get_object('total_percent_label').set_label(row[-1])
+		cursor.close()
 		DB.rollback()
 
 

@@ -57,7 +57,6 @@ class ResourceManagementGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.handler_ids = list()
 		for connection in (("shutdown", self.main_shutdown), ):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -99,11 +98,13 @@ class ResourceManagementGUI:
 			for row in self.resource_store:
 				if row[0] == id_:
 					selection.select_path(row.path)
-			self.cursor.execute("SELECT notes FROM resources "
+			cursor = DB.cursor()
+			cursor.execute("SELECT notes FROM resources "
 								"WHERE id = %s", (id_,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				text = row[0]
 				self.builder.get_object('notes_buffer').set_text(text)
+			cursor.close()
 		
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
@@ -115,7 +116,6 @@ class ResourceManagementGUI:
 			self.save_notes()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def main_shutdown (self, main):
 		if self.timeout_id:
@@ -140,13 +140,15 @@ class ResourceManagementGUI:
 		model, path = selection.get_selected_rows()
 		if path != []:
 			row_id = model[path][0]
+			cursor = DB.cursor()
 			try:
-				self.cursor.execute("DELETE FROM resources "
+				cursor.execute("DELETE FROM resources "
 									"WHERE id = %s", (row_id,))
 				DB.commit()
 			except Exception as e:
 				self.show_message (e)
 				DB.rollback()
+			cursor.close()
 			self.populate_resource_store()
 
 	def block_number_activated (self, menuitem):
@@ -154,14 +156,16 @@ class ResourceManagementGUI:
 		model, path = selection.get_selected_rows()
 		if path != []:
 			phone_number = model[path][11]
+			cursor = DB.cursor()
 			try:
-				self.cursor.execute("INSERT INTO phone_blacklist "
-							"(number, blocked_calls) VALUES (%s, 0)", 
+				cursor.execute("INSERT INTO phone_blacklist "
+							"(number, blocked_calls) VALUES (%s, 0)",
 							(phone_number,))
 				DB.commit()
 			except Exception as e:
 				self.show_message (e)
 				DB.rollback()
+			cursor.close()
 
 	def contact_hub_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
@@ -279,14 +283,16 @@ class ResourceManagementGUI:
 	def populate_notes (self):
 		if self.row_id == None:
 			return
-		self.cursor.execute("SELECT notes FROM resources "
+		cursor = DB.cursor()
+		cursor.execute("SELECT notes FROM resources "
 							"WHERE id = %s", (self.row_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			text = row[0]
 			self.builder.get_object('notes_buffer').set_text(text)
 			break
 		else:
 			self.builder.get_object('notes_buffer').set_text('')
+		cursor.close()
 		DB.rollback()
 
 	def contact_match_func(self, completion, key, iter):
@@ -301,11 +307,13 @@ class ResourceManagementGUI:
 		selection = self.builder.get_object('treeview-selection1')
 		tree_model, path = selection.get_selected_rows()
 		id_ = tree_model[path][0]
-		self.cursor.execute("UPDATE resources "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources "
 							"SET (contact_id, phone_number) = "
 							"(%s, (SELECT phone FROM contacts WHERE id = %s)) "
 							"WHERE id = %s ",
 							(contact_id, contact_id, id_))
+		cursor.close()
 		DB.commit()
 		self.populate_resource_store()
 
@@ -316,33 +324,36 @@ class ResourceManagementGUI:
 	def contact_changed (self, renderer_combo, path, tree_iter):
 		contact_id = self.contact_store[tree_iter][0]
 		id_ = self.resource_store[path][0]
-		self.cursor.execute("UPDATE resources "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources "
 							"SET (contact_id, phone_number) = "
 							"(%s, (SELECT phone FROM contacts WHERE id = %s)) "
 							"WHERE id = %s",
 							(contact_id, contact_id, id_))
+		cursor.close()
 		DB.commit()
 		self.populate_resource_store()
 
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id::text, "
 								"name, "
 								"ext_name, "
 								"phone "
 							"FROM contacts "
 							"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
 		active = self.builder.get_object('tag_combo').get_active()
 		store = self.builder.get_object('tag_store')
 		store.clear()
 		store.append(['', 'All tags', Gdk.RGBA(0, 0, 0, 0)])
-		self.cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
+		cursor.execute("SELECT id::text, tag, red, green, blue, alpha "
 							"FROM resource_tags "
 							"ORDER BY tag")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			tag_id = row[0]
 			tag_name = row[1]
 			rgba = Gdk.RGBA(1, 1, 1, 1)
@@ -351,16 +362,19 @@ class ResourceManagementGUI:
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
 			store.append([tag_id, tag_name, rgba])
+		cursor.close()
 		self.builder.get_object('tag_combo').set_active(active)
 		DB.rollback()
 
 	def new_entry_clicked (self, button):
-		self.cursor.execute("INSERT INTO resources "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO resources "
 								"(tag_id) "
 								"SELECT id FROM resource_tags "
 									"WHERE finished = False LIMIT 1 "
 								"RETURNING id")
-		new_id = self.cursor.fetchone()[0]
+		new_id = cursor.fetchone()[0]
+		cursor.close()
 		DB.commit()
 		self.populate_resource_store()
 		for row in self.resource_store:
@@ -388,9 +402,11 @@ class ResourceManagementGUI:
 	def subject_edited (self, renderer_text, path, text):
 		self.editing = False
 		id_ = self.resource_store[path][0]
-		self.cursor.execute("UPDATE resources "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources "
 							"SET subject = %s "
 							"WHERE id = %s", (text, id_))
+		cursor.close()
 		DB.commit()
 		self.resource_store[path][1] = text
 
@@ -399,9 +415,11 @@ class ResourceManagementGUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		id_ = model[path][0]
-		self.cursor.execute("UPDATE resources "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources "
 							"SET dated_for = %s "
 							"WHERE id = %s", (date, id_))
+		cursor.close()
 		DB.commit()
 		self.populate_resource_store()
 
@@ -415,10 +433,12 @@ class ResourceManagementGUI:
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		row_id = model[path][0]
-		self.cursor.execute("SELECT COALESCE(dated_for, CURRENT_DATE) "
+		cursor = DB.cursor()
+		cursor.execute("SELECT COALESCE(dated_for, CURRENT_DATE) "
 							"FROM resources WHERE id = %s", (row_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.dated_for_calendar.set_datetime(row[0])
+		cursor.close()
 		GLib.idle_add(self.dated_for_calendar.show) # this hides the entry
 		DB.rollback()
 
@@ -467,8 +487,10 @@ class ResourceManagementGUI:
 	def save_notes (self ):
 		if self.timeout_id:
 			GLib.source_remove(self.timeout_id)
-		self.cursor.execute("UPDATE resources SET notes = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources SET notes = %s "
 							"WHERE id = %s", (self.notes, self.row_id))
+		cursor.close()
 		DB.commit()
 		self.timeout_id = None
 
@@ -548,19 +570,22 @@ class ResourceManagementGUI:
 		if result != Gtk.ResponseType.ACCEPT:
 			return
 		subject  = self.builder.get_object('project_name_entry').get_text()
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("INSERT INTO time_clock_projects "
+			cursor.execute("INSERT INTO time_clock_projects "
 								"(name, start_date, active, permanent, "
 								"resource_id) "
 								"VALUES (%s, now(), True, False, %s)"
 								"ON CONFLICT (resource_id) "
 								"DO UPDATE SET name = %s "
-				  				"WHERE time_clock_projects.resource_id = %s", 
+				  				"WHERE time_clock_projects.resource_id = %s",
 								(subject, resource_id, subject, resource_id))
 		except Exception as e:
+			cursor.close()
 			self.show_message (e)
 			DB.rollback ()
 			return
+		cursor.close()
 		DB.commit()
 		if self.builder.get_object('time_clock_checkbutton').get_active() == True:
 			if not self.time_clock:
@@ -608,11 +633,13 @@ class ResourceManagementGUI:
 		self.builder.get_object('sort_by_combo').set_active_id('sort')
 
 	def save_row_ordering (self):
+		cursor = DB.cursor()
 		for row_count, row in enumerate (self.resource_store):
 			row_id = row[0]
-			self.cursor.execute("UPDATE resources "
-								"SET sort = %s WHERE id = %s", 
+			cursor.execute("UPDATE resources "
+								"SET sort = %s WHERE id = %s",
 								(row_count, row_id))
+		cursor.close()
 		DB.commit()
 
 	def no_date_clicked (self, button):
@@ -621,9 +648,11 @@ class ResourceManagementGUI:
 		if path == []:
 			return
 		id_ = model[path][0]
-		self.cursor.execute("UPDATE resources "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources "
 							"SET dated_for = NULL "
 							"WHERE id = %s", ( id_, ))
+		cursor.close()
 		DB.commit()
 		self.populate_resource_store()
 		self.dated_for_calendar.hide()
@@ -632,8 +661,10 @@ class ResourceManagementGUI:
 		active = not self.resource_store[path][9]
 		self.resource_store[path][9] = active
 		id_ = self.resource_store[path][0]
-		self.cursor.execute("UPDATE resources SET to_do = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE resources SET to_do = %s "
 							"WHERE id = %s", (active, id_))
+		cursor.close()
 		DB.commit()
 		
 	def show_message (self, message):

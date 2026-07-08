@@ -29,7 +29,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		if product_id != None:
 			self.product_id = product_id
 		self.exists = True

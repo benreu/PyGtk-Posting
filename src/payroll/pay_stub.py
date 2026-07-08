@@ -41,9 +41,8 @@ class PayStubGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
-		self.calendar = DateTimeCalendar(DB)
+		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
 		self.time_sheet_copy_info = ''
@@ -72,11 +71,13 @@ class PayStubGUI:
 		bank_combo = self.builder.get_object('comboboxtext3')
 		bank_id = bank_combo.get_active_id()
 		bank_combo.remove_all()
-		self.cursor.execute("SELECT number, name FROM gl_accounts WHERE check_writing = True")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name FROM gl_accounts WHERE check_writing = True")
+		for row in cursor.fetchall():
 			bank_number = row[0]
 			bank_name = row[1]
 			bank_combo.append(str(bank_number), bank_name)
+		cursor.close()
 		bank_combo.set_active_id(bank_id)
 
 		
@@ -100,7 +101,8 @@ class PayStubGUI:
 		employee_combo = self.builder.get_object('combobox1')
 		self.employee_store = self.builder.get_object("employee_store")
 		self.employee_store.clear()
-		self.cursor.execute("SELECT DISTINCT employee_id,name " 
+		cursor = DB.cursor()
+		cursor.execute("SELECT DISTINCT employee_id,name "
 							"FROM time_clock_entries "
 							"JOIN contacts ON contacts.id = "
 							"time_clock_entries.employee_id "
@@ -109,10 +111,11 @@ class PayStubGUI:
 							 "DATE_TRUNC('day', time_clock_entries.stop_time) <= %s "
 							  "ORDER BY employee_id ASC",(self.pay_ending_date,))
 
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			employee_id = row[0]
 			employee_name = row[1]
 			self.employee_store.append ([str(employee_id), employee_name])
+		cursor.close()
 		self.employee_store.append ([str(0),"Print All"])
 		#employee_combo.set_active_iter(0) 
 		#print(employee_combo.get_id_column())
@@ -131,8 +134,9 @@ class PayStubGUI:
 
 	def populate_py3o_self_data(self):
 		pp_info = Item()
+		cursor = DB.cursor()
 		#print(str(self.employee_id) + ' line 134')
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 							  "name, "
 							  "address, "
 							  "city, "
@@ -149,9 +153,9 @@ class PayStubGUI:
 							  " employee_info.employee_id = %s "
 							"ORDER BY payroll.employee_info.id DESC LIMIT 1 "
 							,(self.employee_id,))
-		#print(self.cursor.fetchall())					
-		for row in self.cursor.fetchall():
-		
+		#print(cursor.fetchall())
+		for row in cursor.fetchall():
+
 			pp_info.ppd_end = self.end_date_text
 			pp_info.temporary_copy = self.time_sheet_copy_info
 			customer = Item()
@@ -167,11 +171,11 @@ class PayStubGUI:
 			wage = row[8]
 			time_card = Item()
 			#print(row[8])
-		self.cursor.execute("SELECT ss,dentry_hrs,arrived,left_premises,"
+		cursor.execute("SELECT ss,dentry_hrs,arrived,left_premises,"
 		"over_eight,time_out FROM payroll.daily_overtime_consolidation WHERE "
 		"employee_id = %s and ss <= %s",(self.employee_id,self.pay_ending_date))
 		items = list()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 
 			item = Item()
 			item.hrs_today = row[1]
@@ -182,9 +186,9 @@ class PayStubGUI:
 			item.over_eight = row[4]
 			items.append(item)
 		
-		self.cursor.execute("SELECT * FROM company_info")
+		cursor.execute("SELECT * FROM company_info")
 		company = Item()
-		for row6 in self.cursor.fetchall():
+		for row6 in cursor.fetchall():
 			company.name = row6[1]
 			company.street = row6[2]
 			company.city = row6[3]
@@ -200,56 +204,56 @@ class PayStubGUI:
 		pp_info.temporary_copy = 'Temporary Copy'
 		
 		deductions = list()
-		self.cursor.execute("SELECT description,amount FROM payroll.emp_pretax_div_ded"
+		cursor.execute("SELECT description,amount FROM payroll.emp_pretax_div_ded"
 		" WHERE (type,emp_id) = ('subtract',%s) AND pay_stubs_id IS NULL ",(self.employee_id,))
-		for line in self.cursor.fetchall():
+		for line in cursor.fetchall():
 			deductions_item = Item()
 			deductions_item.description = line[0]
 			deductions_item.amount = line[1]
 			deductions.append (deductions_item)
 
 		dividends = list()
-		self.cursor.execute("SELECT description,amount FROM payroll.emp_pretax_div_ded"
+		cursor.execute("SELECT description,amount FROM payroll.emp_pretax_div_ded"
 		" WHERE (type,emp_id) = ('add',%s) AND pay_stubs_id IS NULL ",(self.employee_id,))
-		for line in self.cursor.fetchall():
+		for line in cursor.fetchall():
 			dividends_item = Item()
 			dividends_item.description = line[0]
 			dividends_item.amount = line[1]
 			dividends.append (dividends_item)
 
 		cash_advance = list()
-		self.cursor.execute("SELECT date_inserted,amount_paid"
+		cursor.execute("SELECT date_inserted,amount_paid"
 		" FROM payroll.emp_payments WHERE (employee_id) = (%s) AND pay_stub_id"
 		" IS NULL ",(self.employee_id,))
-		for line in self.cursor.fetchall():
+		for line in cursor.fetchall():
 			cash_advance_item = Item()
 			cash_advance_item.date = str(datetime_to_user_date(line[0]))
 			cash_advance_item.amount = line[1]
 			cash_advance.append (cash_advance_item)
 
-		self.cursor.execute("SELECT sum(amount_paid)"
+		cursor.execute("SELECT sum(amount_paid)"
 		" FROM payroll.emp_payments WHERE (employee_id) = (%s) AND pay_stub_id"
 		" IS NULL",(self.employee_id,))
 		totals = Item()
-		totals.prepayment_totals = self.cursor.fetchone()[0]
+		totals.prepayment_totals = cursor.fetchone()[0]
 		check_number =  self.builder.get_object('entry4').get_text()
-		self.cursor.execute("SELECT payroll.initiate_paystubs(%s,%s)",	  
+		cursor.execute("SELECT payroll.initiate_paystubs(%s,%s)",
 		(self.employee_id,self.end_date_text))
-		self.paystubs_id = self.cursor.fetchone()[0]		
-		self.cursor.execute("SELECT payroll.complete_paystubs(%s,%s,%s)" ,
+		self.paystubs_id = cursor.fetchone()[0]
+		cursor.execute("SELECT payroll.complete_paystubs(%s,%s,%s)" ,
 		(self.paystubs_id,check_number,self.bank_account))
-		i = (self.cursor.fetchone()[0].strip('()')).split(',')
+		i = (cursor.fetchone()[0].strip('()')).split(',')
 		self.wage_ttl_pmt =  i[1]
 		#print(type(self.wage_ttl_pmt))
 		self.emp_payments_id = i[0]
-		self.cursor.execute("SELECT reg_hrs,overtime_hrs,cost_sharing,"
+		cursor.execute("SELECT reg_hrs,overtime_hrs,cost_sharing,"
 		"profit_sharing,s_s_withheld,medicare_withheld,state_withheld,"
 		"fed_withheld,reg_ttl,overtime_ttl,pretax_payment_amnt FROM "
 		"payroll.pay_stubs WHERE id = %s",(self.paystubs_id,))
 
 		totals.chk_payment_info = '' + check_number
 
-		for line in self.cursor.fetchall():
+		for line in cursor.fetchall():
 			totals.days_in_pp = ''
 			totals.av_hr_day = ''
 			totals.ttl_time_out = ''
@@ -268,6 +272,7 @@ class PayStubGUI:
 			totals.federal_with_holding =  line[7]
 		totals.wage_ttl_pmt =  self.wage_ttl_pmt
 		totals.ttl_in_ck_fmt = get_written_check_amount_text (self.wage_ttl_pmt)
+		cursor.close()
 		self.data = dict(contact = customer,company = company,totals = totals,\
 							items = items,pp_info = pp_info,dividends =dividends,
 							deductions = deductions,cash_advance = cash_advance)
@@ -372,7 +377,9 @@ class PayStubGUI:
 		f = open(self.check_file_pdf,'rb')
 		dat = f.read()
 		f.close()
-		self.cursor.execute("UPDATE payroll.emp_payments SET check_pdf = %s WHERE id = %s",(dat,self.emp_payments_id))
+		cursor = DB.cursor()
+		cursor.execute("UPDATE payroll.emp_payments SET check_pdf = %s WHERE id = %s",(dat,self.emp_payments_id))
+		cursor.close()
 
 	def print_time_sheet(self):
 		from py3o.template import Template #import for every invoice or there is
@@ -396,7 +403,9 @@ class PayStubGUI:
 		f = open(self.time_card_pdf,'rb')
 		dat = f.read()
 		f.close()
-		self.cursor.execute("UPDATE payroll.pay_stubs SET timecard_pdf = %s WHERE id = %s",(dat,self.paystubs_id))
+		cursor = DB.cursor()
+		cursor.execute("UPDATE payroll.pay_stubs SET timecard_pdf = %s WHERE id = %s",(dat,self.paystubs_id))
+		cursor.close()
 #dividends window code**********************************************************
 
 	def type_renderer_changed (self, cellrenderercombo, path, treeiter):#path is treeview path 
@@ -452,7 +461,8 @@ class PayStubGUI:
 	def populate_employee_dividends_combobox (self):
 		dividends_employee_combo = self.builder.get_object('comboboxtext4')
 		dividends_employee_combo.remove_all()
-		self.cursor.execute("SELECT DISTINCT employee_id,name " 
+		cursor = DB.cursor()
+		cursor.execute("SELECT DISTINCT employee_id,name "
 							"FROM time_clock_entries "
 							"JOIN contacts ON contacts.id = "
 							"time_clock_entries.employee_id "
@@ -461,16 +471,18 @@ class PayStubGUI:
 							 "DATE_TRUNC('day', time_clock_entries.stop_time) <= %s "
 							  "ORDER BY employee_id ASC",(self.pay_ending_date,))
 		dividends_employee_combo.append (str(0),"Print All")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.employee_id = row[0]
 			employee_name = row[1]
 			dividends_employee_combo.append (str(self.employee_id), employee_name)
+		cursor.close()
 
 	def populate_dividends_store(self):
-		self.cursor.execute("SELECT id,amount,description,pay_stubs_id,type "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id,amount,description,pay_stubs_id,type "
 							"FROM payroll.emp_pretax_div_ded WHERE emp_id"
 							"= %s ",(self.employee_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			paid =  row[3]
 			entry_id = row[0]
 			amount = str(row[1])
@@ -481,8 +493,10 @@ class PayStubGUI:
 					self.dividends_store.append([types,description,amount,"",entry_id,not paid])
 			else:
 				self.dividends_store.append([types,description,amount,"",entry_id,not paid])
+		cursor.close()
 
 	def save_dividends (self, button):
+		cursor = DB.cursor()
 		for row in self.dividends_store:
 			types = row[0]
 			description = row[1]
@@ -490,30 +504,34 @@ class PayStubGUI:
 			entry_id  = row[4]
 			print(entry_id)
 			paid = row[5]
-			
+
 			if paid == False:
+				cursor.close()
 				return
 			if entry_id == 0:
-				self.cursor.execute("INSERT INTO payroll.emp_pretax_div_ded "
+				cursor.execute("INSERT INTO payroll.emp_pretax_div_ded "
 				" (emp_id,amount,description,type) VALUES (%s,%s,%s,%s)"
 				,(self.employee_id,amount,description,types))
 			else:
-				self.cursor.execute("UPDATE payroll.emp_pretax_div_ded "
+				cursor.execute("UPDATE payroll.emp_pretax_div_ded "
 				"SET (amount,description,type) = (%s,%s,%s) WHERE id = %s "
 				,(amount,description,types,entry_id))
+		cursor.close()
 		DB.commit()
 
 #end dividends window code******************************************************
 
 
 	def view_posted_checks (self, menuitem):
-		self.cursor.execute("SELECT check_pdf,employee_id FROM payroll.emp_payments WHERE pay_stub_id > 136")
-		for line in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT check_pdf,employee_id FROM payroll.emp_payments WHERE pay_stub_id > 136")
+		for line in cursor.fetchall():
 			file_data = line[0]
 			emp_id = line[1]
 			f = open("/tmp/test"+ str(emp_id),'wb')
 			f.write(file_data)
 			subprocess.call("xdg-open /tmp/test" + str(emp_id), shell = True)
 			f.close()
+		cursor.close()
 
 	

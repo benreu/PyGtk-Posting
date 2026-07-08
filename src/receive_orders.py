@@ -35,7 +35,6 @@ class ReceiveOrdersGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.purchase_order_store = self.builder.get_object('purchase_order_store')
 		self.receive_order_store = self.builder.get_object('receive_order_store')
@@ -48,22 +47,25 @@ class ReceiveOrdersGUI:
 		window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
-		
+		pass
+
 	def populate_purchase_order_combo(self):
 		self.builder.get_object('button3').set_sensitive(False)
 		self.purchase_order_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM purchase_orders "
 							"WHERE (canceled, invoiced, closed, received) = "
-							"(False, True, True, False) ")	
-		for row in self.cursor.fetchall():
+							"(False, True, True, False) ")
+		for row in cursor.fetchall():
 			self.purchase_order_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def purchase_order_combo_changed(self, combo):
 		self.receive_order_store.clear()
 		po_id = combo.get_active_id()
-		self.cursor.execute("SELECT pli.id, qty::int, product_id, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT pli.id, qty::int, product_id, "
 							"remark, received, "
 							"name, ext_name, cost "
 							"FROM purchase_order_items AS pli "
@@ -71,7 +73,7 @@ class ReceiveOrdersGUI:
 							"AND expense = False "
 							"WHERE purchase_order_id = %s "
 							"ORDER BY id", (po_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			row_id = row[0]
 			qty = row[1]
 			product_id = row[2]
@@ -84,6 +86,7 @@ class ReceiveOrdersGUI:
 			self.receive_order_store.append([row_id, qty, product_id, 
 											product_name, product_ext_name, 
 											remark, received, cost, sell_price])
+		cursor.close()
 		self.check_if_all_products_received()
 		DB.rollback()
 	
@@ -97,9 +100,11 @@ class ReceiveOrdersGUI:
 		location_combo = self.builder.get_object('combobox2')
 		active_id = location_combo.get_active_id()
 		self.location_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM locations ORDER BY name")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM locations ORDER BY name")
+		for row in cursor.fetchall():
 			self.location_store.append(row)
+		cursor.close()
 		if active_id == None :
 			location_combo.set_active(0)
 		else:
@@ -118,8 +123,10 @@ class ReceiveOrdersGUI:
 	def close_purchase_order_clicked (self, button):
 		po_combo = self.builder.get_object('combobox1')
 		po_id = po_combo.get_active_id ()
-		self.cursor.execute("UPDATE purchase_orders SET "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders SET "
 							"received = True WHERE id = %s", (po_id,))
+		cursor.close()
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		inventorying.receive(po_id, location_id)
 		DB.commit()
@@ -133,6 +140,7 @@ class ReceiveOrdersGUI:
 		self.builder.get_object('button3').set_sensitive(True)
 
 	def receive_all_products_clicked(self, button):
+		cursor = DB.cursor()
 		for row in self.receive_order_store:
 			received = row[6]
 			ordered = row[1]
@@ -142,10 +150,11 @@ class ReceiveOrdersGUI:
 			for i in range(difference):
 				GLib.timeout_add(100, self.print_label, product_id)
 			row[6] = ordered
-			self.cursor.execute("UPDATE purchase_order_items "
-								"SET received = %s WHERE id = %s", 
+			cursor.execute("UPDATE purchase_order_items "
+								"SET received = %s WHERE id = %s",
 								(ordered, row_id))
 			DB.commit()
+		cursor.close()
 		self.builder.get_object('button3').set_sensitive(True)
 
 	def received_spinbutton_changed (self, spinbutton):
@@ -162,8 +171,10 @@ class ReceiveOrdersGUI:
 		for i in range(difference):	
 			GLib.timeout_add(10, self.print_label, product_id)
 		self.receive_order_store[path][6] = qty
-		self.cursor.execute("UPDATE purchase_order_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_order_items "
 							"SET received = %s WHERE id = %s", (qty, row_id))
+		cursor.close()
 		DB.commit()
 		self.check_if_all_products_received()
 
@@ -174,11 +185,12 @@ class ReceiveOrdersGUI:
 		label = Item()
 		price = product_retail_price (product_id)
 		label.price = '${:,.2f}'.format(price)
-		self.cursor.execute("SELECT aisle, cart, rack, shelf, cabinet, drawer, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT aisle, cart, rack, shelf, cabinet, drawer, "
 							"bin FROM product_location "
-							"WHERE (product_id, location_id) = (%s, %s)", 
+							"WHERE (product_id, location_id) = (%s, %s)",
 							(product_id, location_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			label.aisle = row[0]
 			label.cart = row[1]
 			label.rack = row[2]
@@ -195,9 +207,9 @@ class ReceiveOrdersGUI:
 			label.cabinet = ''
 			label.drawer = ''
 			label.bin = ''
-		self.cursor.execute("SELECT name, description, barcode "
+		cursor.execute("SELECT name, description, barcode "
 							"FROM products WHERE id = (%s)",(product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			label.name = row[0]
 			label.description = row[1]
 			label.code128 = barcode_generator.makeCode128(row[2])
@@ -208,6 +220,7 @@ class ReceiveOrdersGUI:
 			t = Template(template_dir+"/product_label_template.odt", label_file )
 			t.render(data) #the self.data holds all the info
 			subprocess.call("soffice -p --headless " + label_file, shell = True)
+		cursor.close()
 		DB.rollback()
 
 

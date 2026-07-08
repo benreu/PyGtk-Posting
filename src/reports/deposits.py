@@ -27,7 +27,6 @@ class DepositsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.deposit_store = self.get_object('deposit_store')
 		self.treeview = self.get_object('treeview1')
@@ -37,10 +36,11 @@ class DepositsGUI(Gtk.Builder):
 		window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_deposits_store (self):
-		self.cursor.execute ("SELECT "
+		cursor = DB.cursor()
+		cursor.execute ("SELECT "
 								"gl_entries.id, "
 								"date_inserted::text, "
 								"format_date(date_inserted), "
@@ -54,10 +54,10 @@ class DepositsGUI(Gtk.Builder):
 								"(SELECT gl_entries_deposit_id FROM payments_incoming "
 								"GROUP BY gl_entries_deposit_id ) "
 							"ORDER BY date_inserted")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			row_id = row[0]
 			parent = self.deposit_store.append(None,row)
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"p.id, "
 									"date_inserted::text, "
 									"format_date(date_inserted), "
@@ -68,8 +68,9 @@ class DepositsGUI(Gtk.Builder):
 								"FROM payments_incoming AS p "
 								"JOIN contacts AS c ON c.id = p.customer_id "
 								"WHERE gl_entries_deposit_id = %s", (row_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.deposit_store.append(parent, row)
+		cursor.close()
 		DB.rollback()
 
 	def export_to_pdf_activated (self, menuitem):

@@ -26,7 +26,6 @@ class CustomerMarkupPercentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.customer_markup_store = self.builder.get_object('customer_markup_store')
 		self.populate_markup_store ()
@@ -35,15 +34,17 @@ class CustomerMarkupPercentGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_markup_store (self):
 		self.customer_markup_store.clear()
-		self.cursor.execute("SELECT id::text, name, markup_percent, standard "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, markup_percent, standard "
 							"FROM customer_markup_percent "
 							"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_markup_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def new_clicked (self, button):
@@ -59,12 +60,13 @@ class CustomerMarkupPercentGUI:
 		if path == []:
 			return
 		current_markup_id = model[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("DELETE FROM customer_markup_percent "
+			cursor.execute("DELETE FROM customer_markup_percent "
 								"WHERE id = %s", (current_markup_id,))
 			DB.rollback()
-			self.cursor.execute("UPDATE customer_markup_percent "
-								"SET deleted = True WHERE id = %s", 
+			cursor.execute("UPDATE customer_markup_percent "
+								"SET deleted = True WHERE id = %s",
 								(current_markup_id,))
 		except Exception as e:
 			DB.rollback()
@@ -74,13 +76,14 @@ class CustomerMarkupPercentGUI:
 			dialog.hide()
 			if result == Gtk.ResponseType.ACCEPT:
 				markup_id = self.builder.get_object('combobox1').get_active_id()
-				self.cursor.execute("UPDATE contacts "
+				cursor.execute("UPDATE contacts "
 									"SET markup_percent_id = %s "
-									"WHERE markup_percent_id = %s", 
+									"WHERE markup_percent_id = %s",
 									(markup_id, current_markup_id))
-				self.cursor.execute("UPDATE customer_markup_percent "
-									"SET deleted = True WHERE id = %s", 
+				cursor.execute("UPDATE customer_markup_percent "
+									"SET deleted = True WHERE id = %s",
 									(current_markup_id,))
+		cursor.close()
 		DB.commit()
 		self.builder.get_object('button2').set_sensitive(False)
 		self.populate_markup_store ()
@@ -97,35 +100,39 @@ class CustomerMarkupPercentGUI:
 
 	def default_toggled (self, cell_renderer, path):
 		selected_path = Gtk.TreePath(path)
+		cursor = DB.cursor()
 		for row in self.customer_markup_store:
 			if row.path == selected_path:
 				row[3] = True
-				self.cursor.execute("UPDATE customer_markup_percent "
+				cursor.execute("UPDATE customer_markup_percent "
 									"SET standard = True "
 									"WHERE id = (%s)",[row[0]])
 			else:
 				row[3] = False
-				self.cursor.execute("UPDATE customer_markup_percent "
+				cursor.execute("UPDATE customer_markup_percent "
 									"SET standard = False "
 									"WHERE id = %s",[row[0]])
+		cursor.close()
 		DB.commit()
 
 	def save (self, iter_):
 		row_id = self.customer_markup_store[iter_][0]
 		name = self.customer_markup_store[iter_][1]
 		markup = self.customer_markup_store[iter_][2]
+		cursor = DB.cursor()
 		if row_id == 0:
-			self.cursor.execute("INSERT INTO customer_markup_percent "
+			cursor.execute("INSERT INTO customer_markup_percent "
 								"(name, markup_percent) VALUES (%s, %s) "
-								"RETURNING id", 
+								"RETURNING id",
 								(name, markup))
-			row_id = self.cursor.fetchone()[0]
+			row_id = cursor.fetchone()[0]
 			self.customer_markup_store[iter_][0] = row_id
 		else:
-			self.cursor.execute("UPDATE customer_markup_percent "
+			cursor.execute("UPDATE customer_markup_percent "
 								"SET (name, markup_percent) = (%s, %s) "
-								"WHERE id = %s", 
+								"WHERE id = %s",
 								(name, markup, row_id))
+		cursor.close()
 		DB.commit()
 		
 

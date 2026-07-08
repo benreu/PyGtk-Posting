@@ -27,7 +27,6 @@ class GUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.job_store = self.get_object('job_type_store')
 		self.job_treeview_populate ()
@@ -37,34 +36,40 @@ class GUI (Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def row_activate(self, treeview, path, treeviewcolumn):
 		self.job_id = self.job_store[path][0]
-		self.cursor.execute("SELECT name FROM job_types "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM job_types "
 							"WHERE id = %s", (self.job_id, ) )
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			name = row[0]
 			self.get_object('entry1').set_text(name)
+		cursor.close()
 		DB.rollback()
 
 	def job_treeview_populate (self):
 		self.job_store.clear()
-		self.cursor.execute("SELECT id, name, current_serial_number "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, current_serial_number "
 							"FROM job_types ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.job_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def save(self, widget):
 		job = widget.get_text()
+		cursor = DB.cursor()
 		if self.job_id == 0:
-			self.cursor.execute("INSERT INTO job_types (name) "
+			cursor.execute("INSERT INTO job_types (name) "
 								"VALUES (%s)", (job,))
 		else:
-			self.cursor.execute("UPDATE job_types "
+			cursor.execute("UPDATE job_types "
 								"SET name = %s "
 								"WHERE id = %s", (job, self.job_id))
+		cursor.close()
 		DB.commit()
 		self.job_treeview_populate ()
 
@@ -73,8 +78,10 @@ class GUI (Gtk.Builder):
 		store, path = selection.get_selected_rows ()
 		if path != []:
 			job_id = self.job_store[path][0]
-			self.cursor.execute("UPDATE job_types SET deleted = True "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE job_types SET deleted = True "
 								"WHERE id = %s", (job_id ,))
+			cursor.close()
 			DB.commit()
 			self.job_treeview_populate ()
 

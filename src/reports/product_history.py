@@ -31,7 +31,6 @@ class ProductHistoryGUI (Gtk.Builder):
 		Gtk.Builder.__init__ (self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
@@ -39,10 +38,12 @@ class ProductHistoryGUI (Gtk.Builder):
 		self.invoice_history = None
 
 		self.product_store = self.get_object('product_store')
-		self.cursor.execute("SELECT id::text, name, ext_name FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM products "
 							"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
 		self.window = self.get_object('window1')
 		self.window.show_all()
@@ -56,7 +57,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		product_history.ProductHistoryGUI()
 
 	def destroy (self, window):
-		self.cursor.close()
+		pass
 
 	def notebook_create_window (self, notebook, widget, x, y):
 		window = Gtk.Window()
@@ -100,15 +101,17 @@ class ProductHistoryGUI (Gtk.Builder):
 	def invoice_row_activated (self, treeview, treepath, treeviewcolumn):
 		model = treeview.get_model()
 		file_id = model[treepath][0]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices "
-							"WHERE id = %s AND pdf_data IS NOT NULL", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, pdf_data FROM invoices "
+							"WHERE id = %s AND pdf_data IS NOT NULL",
 							(file_id ,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/" + row[0]
 			file_data = row[1]
 			with open(file_name,'wb') as f:
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_name])
+		cursor.close()
 		DB.rollback()
 
 	def invoice_treeview_button_press_event (self, widget, event):
@@ -166,10 +169,11 @@ class ProductHistoryGUI (Gtk.Builder):
 		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		p_o_id = model[path][0]
-		self.cursor.execute("SELECT name, attached_pdf FROM purchase_orders "
-							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, attached_pdf FROM purchase_orders "
+							"WHERE id = %s AND attached_pdf IS NOT NULL",
 							(p_o_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/" + row[0]
 			file_data = row[1]
 			with open(file_name,'wb') as f:
@@ -178,6 +182,7 @@ class ProductHistoryGUI (Gtk.Builder):
 			break
 		else:
 			self.show_message("No attachment for this Purchase Order")
+		cursor.close()
 		DB.rollback()
 
 	def product_match_func(self, completion, key, iter):
@@ -213,7 +218,8 @@ class ProductHistoryGUI (Gtk.Builder):
 		warranty_store = self.get_object('warranty_store')
 		warranty_store.clear()
 		count = 0
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"snh.id, "
 								"p.name, "
 								"sn.serial_number, "
@@ -227,11 +233,12 @@ class ProductHistoryGUI (Gtk.Builder):
 							"JOIN products AS p ON p.id = sn.product_id "
 							"JOIN contacts AS c ON c.id = snh.contact_id "
 							"WHERE sn.product_id = %s"
-							"ORDER by snh.date_inserted", 
+							"ORDER by snh.date_inserted",
 							(self.product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			warranty_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label8').set_label('Warranty')
 		else:
@@ -243,7 +250,8 @@ class ProductHistoryGUI (Gtk.Builder):
 		po_store.clear()
 		count = 0
 		qty = Decimal()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"po.id, "
 								"date_created::text, "
 								"format_date(date_created), "
@@ -256,12 +264,13 @@ class ProductHistoryGUI (Gtk.Builder):
 							"JOIN purchase_order_items AS poli "
 							"ON poli.purchase_order_id = po.id "
 							"JOIN contacts ON contacts.id = po.vendor_id "
-							"WHERE product_id = %s ORDER by date_created", 
+							"WHERE product_id = %s ORDER by date_created",
 							(self.product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			qty += row[4]
 			po_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label4').set_label('Purchase Orders')
 		else:
@@ -274,7 +283,8 @@ class ProductHistoryGUI (Gtk.Builder):
 		invoice_store.clear()
 		count = 0
 		qty = Decimal()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"i.id, "
 								"dated_for::text, "
 								"format_date(dated_for), "
@@ -290,12 +300,13 @@ class ProductHistoryGUI (Gtk.Builder):
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"JOIN invoice_items AS ii ON ii.invoice_id = i.id "
 							"WHERE (product_id, i.canceled, ii.canceled) = "
-							"(%s, False, False) ORDER BY dated_for", 
+							"(%s, False, False) ORDER BY dated_for",
 							(self.product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			count += 1
 			qty += row[5]
 			invoice_store.append(row)
+		cursor.close()
 		if count == 0:
 			self.get_object('label2').set_label('Invoices')
 		else:
@@ -308,7 +319,8 @@ class ProductHistoryGUI (Gtk.Builder):
 		store.clear()
 		count = 0
 		qty = Decimal()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"mp.id, "
 								"mp.name, "
 								"qty, "
@@ -324,10 +336,11 @@ class ProductHistoryGUI (Gtk.Builder):
 							"WHERE product_id = %s "
 							"GROUP BY mp.id, mp.name, qty "
 							"ORDER BY date_created", (self.product_id,))
-		for row in self.cursor.fetchall():
-			store.append(row) 
+		for row in cursor.fetchall():
+			store.append(row)
 			count+= 1
 			qty += row[2]
+		cursor.close()
 		if count == 0:
 			self.get_object('label3').set_label('Manufacturing')
 		else:

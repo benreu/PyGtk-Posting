@@ -27,7 +27,6 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.account_number = None
 
 		self.account_store = self.builder.get_object('account_treestore')
@@ -156,9 +155,10 @@ class GUI:
 		self.builder.get_object('treeviewcolumn3').set_visible(False)
 		self.builder.get_object('treeviewcolumn4').set_visible(False)
 		self.builder.get_object('treeviewcolumn1').set_visible(True)
-		self.cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT is_parent, number, name FROM gl_accounts "
 							"WHERE parent_number IS Null ORDER BY number")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_amount = 0.00
 			is_parent = row[0]
 			account_number = row[1]
@@ -175,6 +175,7 @@ class GUI:
 			for i in self.get_child_accounts(True, account_number, tree_parent):
 				account_amount += i[1]
 			self.account_treestore.set_value(tree_parent, 4, account_amount)
+		cursor.close()
 
 	def account_match_selected(self, completion, model, iter_):
 		self.account_number = model[iter_][0]
@@ -236,14 +237,16 @@ class GUI:
 	def cursor_double_clicked(self, treeview, path, column):
 		treeiter = self.account_treestore.get_iter(path)
 		account_number = self.account_treestore.get_value(treeiter, 2)
-		self.cursor.execute("SELECT number::text, name, is_parent "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name, is_parent "
 							"FROM gl_accounts "
 							"WHERE number = %s", (account_number, ))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.account_number = row[0]
 			self.account_name = row[1]
 			self.is_parent_account = row[2]
 			self.select_account()
+		cursor.close()
 
 	def parent_child_account_treeview (self):
 		self.account_treestore.clear()

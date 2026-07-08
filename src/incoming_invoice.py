@@ -43,7 +43,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_service_providers ),):
@@ -82,7 +81,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def destroy (self, widget):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def provider_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
@@ -103,28 +101,32 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		combo = self.get_object('combobox1')
 		active_sp = combo.get_active_id()
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE service_provider = True "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.service_provider_store.append(row)
+		cursor.close()
 		combo.set_active_id(active_sp)
 		self.populating = False
 		DB.rollback()
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE check_writing = True ORDER BY name ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.bank_account_store.append(row)
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE cash_account = True ORDER BY name ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.cash_account_store.append(row)
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE credit_card_account = True ORDER BY name ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.credit_card_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def set_shipping_description (self, text):
@@ -444,7 +446,8 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		check_number = self.get_object('entry7').get_text()
 		bank_account = self.get_object('combobox2').get_active_id()
 		contact_id = self.get_object('combobox1').get_active_id()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"name, "
 								"checks_payable_to, "
 								"address, "
@@ -454,7 +457,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 								"phone "
 							"FROM contacts WHERE id = %s",(contact_id,))
 		provider = Item()
-		for line in self.cursor.fetchall():
+		for line in cursor.fetchall():
 			provider.name = line[0]
 			provider.pay_to = line[1]
 			provider.street = line[2]
@@ -463,6 +466,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			provider.zip = line[5]
 			provider.phone = line[6]
 			pay_to = line[1].split()[0]
+		cursor.close()
 		items = list()
 				
 		item = Item()

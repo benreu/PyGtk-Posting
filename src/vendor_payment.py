@@ -37,8 +37,7 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.calendar = DateTimeCalendar ()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
@@ -63,9 +62,6 @@ class GUI:
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
-	def destroy(self, window):
-		self.cursor.close()
-
 	def refresh_clicked (self, button):
 		self.populate_vendor_liststore()
 		self.populate_vendor_invoice_store()
@@ -80,7 +76,8 @@ class GUI:
 
 	def populate_vendor_liststore (self):
 		self.vendor_store.clear()
-		self.cursor.execute("SELECT contacts.id::text, contacts.name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT contacts.id::text, contacts.name "
 							"FROM purchase_orders "
 							"JOIN contacts ON contacts.id = "
 							"purchase_orders.vendor_id "
@@ -88,8 +85,9 @@ class GUI:
 							"(False, True, True, False) "
 							"GROUP BY contacts.id, contacts.name "
 							"ORDER BY contacts.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.vendor_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def vendor_combo_changed (self, combo):
@@ -114,8 +112,9 @@ class GUI:
 	def populate_vendor_invoice_store (self):
 		self.vendor_invoice_store.clear()
 		self.c_c_multi_payment_store.clear()
+		cursor = DB.cursor()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute ("SELECT id, invoice_description, amount_due, "
+			cursor.execute ("SELECT id, invoice_description, amount_due, "
 								"date_created::text, "
 								"format_date(date_created) "
 								"FROM purchase_orders "
@@ -123,15 +122,16 @@ class GUI:
 								"(False, True, False) "
 								"ORDER BY date_created")
 		else:
-			self.cursor.execute ("SELECT id, invoice_description, amount_due, "
+			cursor.execute ("SELECT id, invoice_description, amount_due, "
 								"date_created::text, "
 								"format_date(date_created) "
 								"FROM purchase_orders "
 								"WHERE (vendor_id, canceled, invoiced, paid) = "
 								"(%s, False, True, False) "
 								"ORDER BY date_created", (self.vendor_id, ))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.vendor_invoice_store.append(row)
+		cursor.close()
 		self.check_cash_entries_valid ()
 		self.check_credit_card_entries_valid ()
 		self.check_cheque_entries_valid ()
@@ -152,29 +152,34 @@ class GUI:
 		if path == []:
 			return
 		file_id = model[path][0]
-		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("SELECT attached_pdf FROM purchase_orders "
 							"WHERE id = %s", (file_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/Attachment.pdf"
 			file_data = row[0]
 			if file_data == None:
+				cursor.close()
 				return
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.call("xdg-open %s" % file_name, shell = True)
 			f.close()
+		cursor.close()
 		DB.rollback()
 
 	def populate_bank_combo (self):
 		bank_combo = self.builder.get_object('comboboxtext3')
 		bank_id = bank_combo.get_active_id()
 		bank_combo.remove_all()
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE check_writing = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			bank_number = row[0]
 			bank_name = row[1]
 			bank_combo.append(bank_number, bank_name)
+		cursor.close()
 		bank_combo.set_active_id(bank_id)
 		DB.rollback()
 
@@ -182,9 +187,10 @@ class GUI:
 		credit_card_combo = self.builder.get_object('comboboxtext2')
 		card_id = credit_card_combo.get_active_id()
 		credit_card_combo.remove_all()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE credit_card_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
 			credit_card_combo.append(str(number), name)
@@ -192,12 +198,13 @@ class GUI:
 		cash_combo = self.builder.get_object('comboboxtext1')
 		cash_id = cash_combo.get_active_id()
 		cash_combo.remove_all()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE cash_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			number = row[0]
 			name = row[1]
 			cash_combo.append(str(number), name)
+		cursor.close()
 		cash_combo.set_active_id(cash_id)
 		DB.rollback()
 
@@ -265,7 +272,8 @@ class GUI:
 		check_number =  self.builder.get_object('entry2').get_text()
 		combo = self.builder.get_object('comboboxtext3')
 		checking_account_number = combo.get_active_id ()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"name, "
 								"checks_payable_to, "
 								"address, "
@@ -275,7 +283,7 @@ class GUI:
 								"phone "
 							"FROM contacts WHERE id = %s",(self.vendor_id,))
 		vendor = Item()
-		for line in self.cursor.fetchall():
+		for line in cursor.fetchall():
 			vendor.name = line[0]
 			vendor.pay_to = line[1]
 			vendor.street = line[2]
@@ -284,6 +292,7 @@ class GUI:
 			vendor.zip = line[5]
 			vendor.phone = line[6]
 			pay_to = line[1].split()[0]
+		cursor.close()
 		items = list()
 		for row in self.vendor_invoice_store:
 			if row[3] == True:
@@ -388,8 +397,10 @@ class GUI:
 		self.add_multi_payment (Decimal(1.00))
 
 	def add_multi_payment (self, amount):
-		self.cursor.execute("SELECT format_date(%s)", (self.date,))
-		date = self.cursor.fetchone()[0]
+		cursor = DB.cursor()
+		cursor.execute("SELECT format_date(%s)", (self.date,))
+		date = cursor.fetchone()[0]
+		cursor.close()
 		self.c_c_multi_payment_store.append([amount, str(self.date), date])
 		self.calculate_multi_payment_amount ()
 

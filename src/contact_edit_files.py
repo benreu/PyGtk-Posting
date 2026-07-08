@@ -28,7 +28,6 @@ class ContactEditFilesGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.contact_id = contact_id
 		self.window = self.get_object('window1')
 		self.window.set_transient_for(parent_window)
@@ -37,10 +36,11 @@ class ContactEditFilesGUI(Gtk.Builder):
 
 	def destroy (self, widget):
 		if self.lock_acquired:
-			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+			cursor = DB.cursor()
+			cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 						(CONTACT_FILES_LOCK_CLASSID, self.contact_id))
+			cursor.close()
 			self.lock_acquired = False
-		self.cursor.close()
 		DB.rollback()
 
 	def populate_file_store (self):
@@ -78,14 +78,16 @@ class ContactEditFilesGUI(Gtk.Builder):
 		if path == []:
 			return
 		file_id = model[path][0]
-		self.cursor.execute("SELECT file_data, name FROM files "
+		cursor = DB.cursor()
+		cursor.execute("SELECT file_data, name FROM files "
 							"WHERE id = %s", (file_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			pdf_data = row[0]
 			pdf_path = "/tmp/%s" % row[1]
 			with open(pdf_path,'wb') as f:
 				f.write(pdf_data)
 			subprocess.Popen(["xdg-open", pdf_path])
+		cursor.close()
 
 	def delete_file_clicked (self, button):
 		selection = self.get_object('treeview-selection1')
@@ -109,7 +111,9 @@ class ContactEditFilesGUI(Gtk.Builder):
 		result = dialog.run()
 		if result == Gtk.ResponseType.ACCEPT:
 			file_id = model[path][0]
-			self.cursor.execute("DELETE FROM files WHERE id = %s", (file_id,))
+			cursor = DB.cursor()
+			cursor.execute("DELETE FROM files WHERE id = %s", (file_id,))
+			cursor.close()
 			DB.commit ()
 			self.populate_file_store ()
 		dialog.hide()
@@ -128,10 +132,12 @@ class ContactEditFilesGUI(Gtk.Builder):
 				data = f.read()
 			split_filename = path.split("/")
 			name = split_filename[-1]
-			self.cursor.execute("INSERT INTO files "
+			cursor = DB.cursor()
+			cursor.execute("INSERT INTO files "
 								"(file_data, contact_id, name) "
-								"VALUES (%s, %s, %s)", 
+								"VALUES (%s, %s, %s)",
 								(data, self.contact_id, name))
+			cursor.close()
 			DB.commit()
 			self.populate_file_store()
 

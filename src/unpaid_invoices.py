@@ -29,7 +29,6 @@ class GUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.store = self.get_object('unpaid_invoice_store')
 		self.window = self.get_object('window')
@@ -351,7 +350,8 @@ class GUI (Gtk.Builder):
 
 		def on_yes_clicked(_):
 			transactor.cancel_invoice(self.date, self.invoice_id)
-			self.cursor.execute("UPDATE invoices SET canceled = True "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE invoices SET canceled = True "
 								"WHERE id = %s"
 								"; "
 								"UPDATE serial_numbers "
@@ -360,6 +360,7 @@ class GUI (Gtk.Builder):
 								"(SELECT id FROM invoice_items "
 								"WHERE invoice_id = %s)",
 								(self.invoice_id, self.invoice_id))
+			cursor.close()
 			DB.commit()
 			self.populate_unpaid_invoices ()
 			cancel_window.destroy()
@@ -376,15 +377,17 @@ class GUI (Gtk.Builder):
 		if path != []:
 			tree_iter = model.get_iter(path[0])
 			invoice_id = model.get_value(tree_iter, 0)
-			self.cursor.execute("SELECT name, pdf_data FROM invoices "
+			cursor = DB.cursor()
+			cursor.execute("SELECT name, pdf_data FROM invoices "
 								"WHERE id = %s", (invoice_id,))
-			for cell in self.cursor.fetchall():
+			for cell in cursor.fetchall():
 				file_name = cell[0] + ".pdf"
 				file_data = cell[1]
 				f = open("/tmp/" + file_name,'wb')
 				f.write(file_data)
 				subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 				f.close()
+			cursor.close()
 			DB.rollback()
 
 	def focus(self, window, event):

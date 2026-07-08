@@ -28,8 +28,7 @@ class InventoryAdjustmentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.product_store = self.builder.get_object('product_store')
 		self.location_store = self.builder.get_object('location_store')
 		product_completion = self.builder.get_object('product_completion')
@@ -43,9 +42,6 @@ class InventoryAdjustmentGUI:
 		self.window = self.builder.get_object('window')
 		self.window.show_all()
 
-	def destroy(self, window = None):
-		self.cursor.close()
-
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
 		for text in split_search_text:
@@ -54,15 +50,17 @@ class InventoryAdjustmentGUI:
 		return True
 
 	def populate_stores (self, product_id):
-		self.cursor.execute("SELECT id::text, name FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, stock, id) "
 							"= (False, True, %s) ORDER BY name", (product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
-		self.cursor.execute("SELECT id::text, name FROM locations "
+		cursor.execute("SELECT id::text, name FROM locations "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.location_store.append(row)
+		cursor.close()
 		self.builder.get_object('combobox3').set_active(0)
 		DB.rollback()
 
@@ -77,11 +75,12 @@ class InventoryAdjustmentGUI:
 		self.product_selected (self.product_id)
 
 	def product_selected (self, product_id):
-		self.cursor.execute("SELECT inventory_enabled, cost, inventory_account, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT inventory_enabled, cost, inventory_account, "
 							"default_expense_account FROM products "
 							"WHERE id = %s", (product_id,))
 		(inventory_enabled, self.cost, self.inventory_account,
-			self.default_expense_account) = self.cursor.fetchone()
+			self.default_expense_account) = cursor.fetchone()
 		if inventory_enabled == True:
 			self.populate_adjustment_reason_combobox ()
 		else:
@@ -89,12 +88,13 @@ class InventoryAdjustmentGUI:
 			combo.remove_all()
 			combo.append("1","Starting inventory")
 		inventory = 0
-		self.cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+		cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
 							"FROM inventory_transactions "
 							"WHERE product_id = %s "
 							"GROUP BY product_id", (product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			inventory = row[0]
+		cursor.close()
 		self.builder.get_object('label24').set_text(str(inventory))
 		self.builder.get_object('label_no_inventory_account').set_visible(
 													self.inventory_account == None)
@@ -108,11 +108,13 @@ class InventoryAdjustmentGUI:
 	def inventory_adjustment_spinbutton_changed(self, spinbutton):
 		adjustment_amount = spinbutton.get_value()
 		inventory = 0
-		self.cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+		cursor = DB.cursor()
+		cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
 							"FROM inventory_transactions "
 							"WHERE product_id = %s", (self.product_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			inventory = row[0]
+		cursor.close()
 		current_inventory = str(inventory + adjustment_amount)
 		self.builder.get_object('label23').set_text(current_inventory)
 		DB.rollback()
@@ -127,6 +129,7 @@ class InventoryAdjustmentGUI:
 		adjustment_amount = self.builder.get_object('spinbutton12').get_value()
 		adjustment_reason = self.builder.get_object('comboboxtext3').get_active_text()
 		location_id = self.builder.get_object('combobox3').get_active_id()
+		cursor = DB.cursor()
 		if adjustment_amount != 0:
 			gl_entries_id = None
 			if adjustment_amount > 0:
@@ -134,15 +137,16 @@ class InventoryAdjustmentGUI:
 				gl_entries_id = transactor.post_inventory_adjustment(
 									datetime.today(), adjustment_reason, amount,
 									self.inventory_account, self.default_expense_account)
-			self.cursor.execute("INSERT INTO inventory_transactions "
+			cursor.execute("INSERT INTO inventory_transactions "
 								"(product_id, qty_in, date_inserted, "
 								"location_id, price, reason, gl_entries_id) "
 								"VALUES (%s, %s, %s, %s, %s, %s, %s)",
 								(self.product_id, adjustment_amount,
 								datetime.today(), location_id, self.cost,
 								adjustment_reason, gl_entries_id))
-		self.cursor.execute("UPDATE products SET inventory_enabled = True "
+		cursor.execute("UPDATE products SET inventory_enabled = True "
 							"WHERE id = %s", (self.product_id,))
+		cursor.close()
 		DB.commit()
 		self.builder.get_object('spinbutton12').set_value(0)
 		self.builder.get_object('comboboxtext3').set_active(0-1)

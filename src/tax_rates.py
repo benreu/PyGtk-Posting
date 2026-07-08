@@ -25,8 +25,7 @@ class TaxRateGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.tax_store = self.builder.get_object("tax_store")
 		self.account_store = self.builder.get_object("tax_received_account_store")
 		
@@ -38,19 +37,22 @@ class TaxRateGUI:
 		self.new()
 		
 	def destroy(self, window):
-		self.cursor.close()
+		pass
 
 	def populate_account_store (self):
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
 							"(is_parent, type) = (False, 5) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.account_store.append(row)
+		cursor.close()
 		self.builder.get_object('treeview-selection').unselect_all()
 		DB.rollback()
 
 	def populate_tax_rates_store(self):
 		self.tax_store.clear()
-		self.cursor.execute("SELECT tr.id::text, tr.name, rate::text, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT tr.id::text, tr.name, rate::text, "
 							"standard, exemption, "
 							"tax_letter, COALESCE(gl_accounts.name, '') "
 							"FROM tax_rates AS tr "
@@ -58,8 +60,9 @@ class TaxRateGUI:
 							"ON gl_accounts.number = tr.tax_received_account "
 							"WHERE deleted = False "
 							"ORDER BY tr.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.tax_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def row_activate(self, treeview, path, treeviewcolumn):
@@ -69,11 +72,12 @@ class TaxRateGUI:
 			self.builder.get_object('button2').set_sensitive(False)
 		else:
 			self.builder.get_object('button2').set_sensitive(True)
-		self.cursor.execute("SELECT name, rate, exemption, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, rate, exemption, "
 							"exemption_template_path, tax_letter, "
 							"tax_received_account FROM tax_rates "
 							"WHERE id = (%s)",[self.tax_rate_id])
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.builder.get_object('entry3').set_text(row[0])
 			tax_rate = str(row[1])
 			self.builder.get_object('spinbutton5').set_value(row[1])
@@ -86,41 +90,46 @@ class TaxRateGUI:
 				self.builder.get_object('filechooserbutton1').unselect_all()
 			self.builder.get_object('entry1').set_text(row[4])
 			self.builder.get_object('combobox1').set_active_id(str(row[5]))
+		cursor.close()
 		DB.rollback()
 
 	def update_default(self, cell_renderer, path):
 		selected_path = Gtk.TreePath(path)
+		cursor = DB.cursor()
 		for row in self.tax_store:
 			#print row[2]
 			if row.path == selected_path:
 				row[3] = True
-				self.cursor.execute("UPDATE tax_rates SET standard = True "
+				cursor.execute("UPDATE tax_rates SET standard = True "
 									"WHERE id = (%s)",[row[0]])
 			else:
 				row[3] = False
-				self.cursor.execute("UPDATE tax_rates SET standard = False "
+				cursor.execute("UPDATE tax_rates SET standard = False "
 									"WHERE id = %s",[row[0]])
+		cursor.close()
 		DB.commit()
 
 	def exemption_checkbutton_toggled (self, checkbutton):
 		active = checkbutton.get_active()
 		self.builder.get_object('filechooserbutton1').set_sensitive(active)
 		self.builder.get_object('spinbutton5').set_sensitive(not active)
+		cursor = DB.cursor()
 		if active == True:
-			self.cursor.execute("SELECT exemption_template_path FROM tax_rates "
+			cursor.execute("SELECT exemption_template_path FROM tax_rates "
 								"WHERE id = %s", (self.tax_rate_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				template_path = row[0]
 				if template_path != None :
-					self.builder.get_object('filechooserbutton1').set_filename( 
+					self.builder.get_object('filechooserbutton1').set_filename(
 														template_path)
 			self.builder.get_object('spinbutton5').set_value(0.00)
 		else:
-			self.cursor.execute("SELECT rate FROM tax_rates WHERE id = %s", 
+			cursor.execute("SELECT rate FROM tax_rates WHERE id = %s",
 								(self.tax_rate_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.builder.get_object('spinbutton5').set_value(float(row[0]))
 			self.builder.get_object('filechooserbutton1').unselect_all ()
+		cursor.close()
 				
 	def new(self, button = None):
 		self.tax_rate_id = 0
@@ -139,31 +148,34 @@ class TaxRateGUI:
 		tax_account = self.builder.get_object('combobox1').get_active_id()
 		if exemption == False:
 			file_path = None
+		cursor = DB.cursor()
 		if self.tax_rate_id == 0:
-			self.cursor.execute("INSERT INTO tax_rates (name, rate, standard, "
+			cursor.execute("INSERT INTO tax_rates (name, rate, standard, "
 								"exemption, exemption_template_path, deleted, "
 								"tax_letter, tax_received_account) "
 								"VALUES (%s, %s, False, %s, %s, False, %s, %s)",
-								(name, rate, exemption, file_path, tax_letter, 
+								(name, rate, exemption, file_path, tax_letter,
 								tax_account))
 		else:
-			self.cursor.execute("UPDATE tax_rates SET (name, rate, "
+			cursor.execute("UPDATE tax_rates SET (name, rate, "
 								"exemption, exemption_template_path, "
 								"tax_letter, tax_received_account) "
 								"= (%s, %s, %s, %s, %s, %s) "
 								"WHERE id = %s",
-								(name, rate, exemption, file_path, tax_letter, 
+								(name, rate, exemption, file_path, tax_letter,
 								tax_account, self.tax_rate_id))
+		cursor.close()
 		DB.commit()
 		self.populate_tax_rates_store ()
-			
+
 	def delete(self, widget):
+		cursor = DB.cursor()
 		try:
 			#verify no conflicting FK's
-			self.cursor.execute("DELETE FROM tax_rates WHERE id = %s",
+			cursor.execute("DELETE FROM tax_rates WHERE id = %s",
 												(self.tax_rate_id,))
 			DB.rollback()
-			self.cursor.execute("UPDATE tax_rates SET deleted = true "
+			cursor.execute("UPDATE tax_rates SET deleted = true "
 								"WHERE id = %s", (self.tax_rate_id,))
 			DB.commit()
 		except Exception as e:
@@ -176,12 +188,13 @@ class TaxRateGUI:
 			dialog.hide()
 			if result == Gtk.ResponseType.ACCEPT:
 				new_tax_id = self.builder.get_object('combobox2').get_active_id()
-				self.cursor.execute("UPDATE products SET tax_rate_id = %s "
+				cursor.execute("UPDATE products SET tax_rate_id = %s "
 									"WHERE tax_rate_id = %s",
 									(new_tax_id, self.tax_rate_id))
-				self.cursor.execute("UPDATE tax_rates SET deleted = true "
+				cursor.execute("UPDATE tax_rates SET deleted = true "
 									"WHERE id = %s", (self.tax_rate_id,))
 			DB.commit()
+		cursor.close()
 		self.populate_tax_rates_store()
 
 	def tax_rate_combo_changed (self, combo):

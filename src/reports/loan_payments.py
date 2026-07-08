@@ -27,7 +27,6 @@ class LoanPaymentsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.loan_payment_store = self.get_object('loan_payments_store')
 		self.loan_store = self.get_object('loan_store')
@@ -53,7 +52,6 @@ class LoanPaymentsGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 
@@ -62,11 +60,13 @@ class LoanPaymentsGUI(Gtk.Builder):
 		cellrenderer.set_property("text", amount)
 
 	def populate_loans (self):
-		self.cursor.execute("SELECT l.id::text, l.description "
+		cursor = DB.cursor()
+		cursor.execute("SELECT l.id::text, l.description "
 							"FROM loans AS l "
 							"ORDER BY description")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.loan_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def loan_combo_changed (self, combo):

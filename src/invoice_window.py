@@ -58,7 +58,6 @@ class InvoiceGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.window = self.builder.get_object('window')
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
@@ -108,15 +107,16 @@ class InvoiceGUI:
 
 		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
 			cursor = DB.cursor()
-			self.cursor.execute("SELECT customer_id, "
+			cursor.execute("SELECT customer_id, "
 									"COALESCE(dated_for, CURRENT_DATE), "
 									"format_date(COALESCE(dated_for, CURRENT_DATE)) "
 								"FROM invoices "
 								"WHERE id = %s", (invoice_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				customer_id = row[0]
 				self.datetime = row[1] # load separately from calendar, in case date has a problem
 				self.builder.get_object('entry1').set_text(row[2])
+			cursor.close()
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
 			self.invoice_id = invoice_id
 			self.set_widgets_sensitive ()
@@ -131,13 +131,15 @@ class InvoiceGUI:
 		GLib.idle_add(self.load_settings)
 
 	def load_settings (self):
-		self.cursor.execute("SELECT column_id, visible FROM settings.invoice_columns")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT column_id, visible FROM settings.invoice_columns")
+		for row in cursor.fetchall():
 			column_id = row[0]
 			visible = row[1]
 			self.builder.get_object(column_id).set_visible(visible)
-		self.cursor.execute("SELECT print_direct, email_when_possible FROM settings")
-		print_direct, email = self.cursor.fetchone()
+		cursor.execute("SELECT print_direct, email_when_possible FROM settings")
+		print_direct, email = cursor.fetchone()
+		cursor.close()
 		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
 		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
 		DB.rollback()
@@ -149,11 +151,13 @@ class InvoiceGUI:
 		location_combo = self.builder.get_object('combobox2')
 		active_location = location_combo.get_active_id()
 		self.location_store.clear()
-		self.cursor.execute("SELECT id, name FROM locations ORDER BY name")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM locations ORDER BY name")
+		for row in cursor.fetchall():
 			location_id = row[0]
 			location_name = row[1]
 			self.location_store.append([str(location_id), location_name])
+		cursor.close()
 		location_combo.set_active_id(active_location)
 		DB.rollback()
 
@@ -164,9 +168,11 @@ class InvoiceGUI:
 		if result == Gtk.ResponseType.ACCEPT:
 			combo = self.builder.get_object('combobox3')
 			transfer_customer_id = combo.get_active_id()
-			self.cursor.execute("UPDATE invoices SET customer_id = %s "
-								"WHERE id = %s", 
+			cursor = DB.cursor()
+			cursor.execute("UPDATE invoices SET customer_id = %s "
+								"WHERE id = %s",
 								(transfer_customer_id, self.invoice_id))
+			cursor.close()
 			DB.commit()
 			combo = self.builder.get_object('combobox1')
 			combo.set_active_id(transfer_customer_id)
@@ -191,15 +197,18 @@ class InvoiceGUI:
 		barcode = entry.get_text()
 		if barcode == "":
 			return # blank barcode
-		self.cursor.execute("SELECT id FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id FROM products "
 							"WHERE (barcode, deleted) = "
 							"(%s, False)", (barcode,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			product_id = row[0]
 			break
 		else:
+			cursor.close()
 			DB.rollback()
 			return
+		cursor.close()
 		DB.rollback()
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
 			for row in self.invoice_store:
@@ -282,7 +291,6 @@ class InvoiceGUI:
 	def destroy(self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def focus (self, window, event):
 		self.populate_location_store ()
@@ -295,10 +303,12 @@ class InvoiceGUI:
 			cancel_time_import_menuitem.set_visible(False)
 			if path != []:
 				line_id = model[path][0]
-				self.cursor.execute("SELECT id FROM time_clock_entries "
-									"WHERE invoice_line_id = %s LIMIT 1", 
+				cursor = DB.cursor()
+				cursor.execute("SELECT id FROM time_clock_entries "
+									"WHERE invoice_line_id = %s LIMIT 1",
 									(line_id,))
-				self.time_clock_entries_ids = self.cursor.fetchall()
+				self.time_clock_entries_ids = cursor.fetchall()
+				cursor.close()
 				for row in self.time_clock_entries_ids:
 					cancel_time_import_menuitem.set_visible(True)
 			menu = self.builder.get_object('invoice_item_menu')
@@ -306,10 +316,12 @@ class InvoiceGUI:
 		DB.rollback()
 
 	def cancel_time_clock_import_activated (self, menuitem):
+		cursor = DB.cursor()
 		for row in self.time_clock_entries_ids:
-			self.cursor.execute("UPDATE time_clock_entries "
+			cursor.execute("UPDATE time_clock_entries "
 								"SET (invoiced, invoice_line_id) = "
 								"(False, NULL) WHERE id = %s", (row[0],))
+		cursor.close()
 		DB.commit()
 
 	def refresh_price_activated (self, menuitem):
@@ -368,11 +380,13 @@ class InvoiceGUI:
 		self.save_row_ordering()
 
 	def save_row_ordering (self):
+		cursor = DB.cursor()
 		for row_count, row in enumerate (self.invoice_store):
 			row_id = row[0]
-			self.cursor.execute("UPDATE invoice_items "
-								"SET sort = %s WHERE id = %s", 
+			cursor.execute("UPDATE invoice_items "
+								"SET sort = %s WHERE id = %s",
 								(row_count, row_id))
+		cursor.close()
 		DB.commit()
 
 	def tax_exemption_window (self, widget):
@@ -401,12 +415,14 @@ class InvoiceGUI:
 	def populate_document_list (self):
 		selection = self.builder.get_object('treeview-selection4')
 		self.document_list_store.clear()
-		self.cursor.execute("SELECT id, name, doc_type, active "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, doc_type, active "
 							"FROM invoices "
 							"WHERE (customer_id, posted, canceled) = "
 							"(%s, False, False)", (self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.document_list_store.append (row)
+		cursor.close()
 		for row in self.document_list_store:
 			if row[0] == self.invoice_id:
 				selection.select_path(row.path)
@@ -416,8 +432,10 @@ class InvoiceGUI:
 		active = self.document_list_store[path][3]
 		invoice_id = self.document_list_store[path][0]
 		self.document_list_store[path][3] = not active
-		self.cursor.execute("UPDATE invoices SET active = %s WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET active = %s WHERE id = %s",
 							(not active, invoice_id))
+		cursor.close()
 		DB.commit()
 
 	def document_window_delete (self, window, event):
@@ -426,24 +444,27 @@ class InvoiceGUI:
 
 	def document_list_row_activated (self, treeview, path, column):
 		self.invoice_id = self.document_list_store[path][0]
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"comments, "
 								"COALESCE(dated_for, now()) "
 							"FROM invoices WHERE id = %s",
 							(self.invoice_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			comments = row[0]
 			date = row[1]
 			self.builder.get_object("comment_buffer").set_text(comments)
 			self.calendar.set_date(date)
+		cursor.close()
 		self.document_type = self.document_list_store[path][2]
 		self.populate_invoice_items()
 		self.calculate_totals()
 		DB.rollback()
 
 	def update_invoice_name (self, document_prefix):
-		self.cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
-		name = self.cursor.fetchone()[0]
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
+		name = cursor.fetchone()[0]
 		split_name = name.split(' ')
 		name_str = ""
 		for i in split_name:
@@ -452,14 +473,17 @@ class InvoiceGUI:
 		invoice_date = str(self.datetime)[0:10]
 		doc_prefix = document_prefix[0:3]
 		doc_name = doc_prefix + "_" + str(self.invoice_id) + "_"  + name + "_" + invoice_date
-		self.cursor.execute("UPDATE invoices SET name = %s WHERE id = %s", (doc_name, self.invoice_id))
+		cursor.execute("UPDATE invoices SET name = %s WHERE id = %s", (doc_name, self.invoice_id))
+		cursor.close()
 		DB.commit()
 
 	def document_type_edited(self, cell_renderer, path, text):
 		self.document_type = text
 		self.update_invoice_name (text)
-		self.cursor.execute("UPDATE invoices SET doc_type = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET doc_type = %s "
 							"WHERE id = %s", (text, self.invoice_id))
+		cursor.close()
 		DB.commit()
 		self.populate_document_list()
 		
@@ -468,8 +492,10 @@ class InvoiceGUI:
 		contacts_overview.ContactsOverviewGUI()
 
 	def delete_invoice_clicked (self, button):
-		self.cursor.execute("UPDATE invoices SET canceled = True "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET canceled = True "
 							"WHERE id = %s", (self.invoice_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_document_list ()
 		self.invoice_store.clear()
@@ -482,8 +508,10 @@ class InvoiceGUI:
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
-		self.cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s",
 													(comment, self.invoice_id))
+		cursor.close()
 		DB.commit()
 		self.invoice = None  #comments changed, recreate odt file
 
@@ -529,14 +557,16 @@ class InvoiceGUI:
 			self.invoice.print_dialog(self.window)
 		self.invoice.post()
 		if self.builder.get_object('menuitem4').get_active() == True:
-			self.cursor.execute("SELECT * FROM contacts WHERE id = %s", 
+			cursor = DB.cursor()
+			cursor.execute("SELECT * FROM contacts WHERE id = %s",
 														(self.customer_id, ))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				name = row[1]
 				email = row[9]
 				if email != "":
 					email = "%s < %s >" % (name, email)
 					self.invoice.email(email, self.invoice.total)
+			cursor.close()
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		from inventory import inventorying
 		inventorying.sell(self.invoice_store, location_id, self.customer_id, self.datetime)
@@ -545,7 +575,8 @@ class InvoiceGUI:
 
 	def populate_invoice_items (self):
 		self.invoice_store.clear()
-		self.cursor.execute("SELECT ili.id, qty, product_id, products.name, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT ili.id, qty, product_id, products.name, "
 							"ext_name, remark, price::text, tax::text, ext_price::text, "
 							"ili.tax_rate_id, COALESCE(tax_letter, ''), "
 							"products.invoice_serial_numbers "
@@ -555,7 +586,7 @@ class InvoiceGUI:
 							"ON tax_rates.id = ili.tax_rate_id "
 							"WHERE (invoice_id, canceled) = (%s, False) "
 							"ORDER BY ili.sort, ili.id", (self.invoice_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			id = row[0]
 			qty = row[1]
 			product_id = row[2]
@@ -573,20 +604,23 @@ class InvoiceGUI:
 				qty = int(qty)
 			self.invoice_store.append([id, str(qty), product_id, product_name, 
 										ext_name, remark, price, tax, 
-										ext_price, tax_rate_id, False, 
+										ext_price, tax_rate_id, False,
 										tax_letter, serial_number])
+		cursor.close()
 		self.check_serial_numbers()
 		self.calculate_totals()
 		DB.rollback()
-			
+
 	def tax_exemption_combo_changed(self, combo):
 		'''if tax_rate_id = 0, trigger will use default tax rate'''
 		if self.populating == True:
 			return
 		self.tax_rate_id = combo.get_active_id()
-		self.cursor.execute("UPDATE invoice_items SET tax_rate_id = %s "
-							"WHERE invoice_id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoice_items SET tax_rate_id = %s "
+							"WHERE invoice_id = %s",
 							(self.tax_rate_id, self.invoice_id))
+		cursor.close()
 		DB.commit()
 		self.populate_invoice_items ()
 		self.calculate_totals ()
@@ -595,7 +629,8 @@ class InvoiceGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id::text, "
 								"name || '   Unpaid : ' || "
 								"(( SELECT COALESCE(SUM(amount_due), 0.00) "
@@ -605,13 +640,14 @@ class InvoiceGUI:
 								"(SELECT COALESCE(SUM(amount), 0.00) "
 								"FROM payments_incoming "
 								"WHERE (customer_id, misc_income) = "
-								"(c_outer.id, False) ))::money, " 
+								"(c_outer.id, False) ))::money, "
 								"ext_name "
 							"FROM contacts AS c_outer "
 							"WHERE (deleted, customer) = "
 							"(False, True) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 		
 	def customer_match_selected(self, completion, model, iter):
@@ -639,16 +675,18 @@ class InvoiceGUI:
 		exemption_combo.remove_all()
 		exemption_combo.append('0', "No exemption")
 		final_id = '0'
-		self.cursor.execute("SELECT tax_rates.id, tax_rates.name FROM "
+		cursor = DB.cursor()
+		cursor.execute("SELECT tax_rates.id, tax_rates.name FROM "
 							"customer_tax_exemptions "
 							"JOIN tax_rates "
 							"ON customer_tax_exemptions.tax_rate_id = "
 							"tax_rates.id "
 							"WHERE customer_tax_exemptions.customer_id = (%s)",
 							(self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			exemption_combo.append(str(row[0]), row[1])
 			final_id = str(row[0])
+		cursor.close()
 		if active == None:
 			self.populating = False
 			exemption_combo.set_active_id(final_id)
@@ -658,9 +696,10 @@ class InvoiceGUI:
 		DB.rollback()
 
 	def customer_selected(self, name_id):
-		self.cursor.execute("SELECT address, phone, city, state, zip "
+		cursor = DB.cursor()
+		cursor.execute("SELECT address, phone, city, state, zip "
 							"FROM contacts WHERE id = (%s)",(name_id,))
-		for row in self.cursor.fetchall() :
+		for row in cursor.fetchall() :
 			self.builder.get_object('entry6').set_text(row[0])
 			self.builder.get_object('entry8').set_text(row[1])
 			self.builder.get_object('entry15').set_text(row[2])
@@ -668,10 +707,10 @@ class InvoiceGUI:
 			self.builder.get_object('entry17').set_text(row[4])
 		self.populate_tax_exemption_combo ()
 		self.set_widgets_sensitive ()
-		self.cursor.execute("SELECT id, comments FROM invoices "
-							"WHERE (customer_id, posted) = (%s, False) ", 
+		cursor.execute("SELECT id, comments FROM invoices "
+							"WHERE (customer_id, posted) = (%s, False) ",
 							(name_id,))
-		tupl = self.cursor.fetchall()
+		tupl = cursor.fetchall()
 		if len(tupl) > 1:
 			self.invoice_id = 0
 			self.show_document_list_window ()
@@ -684,14 +723,15 @@ class InvoiceGUI:
 			self.invoice_id = 0
 			self.builder.get_object("comment_buffer").set_text('')
 		self.populate_invoice_items()
-		self.cursor.execute("SELECT dated_for FROM invoices WHERE id = %s "
+		cursor.execute("SELECT dated_for FROM invoices WHERE id = %s "
 							"AND dated_for IS NOT NULL", (self.invoice_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			date = row[0]
 			self.calendar.set_date(date)
 			break
 		else:
 			self.calendar.set_today()
+		cursor.close()
 		DB.rollback()
 
 	################## start qty
@@ -706,19 +746,21 @@ class InvoiceGUI:
 		iter_ = self.invoice_store.get_iter (path)
 		self.check_invoice_item_id (iter_)
 		line_id = self.invoice_store[iter_][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE invoice_items SET qty = %s "
+			cursor.execute("UPDATE invoice_items SET qty = %s "
 								"WHERE id = %s;"
 								"SELECT qty::text, price::text, "
 									"ext_price::text, tax::text "
-								"FROM invoice_items WHERE id = %s", 
+								"FROM invoice_items WHERE id = %s",
 								(text, line_id, line_id))
 			DB.commit()
 		except psycopg2.DataError as e:
 			self.show_error_dialog (str(e))
+			cursor.close()
 			DB.rollback()
 			return
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			qty = row[0]
 			price = row[1]
 			ext_price = row[2]
@@ -729,6 +771,7 @@ class InvoiceGUI:
 			self.invoice_store[iter_][6] = price
 			self.invoice_store[iter_][7] = tax
 			self.invoice_store[iter_][8] = ext_price
+		cursor.close()
 		self.check_serial_numbers ()
 		self.calculate_totals ()
 
@@ -738,8 +781,10 @@ class InvoiceGUI:
 		iter_ = self.invoice_store.get_iter(path)
 		self.invoice_store[iter_][5] = text
 		line_id = self.invoice_store[iter_][0]
-		self.cursor.execute("UPDATE invoice_items SET remark = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoice_items SET remark = %s "
 							"WHERE id = %s", (text, line_id))
+		cursor.close()
 		DB.commit()
 		self.invoice = None
 
@@ -748,24 +793,27 @@ class InvoiceGUI:
 	def price_edited(self, widget, path, text):
 		iter_ = self.invoice_store.get_iter(path)
 		line_id = self.invoice_store[iter_][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE invoice_items SET price = %s "
+			cursor.execute("UPDATE invoice_items SET price = %s "
 								"WHERE id = %s;"
 								"SELECT price::text, ext_price::text, tax::text "
-								"FROM invoice_items WHERE id = %s", 
+								"FROM invoice_items WHERE id = %s",
 								(text, line_id, line_id))
 			DB.commit()
 		except psycopg2.DataError as e:
 			self.show_error_dialog (str(e))
+			cursor.close()
 			DB.rollback()
 			return
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			price = row[0]
 			ext_price = row[1]
 			tax = row[2]
 			self.invoice_store[iter_][6] = price
 			self.invoice_store[iter_][7] = tax
 			self.invoice_store[iter_][8] = ext_price
+		cursor.close()
 		self.calculate_totals()
 
 	################## end price
@@ -794,17 +842,18 @@ class InvoiceGUI:
 
 	def product_selected (self, product_id, path):
 		invoice_line_id = self.invoice_store[path][0]
-		self.cursor.execute("UPDATE serial_numbers "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE serial_numbers "
 							"SET invoice_item_id = NULL "
-							"WHERE invoice_item_id = %s", 
+							"WHERE invoice_item_id = %s",
 							(invoice_line_id,))
-		self.cursor.execute("SELECT products.name, ext_name, tax_letter, "
+		cursor.execute("SELECT products.name, ext_name, tax_letter, "
 							"invoice_serial_numbers, tax_rates.id "
 							"FROM products JOIN tax_rates "
-							"ON tax_rates.id = products.tax_rate_id "  
+							"ON tax_rates.id = products.tax_rate_id "
 							"WHERE products.id = %s", (product_id,))
 		tax_rate_id = self.builder.get_object('comboboxtext1').get_active_id()
-		for row in self.cursor.fetchall ():
+		for row in cursor.fetchall ():
 			product_name = row[0]
 			ext_name = row[1]
 			tax_letter = row[2]
@@ -823,13 +872,13 @@ class InvoiceGUI:
 			self.invoice_store[iter_][12] = serial_number
 			self.set_product_price (iter_)
 			line_id = self.invoice_store[iter_][0]
-			self.cursor.execute("UPDATE invoice_items "
+			cursor.execute("UPDATE invoice_items "
 								"SET (product_id, tax_rate_id) = "
 								"(%s, %s) WHERE id = %s;"
 								"SELECT price::text, tax::text, ext_price::text "
-								"FROM invoice_items WHERE id = %s", 
+								"FROM invoice_items WHERE id = %s",
 								(product_id, tax_rate_id, line_id, line_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				price = row[0]
 				tax = row[1]
 				ext_price = row[2]
@@ -838,6 +887,7 @@ class InvoiceGUI:
 				self.invoice_store[iter_][8] = ext_price
 			DB.commit()
 			self.set_serial_number_box_state(serial_number)
+		cursor.close()
 		self.check_serial_numbers ()
 		self.populate_serial_numbers ()
 		self.calculate_totals()
@@ -857,18 +907,21 @@ class InvoiceGUI:
 		invoice_line_id = model[path][0]
 		product_id = model[path][2]
 		product_name = model[path][3]
-		self.cursor.execute("SELECT id, serial_number FROM serial_numbers "
-							"WHERE invoice_item_id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, serial_number FROM serial_numbers "
+							"WHERE invoice_item_id = %s",
 							(invoice_line_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			id_ = row[0]
 			serial_number = row[1]
 			serial_number_store.append([product_id, invoice_line_id, product_name, serial_number, id_])
+		cursor.close()
 		DB.rollback()
 
 	def check_serial_numbers (self):
 		mismatch = False
 		box = self.builder.get_object('box4')
+		cursor = DB.cursor()
 		for row in self.invoice_store:
 			if row[12] == True:
 				box.set_visible(True)
@@ -876,13 +929,14 @@ class InvoiceGUI:
 				qty = row[1].split('.')[0] # only whole numbers for serial numbers
 				product_id = row[2]
 				product_name = row[3]
-				self.cursor.execute("SELECT COUNT(id) FROM serial_numbers "
-									"WHERE invoice_item_id = %s", 
+				cursor.execute("SELECT COUNT(id) FROM serial_numbers "
+									"WHERE invoice_item_id = %s",
 									(invoice_line_id,))
-				ser_qty = self.cursor.fetchone()[0]
+				ser_qty = cursor.fetchone()[0]
 				if qty != ser_qty:
 					mismatch = True
 					break
+		cursor.close()
 		button = self.builder.get_object('button2')
 		if mismatch == True:
 			button.set_label('Qty/serial number mismatch')
@@ -916,14 +970,15 @@ class InvoiceGUI:
 			return # no invoice item selected
 		invoice_line_id = model[path][0]
 		product_id = model[path][2]
-		self.cursor.execute("SELECT c.name, i.id FROM serial_numbers AS sn "
+		cursor = DB.cursor()
+		cursor.execute("SELECT c.name, i.id FROM serial_numbers AS sn "
 							"JOIN invoice_items AS ili "
 							"ON ili.id = sn.invoice_item_id "
 							"JOIN invoices AS i ON i.id = ili.invoice_id "
 							"JOIN contacts AS c ON c.id = i.customer_id "
 							"WHERE (sn.product_id, sn.serial_number) = (%s, %s) ",
 							(product_id, serial_number))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			customer_name = row[0]
 			invoice_number = row[1]
 			error = "Serial number %s is in use on invoice number %s, "\
@@ -932,13 +987,14 @@ class InvoiceGUI:
 			"sometime before today."\
 			%(serial_number, invoice_number, customer_name)
 			self.show_error_dialog(error)
+			cursor.close()
 			return  # serial number is in use
-		self.cursor.execute("UPDATE serial_numbers "
+		cursor.execute("UPDATE serial_numbers "
 							"SET invoice_item_id = %s "
 							"WHERE (product_id, serial_number) = (%s, %s) "
-							"AND invoice_item_id IS NULL RETURNING id", 
+							"AND invoice_item_id IS NULL RETURNING id",
 							(invoice_line_id, product_id, serial_number ))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			product_serial_number_id = row[0]
 			break
 		else:
@@ -947,7 +1003,9 @@ class InvoiceGUI:
 			"If you want to add it manually, you can go to\n "
 			"General>Serial Numbers on the main window.")
 			self.show_error_dialog(error)
+			cursor.close()
 			return  # no serial number found in the system
+		cursor.close()
 		DB.commit()
 		self.check_serial_numbers ()
 		self.populate_serial_numbers ()
@@ -972,30 +1030,36 @@ class InvoiceGUI:
 		model, path = selection.get_selected_rows()
 		if path != []:
 			product_serial_number_id = model[path][4]
-			self.cursor.execute("UPDATE serial_numbers "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE serial_numbers "
 								"SET invoice_item_id = NULL "
 								"WHERE id = %s", (product_serial_number_id,))
+			cursor.close()
 			DB.commit()
 		self.check_serial_numbers ()
 		self.populate_serial_numbers ()
-		
+
 	def populate_product_store(self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id::text, name || '{' || ext_name || '}' "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name || '{' || ext_name || '}' "
 							"FROM products "
 							"WHERE (deleted, sellable) = (False, True) "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
-			
+
 	def set_product_price (self, iter_):
 		product_id = self.invoice_store[iter_][2]
 		price = get_customer_product_price (self.customer_id, product_id)
 		self.invoice_store[iter_][6] = str(price)
 		line_id = self.invoice_store[iter_][0]
-		self.cursor.execute("UPDATE invoice_items SET price = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoice_items SET price = %s "
 							"WHERE id = %s", (price, line_id))
+		cursor.close()
 		DB.commit()
 
 	################## end product
@@ -1036,8 +1100,9 @@ class InvoiceGUI:
 					(self.invoice_id, self.invoice_id))
 		for row in c.fetchall():
 			self.subtotal = row[0]
-			self.tax = row[1] 
+			self.tax = row[1]
 			self.total = row[2]
+		c.close()
 		DB.commit()
 		subtotal = '${:,.2f}'.format(self.subtotal)
 		tax = '${:,.2f}'.format(self.tax)
@@ -1058,14 +1123,16 @@ class InvoiceGUI:
 		tax_rate_id = self.builder.get_object('comboboxtext1').get_active_id()
 		if id == 0:
 			self.check_invoice_id()
-			self.cursor.execute("INSERT INTO invoice_items "
+			cursor = DB.cursor()
+			cursor.execute("INSERT INTO invoice_items "
 								"(invoice_id, qty, product_id, remark, price, "
 								"canceled, tax_rate_id) "
 								"VALUES (%s, %s, %s, %s, %s, %s, %s) "
-								"RETURNING id", 
-								(self.invoice_id, qty, product_id, remark, 
+								"RETURNING id",
+								(self.invoice_id, qty, product_id, remark,
 								price, False, tax_rate_id))
-			self.invoice_store[iter_][0] = self.cursor.fetchone()[0]
+			self.invoice_store[iter_][0] = cursor.fetchone()[0]
+			cursor.close()
 			DB.commit()
 		self.invoice = None #the generated .odt is no longer valid
 
@@ -1076,13 +1143,14 @@ class InvoiceGUI:
 			self.populate_document_list()
 
 	def new_item_clicked (self, button):
-		self.cursor.execute("SELECT id, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name "
 							"FROM products "
 							"WHERE (deleted, sellable, stock) = "
 									"(False, True, True) "
 							"ORDER BY invoice_serial_numbers ASC, id ASC "
 							"LIMIT 1")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			product_id = row[0]
 			product_name = row[1]
 			iter_ = self.invoice_store.append([0, '1', product_id, product_name,
@@ -1093,6 +1161,7 @@ class InvoiceGUI:
 			c = treeview.get_column(0)
 			path = self.invoice_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
+		cursor.close()
 		self.set_serial_number_box_state(False)
 		DB.rollback()
 
@@ -1111,6 +1180,7 @@ class InvoiceGUI:
 					"UPDATE gl_entries SET amount = 0.00 WHERE id = "
 					"(SELECT gl_entries_id FROM deleted)"
 					, (row_id,))
+		c.close()
 		DB.commit()
 		self.populate_invoice_items ()
 

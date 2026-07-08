@@ -32,24 +32,25 @@ class MailingListPrintingGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_mailing_list_store ()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_mailing_list_store (self):
 		model = self.get_object('mailing_list_store')
 		model.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id::text, "
 								"name "
 							"FROM mailing_lists ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			model.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def mailing_list_combo_changed (self, combobox):
@@ -70,18 +71,22 @@ class MailingListPrintingGUI(Gtk.Builder):
 		report_hub.ReportHubGUI(treeview)
 
 	def set_all_unprinted_clicked (self, button):
-		self.cursor.execute("UPDATE mailing_list_register "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE mailing_list_register "
 							"SET printed = False "
-							"WHERE mailing_list_id = %s", 
+							"WHERE mailing_list_id = %s",
 							(self.mailing_list_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_contact_mailing_store()
 
 	def set_all_printed_clicked (self, button):
-		self.cursor.execute("UPDATE mailing_list_register "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE mailing_list_register "
 							"SET printed = True "
-							"WHERE mailing_list_id = %s", 
+							"WHERE mailing_list_id = %s",
 							(self.mailing_list_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_contact_mailing_store()
 
@@ -93,11 +98,13 @@ class MailingListPrintingGUI(Gtk.Builder):
 	def printed_toggled (self, cellrenderertoggle, path):
 		model = self.get_object('contact_mailing_list_store')
 		row_id = model[path][0]
-		self.cursor.execute("UPDATE mailing_list_register "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE mailing_list_register "
 							"SET printed = NOT printed "
-							"WHERE id = %s RETURNING printed", 
+							"WHERE id = %s RETURNING printed",
 							(row_id,))
-		model[path][9] = self.cursor.fetchone()[0]
+		model[path][9] = cursor.fetchone()[0]
+		cursor.close()
 		DB.commit()
 		self.count_addresses_to_print()
 
@@ -124,8 +131,9 @@ class MailingListPrintingGUI(Gtk.Builder):
 		if path == []:
 			return
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -136,6 +144,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 			company.fax = row[8]
 			company.email = row[9]
 			company.website = row[10]
+		cursor.close()
 		temperary_folder = "/tmp/posting_mailing"
 		if not os.path.exists(temperary_folder):
 			os.mkdir(temperary_folder)
@@ -191,8 +200,9 @@ class MailingListPrintingGUI(Gtk.Builder):
 		self.get_object('tool_grid').set_sensitive(False)
 		self.get_object('print_grid').set_sensitive(False)
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.street = row[2]
 			company.city = row[3]
@@ -231,11 +241,12 @@ class MailingListPrintingGUI(Gtk.Builder):
 			t.render(data)
 			subprocess.call(["soffice", "-p", mailing_file])
 			row_id = row[0]
-			self.cursor.execute("UPDATE mailing_list_register "
+			cursor.execute("UPDATE mailing_list_register "
 								"SET printed = True "
 								"WHERE id = %s", (row_id,))
 			row[9] = True
 			self.count_addresses_to_print()
+		cursor.close()
 		DB.commit()
 		self.get_object('tool_grid').set_sensitive(True)
 		self.get_object('print_grid').set_sensitive(True)

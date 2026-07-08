@@ -29,7 +29,6 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.jobs_store = self.get_object('jobs_to_invoice_store')
 		self.job_sheet_line_store = self.get_object("job_sheet_line_store")
@@ -40,14 +39,16 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_contact_store (self):
 		store = self.get_object ('contact_store')
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"ORDER BY name, ext_name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def populate_job_store(self):
@@ -89,8 +90,10 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		if path == []:
 			return
 		job_id = model[path][0]
-		self.cursor.execute("UPDATE job_sheets SET contact_id = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheets SET contact_id = %s "
 							"WHERE id = %s", (customer_id, job_id))
+		cursor.close()
 		DB.commit()
 		self.populate_job_store ()
 
@@ -134,23 +137,26 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		job_sheet_id = model[path][0]
 		customer_id = model[path][5]
 		customer_name = model[path][6]
-		self.cursor.execute("SELECT id, name FROM invoices "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM invoices "
 							"WHERE (posted, canceled, active, customer_id) = "
 							"(False, False, True, %s) "
 							"LIMIT 1", (customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			invoice_id = row[0]
 			invoice_name = row[1]
 			message = "Invoice '%s' already exists for customer '%s'.\n"\
 						"Do you want to append the items?" \
 						% (invoice_name, customer_name)
-			action = self.show_invoice_exists_message (message) 
+			action = self.show_invoice_exists_message (message)
 			if action == 2:
 				break # append the items
 			else:
+				cursor.close()
 				return # cancel posting to invoice altogether
 		else: # create new invoice
 			invoice_id = create_new_invoice (datetime.today(), customer_id)
+		cursor.close()
 		c = DB.cursor()
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
@@ -174,8 +180,10 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		if path == []:
 			return
 		job_sheet_id = model[path][0]
-		self.cursor.execute("UPDATE job_sheets SET completed = True "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE job_sheets SET completed = True "
 							"WHERE id = %s", (job_sheet_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_job_store()
 

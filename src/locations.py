@@ -26,7 +26,6 @@ class LocationsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.location_store = self.builder.get_object('location_store')
 		self.location_treeview_populate ()
@@ -35,21 +34,25 @@ class LocationsGUI:
 		window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def location_treeview_populate (self):
 		self.location_store.clear()
-		self.cursor.execute("SELECT id, name FROM locations ORDER BY name")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM locations ORDER BY name")
+		for row in cursor.fetchall():
 			self.location_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def location_treeview_activated(self, treeview, path, treeviewcolumn):
 		self.location_id = self.location_store[path][0]
-		self.cursor.execute("SELECT name FROM locations "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM locations "
 							"WHERE id = %s", (self.location_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			location_name = row[0]
+		cursor.close()
 		self.builder.get_object('entry1').set_text(location_name)
 		DB.rollback()
 
@@ -59,14 +62,16 @@ class LocationsGUI:
 
 	def save_clicked(self, button):
 		location_name = self.builder.get_object('entry1').get_text()
+		cursor = DB.cursor()
 		if self.location_id == 0:
-			self.cursor.execute("INSERT INTO locations name "
+			cursor.execute("INSERT INTO locations name "
 								"VALUES %s RETURNING id", (location_name,))
-			self.location_id = self.cursor.fetchone()[0]
+			self.location_id = cursor.fetchone()[0]
 		else:
-			self.cursor.execute("UPDATE locations SET name = %s "
-								"WHERE id = %s", 
+			cursor.execute("UPDATE locations SET name = %s "
+								"WHERE id = %s",
 								(location_name, self.location_id))
+		cursor.close()
 		DB.commit()
 		self.location_treeview_populate ()
 
@@ -74,8 +79,10 @@ class LocationsGUI:
 		model, path = self.builder.get_object('treeview-selection2').get_selected_rows()
 		if path != []:
 			location_id = model[path][0]
-			self.cursor.execute("UPDATE locations SET deleted = True "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE locations SET deleted = True "
 								"WHERE id = %s", (location_id,))
+			cursor.close()
 			DB.commit()
 			self.location_treeview_populate ()
 			

@@ -28,7 +28,6 @@ class CreditMemoGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.customer_store = self.builder.get_object('customer_store')
 		self.product_store = self.builder.get_object('credit_products_store')
@@ -58,7 +57,6 @@ class CreditMemoGUI:
 	def window_destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 		
 	def customer_match_func(self, completion, key, iter):
 		split_search_text = key.split()
@@ -218,18 +216,21 @@ class CreditMemoGUI:
 		iter_ = self.credit_items_store.get_iter(path)
 		self.check_row_id (iter_)
 		row_id = self.credit_items_store[iter_][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE credit_memo_items "
+			cursor.execute("UPDATE credit_memo_items "
 								"SET tax = %s "
 								"WHERE id = %s "
-								"RETURNING tax::text", 
+								"RETURNING tax::text",
 								(text, row_id))
 		except psycopg2.DataError as e:
+			cursor.close()
 			self.show_message(str(e))
 			DB.rollback()
 			return
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			tax = row[0]
+		cursor.close()
 		self.credit_items_store[iter_][7] = tax
 		self.calculate_totals ()
 
@@ -279,15 +280,17 @@ class CreditMemoGUI:
 
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT c.id::text, c.name, c.ext_name "
 							"FROM contacts AS c "
 							"JOIN invoices AS i ON c.id = i.customer_id "
 							"WHERE (c.deleted, c.customer, i.paid) = "
 							"(False, True, True) "
 							"GROUP BY c.id, c.name, c.ext_name "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 
 	def customer_combo_changed (self, combo):
 		customer_id = combo.get_active_id ()
@@ -300,7 +303,8 @@ class CreditMemoGUI:
 
 	def select_customer (self, customer_id):
 		self.customer_id = customer_id
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"address, "
 								"COALESCE(cm.id, NULL), "
 								"COALESCE(-total, -0.00)::money, "
@@ -311,9 +315,9 @@ class CreditMemoGUI:
 							"FROM contacts AS c "
 							"LEFT JOIN credit_memos AS cm "
 							"ON cm.customer_id = c.id AND cm.posted = False "
-							"WHERE c.id = %s", 
+							"WHERE c.id = %s",
 							(customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			address = row[0]
 			self.credit_memo_id = row[1]
 			subtotal = row[2]
@@ -327,6 +331,7 @@ class CreditMemoGUI:
 			self.builder.get_object('total_entry').set_text(total)
 			self.date_calendar.set_date (self.date)
 			self.builder.get_object('comments_buffer').set_text(comments)
+		cursor.close()
 		self.populate_credit_memo ()
 		self.populate_product_store ()
 		self.builder.get_object('menuitem2').set_sensitive(True)
@@ -382,14 +387,16 @@ class CreditMemoGUI:
 		product_id = model[path][2]
 		store = self.builder.get_object('serial_number_store')
 		store.clear()
-		self.cursor.execute("SELECT ii.id, sn.serial_number "
+		cursor = DB.cursor()
+		cursor.execute("SELECT ii.id, sn.serial_number "
 							"FROM serial_numbers AS sn "
 							"JOIN invoice_items AS ii ON ii.id = sn.invoice_item_id "
 							"JOIN invoices AS i ON i.id = ii.invoice_id "
-							"WHERE (i.customer_id, ii.product_id) = (%s, %s)", 
+							"WHERE (i.customer_id, ii.product_id) = (%s, %s)",
 							(self.customer_id, product_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 	
 	def serial_number_changed (self, combo, path, tree_iter):
 		model = self.builder.get_object('serial_number_store')
@@ -402,17 +409,19 @@ class CreditMemoGUI:
 		date = calendar.get_date()
 		_iter = self.credit_items_store.get_iter(self.path)
 		row_id = self.credit_items_store[_iter][0]
-		self.cursor.execute("UPDATE credit_memo_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE credit_memo_items "
 							"SET date_returned = %s "
 							"WHERE id = %s "
 							"RETURNING date_returned::text, "
-								"format_date (date_returned)", 
+								"format_date (date_returned)",
 							(date, row_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			date = row[0]
 			date_formatted = row[1]
 			self.credit_items_store[_iter][10] = str(date)
 			self.credit_items_store[_iter][11] = date_formatted
+		cursor.close()
 
 	def date_entry_icon_released (self, entry, icon, position):
 		self.date_calendar.set_relative_to(entry)
@@ -423,10 +432,12 @@ class CreditMemoGUI:
 		text = calendar.get_text()
 		self.builder.get_object('entry1').set_text(text)
 		if self.credit_memo_id:
-			self.cursor.execute("UPDATE credit_memos "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE credit_memos "
 								"SET dated_for = %s "
-								"WHERE id = %s", 
+								"WHERE id = %s",
 								(self.date, self.credit_memo_id))
+			cursor.close()
 			DB.commit()
 
 	def date_returned_editing_started (self, renderer, entry, path):
@@ -499,9 +510,11 @@ class CreditMemoGUI:
 		if path == []:
 			return 
 		row_id = model[path][0]
-		self.cursor.execute("UPDATE credit_memo_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE credit_memo_items "
 							"SET deleted = True "
 							"WHERE id = %s", (row_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_credit_memo ()
 		
@@ -528,11 +541,13 @@ class CreditMemoGUI:
 
 	def check_credit_memo_id (self):
 		if self.credit_memo_id == None:
-			self.cursor.execute("INSERT INTO credit_memos "
+			cursor = DB.cursor()
+			cursor.execute("INSERT INTO credit_memos "
 								"(name, customer_id, date_created, total) "
 								"VALUES ('Credit Memo', %s, now(), 0.00) "
 								"RETURNING id", (self.customer_id,))
-			self.credit_memo_id = self.cursor.fetchone()[0]
+			self.credit_memo_id = cursor.fetchone()[0]
+			cursor.close()
 			DB.commit()
 
 	def post_credit_memo_clicked (self, button):
@@ -559,9 +574,11 @@ class CreditMemoGUI:
 		start = textbuffer.get_start_iter()
 		end = textbuffer.get_end_iter()
 		notes = textbuffer.get_text(start, end, True)
-		self.cursor.execute("UPDATE credit_memos SET comments = %s "
-							"WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE credit_memos SET comments = %s "
+							"WHERE id = %s",
 							(notes,  self.credit_memo_id))
+		cursor.close()
 		DB.commit()
 
 	def show_message (self, message):

@@ -30,7 +30,6 @@ class MiscellaneousRevenueGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.handler_ids = list()
 		for connection in (("contacts_changed", self.populate_contacts ), ):
@@ -63,7 +62,6 @@ class MiscellaneousRevenueGUI:
 	def destroy (self, widget):
 		for connection_id in self.handler_ids:
 			broadcaster.disconnect(connection_id)
-		self.cursor.close()
 
 	def contacts_clicked (self, button):
 		import contacts_overview
@@ -88,10 +86,12 @@ class MiscellaneousRevenueGUI:
 
 	def populate_contacts (self, m=None, i=None):
 		self.contact_store.clear ()
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE deleted = False ORDER BY name, ext_name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def check_btn_toggled(self, widget):

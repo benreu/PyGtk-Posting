@@ -25,20 +25,17 @@ from db.transactor import post_incoming_invoice_expense,\
 							service_provider_transfer ,\
 							service_provider_cash_payment
 import contacts
-import main
+from constants import ui_directory, DB
 
-UI_FILE = main.ui_directory + "/incoming_invoice.ui"
+UI_FILE = ui_directory + "/incoming_invoice.ui"
 
 class WriteCheckGUI:
-	def __init__(self, db):
+	def __init__(self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 
-		self.db = db
-		self.cursor = self.db.cursor()
-		
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today()
@@ -64,53 +61,57 @@ class WriteCheckGUI:
 	def focus (self, window, event):
 		self.populating = True
 		self.expense_account_store.clear()
-		self.cursor.execute("SELECT number, name FROM accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name FROM accounts "
 							" WHERE number > 3000 AND number < 4000 "
 							"AND is_parent = False")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			self.expense_account_store.append([str(account_number), account_name])
 		combo = self.builder.get_object('combobox1')
 		active_sp = combo.get_active_id()
 		self.service_provider_store.clear()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		cursor.execute("SELECT id, name FROM contacts "
 							"WHERE service_provider = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			contact_id = row[0]
 			contact_name = row[1]
 			self.service_provider_store.append([str(contact_id), contact_name])
+		cursor.close()
 		combo.set_active_id(active_sp)
 		self.populating = False
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT id, name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM contacts "
 							"WHERE service_provider = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			contact_id = row[0]
 			contact_name = row[1]
 			self.service_provider_store.append([str(contact_id), contact_name])
-		self.cursor.execute("SELECT number, name FROM accounts "
+		cursor.execute("SELECT number, name FROM accounts "
 							"WHERE bank_account = True ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			self.bank_account_store.append([str(account_number), account_name])
-		self.cursor.execute("SELECT number, name FROM accounts "
+		cursor.execute("SELECT number, name FROM accounts "
 							"WHERE cash_account = True ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			self.cash_account_store.append([str(account_number), account_name])
-		self.cursor.execute("SELECT number, name FROM accounts "
+		cursor.execute("SELECT number, name FROM accounts "
 							" WHERE number > 3000 AND number < 4000")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			account_name = row[1]
 			self.expense_account_store.append([str(account_number), account_name])
+		cursor.close()
 
 	def service_provider_clicked (self, button):
-		contacts.GUI(self.db)
+		contacts.GUI()
 
 	def service_provider_combo_changed (self, combo):
 		if self.populating == True:
@@ -194,7 +195,7 @@ class WriteCheckGUI:
 			self.builder.get_object('entry3').set_sensitive(True)
 			self.builder.get_object('entry5').set_sensitive(True)
 			bank_account = combo.get_active_id()
-			check_number = get_check_number(self.db, bank_account)
+			check_number = get_check_number(bank_account)
 			self.builder.get_object('entry7').set_text(str(check_number))
 		self.check_if_all_entries_valid ()
 
@@ -255,42 +256,44 @@ class WriteCheckGUI:
 	def cash_payment_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
 		cash_account = self.builder.get_object('combobox3').get_active_id()
-		service_provider_cash_payment (self.db, self.datetime, total, 
+		service_provider_cash_payment (self.datetime, total,
 										cash_account)
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def transfer_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
 		checking_account = self.builder.get_object('combobox2').get_active_id()
 		transfer_number = self.builder.get_object('entry3').get_text()
-		service_provider_transfer (self.db, self.datetime, total, 
+		service_provider_transfer (self.datetime, total,
 										transfer_number, checking_account)
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def print_check_clicked (self, button):
 		invoice_id, total = self.save_incoming_invoice ()
 		checking_account = self.builder.get_object('combobox2').get_active_id()
 		check_number = self.builder.get_object('entry7').get_text()
-		service_provider_check_payment(self.db, self.datetime, total, 
+		service_provider_check_payment(self.datetime, total,
 										check_number, checking_account)
-		self.db.commit()
+		DB.commit()
 		self.window.destroy()
 
 	def save_incoming_invoice (self):
 		contact_id = self.builder.get_object('combobox1').get_active_id()
 		description = self.builder.get_object('entry1').get_text()
 		total = float(self.builder.get_object('spinbutton1').get_text())
-		self.cursor.execute("INSERT INTO incoming_invoices "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO incoming_invoices "
 							"(contact_id, date_created, amount, description) "
-							"VALUES (%s, %s, %s, %s) RETURNING id", 
+							"VALUES (%s, %s, %s, %s) RETURNING id",
 							(contact_id, self.datetime, total, description))
-		invoice_id = self.cursor.fetchone()[0]
+		invoice_id = cursor.fetchone()[0]
+		cursor.close()
 		for row in self.expense_percentage_store:
 			amount = row[1]
 			expense_account = row[2]
-			post_incoming_invoice_expense(self.db, self.datetime, amount, 
+			post_incoming_invoice_expense(self.datetime, amount,
 															expense_account)
 		return invoice_id, total
 

@@ -28,7 +28,6 @@ class CompleteSearchGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.store = self.get_object('search_store')
 		self.treeview = self.get_object('treeview')
 		self.window = self.get_object('window')
@@ -87,13 +86,14 @@ class CompleteSearchGUI(Gtk.Builder):
 		table = self.store[path][1]
 		column = self.store[path][2]
 		ctid = self.store[path][4]
-		self.cursor.execute("SELECT * FROM %s.%s WHERE ctid = '%s'"% 
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM %s.%s WHERE ctid = '%s'"%
 							(schema, table, ctid))
 		record_treeview = self.get_object('record_treeview')
 		for column in record_treeview.get_columns():
 			record_treeview.remove_column(column)
 		type_list = list()
-		for index, row in enumerate(self.cursor.description):
+		for index, row in enumerate(cursor.description):
 			column_name = row.name
 			type_ = row.type_code
 			if type_ == 23:
@@ -114,7 +114,7 @@ class CompleteSearchGUI(Gtk.Builder):
 			column.set_resizable(True)
 		store = Gtk.ListStore()
 		store.set_column_types(type_list)
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			# do a convert, cell by cell, to make sure types are correct
 			store_row = list()
 			for index, value in enumerate(row):
@@ -122,6 +122,7 @@ class CompleteSearchGUI(Gtk.Builder):
 					value = 0
 				store_row.append(type_list[index](value))
 			store.append (store_row)
+		cursor.close()
 		DB.rollback()
 		record_treeview.set_model(store)
 		record_treeview.show_all()

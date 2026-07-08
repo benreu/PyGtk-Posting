@@ -32,11 +32,12 @@ class CustomerTaxExemptionsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
-		self.cursor.execute("SELECT name FROM contacts WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM contacts WHERE id = %s",
 							(customer_id,))
-		customer_name = self.cursor.fetchone()[0]
+		customer_name = cursor.fetchone()[0]
+		cursor.close()
 		self.builder.get_object('label1').set_label("Tax exemptions for '%s'" 
 													% customer_name)
 		self.tax_exemption_store =self.builder.get_object('tax_exemption_store')
@@ -49,30 +50,32 @@ class CustomerTaxExemptionsGUI:
 		self.dialog.hide()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def help_clicked (self, widget):
 		subprocess.Popen(["yelp", help_dir + "/tax_exemptions.page"])
 
 	def populate_treeview (self):
 		self.tax_exemption_store.clear()
-		self.cursor.execute("SELECT tax_rates.id, tax_rates.name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT tax_rates.id, tax_rates.name "
 							"FROM tax_rates "
 							"WHERE tax_rates.exemption = True "
 							,(self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			exemption_id = str(row[0])
 			exemption_name = row[1]
-			self.cursor.execute("SELECT id FROM customer_tax_exemptions "
+			cursor.execute("SELECT id FROM customer_tax_exemptions "
 								"WHERE (customer_id, tax_rate_id) = (%s, %s)",
 								(self.customer_id, exemption_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.tax_exemption_store.append([exemption_id,
 											exemption_name, True])
 				break
 			else:
 				self.tax_exemption_store.append([exemption_id,
 											exemption_name, False])
+		cursor.close()
 		DB.rollback()
 
 	def regenerate_exemption_clicked (self, button):
@@ -87,9 +90,11 @@ class CustomerTaxExemptionsGUI:
 		tax_id = self.tax_exemption_store[path][0]
 		if available == True:
 			self.tax_exemption_store[path][2] = available
-			self.cursor.execute("INSERT INTO customer_tax_exemptions "
-							"(tax_rate_id, customer_id) VALUES (%s, %s)", 
+			cursor = DB.cursor()
+			cursor.execute("INSERT INTO customer_tax_exemptions "
+							"(tax_rate_id, customer_id) VALUES (%s, %s)",
 							(tax_id, self.customer_id))
+			cursor.close()
 			GLib.timeout_add(10 , self.open_exemption, tax_id)
 			DB.commit()
 		else:
@@ -97,21 +102,23 @@ class CustomerTaxExemptionsGUI:
 			dialog.run()
 			dialog.hide()
 			#self.cursor.execute("DELETE FROM customer_tax_exemptions WHERE "
-			#				"(tax_rate_id, customer_id) = (%s, %s)", 
+			#				"(tax_rate_id, customer_id) = (%s, %s)",
 			#				(tax_id, self.customer_id))
 
 	def open_exemption (self, tax_id):
-		self.cursor.execute("SELECT exemption_template_path FROM tax_rates "
+		cursor = DB.cursor()
+		cursor.execute("SELECT exemption_template_path FROM tax_rates "
 							"WHERE id = %s", (tax_id,))
-		template_path = self.cursor.fetchone()[0]
+		template_path = cursor.fetchone()[0]
 		if template_path == None:
+			cursor.close()
 			return # no template set
 		template_file_name = template_path.split("/")[-1]
 		exemption_template = "./templates/%s" % template_file_name
-		self.cursor.execute("SELECT * FROM contacts WHERE id = (%s)",
+		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",
 													[self.customer_id])
 		customer = Item()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			customer.name = row[1]
 			customer.ext_name = row[2]
 			customer.address = row[3]
@@ -125,8 +132,8 @@ class CustomerTaxExemptionsGUI:
 			customer.tax_exempt = row[11]
 			customer.tax_exempt_number = row[12]
 		company = Item()
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			company.name = row[1]
 			company.address = row[2]
 			company.city = row[3]
@@ -138,6 +145,7 @@ class CustomerTaxExemptionsGUI:
 			company.email = row[9]
 			company.website = row[10]
 			company.tax_number = row[11]
+		cursor.close()
 		date = Item()
 		today = str(datetime.today())
 		date.day = today[8:10]

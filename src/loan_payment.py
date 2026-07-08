@@ -29,7 +29,6 @@ class LoanPaymentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -52,41 +51,45 @@ class LoanPaymentGUI:
 		GLib.idle_add(entry.select_region, 0, -1)
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT l.id::text, l.description, c.id::text, c.name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT l.id::text, l.description, c.id::text, c.name "
 							"FROM loans AS l "
 							"JOIN contacts AS c ON c.id = l.contact_id "
 							"WHERE finished = False ORDER BY description")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.loan_store.append(row)
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE bank_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.bank_store.append(row)
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE cash_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.cash_store.append(row)
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE type = 3 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			parent_tree = self.expense_store.append(None, row)
 			self.get_child_accounts (self.expense_store, row[0], parent_tree)
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE type = 5 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			parent_tree = self.loan_account_store.append(None, row)
 			self.get_child_accounts (self.loan_account_store, row[0], parent_tree)
+		cursor.close()
 		DB.rollback()
 
 	def get_child_accounts (self, store, parent_number, parent_tree):
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE parent_number = %s", (parent_number,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			parent = store.append(parent_tree, row)
 			self.get_child_accounts (store, row[0], parent)
+		cursor.close()
 
 	def loan_combo_changed (self, combo):
 		loan_id = combo.get_active_id()
@@ -215,7 +218,8 @@ class LoanPaymentGUI:
 		self.principal_id = self.loan_payment.principal (principal_account, principal)
 
 	def update_loan_payment_ids (self):
-		self.cursor.execute("INSERT INTO loan_payments "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO loan_payments "
 								"(loan_id, "
 								"gl_entries_principal_id, "
 								"gl_entries_interest_id, "
@@ -224,13 +228,14 @@ class LoanPaymentGUI:
 								") "
 							"VALUES (%s, %s, %s, %s, %s); "
 							"UPDATE loans SET last_payment_date = CURRENT_DATE "
-							"WHERE id = %s", 
+							"WHERE id = %s",
 							(self.loan_id,
 							self.principal_id,
 							self.interest_id,
-							self.total_id, 
-							self.contact_id, 
+							self.total_id,
+							self.contact_id,
 							self.loan_id))
+		cursor.close()
 
 	def row_activate (self, treeview, path, treeviewcolumn):
 		self.check_if_all_requirements_valid ()

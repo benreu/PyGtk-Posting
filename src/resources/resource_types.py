@@ -28,8 +28,7 @@ class ResourceTypesGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.type_edit_store = self.get_object('type_edit_store')
 		self.populate_edit_type_store()
 		self.create_new_type ()
@@ -38,28 +37,32 @@ class ResourceTypesGUI(Gtk.Builder):
 		self.window.show_all() 
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_edit_type_store (self):
 		self.type_edit_store.clear()
-		self.cursor.execute("SELECT id, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name "
 							"FROM resource_types "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.type_edit_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def save_type_clicked (self, button):
 		type_name = self.get_object('entry2').get_text()
+		cursor = DB.cursor()
 		if self.type_id == 0:
-			self.cursor.execute ("INSERT INTO resource_types "
-								"(name) VALUES (%s) RETURNING id", 
+			cursor.execute ("INSERT INTO resource_types "
+								"(name) VALUES (%s) RETURNING id",
 								(type_name,))
-			self.type_id = self.cursor.fetchone()[0]
+			self.type_id = cursor.fetchone()[0]
 		else:
-			self.cursor.execute ("UPDATE resource_types SET "
-								"name = %s WHERE id = %s", 
+			cursor.execute ("UPDATE resource_types SET "
+								"name = %s WHERE id = %s",
 								(type_name, self.type_id))
+		cursor.close()
 		DB.commit()
 		self.populate_edit_type_store ()
 
@@ -73,12 +76,14 @@ class ResourceTypesGUI(Gtk.Builder):
 
 	def row_activated (self, treeview, path, treeviewcolumn):
 		self.type_id = self.type_edit_store[path][0]
-		self.cursor.execute("SELECT name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name "
 							"FROM resource_types "
 							"WHERE id = %s", (self.type_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			type_name = row[0]
 			self.get_object('entry2').set_text(type_name)
+		cursor.close()
 		DB.rollback()
 
 

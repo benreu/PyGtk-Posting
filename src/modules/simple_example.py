@@ -26,24 +26,25 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.populate_combo ()
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_combo (self):
 		combo = self.builder.get_object('comboboxtext1')
 		combo.remove_all()
-		self.cursor.execute("SELECT id::text, name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE deleted = False "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			contact_id = row[0]
 			contact_name = row[1]
 			combo.append(contact_id, contact_name)
+		cursor.close()
 		DB.rollback()
 
 	def button1_clicked (self, button):

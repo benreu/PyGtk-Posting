@@ -27,7 +27,6 @@ class PayStubHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.employee_id = None
 
 		self.employee_store= self.builder.get_object('employee_store')
@@ -38,20 +37,22 @@ class PayStubHistoryGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def focus_in_event (self, window, event):
 		self.populate_employee_store ()
 
 	def populate_employee_store (self):
 		self.employee_store.clear()
-		self.cursor.execute("SELECT employee_id::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT employee_id::text, name "
 							"FROM payroll.pay_stubs "
 							"JOIN contacts "
 							"ON contacts.id = pay_stubs.employee_id "
 							"GROUP BY employee_id, name ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.employee_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def employee_combo_changed (self, combo):
@@ -66,7 +67,8 @@ class PayStubHistoryGUI:
 	def populate_pay_stub_history_store (self):
 		self.history_store.clear()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT "
+			cursor = DB.cursor()
+			cursor.execute("SELECT "
 									"payroll.pay_stubs.id, "
 									"name, "
 									"format_date(date_inserted), "
@@ -79,7 +81,8 @@ class PayStubHistoryGUI:
 								"JOIN contacts "
 								"ON contacts.id = pay_stubs.employee_id")
 		elif self.employee_id != None:
-			self.cursor.execute("SELECT "
+			cursor = DB.cursor()
+			cursor.execute("SELECT "
 									"payroll.pay_stubs.id, "
 									"name, "
 									"format_date(date_inserted), "
@@ -94,8 +97,9 @@ class PayStubHistoryGUI:
 								"WHERE employee_id = %s", (self.employee_id,))
 		else:
 			return # select all off and no employee selected
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.history_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 

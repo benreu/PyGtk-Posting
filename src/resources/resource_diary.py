@@ -30,7 +30,6 @@ class ResourceDiaryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.populating = False
 
@@ -112,14 +111,16 @@ class ResourceDiaryGUI:
 		end = textbuffer.get_end_iter()
 		start = textbuffer.get_start_iter()
 		text = textbuffer.get_text(start, end, True)
-		self.cursor.execute("INSERT INTO resources "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO resources "
 							"(subject, dated_for, diary) "
 							"VALUES (%s, %s, True) "
 							"ON CONFLICT (dated_for, diary) "
-							"DO UPDATE SET subject = %s " 
+							"DO UPDATE SET subject = %s "
 							"WHERE (resources.diary, resources.dated_for) = "
-							"(True, %s)", 
+							"(True, %s)",
 							(text, self.day, text, self.day))
+		cursor.close()
 		DB.commit()
 
 	def entry_icon_release (self, entry, position, button):

@@ -28,7 +28,6 @@ class StatementsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.customer_id = None
 		self.customer_store = self.builder.get_object('customer_store')
@@ -70,17 +69,20 @@ class StatementsGUI:
 		self.view_statement (statement_id)
 
 	def view_statement (self, statement_id):
-		self.cursor.execute("SELECT name, pdf FROM statements "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, pdf FROM statements "
 							"WHERE id = %s", (statement_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
+				cursor.close()
 				return
 			statement_file = "/tmp/%s.pdf" % file_name
 			file_data = row[1]
 			with open(statement_file,'wb') as f:
 				f.write(file_data)
 			subprocess.call(["xdg-open", statement_file])
+		cursor.close()
 
 	def view_all_toggled (self, togglebutton):
 		self.populate_statement_store ()

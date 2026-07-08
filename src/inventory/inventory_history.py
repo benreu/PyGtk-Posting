@@ -28,8 +28,7 @@ class InventoryHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.product_id = product_id
 
 		self.inventory_transaction_store = self.builder.get_object('inventory_transaction_store')
@@ -47,15 +46,17 @@ class InventoryHistoryGUI:
 		window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_location_store (self):
 		location_combo = self.builder.get_object('combobox1')
 		active_location = location_combo.get_active()
 		self.location_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM locations ORDER BY 1")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM locations ORDER BY 1")
+		for row in cursor.fetchall():
 			self.location_store.append(row)
+		cursor.close()
 		if active_location < 0:
 			location_combo.set_active(0)
 		else:
@@ -64,11 +65,13 @@ class InventoryHistoryGUI:
 
 	def populate_product_store (self):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM products "
 							"WHERE (deleted, stock) = (False, True) "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def product_match_selected(self, completion, model, iter_):
@@ -115,8 +118,9 @@ class InventoryHistoryGUI:
 		all_history = self.builder.get_object('checkbutton1').get_active()
 		location_id = self.builder.get_object('combobox1').get_active_id()
 		self.inventory_transaction_store.clear()
-		if self.product_id != None and all_history == False:	
-			self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		if self.product_id != None and all_history == False:
+			cursor.execute("SELECT "
 									"i_t.id, "
 									"format_date(date_inserted), "
 									"(qty_in - qty_out), "
@@ -128,10 +132,10 @@ class InventoryHistoryGUI:
 								"JOIN products "
 								"ON products.id = i_t.product_id "
 								"WHERE (product_id, location_id) = "
-								"(%s, %s) ORDER BY locations.name", 
+								"(%s, %s) ORDER BY locations.name",
 								(self.product_id, location_id))
 		else:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"i_t.id, "
 									"format_date(date_inserted), "
 									"(qty_in - qty_out), "
@@ -145,8 +149,9 @@ class InventoryHistoryGUI:
 								"WHERE location_id = %s "
 								"ORDER BY locations.name",
 								(location_id, ))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.inventory_transaction_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 

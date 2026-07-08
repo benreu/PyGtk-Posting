@@ -27,7 +27,6 @@ class ContactEditIndividualGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.overview_class = overview_class
 		self.individual_id = individual_id
 		self.contact_id = None
@@ -39,10 +38,11 @@ class ContactEditIndividualGUI (Gtk.Builder):
 
 	def destroy (self, widget):
 		if self.lock_acquired:
-			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+			cursor = DB.cursor()
+			cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 						(CONTACT_INDIVIDUALS_LOCK_CLASSID, self.individual_id))
+			cursor.close()
 			self.lock_acquired = False
-		self.cursor.close()
 		DB.rollback()
 
 	def populate_individual (self):

@@ -36,11 +36,12 @@ class SerialNumbersGUI(Gtk.Builder):
 		self.parent = parent
 		self.manufacturing_id = manufacturing_id
 		self.serials_required = serials_required
-		self.cursor = DB.cursor()
 		self.window = self.get_object('window')
-		self.cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
+		cursor = DB.cursor()
+		cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
 							(MANUFACTURING_SERIAL_LOCK_CLASSID, manufacturing_id))
-		locked = self.cursor.fetchone()[0]
+		locked = cursor.fetchone()[0]
+		cursor.close()
 		if not locked:
 			DB.rollback()
 			error = "Somebody else is working on serial numbers"
@@ -55,12 +56,13 @@ class SerialNumbersGUI(Gtk.Builder):
 	def window_destroy (self, widget):
 		self.parent.populate_projects()
 		if self.lock_acquired:
-			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+			cursor = DB.cursor()
+			cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 								(MANUFACTURING_SERIAL_LOCK_CLASSID,
 								self.manufacturing_id))
+			cursor.close()
 			self.lock_acquired = False
 		DB.commit()
-		self.cursor.close()
 
 	def populate_system_labels(self):
 		store = self.get_object('serial_template_store')
@@ -85,25 +87,28 @@ class SerialNumbersGUI(Gtk.Builder):
 						"FROM settings.zebra_printers")
 		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 
 	def populate_serial_numbers (self):
 		store = self.get_object('serial_number_store')
 		store.clear()
-		self.cursor.execute("SELECT id, serial_number "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, serial_number "
 							"FROM serial_numbers "
 							"WHERE manufacturing_id = %s ",
 							(self.manufacturing_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
-		self.cursor.execute("SELECT p.id, p.serial_number "
+		cursor.execute("SELECT p.id, p.serial_number "
 							"FROM products AS p "
 							"JOIN manufacturing_projects AS mp "
 							"ON mp.product_id = p.id "
 							"WHERE mp.id = %s",
 							(self.manufacturing_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_id = row[0]
 			serial_start = row[1]
+		cursor.close()
 		self.get_object('serial_number_adjustment').set_lower(serial_start)
 		self.get_object('serial_number_spinbutton').set_value(serial_start)
 		self.serials_generated = len(store)

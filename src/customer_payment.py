@@ -34,11 +34,11 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		self.cursor.execute ("SELECT enforce_exact_payment FROM settings")
-		self.exact_payment = self.cursor.fetchone()[0]
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		self.accrual = self.cursor.fetchone()[0]
+		cursor = DB.cursor()
+		cursor.execute ("SELECT enforce_exact_payment FROM settings")
+		self.exact_payment = cursor.fetchone()[0]
+		cursor.execute("SELECT accrual_based FROM settings")
+		self.accrual = cursor.fetchone()[0]
 
 		self.expense_trees = expense_tree
 
@@ -48,11 +48,12 @@ class GUI:
 		self.invoice_store = self.builder.get_object ('unpaid_invoice_store')
 		self.customer_store = self.builder.get_object ('customer_store')
 		self.cash_account_store = self.builder.get_object ('cash_account_store')
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 								"WHERE (is_parent, cash_account) = "
 								"(False, True)")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.cash_account_store.append(row)
+		cursor.close()
 		self.populate_contacts ()
 
 		total_column = self.builder.get_object ('treeviewcolumn3')
@@ -77,9 +78,6 @@ class GUI:
 
 		self.check_amount_totals_validity ()
 
-	def destroy(self, window):
-		self.cursor.close()
-		
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
 
@@ -95,24 +93,28 @@ class GUI:
 		cellrenderer.set_property("text" , str(amount))
 
 	def populate_contacts (self):
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"WHERE customer = True ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def view_invoice_clicked (self, widget):
 		invoice_combo = self.builder.get_object('comboboxtext1')
 		invoice_id = invoice_combo.get_active_id()
-		self.cursor.execute("SELECT * FROM invoices WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM invoices WHERE id = %s",
 														(invoice_id,))
-		for cell in self.cursor.fetchall():
+		for cell in cursor.fetchall():
 			file_name = cell[1] + ".pdf"
 			file_data = cell[14]
 			f = open("/tmp/" + file_name,'wb')
-			f.write(file_data)		
+			f.write(file_data)
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
+		cursor.close()
 		DB.rollback()
 
 	def apply_payment_method_toggled (self, togglebutton):
@@ -127,29 +129,30 @@ class GUI:
 		return discounted_amount
 
 	def calculate_invoice_discount (self, invoice_id):
-		self.cursor.execute("SELECT cash_only, discount_percent, pay_in_days, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT cash_only, discount_percent, pay_in_days, "
 							"pay_by_day_of_month, pay_in_days_active, "
 							"pay_by_day_of_month_active FROM contacts "
 							"JOIN terms_and_discounts "
 							"ON contacts.terms_and_discounts_id = "
-							"terms_and_discounts.id WHERE contacts.id = %s", 
+							"terms_and_discounts.id WHERE contacts.id = %s",
 							(self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			cash_only = row[0]
 			discount = row[1]
 			pay_in_days = row[2]
 			pay_by_day_of_month = row[3]
 			pay_in_days_active = row[4]
 			pay_by_day_of_month_active = row[5]
-		self.cursor.execute("SELECT tax, total, date_created FROM invoices "
+		cursor.execute("SELECT tax, total, date_created FROM invoices "
 							"WHERE id = %s", (invoice_id,))
 		if cash_only == True:
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				tax = row[0]
 				self.builder.get_object('label4').set_label("Not applicable")
 				self.builder.get_object('label9').set_label("Not applicable")
 		elif pay_in_days_active == True:
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				invoice_id = row[0]
 				total = float(row[1])
 				date_created = row[2]
@@ -160,7 +163,7 @@ class GUI:
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))
 		elif pay_by_day_of_month_active == True:
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				invoice_id = row[0]
 				total = float(row[1])
 				date_created = row[2]
@@ -171,6 +174,7 @@ class GUI:
 				self.builder.get_object('label4').set_label(str(discounted_amount))
 		else:
 			raise Exception("the terms_and_discounts table has invalid entries")
+		cursor.close()
 		DB.rollback()
 
 	def customer_match_func(self, completion, key, iter):
@@ -192,20 +196,23 @@ class GUI:
 		self.select_customer ()
 
 	def select_customer (self):
-		self.cursor.execute("SELECT address, city, state, phone From contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT address, city, state, phone From contacts "
 							"WHERE id = %s", (self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.builder.get_object('label11').set_label(row[0])
 			self.builder.get_object('label18').set_label(row[1])
 			self.builder.get_object('label17').set_label(row[2])
 			self.builder.get_object('label12').set_label(row[3])
+		cursor.close()
 		self.populate_invoices()
 		DB.rollback()
-	
+
 	def populate_invoices (self):
 		self.update_invoice_amounts_due ()
 		self.invoice_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"i.id, "
 								"i.name, "
 								"date_created::text, "
@@ -218,8 +225,9 @@ class GUI:
 							"(False, False, True) "
 							"AND customer_id = %s ORDER BY i.date_created",
 							(self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.invoice_store.append(row)
+		cursor.close()
 		self.builder.get_object('amount_spinbutton').set_value(0)
 
 	def invoice_selection_changed (self, selection):
@@ -256,8 +264,10 @@ class GUI:
 		invoice_id = self.invoice_store[path][0]
 		if amount == '' or Decimal(amount) > self.invoice_store[path][4]:
 			amount = self.invoice_store[path][4]
-		self.cursor.execute("UPDATE invoices SET amount_due = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET amount_due = %s "
 							"WHERE id = %s", (amount, invoice_id))
+		cursor.close()
 		DB.commit()
 		self.builder.get_object('amount_spinbutton').set_value(float(amount))
 		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
@@ -286,8 +296,10 @@ class GUI:
 		invoice_id = model[path][0]
 		discounted_amount = self.builder.get_object('spinbutton3').get_value()
 		if result == Gtk.ResponseType.ACCEPT:
-			self.cursor.execute("UPDATE invoices SET amount_due = %s "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE invoices SET amount_due = %s "
 								"WHERE id = %s", (discounted_amount, invoice_id))
+			cursor.close()
 			DB.commit()
 			self.builder.get_object('amount_spinbutton').set_value(discounted_amount)
 			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
@@ -323,52 +335,53 @@ class GUI:
 				return
 		comments = 	self.builder.get_object('entry2').get_text()
 		self.payment = transactor.CustomerInvoicePayment(self.date, total)
+		cursor = DB.cursor()
 		if self.payment_type_id == 0:
 			payment_text = self.check_entry.get_text()
-			self.cursor.execute("INSERT INTO payments_incoming "
+			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
 								"check_deposited, customer_id, amount, "
 								"date_inserted, comments) "
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
-								"RETURNING id", 
-								(True, False, False, payment_text, False, 
-								self.customer_id, total, self.date, 
+								"RETURNING id",
+								(True, False, False, payment_text, False,
+								self.customer_id, total, self.date,
 								comments))
-			self.payment_id = self.cursor.fetchone()[0]
+			self.payment_id = cursor.fetchone()[0]
 			self.payment.bank_check (self.payment_id)
 		elif self.payment_type_id == 1:
 			payment_text = self.credit_entry.get_text()
-			self.cursor.execute("INSERT INTO payments_incoming "
+			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
 								"check_deposited, customer_id, amount, "
 								"date_inserted, comments) "
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
-								"RETURNING id", (False, False, True, 
-								payment_text, False, self.customer_id, 
+								"RETURNING id", (False, False, True,
+								payment_text, False, self.customer_id,
 								total, self.date, comments))
-			self.payment_id = self.cursor.fetchone()[0]
+			self.payment_id = cursor.fetchone()[0]
 			self.payment.credit_card (self.payment_id)
 		elif self.payment_type_id == 2:
 			payment_text = self.cash_entry.get_text()
-			self.cursor.execute("INSERT INTO payments_incoming "
+			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
 								"check_deposited, customer_id, amount, "
 								"date_inserted, comments) "
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
-								"RETURNING id", (False, True, False, 
-								payment_text, False, self.customer_id, 
+								"RETURNING id", (False, True, False,
+								payment_text, False, self.customer_id,
 								total, self.date, comments))
-			self.payment_id = self.cursor.fetchone()[0]
+			self.payment_id = cursor.fetchone()[0]
 			self.payment.cash (self.payment_id)
+		cursor.close()
 		if self.builder.get_object('fifo_payment_checkbutton').get_active():
 			self.pay_invoices_fifo()
 		else:
 			self.pay_selected_invoices()
 		DB.commit()
-		self.cursor.close()
 		self.window.destroy ()
 		
 	def pay_invoices_fifo (self):
@@ -460,59 +473,61 @@ class GUI:
 	def update_invoice_amounts_due (self):
 		if self.customer_id == None :
 			return
-		self.cursor.execute("SELECT cash_only, discount_percent, pay_in_days, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT cash_only, discount_percent, pay_in_days, "
 							"pay_by_day_of_month, pay_in_days_active, "
 							"pay_by_day_of_month_active FROM contacts "
 							"JOIN terms_and_discounts "
 							"ON contacts.terms_and_discounts_id = "
-							"terms_and_discounts.id WHERE contacts.id = %s", 
+							"terms_and_discounts.id WHERE contacts.id = %s",
 							(self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			cash_only = row[0]
 			discount = row[1]
 			pay_in_days = row[2]
 			pay_by_day_of_month = row[3]
 			pay_in_days_active = row[4]
 			pay_by_day_of_month_active = row[5]
-		self.cursor.execute("SELECT id, total, date_created FROM invoices "
+		cursor.execute("SELECT id, total, date_created FROM invoices "
 								"WHERE (customer_id, paid, posted) "
 								"= (%s, False, True) "
 								"AND (finance_charge = False OR finance_charge IS NULL)",
 								(self.customer_id,))
-		if cash_only == True:			
-			for row in self.cursor.fetchall():
+		if cash_only == True:
+			for row in cursor.fetchall():
 				invoice_id = row[0]
 				total = row[1]
-				self.cursor.execute("UPDATE invoices SET amount_due = %s "
+				cursor.execute("UPDATE invoices SET amount_due = %s "
 									"WHERE id = %s", (total, invoice_id))
 		elif pay_in_days_active == True:
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				invoice_id = row[0]
 				total = float(row[1])
 				date_created = row[2]
 				date_difference = self.date - date_created
 				if date_difference <= timedelta(pay_in_days):
 					discounted_amount = self.calculate_discount(discount, total)
-					self.cursor.execute("UPDATE invoices SET amount_due = %s "
+					cursor.execute("UPDATE invoices SET amount_due = %s "
 							"WHERE id = %s", (discounted_amount, invoice_id))
 				else:
-					self.cursor.execute("UPDATE invoices SET amount_due = %s "
+					cursor.execute("UPDATE invoices SET amount_due = %s "
 									"WHERE id = %s", (total, invoice_id))
 		elif pay_by_day_of_month_active == True:
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				invoice_id = row[0]
 				total = float(row[1])
 				date_created = row[2]
 				discount_date = date_created.replace(day=pay_by_day_of_month)
 				if self.date <= discount_date:
 					discounted_amount = self.calculate_discount(discount, total)
-					self.cursor.execute("UPDATE invoices SET amount_due = %s "
+					cursor.execute("UPDATE invoices SET amount_due = %s "
 							"WHERE id = %s", (discounted_amount, invoice_id))
 				else:
-					self.cursor.execute("UPDATE invoices SET amount_due = %s "
+					cursor.execute("UPDATE invoices SET amount_due = %s "
 									"WHERE id = %s", (total, invoice_id))
 		else:
 			raise Exception("your terms_and_discounts table has invalid entries")
+		cursor.close()
 		DB.commit()
 		
 	def discount_cash_back_amount_changed (self, spinbutton):

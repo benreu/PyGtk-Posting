@@ -27,43 +27,48 @@ class MailingListsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.populate_mailing_store ()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_mailing_store (self):
 		model = self.get_object('liststore1')
 		model.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"name, "
 								"active, "
 								"auto_add "
 							"FROM mailing_lists")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			model.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def name_edited (self, renderer, path, text):
 		model = self.get_object('liststore1')
 		row_id = model[path][0]
-		self.cursor.execute("UPDATE mailing_lists SET name = %s WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("UPDATE mailing_lists SET name = %s WHERE id = %s",
 							(text, row_id))
+		cursor.close()
 		DB.commit()
 		model[path][1] = text
 
 	def add_clicked (self, button):
 		model = self.get_object('liststore1')
-		self.cursor.execute("INSERT INTO mailing_lists "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO mailing_lists "
 							"(name, active, date_inserted) "
 							"VALUES ('New mailing list', True, now()) "
 							"RETURNING id")
-		row_id = self.cursor.fetchone()[0]
+		row_id = cursor.fetchone()[0]
+		cursor.close()
 		self.populate_mailing_store ()
 		for row in model:
 			if row[0] == row_id:
@@ -76,23 +81,27 @@ class MailingListsGUI(Gtk.Builder):
 		if path == []:
 			return
 		row_id = model[path][0]
-		self.cursor.execute("UPDATE mailing_lists SET "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE mailing_lists SET "
 							"active = False WHERE id = %s",
 							(row_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_mailing_store ()
 
 	def auto_add_toggled (self, cellrenderertoggle, path):
 		model = self.get_object('liststore1')
 		row_id = model[path][0]
-		self.cursor.execute("UPDATE mailing_lists "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE mailing_lists "
 							"SET auto_add = NOT auto_add "
 							"WHERE id = %s;"
 							"SELECT auto_add "
 							"FROM mailing_lists "
 							"WHERE id = %s",
 							(row_id, row_id))
-		model[path][3] = self.cursor.fetchone()[0]
+		model[path][3] = cursor.fetchone()[0]
+		cursor.close()
 		DB.commit()
 
 

@@ -29,7 +29,6 @@ class TimeClockHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.sunday_store = self.builder.get_object('liststore1')
 		self.monday_store = self.builder.get_object('liststore2')
@@ -54,15 +53,16 @@ class TimeClockHistoryGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def add_day_headers (self):
 		current_time = self.last_second_of_target_week
 		first_day = self.first_day
+		cursor = DB.cursor()
 		for i in range(7):
 			current_day = datetime.fromtimestamp(current_time)
-			self.cursor.execute("SELECT format_date(%s)", (current_day.date(),))
-			formatted_date = self.cursor.fetchone()[0]
+			cursor.execute("SELECT format_date(%s)", (current_day.date(),))
+			formatted_date = cursor.fetchone()[0]
 			day_of_week = datetime.weekday(current_day)
 			bold_date = "<b>%s</b>" % formatted_date 
 			standard_date = formatted_date
@@ -103,6 +103,7 @@ class TimeClockHistoryGUI:
 					self.builder.get_object('label18').set_text(standard_date)
 			current_time -= 86400
 			first_day = False
+		cursor.close()
 
 	def previous_week_time_clicked (self, widget):
 		self.last_second_of_target_week -= 604800
@@ -128,41 +129,48 @@ class TimeClockHistoryGUI:
 		employee_id = employee_combo.get_active_id()
 		view_all_employee = self.builder.get_object('checkbutton1').get_active()
 		view_all_project = self.builder.get_object('checkbutton2').get_active()
+		cursor = DB.cursor()
+		rows = []
 		if view_all_employee == True and view_all_project == True:
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
+			cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (running) = (False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
 								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time",
-								(self.last_second_of_target_week, 
+								(self.last_second_of_target_week,
 								self.previous_week_time))
+			rows = cursor.fetchall()
 		elif view_all_employee == True:
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
+			cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (project_id, running) = (%s, False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
-								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
-								(project_id, self.last_second_of_target_week, 
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time",
+								(project_id, self.last_second_of_target_week,
 								self.previous_week_time))
+			rows = cursor.fetchall()
 		elif view_all_project == True:
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
+			cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (employee_id, running) = (%s, False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
-								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
-								(employee_id, self.last_second_of_target_week, 
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time",
+								(employee_id, self.last_second_of_target_week,
 								self.previous_week_time))
-		elif project_id != None and employee_id != None:			
-			self.cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
+			rows = cursor.fetchall()
+		elif project_id != None and employee_id != None:
+			cursor.execute("SELECT id, start_time, stop_time,project_id,employee_paid,actual_seconds "
 								"FROM time_clock_entries "
 								"WHERE (employee_id, project_id, running) = "
 								"(%s, %s, False) "
 								"AND start_time <= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) "
-								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time", 
+								"AND start_time >= (CAST(TO_TIMESTAMP( %s) AS timestamptz)) ORDER BY start_time",
 								(employee_id, project_id,
-								self.last_second_of_target_week, 
+								self.last_second_of_target_week,
 								self.previous_week_time))
-		self.populate_day_stores ()
+			rows = cursor.fetchall()
+		cursor.close()
+		self.populate_day_stores (rows)
 		self.add_day_headers ()
 		DB.rollback()
 
@@ -172,7 +180,7 @@ class TimeClockHistoryGUI:
 	def project_view_toggled (self, widget):
 		self.load_time_data ()
 
-	def populate_day_stores (self):
+	def populate_day_stores (self, rows):
 		self.sunday_store.clear()
 		self.monday_store.clear()
 		self.tuesday_store.clear()
@@ -188,7 +196,8 @@ class TimeClockHistoryGUI:
 		total_saturday_time = 0
 		total_sunday_time = 0
 		total_week_time = 0
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		for row in rows:
 			line_id = row[0]
 			start_time = row[1]
 			stop_time = row[2]
@@ -198,10 +207,10 @@ class TimeClockHistoryGUI:
 			#print row[4]
 			pay_stat = "Paid = " + str(row[4])
 			project_id_ = row[3]
-			self.cursor.execute("SELECT name FROM time_clock_projects WHERE id =%s", (project_id_,))
-			for row1 in self.cursor.fetchall():
-				project =  " ,Project = " + row1[0] 
-			
+			cursor.execute("SELECT name FROM time_clock_projects WHERE id =%s", (project_id_,))
+			for row1 in cursor.fetchall():
+				project =  " ,Project = " + row1[0]
+
 			in_tooltip = datetime.strftime(in_time,"%a %b %d %Y %I %M %p")\
 													+ ' id ' + str(line_id)\
 													+ project\
@@ -243,6 +252,7 @@ class TimeClockHistoryGUI:
 				self.sunday_store.append([line_id, "Out", out_time, out_tooltip])
 				total_sunday_time += punched_in_time
 			total_week_time += punched_in_time
+		cursor.close()
 		monday_datetime = self.convert_seconds(total_monday_time)
 		tuesday_datetime = self.convert_seconds(total_tuesday_time)
 		wednesday_datetime = self.convert_seconds(total_wednesday_time)
@@ -286,18 +296,22 @@ class TimeClockHistoryGUI:
 
 	def populate_employee_combobox (self):
 		employee_combo = self.builder.get_object('comboboxtext1')
-		self.cursor.execute("SELECT id::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name "
 							"FROM contacts WHERE employee = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			employee_combo.append (row[0], row[1])
+		cursor.close()
 
 	def populate_project_combobox (self):
 		project_combo = self.builder.get_object('comboboxtext2')
-		self.cursor.execute("SELECT id::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name "
 							"FROM time_clock_projects "
 							"WHERE active = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			project_combo.append(row[0], row[1])
+		cursor.close()
 
 
 

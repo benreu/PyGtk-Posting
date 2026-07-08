@@ -27,7 +27,6 @@ class ContactEditMainGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.window = self.get_object('window1')
 		self.window.show_all()
@@ -40,21 +39,24 @@ class ContactEditMainGUI(Gtk.Builder):
 		
 	def destroy(self, window):
 		if self.contact_lock_acquired:
-			self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+			cursor = DB.cursor()
+			cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 						(CONTACT_LOCK_CLASSID, self.contact_id))
+			cursor.close()
 			self.contact_lock_acquired = False
-		self.cursor.close()
 		DB.rollback()
 
 	def populate_zip_codes (self):
 		zip_code_store = self.get_object("zip_code_store")
 		zip_code_store.clear()
-		self.cursor.execute("SELECT zip, city, state FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT zip, city, state FROM contacts "
 							"WHERE deleted = False "
 							"GROUP BY zip, city, state "
 							"ORDER BY zip, city")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			zip_code_store.append(row)
+		cursor.close()
 
 	def zip_code_match_selected (self, completion, store, _iter):
 		city = store[_iter][1]
@@ -64,34 +66,38 @@ class ContactEditMainGUI(Gtk.Builder):
 
 	def zip_activated (self, entry):
 		zip_code = entry.get_text()
-		self.cursor.execute("SELECT city, state FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT city, state FROM contacts "
 							"WHERE (deleted, zip) = (False, %s) "
 							"GROUP BY city, state LIMIT 1", (zip_code,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			city = row[0]
 			state = row[1]
 			self.get_object("entry5").set_text(city)
 			self.get_object("entry6").set_text(state)
+		cursor.close()
 
 	def populate_combos (self):
 		store = self.get_object('terms_store')
-		self.cursor.execute("SELECT id::text, name FROM terms_and_discounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM terms_and_discounts "
 								"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
-		self.cursor.execute("SELECT id::text FROM terms_and_discounts "
+		cursor.execute("SELECT id::text FROM terms_and_discounts "
 							"WHERE standard = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.get_object('combobox1').set_active_id(row[0])
 		store = self.get_object('markup_store')
-		self.cursor.execute("SELECT id::text, name FROM customer_markup_percent "
+		cursor.execute("SELECT id::text, name FROM customer_markup_percent "
 								"WHERE deleted = False ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
-		self.cursor.execute("SELECT id::text FROM customer_markup_percent "
+		cursor.execute("SELECT id::text FROM customer_markup_percent "
 							"WHERE standard = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.get_object('combobox2').set_active_id(row[0])
+		cursor.close()
 		DB.rollback()
 
 	def window_focus_out (self, widget, event):
@@ -104,17 +110,19 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.window.set_title(editable.get_text())
 
 	def load_contact (self):
-		self.cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
+		cursor = DB.cursor()
+		cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
 					(CONTACT_LOCK_CLASSID, self.contact_id))
-		locked = self.cursor.fetchone()[0]
+		locked = cursor.fetchone()[0]
 		if not locked:
+			cursor.close()
 			DB.rollback()
 			error = "Somebody else is editing this contact"
 			self.show_message (error)
 			self.window.destroy()
 			return
 		self.contact_lock_acquired = True
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 								"name, "
 								"ext_name, "
 								"address, "
@@ -140,7 +148,7 @@ class ContactEditMainGUI(Gtk.Builder):
 								"markup_percent_id::text "
 							"FROM contacts WHERE id = %s",
 							(self.contact_id, ))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.get_object('id_label').set_label(str(self.contact_id))
 			self.get_object('entry1').set_text(row[0])
 			self.get_object('entry2').set_text(row[1])
@@ -165,6 +173,7 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.get_object('checkbutton4').set_active(row[20])
 			self.get_object('combobox1').set_active_id(row[21])
 			self.get_object('combobox2').set_active_id(row[22])
+		cursor.close()
 		DB.rollback()
 
 	def cancel_clicked (self, button):
@@ -197,9 +206,10 @@ class ContactEditMainGUI(Gtk.Builder):
 		service_provider = self.get_object('checkbutton4').get_active()
 		term_id = self.get_object('combobox1').get_active_id()
 		markup_id = self.get_object('combobox2').get_active_id()
-		if self.contact_id != None:   
+		cursor = DB.cursor()
+		if self.contact_id != None:
 			#if the serial number is not None we update the info
-			self.cursor.execute("UPDATE contacts SET "
+			cursor.execute("UPDATE contacts SET "
 								"(name, ext_name, address, city, state, zip, "
 								"phone, fax, email, label, tax_number, vendor, "
 								"customer, employee, custom1, "
@@ -209,20 +219,21 @@ class ContactEditMainGUI(Gtk.Builder):
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s, %s, %s ,%s, %s, %s, %s, "
 								"%s, %s) "
-								"WHERE id = %s ", 
-								(name, ext_name, address, city, 
-								state, zip_code, phone, fax, email, misc, 
-								tax_number, vendor, customer, employee, 
-								custom1, custom2, custom3, custom4, notes, 
+								"WHERE id = %s ",
+								(name, ext_name, address, city,
+								state, zip_code, phone, fax, email, misc,
+								tax_number, vendor, customer, employee,
+								custom1, custom2, custom3, custom4, notes,
 								term_id, service_provider, checks_payable_to,
 								markup_id, self.contact_id))
 			if self.contact_lock_acquired:
-				self.cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+				cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 							(CONTACT_LOCK_CLASSID, self.contact_id))
 				self.contact_lock_acquired = False
+			cursor.close()
 			DB.commit()
 		else:
-			self.cursor.execute("INSERT INTO contacts " 
+			cursor.execute("INSERT INTO contacts "
 								"(name, ext_name, address, city, state, zip, "
 								"phone, fax, email, label, tax_number, vendor, "
 								"customer, employee, custom1, "
@@ -232,14 +243,15 @@ class ContactEditMainGUI(Gtk.Builder):
 								"VALUES "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s ,%s, %s, %s, %s, %s, False, "
-								"%s, %s, %s, %s) RETURNING id ", 
-								(name, ext_name, address, city, state, zip_code, 
-								phone, fax, email, misc, tax_number, vendor, 
-								customer, employee, custom1, custom2, 
-								custom3, custom4, notes, term_id, 
-								service_provider, checks_payable_to, 
+								"%s, %s, %s, %s) RETURNING id ",
+								(name, ext_name, address, city, state, zip_code,
+								phone, fax, email, misc, tax_number, vendor,
+								customer, employee, custom1, custom2,
+								custom3, custom4, notes, term_id,
+								service_provider, checks_payable_to,
 								markup_id))
-			contact_id = self.cursor.fetchone()[0]
+			contact_id = cursor.fetchone()[0]
+			cursor.close()
 			DB.commit()
 			self.overview_class.append_contact(contact_id)
 			self.overview_class.select_contact(contact_id)
@@ -249,10 +261,12 @@ class ContactEditMainGUI(Gtk.Builder):
 		name = entry.get_text().lower()
 		store = self.get_object('duplicate_contact_store')
 		store.clear()
-		self.cursor.execute("SELECT id, name, ext_name, address, deleted "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, ext_name, address, deleted "
 							"FROM contacts WHERE LOWER(name) = %s", (name,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		if len(store) > 0 and self.contact_id == None:
 			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, 'dialog-error')
 		else:

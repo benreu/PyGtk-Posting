@@ -34,7 +34,6 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 		Gtk.Builder.__init__ (self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.manufacturing_store = self.get_object('manufacturing_jobs_store')
 		self.filtered_store = self.get_object('manufacturing_jobs_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
@@ -52,7 +51,7 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 		DB.rollback()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def manufacturing_history_row_activated (self, treeview, path, column):
 		store = treeview.get_model()
@@ -61,15 +60,17 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 		manufacturing_id = store[path][0]
 		serial_number_store = self.get_object('serial_number_store')
 		serial_number_store.clear()
-		self.cursor.execute("SELECT sn.id, serial_number, COALESCE(c.name, '') "
+		cursor = DB.cursor()
+		cursor.execute("SELECT sn.id, serial_number, COALESCE(c.name, '') "
 							"FROM serial_numbers AS sn "
 							"LEFT JOIN invoice_items AS ili "
 							"ON ili.id = sn.invoice_item_id "
 							"LEFT JOIN invoices AS i ON i.id = ili.invoice_id "
 							"LEFT JOIN contacts AS c ON c.id = i.customer_id "
 							"WHERE manufacturing_id = %s", (manufacturing_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			serial_number_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def refresh_jobs_clicked (self, button):

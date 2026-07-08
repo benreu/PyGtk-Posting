@@ -28,7 +28,6 @@ class SalesTaxReportGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.tax_store = self.builder.get_object('tax_store')
 
 		self.end_datetime = None
@@ -51,11 +50,12 @@ class SalesTaxReportGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_tax_treeview(self):
 		self.tax_store.clear()
-		self.cursor.execute("SELECT tax_rates.name, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT tax_rates.name, "
 							"SUM(i.tax)::money, "
 							"SUM(i.ext_price)::money "
 							"FROM invoice_items AS i "
@@ -65,11 +65,11 @@ class SalesTaxReportGUI:
 							"= (False, True) "
 							"AND date_created >= %s "
 							"AND date_created <= %s "
-							"GROUP BY tax_rates.name", 
+							"GROUP BY tax_rates.name",
 							(self.start_datetime, self.end_datetime))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.tax_store.append(row)
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 								"COALESCE(SUM(i.ext_price), 0.00)::money, "
 								"COALESCE(SUM(i.tax), 0.00)::money "
 							"FROM invoice_items AS i "
@@ -77,11 +77,12 @@ class SalesTaxReportGUI:
 							"WHERE (invoices.canceled, invoices.posted) "
 							"= (False, True) "
 							"AND date_created >= %s "
-							"AND date_created <= %s", 
+							"AND date_created <= %s",
 							(self.start_datetime, self.end_datetime))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.builder.get_object('label6').set_label(row[0])
 			self.builder.get_object('label4').set_label(row[1])
+		cursor.close()
 		DB.rollback()
 
 	def start_date_selected(self, calendar):

@@ -26,7 +26,6 @@ class DraftInvoicesGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.open_invoice_store = self.get_object('open_invoice_store')
 		self.populate_store ()
 		self.window = self.get_object('window1')
@@ -109,7 +108,8 @@ class DraftInvoicesGUI(Gtk.Builder):
 		selection = self.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		self.open_invoice_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"i.id, "
 								"i.name, "
 								"c.name, "
@@ -125,8 +125,9 @@ class DraftInvoicesGUI(Gtk.Builder):
 							"= (False, False, True) "
 							"GROUP BY (i.id, c.name, c.id) "
 							"ORDER BY i.id")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.open_invoice_store.append(row)
+		cursor.close()
 		if path != []:
 			selection.select_path(path)
 		DB.rollback()

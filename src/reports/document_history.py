@@ -32,7 +32,6 @@ class DocumentHistoryGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.search_store = Gtk.ListStore(str)
 		self.document_store = self.get_object('document_store')
@@ -48,7 +47,8 @@ class DocumentHistoryGUI(Gtk.Builder):
 
 		self.contact_id = 0
 		self.customer_store = self.get_object('customer_store')
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"c.id::text, "
 								"c.name, "
 								"c.ext_name "
@@ -56,8 +56,9 @@ class DocumentHistoryGUI(Gtk.Builder):
 							"JOIN documents ON documents.contact_id = c.id "
 							"WHERE (customer, deleted) = (True, False) "
 							"GROUP BY c.id, c.name ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 		if is_admin == True:
 			self.get_object('treeview2').set_tooltip_column(0)
@@ -72,7 +73,6 @@ class DocumentHistoryGUI(Gtk.Builder):
 
 	def destroy (self, window):
 		self.exists = False
-		self.cursor.close()
 
 	def present(self):
 		self.window.present()
@@ -94,17 +94,20 @@ class DocumentHistoryGUI(Gtk.Builder):
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.document_store[path][0]
-		self.cursor.execute("SELECT name FROM documents "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM documents "
 							"WHERE id = %s", (file_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
+				cursor.close()
 				return
 			file_data = row[1]
 			f = open("/tmp/" + file_name,'wb')
 			f.write(file_data)
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
+		cursor.close()
 		DB.rollback()
 		
 	def document_treeview_button_release_event (self, treeview, event):
@@ -131,17 +134,20 @@ class DocumentHistoryGUI(Gtk.Builder):
 		if path == []:
 			return
 		document_id = model[path][8]
-		self.cursor.execute("SELECT name FROM documents "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM documents "
 							"WHERE id = %s", (document_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
+				cursor.close()
 				return
 			file_data = row[1]
 			f = open("/tmp/" + file_name,'wb')
 			f.write(file_data)
 			subprocess.call(["xdg-open", "/tmp/%s" % file_name])
 			f.close()
+		cursor.close()
 		DB.rollback()
 
 	def product_hub_activated (self, menuitem):
@@ -190,8 +196,9 @@ class DocumentHistoryGUI(Gtk.Builder):
 		document_treeview.set_model(None)
 		model.clear()
 		total = Decimal()
+		cursor = DB.cursor()
 		if self.get_object('all_customer_checkbutton').get_active() == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"d.id, "
 									"dated_for::text, "
 									"format_date(dated_for), "
@@ -207,7 +214,7 @@ class DocumentHistoryGUI(Gtk.Builder):
 								"WHERE canceled =  false "
 								"ORDER BY dated_for")
 		else:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"d.id, "
 									"dated_for::text, "
 									"format_date(dated_for), "
@@ -221,11 +228,12 @@ class DocumentHistoryGUI(Gtk.Builder):
 								"FROM documents AS d "
 								"JOIN contacts AS c ON c.id = d.contact_id "
 								"WHERE (contact_id, canceled) = "
-								"(%s, False) ORDER BY dated_for", 
+								"(%s, False) ORDER BY dated_for",
 								(self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			total += row[6]
 			model.append(row)
+		cursor.close()
 		document_treeview.set_model(model)
 		self.get_object('label3').set_label(str(total))
 		DB.rollback()
@@ -246,8 +254,9 @@ class DocumentHistoryGUI(Gtk.Builder):
 	def load_document_items (self, load_all = False):
 		store = self.get_object('document_items_store')
 		store.clear()
+		cursor = DB.cursor()
 		if load_all == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"ili.id, "
 									"ili.qty::float,  "
 									"ili.product_id, "
@@ -273,12 +282,13 @@ class DocumentHistoryGUI(Gtk.Builder):
 				id_list.append(model[path][0])
 			rows = len(id_list)
 			if rows == 0:
+				cursor.close()
 				return						 #nothing selected
 			elif rows > 1:
 				args = str(tuple(id_list))
 			else:				# single variables do not work in tuple > SQL
-				args = "(%s)" % id_list[0] 
-			self.cursor.execute("SELECT "
+				args = "(%s)" % id_list[0]
+			cursor.execute("SELECT "
 									"ili.id, "
 									"ili.qty::float,  "
 									"ili.product_id, "
@@ -296,8 +306,9 @@ class DocumentHistoryGUI(Gtk.Builder):
 								"JOIN documents AS d ON d.id = ili.document_id "
 								"JOIN contacts AS c ON c.id = d.contact_id "
 								"WHERE document_id IN " + args)
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def search_entry_search_changed (self, entry):

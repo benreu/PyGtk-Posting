@@ -35,7 +35,6 @@ class DocumentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
 		self.handler_ids = list()
@@ -76,17 +75,19 @@ class DocumentGUI:
 		self.window.show_all()
 
 	def load_settings (self):
-		self.cursor.execute("SELECT column_id, column_name, visible "
+		cursor = DB.cursor()
+		cursor.execute("SELECT column_id, column_name, visible "
 							"FROM settings.document_columns")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			column_id = row[0]
 			column_name = row[1]
 			visible = row[2]
 			tree_column = self.builder.get_object(column_id)
 			tree_column.set_title(column_name)
 			tree_column.set_visible(visible)
-		self.cursor.execute("SELECT print_direct, email_when_possible FROM settings")
-		print_direct, email = self.cursor.fetchone()
+		cursor.execute("SELECT print_direct, email_when_possible FROM settings")
+		print_direct, email = cursor.fetchone()
+		cursor.close()
 		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
 		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
 		DB.rollback()
@@ -109,17 +110,18 @@ class DocumentGUI:
 		if len(_list_) != 2:
 			return
 		table, _id_ = _list_[0], _list_[1]
-		self.cursor.execute("SELECT product, remark, price FROM %s WHERE id = %s" % (table, _id_))
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT product, remark, price FROM %s WHERE id = %s" % (table, _id_))
+		for row in cursor.fetchall():
 			product = row[0]
 			remark = row[1]
 			price = row[2]
+		cursor.close()
 		print ("please implement me") #FIXME
 
 	def destroy(self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -130,11 +132,13 @@ class DocumentGUI:
 		document_type_combo = self.builder.get_object('comboboxtext2')
 		active_type_id = document_type_combo.get_active_id()
 		document_type_combo.remove_all()
-		self.cursor.execute("SELECT id::text, name FROM document_types")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM document_types")
+		for row in cursor.fetchall():
 			type_id = row[0]
 			type_name = row[1]
 			document_type_combo.append(str(type_id), type_name)
+		cursor.close()
 		document_type_combo.set_active_id(str(active_type_id))
 
 	def product_window(self, column):
@@ -161,27 +165,31 @@ class DocumentGUI:
 			d.print_directly()
 		else:
 			d.print_dialog(self.window)
-		d.post(self.document_id)	
+		d.post(self.document_id)
 		if self.builder.get_object('menuitem4').get_active() == True:
-			self.cursor.execute("SELECT name, email FROM contacts "
+			cursor = DB.cursor()
+			cursor.execute("SELECT name, email FROM contacts "
 								"WHERE id = %s", (self.contact_id, ))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				name = row[0]
 				email = row[1]
 				if email != "":
 					email = "%s '< %s >'" % (name, email)
 					d.email(email)
+			cursor.close()
 		DB.commit()
 		self.window.destroy()
 
 	################## start customer
 	def populate_customer_store (self, m=None, i=None):
 		self.customer_store.clear()
-		self.cursor.execute("SELECT id::text, name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM contacts "
 							"WHERE (deleted, customer) = "
 							"(False, True) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 		
 	def customer_match_selected(self, completion, model, iter):
@@ -206,18 +214,20 @@ class DocumentGUI:
 		self.builder.get_object('button4').set_sensitive(True)
 		self.builder.get_object('button11').set_sensitive(True)
 		self.builder.get_object('button12').set_sensitive(True)
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"name, "
 								"ext_name, "
 								"address, "
 								"phone "
 							"FROM contacts "
 							"WHERE id = %s",(name_id,))
-		for row in self.cursor.fetchall() :
+		for row in cursor.fetchall() :
 			self.customer_name_default_label = row[0]
 			self.builder.get_object('entry11').set_text(row[1])
 			self.builder.get_object('entry10').set_text(row[2])
 			self.builder.get_object('entry12').set_text(row[3])
+		cursor.close()
 		self.builder.get_object('button2').set_sensitive(True)
 		self.builder.get_object('menuitem2').set_sensitive(True)
 		job_type_combo = self.builder.get_object('comboboxtext2')
@@ -229,20 +239,23 @@ class DocumentGUI:
 
 	def qty_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE document_items "
+			cursor.execute("UPDATE document_items "
 								"SET (qty, ext_price) = "
 								"(%s, (%s * price)) "
 								"WHERE id = %s "
-								"RETURNING qty::text, ext_price::text", 
+								"RETURNING qty::text, ext_price::text",
 								(text, text, row_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.documents_store[path][1] = row[0]
 				self.documents_store[path][14] = row[1]
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_message (e)
 			return False
+		cursor.close()
 		DB.commit()
 		self.calculate_totals ()
 
@@ -250,15 +263,18 @@ class DocumentGUI:
 
 	def minimum_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE document_items SET min = %s "
+			cursor.execute("UPDATE document_items SET min = %s "
 									"WHERE id = %s "
 									"RETURNING min::text", (text, row_id))
 			DB.commit()
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				minimum = row[0]
 				self.documents_store[path][5] = minimum
+			cursor.close()
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_message (e)
 			return False
@@ -267,15 +283,18 @@ class DocumentGUI:
 
 	def maximum_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE document_items SET max = %s "
+			cursor.execute("UPDATE document_items SET max = %s "
 									"WHERE id = %s "
 									"RETURNING max::text", (text, row_id))
 			DB.commit()
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				maximum = row[0]
 				self.documents_store[path][6] = maximum
+			cursor.close()
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_message (e)
 			return False
@@ -284,39 +303,45 @@ class DocumentGUI:
 
 	def freeze_toggled (self, cell_renderer, path):
 		row_id = self.documents_store[path][0]
-		self.cursor.execute("UPDATE document_items SET type_1 = NOT "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_items SET type_1 = NOT "
 								"(SELECT type_1 FROM document_items "
 									"WHERE id = %s) "
 								"WHERE id = %s "
 								"RETURNING type_1", (row_id, row_id))
 		DB.commit()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			freeze = row[0]
 			self.documents_store[path][9] = freeze
-		
+		cursor.close()
+
 	################## start remark
 
 	def remark_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
-		self.cursor.execute("UPDATE document_items SET remark = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_items SET remark = %s "
 								"WHERE id = %s "
 								"RETURNING remark", (text, row_id))
 		DB.commit()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			remark = row[0]
 			self.documents_store[path][10] = remark
+		cursor.close()
 
 	################## start priority
 
 	def priority_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
-		self.cursor.execute("UPDATE document_items SET priority = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_items SET priority = %s "
 								"WHERE id = %s "
 								"RETURNING priority", (text, row_id))
 		DB.commit()
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			priority = row[0]
 			self.documents_store[path][11] = priority
+		cursor.close()
 
 	################## start retailer
 
@@ -350,36 +375,42 @@ class DocumentGUI:
 
 	def s_price_edited (self, widget, path, text):
 		row_id = self.documents_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE document_items "
+			cursor.execute("UPDATE document_items "
 								"SET s_price = %s "
 								"WHERE id = %s "
-								"RETURNING s_price::text", 
+								"RETURNING s_price::text",
 								(text, row_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.documents_store[path][13] = row[0]
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_message (e)
 			return False
+		cursor.close()
 		DB.commit()
-		
+
 	def price_edited(self, widget, path, text):
 		row_id = self.documents_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE document_items "
+			cursor.execute("UPDATE document_items "
 								"SET (price, ext_price) = "
 								"(%s, (qty * %s)) "
 								"WHERE id = %s "
-								"RETURNING price::text, ext_price::text", 
+								"RETURNING price::text, ext_price::text",
 								(text, text, row_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.documents_store[path][12] = row[0]
 				self.documents_store[path][14] = row[1]
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_message (e)
 			return False
+		cursor.close()
 		DB.commit()
 		self.calculate_totals ()
 		
@@ -412,11 +443,13 @@ class DocumentGUI:
 			return # product did not change
 		iter_ = self.documents_store.get_iter(path)
 		row_id = self.documents_store[iter_][0]
-		self.cursor.execute("UPDATE document_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_items "
 							"SET product_id = %s WHERE id = %s;"
 							"SELECT name, ext_name FROM products "
 							"WHERE id = %s", (product_id, row_id, product_id))
-		tupl = self.cursor.fetchone()
+		tupl = cursor.fetchone()
+		cursor.close()
 		DB.commit()
 		product_name, product_ext_name = tupl[0], tupl[1]
 		self.documents_store[iter_][2] = int(product_id)
@@ -433,24 +466,28 @@ class DocumentGUI:
 		
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id::text, "
 								"name ||' {' || ext_name ||'}' FROM products "
 							"WHERE (deleted, sellable, stock) = "
 							"(False, True, True) ORDER BY name ")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	################## end product
-	
+
 	def calculate_totals (self, widget = None):
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"COALESCE(SUM(ext_price), 0.00)::text "
-							"FROM document_items WHERE document_id = %s", 
+							"FROM document_items WHERE document_id = %s",
 							(self.document_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.total = row[0]
+		cursor.close()
 		self.builder.get_object('entry8').set_text(self.total)
 		DB.rollback()
 
@@ -520,8 +557,10 @@ class DocumentGUI:
 		if path == []:
 			return
 		document_line_item_id = self.documents_store[path][0]
-		self.cursor.execute("DELETE FROM document_items WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("DELETE FROM document_items WHERE id = %s",
 							(document_line_item_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_document_store ()
 
@@ -554,12 +593,16 @@ class DocumentGUI:
 			document_name = re.sub(" ", "", document_name)
 			widget.set_text(document_name)
 			return
-		self.cursor.execute("UPDATE documents SET name = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE documents SET name = %s "
 							"WHERE id = %s", (document_name, self.document_id))
+		cursor.close()
 		DB.commit()
 
 	def delete_document_clicked (self, widget):
-		self.cursor.execute("DELETE FROM documents WHERE id = %s", (self.document_id,))
+		cursor = DB.cursor()
+		cursor.execute("DELETE FROM documents WHERE id = %s", (self.document_id,))
+		cursor.close()
 		DB.commit()
 		self.builder.get_object('entry3').set_text('')
 		self.populate_existing_store ()
@@ -585,7 +628,8 @@ class DocumentGUI:
 		self.documents_store.clear()
 		self.builder.get_object('label6').set_text(" Current %s : " % self.document_type)
 		comment = self.builder.get_object('entry3').get_text()
-		self.cursor.execute("INSERT INTO documents "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO documents "
 								"(contact_id, "
 								"closed, "
 								"invoiced, "
@@ -596,9 +640,10 @@ class DocumentGUI:
 								"pending_invoice) "
 							"VALUES "
 							"(%s, %s, %s, %s, %s, %s, %s, %s) "
-							"RETURNING id", 
+							"RETURNING id",
 							(self.contact_id, False, False, False, datetime.today(), self.date, self.document_type_id, False))
-		self.document_id = self.cursor.fetchone()[0]
+		self.document_id = cursor.fetchone()[0]
+		cursor.close()
 		self.set_document_name ()
 		DB.commit()
 		self.builder.get_object('button13').set_sensitive(True)
@@ -613,11 +658,13 @@ class DocumentGUI:
 		for i in split_name:
 			name_str = name_str + i[0:3]
 		name = name_str.lower()
-		self.cursor.execute("SELECT format_date(%s)", (self.date,))
-		date = self.cursor.fetchone()[0]
+		cursor = DB.cursor()
+		cursor.execute("SELECT format_date(%s)", (self.date,))
+		date = cursor.fetchone()[0]
 		date = re.sub (" ", "_", date)
 		self.document_name = type_text + "_" + str(self.document_id) + "_" + name + "_" + date
-		self.cursor.execute("UPDATE documents SET name = %s WHERE id = %s", (self.document_name, self.document_id))
+		cursor.execute("UPDATE documents SET name = %s WHERE id = %s", (self.document_name, self.document_id))
+		cursor.close()
 		DB.commit()
 		self.builder.get_object('entry5').set_text(self.document_name)
 		
@@ -625,16 +672,18 @@ class DocumentGUI:
 		model, path = self.builder.get_object('treeview-selection5').get_selected_rows()
 		self.existing_store.clear()
 		doc_count = 0
-		self.cursor.execute("SELECT id, name FROM documents "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM documents "
 							"WHERE "
 								"(document_type_id, closed, "
 								"canceled, contact_id) "
 							"= "
-								"(%s, False, False, %s) ORDER BY id", 
+								"(%s, False, False, %s) ORDER BY id",
 							(self.document_type_id, self.contact_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			doc_count += 1
 			self.existing_store.append(row)
+		cursor.close()
 		self.builder.get_object('button11').set_label("Existing documents (%s)"
 																	% doc_count)
 		if path != []:
@@ -663,18 +712,19 @@ class DocumentGUI:
 		
 	def populate_document_store (self):
 		self.documents_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"name, "
 								"dated_for, "
 								"format_date(dated_for) "
-							"FROM documents WHERE id = %s", 
+							"FROM documents WHERE id = %s",
 							(self.document_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.document_name = row[0]
 			self.date = row[1]
 			self.builder.get_object('entry1').set_text(row[2])
 		self.builder.get_object('entry5').set_text(self.document_name)
-		self.cursor.execute("SELECT "
+		cursor.execute("SELECT "
 								"di.id, "
 								"qty::text, "
 								"p.id, "
@@ -693,10 +743,11 @@ class DocumentGUI:
 							"FROM document_items AS di "
 							"JOIN products AS p ON di.product_id = p.id "
 							"LEFT JOIN contacts AS c ON di.retailer_id = c.id "
-							"WHERE document_id = %s ORDER BY di.id", 
+							"WHERE document_id = %s ORDER BY di.id",
 							(self.document_id, ) )
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.documents_store.append(row)
+		cursor.close()
 		self.calculate_totals ()
 		DB.rollback()
 
@@ -719,7 +770,8 @@ class DocumentGUI:
 		if path == []:
 			return
 		old_id = model[path][0]
-		self.cursor.execute("INSERT INTO document_items "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO document_items "
 								"(qty, "
 								"document_id, "
 								"product_id, "
@@ -745,8 +797,9 @@ class DocumentGUI:
 								"price, "
 								"s_price, "
 								"ext_price "
-							"FROM document_items WHERE document_id = %s)", 
+							"FROM document_items WHERE document_id = %s)",
 							(self.document_id, self.contact_id, old_id))
+		cursor.close()
 		DB.commit()
 		self.populate_document_store ()
 		dh.window.destroy()
@@ -767,8 +820,10 @@ class DocumentGUI:
 		day_text = calendar.get_text()
 		self.date = calendar.get_date()
 		self.builder.get_object('entry1').set_text(day_text)
-		self.cursor.execute("UPDATE documents SET dated_for = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE documents SET dated_for = %s "
 							"WHERE id = %s", (self.date, self.document_id))
+		cursor.close()
 		self.set_document_name ()
 		DB.commit()
 
@@ -782,8 +837,10 @@ class DocumentGUI:
 		self.documents_store[path][7]= None
 		self.documents_store[path][8] = ''
 		line_id = self.documents_store[path][0]
-		self.cursor.execute("UPDATE document_items SET retailer_id = NULL "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_items SET retailer_id = NULL "
 							"WHERE id = %s", (line_id, ))
+		cursor.close()
 		DB.commit()
 
 	 #barcode entry support code *******
@@ -791,9 +848,12 @@ class DocumentGUI:
 	def barcode_entry_activated (self, entry2):
 		barcode = entry2.get_text()
 		entry2.set_text('')
-		self.cursor.execute("SELECT id, name, 1.00, ext_name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, 1.00, ext_name "
 								"FROM products WHERE barcode = %s",(barcode, ))
-		for i in self.cursor.fetchall():
+		rows = cursor.fetchall()
+		cursor.close()
+		for i in rows:
 			product_id = i[0]
 			for index, row in enumerate(self.documents_store):
 				if row[2] == product_id:

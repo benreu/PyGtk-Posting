@@ -33,7 +33,6 @@ class VendorHistoryGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.search_store = Gtk.ListStore(str)
 		self.po_store = self.builder.get_object('purchase_order_store')
@@ -155,31 +154,34 @@ class VendorHistoryGUI:
 
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.po_store[path][0]
-		self.cursor.execute("SELECT name, pdf_data FROM purchase_orders "
-							"WHERE id = %s AND pdf_data IS NOT NULL", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, pdf_data FROM purchase_orders "
+							"WHERE id = %s AND pdf_data IS NOT NULL",
 							(file_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_url = "/tmp/" + row[0]
 			file_data = row[1]
 			with open(file_url,'wb') as f:
 				f.write(file_data)
 				subprocess.call(["xdg-open", file_url])
+		cursor.close()
 		DB.rollback()
 
 	def destroy (self, window):
-		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 
 	def populate_vendors (self):
 		self.vendor_store.clear()
-		self.cursor.execute("SELECT c.id::text, c.name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT c.id::text, c.name "
 							"FROM purchase_orders AS p "
 							"JOIN contacts AS c ON c.id = p.vendor_id "
 							"GROUP BY c.id, c.name "
 							"ORDER BY c.name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.vendor_store.append(row)
+		cursor.close()
 		DB.rollback()
 	
 	def refresh_vendors_clicked (self, button):
@@ -324,8 +326,9 @@ class VendorHistoryGUI:
 	def load_purchase_order_items (self, load_all = False):
 		store = self.builder.get_object('purchase_order_items_store')
 		store.clear()
+		cursor = DB.cursor()
 		if load_all == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"poli.id, "
 									"poli.qty, "
 									"poli.qty::text, "
@@ -356,12 +359,13 @@ class VendorHistoryGUI:
 				id_list.append(model[path][0])
 			rows = len(id_list)
 			if rows == 0:
+				cursor.close()
 				return						 #nothing selected
 			elif rows > 1:
 				args = str(tuple(id_list))
 			else:				# single variables do not work in tuple > SQL
-				args = "(%s)" % id_list[0] 
-			self.cursor.execute("SELECT "
+				args = "(%s)" % id_list[0]
+			cursor.execute("SELECT "
 									"poli.id, "
 									"poli.qty, "
 									"poli.qty::text, "
@@ -385,8 +389,9 @@ class VendorHistoryGUI:
 								"JOIN contacts AS c ON c.id = po.vendor_id "
 								"WHERE purchase_order_id IN %s "
 								"ORDER BY poli.sort, poli.id" % args)
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def search_entry_search_changed (self, entry):
@@ -417,10 +422,11 @@ class VendorHistoryGUI:
 		if path == []:
 			return
 		po_id = model[path][0]
-		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
-							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT attached_pdf FROM purchase_orders "
+							"WHERE id = %s AND attached_pdf IS NOT NULL",
 							(po_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_url = "/tmp/PO %d attachment.pdf" % po_id
 			file_data = row[0]
 			with open(file_url,'wb') as f:
@@ -432,6 +438,7 @@ class VendorHistoryGUI:
 			import pdf_attachment
 			paw = pdf_attachment.PdfAttachmentWindow(self.window)
 			paw.connect("pdf_optimized", self.optimized_callback)
+		cursor.close()
 
 	def optimized_callback (self, pdf_attachment_window):
 		file_data = pdf_attachment_window.get_pdf ()
@@ -440,17 +447,21 @@ class VendorHistoryGUI:
 		if path == []:
 			return
 		po_id = model[path][0]
-		self.cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders SET attached_pdf = %s "
 							"WHERE id = %s", (file_data, po_id))
+		cursor.close()
 		DB.commit()
 
 	def name_edited (self, cellrenderertext, path, text):
 		if not admin_utils.is_admin:
 			return
 		self.po_id = self.po_store[path][0]
-		self.cursor.execute("UPDATE purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders "
 							"SET name = %s "
 							"WHERE id = %s", (text, self.po_id))
+		cursor.close()
 		DB.commit()
 		self.po_store[path][3] = text
 
@@ -458,9 +469,11 @@ class VendorHistoryGUI:
 		if not admin_utils.is_admin:
 			return
 		self.po_id = self.po_store[path][0]
-		self.cursor.execute("UPDATE purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders "
 							"SET invoice_description = %s "
 							"WHERE id = %s", (text, self.po_id))
+		cursor.close()
 		DB.commit()
 		self.po_store[path][4] = text
 		

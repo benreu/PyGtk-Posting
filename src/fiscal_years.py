@@ -28,7 +28,6 @@ class FiscalYearGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.start_calendar = DateTimeCalendar(True)
 		self.start_calendar.connect('day-selected', self.start_day_selected)
@@ -44,11 +43,12 @@ class FiscalYearGUI:
 		self.populate_fiscal_years()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_fiscal_years (self):
 		self.fiscal_year_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id, "
 								"name, "
 								"start_date::text, "
@@ -57,22 +57,27 @@ class FiscalYearGUI:
 								"format_date(end_date), "
 								"active "
 							"FROM fiscal_years ORDER BY start_date")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.fiscal_year_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def active_toggled (self, toggle_renderer, path):
 		active = not toggle_renderer.get_active()
 		id_ = self.fiscal_year_store[path][0]
-		self.cursor.execute("UPDATE fiscal_years SET active = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE fiscal_years SET active = %s "
 							"WHERE id = %s", (active, id_))
+		cursor.close()
 		DB.commit()
 		self.populate_fiscal_years ()
 
 	def fiscal_years_name_edited (self, textrenderer, path, text):
 		id_ = self.fiscal_year_store[path][0]
-		self.cursor.execute("UPDATE fiscal_years SET name = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE fiscal_years SET name = %s "
 							"WHERE id = %s", (text, id_))
+		cursor.close()
 		DB.commit()
 		self.populate_fiscal_years ()
 
@@ -82,10 +87,12 @@ class FiscalYearGUI:
 		dialog.hide()
 		if response == Gtk.ResponseType.ACCEPT:
 			fiscal_name = self.builder.get_object('entry1').get_text()
-			self.cursor.execute("INSERT INTO fiscal_years "
+			cursor = DB.cursor()
+			cursor.execute("INSERT INTO fiscal_years "
 								"(name, start_date, end_date, active) "
-								"VALUES (%s, %s, %s, True)", 
+								"VALUES (%s, %s, %s, True)",
 								(fiscal_name, self.start_date, self.end_date))
+			cursor.close()
 			DB.commit()
 			self.builder.get_object('entry1').set_text('')
 			self.populate_fiscal_years()

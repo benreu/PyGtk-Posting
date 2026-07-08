@@ -30,7 +30,6 @@ class PaymentsReceivedGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.treeview = self.builder.get_object('treeview1')
 		self.payment_store = self.builder.get_object('payments_received_store')
@@ -54,7 +53,6 @@ class PaymentsReceivedGUI:
 				self.select_payment(payment_id)
 
 	def destroy (self, widget):
-		self.cursor.close()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 
@@ -97,20 +95,22 @@ class PaymentsReceivedGUI:
 
 	def populate_stores (self):
 		self.contact_store.clear()
-		self.cursor.execute("SELECT customer_id::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT customer_id::text, name "
 							"FROM payments_incoming "
 							"JOIN contacts ON payments_incoming.customer_id "
 							"= contacts.id "
 							"GROUP BY customer_id, name "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
 		store = self.builder.get_object('fiscal_store')
 		store.clear()
-		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+		cursor.execute("SELECT id::text, name FROM fiscal_years "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		self.builder.get_object('combobox2').set_active(0)
 		DB.rollback()
 
@@ -138,8 +138,9 @@ class PaymentsReceivedGUI:
 	def populate_payments_all_customers (self):
 		self.payment_store.clear()
 		total_amount = Decimal()
+		cursor = DB.cursor()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 								"pay.id, "
 								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
@@ -160,7 +161,7 @@ class PaymentsReceivedGUI:
 								"ORDER BY date_inserted;")
 		else:
 			fiscal_id = self.builder.get_object('combobox2').get_active_id()
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 								"pay.id, "
 								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
@@ -184,11 +185,12 @@ class PaymentsReceivedGUI:
 									"AND "
 									"(SELECT end_date "
 									"FROM fiscal_years WHERE id = %s)) "
-								"ORDER BY date_inserted;", 
+								"ORDER BY date_inserted;",
 								(fiscal_id, fiscal_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			total_amount += row[4]
 			self.payment_store.append(row)
+		cursor.close()
 		amount_received = '${:,.2f}'.format(total_amount)
 		self.builder.get_object('label2').set_label(amount_received)
 		DB.rollback()
@@ -198,8 +200,9 @@ class PaymentsReceivedGUI:
 			return
 		self.payment_store.clear()
 		total_amount = Decimal()
+		cursor = DB.cursor()
 		if self.builder.get_object('checkbutton1').get_active() == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 								"pay.id, "
 								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
@@ -221,7 +224,7 @@ class PaymentsReceivedGUI:
 								"ORDER BY date_inserted;", (self.customer_id,))
 		else:
 			fiscal_id = self.builder.get_object('combobox2').get_active_id()
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 								"pay.id, "
 								"pay.date_inserted::text, "
 								"format_date(pay.date_inserted), "
@@ -241,11 +244,12 @@ class PaymentsReceivedGUI:
 								"BETWEEN fy.start_date AND fy.end_date "
 								"WHERE contacts.id = %s "
 								"AND fy.id = %s "
-								"ORDER BY date_inserted;", 
+								"ORDER BY date_inserted;",
 								(self.customer_id, fiscal_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			total_amount += row[4]
 			self.payment_store.append(row)
+		cursor.close()
 		amount_received = '${:,.2f}'.format(total_amount)
 		self.builder.get_object('label2').set_label(amount_received)
 		DB.rollback()
@@ -257,23 +261,26 @@ class PaymentsReceivedGUI:
 			self.show_error_dialog("Fiscal year is already closed!")
 			return
 		row_id = self.payment_store[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE payments_incoming "
+			cursor.execute("UPDATE payments_incoming "
 								"SET date_inserted = %s "
 								"WHERE id = %s;"
 								"SELECT date_inserted::text, "
 								"format_date(date_inserted) "
-								"FROM payments_incoming WHERE id = %s", 
+								"FROM payments_incoming WHERE id = %s",
 								(date, row_id, row_id))
 		except psycopg2.DataError as e:
+			cursor.close()
 			DB.rollback()
 			self.show_error_dialog(str(e))
 			return
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			date = row[0]
 			date_formatted = row[1]
 			self.payment_store[path][2] = date_formatted
 			self.payment_store[path][1] = date
+		cursor.close()
 		DB.commit()
 	
 	def amount_edited (self, cellrenderertext, path, amount):
@@ -286,7 +293,8 @@ class PaymentsReceivedGUI:
 			self.show_error_dialog("Fiscal year is already closed!")
 			return
 		row_id = self.payment_store[path][0]
-		self.cursor.execute("UPDATE gl_entries "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE gl_entries "
 							"SET amount = %s WHERE id = "
 								"(UPDATE payments_incoming "
 								"SET amount = %s "
@@ -294,13 +302,14 @@ class PaymentsReceivedGUI:
 								"RETURNING gl_entries_id);"
 							"SELECT amount, "
 							"amount::text "
-							"FROM payments_incoming WHERE id = %s", 
+							"FROM payments_incoming WHERE id = %s",
 							(amount, amount, row_id, row_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			amount = row[0]
 			amount_formatted = row[1]
 			self.payment_store[path][5] = amount_formatted
 			self.payment_store[path][4] = amount
+		cursor.close()
 		DB.commit()
 	
 	def payment_type_changed (self, cellrenderercombo, path, treeiter):
@@ -335,9 +344,11 @@ class PaymentsReceivedGUI:
 			self.show_error_dialog("Fiscal year is already closed!")
 			return
 		row_id = self.payment_store[path][0]
-		self.cursor.execute("UPDATE payments_incoming "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE payments_incoming "
 								"SET payment_text = %s "
 								"WHERE id = %s", (description, row_id))
+		cursor.close()
 		DB.commit()
 		self.payment_store[path][7] = description
 

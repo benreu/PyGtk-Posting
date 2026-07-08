@@ -32,7 +32,6 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.product_id = product_id
 		self.product_store = self.get_object('product_store')
 		product_completion = self.get_object('product_completion')
@@ -45,8 +44,8 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget, event):
-		self.cursor.close()
-	
+		pass
+
 	def product_match_func(self, completion, key, tree_iter):
 		split_search_text = key.split()
 		for text in split_search_text:
@@ -55,16 +54,18 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		return True
 
 	def populate_stores (self):
-		self.cursor.execute("SELECT id::text, name, ext_name, barcode "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name, barcode "
 							"FROM products WHERE deleted = False "
 							"ORDER BY name, ext_name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
 		store = self.get_object('location_store')
-		self.cursor.execute("SELECT id::text, name FROM locations "
+		cursor.execute("SELECT id::text, name FROM locations "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		self.get_object('location_combo').set_active(0) # triggers load_product
 		DB.rollback()
 
@@ -91,6 +92,7 @@ class ProductPrintLabelGUI (Gtk.Builder):
 						"FROM settings.zebra_printers")
 		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		
 	def completion_match_selected (self, entrycompletion, model, tree_iter):
 		self.product_id = model[tree_iter][0]
@@ -125,11 +127,12 @@ class ProductPrintLabelGUI (Gtk.Builder):
 
 	def load_product (self):
 		location_id = self.get_object('location_combo').get_active_id()
-		self.cursor.execute("SELECT aisle, rack, cart, shelf, cabinet, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT aisle, rack, cart, shelf, cabinet, "
 						"drawer, bin FROM product_location "
 						"WHERE (product_id, location_id) = (%s, %s) ",
 						(self.product_id, location_id))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.get_object('entry5').set_text(row[0])
 			self.get_object('entry6').set_text(row[1])
 			self.get_object('entry7').set_text(row[2])
@@ -137,6 +140,7 @@ class ProductPrintLabelGUI (Gtk.Builder):
 			self.get_object('entry9').set_text(row[4])
 			self.get_object('entry10').set_text(row[5])
 			self.get_object('entry11').set_text(row[6])
+		cursor.close()
 		if self.get_object('print_label_checkbutton').get_active():
 			self.print_label()
 		DB.rollback()

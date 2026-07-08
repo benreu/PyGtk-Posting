@@ -26,10 +26,10 @@ class GUI():
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.document_type_id = 0
 
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"print_direct, "
 								"statement_day_of_month, "
 								"email_when_possible, "
@@ -42,7 +42,7 @@ class GUI():
 								"request_po_attachment, "
 								"finance_rate * 100 * 365 "
 							"FROM public.settings")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.builder.get_object('checkbutton1').set_active(row[0])
 			self.builder.get_object('spinbutton1').set_value(row[1])
 			self.builder.get_object('checkbutton5').set_active(row[2])
@@ -57,6 +57,7 @@ class GUI():
 			self.builder.get_object('entry8').set_text(row[8])
 			self.builder.get_object('checkbutton2').set_active(row[9])
 			self.builder.get_object('spinbutton6').set_value(row[10])
+		cursor.close()
 		self.load_precision()
 		self.time_clock_store = self.builder.get_object('time_clock_projects_store')
 		self.document_type_store = self.builder.get_object('document_type_store')
@@ -74,18 +75,20 @@ class GUI():
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def load_precision (self):
-		self.cursor.execute("SELECT qty_prec, price_prec "
+		cursor = DB.cursor()
+		cursor.execute("SELECT qty_prec, price_prec "
 							"FROM settings.purchase_order")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			qty_prec = row[0]
 			price_prec = row[1]
 			self.builder.get_object('spinbutton2').set_value(qty_prec)
 			self.builder.get_object('adjustment3').set_lower(qty_prec)
 			self.builder.get_object('spinbutton3').set_value(price_prec)
 			self.builder.get_object('adjustment4').set_lower(price_prec)
+		cursor.close()
 
 	def precision_save_clicked (self, button):
 		dialog = self.builder.get_object('precision_dialog')
@@ -93,43 +96,51 @@ class GUI():
 		if result == Gtk.ResponseType.ACCEPT:
 			qty_prec = self.builder.get_object('spinbutton2').get_value_as_int()
 			price_prec = self.builder.get_object('spinbutton3').get_value_as_int()
-			self.cursor.execute("UPDATE settings.purchase_order "
-								"SET (qty_prec, price_prec) = (%s, %s)", 
+			cursor = DB.cursor()
+			cursor.execute("UPDATE settings.purchase_order "
+								"SET (qty_prec, price_prec) = (%s, %s)",
 								(qty_prec, price_prec))
-			self.cursor.execute("ALTER TABLE public.purchase_order_items "
+			cursor.execute("ALTER TABLE public.purchase_order_items "
 								"ALTER COLUMN qty "
 								"TYPE numeric(12,"+ str(qty_prec) +");")
-			self.cursor.execute("ALTER TABLE public.purchase_order_items "
+			cursor.execute("ALTER TABLE public.purchase_order_items "
 								"ALTER COLUMN price "
 								"TYPE numeric(12,"+ str(price_prec) +");")
+			cursor.close()
 			DB.commit()
 			self.load_precision ()
 		dialog.hide()
 
 	def date_entry_changed (self, entry):
 		format = entry.get_text()
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE public.settings "
+			cursor.execute("UPDATE public.settings "
 								"SET date_format = %s "
-								"RETURNING format_date(CURRENT_DATE)", 
+								"RETURNING format_date(CURRENT_DATE)",
 								(format,))
-			formatted_date = self.cursor.fetchone()[0]
+			formatted_date = cursor.fetchone()[0]
+			cursor.close()
 			DB.commit()
 		except Exception:
+			cursor.close()
 			DB.rollback()
 			formatted_date = "#Error"
 		self.builder.get_object('label49').set_text(formatted_date)
 
 	def date_with_time_changed (self, entry):
 		format = entry.get_text()
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("UPDATE public.settings "
+			cursor.execute("UPDATE public.settings "
 								"SET timestamp_format = %s "
-								"RETURNING format_timestamp(CURRENT_TIMESTAMP)", 
+								"RETURNING format_timestamp(CURRENT_TIMESTAMP)",
 								(format,))
-			formatted_date = self.cursor.fetchone()[0]
+			formatted_date = cursor.fetchone()[0]
+			cursor.close()
 			DB.commit()
 		except Exception:
+			cursor.close()
 			DB.rollback()
 			formatted_date = "#Error"
 		self.builder.get_object('label51').set_text(formatted_date)
@@ -142,40 +153,48 @@ class GUI():
 
 	def finance_fee_value_changed (self, spinbutton):
 		finance_rate = spinbutton.get_value()
-		self.cursor.execute("UPDATE settings "
-							"SET finance_rate = ((%s/100)/365)", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings "
+							"SET finance_rate = ((%s/100)/365)",
 							(finance_rate,))
+		cursor.close()
 		DB.commit()
 
 
 	def cost_decrease_alert_spinbutton_changed (self, spinbutton):
 		percent = spinbutton.get_value()
-		self.cursor.execute("UPDATE settings "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings "
 							"SET cost_decrease_alert = (%s/100)", (percent,))
+		cursor.close()
 		DB.commit()
 
 	def populate_columns (self):
+		cursor = DB.cursor()
 		store = self.builder.get_object('invoice_columns_store')
-		self.cursor.execute("SELECT id, column_name, visible "
+		cursor.execute("SELECT id, column_name, visible "
 							"FROM settings.invoice_columns ORDER BY id")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
 		store = self.builder.get_object('po_columns_store')
-		self.cursor.execute("SELECT id, column_name, visible "
+		cursor.execute("SELECT id, column_name, visible "
 							"FROM settings.po_columns ORDER BY id")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
 		store = self.builder.get_object('document_columns_store')
-		self.cursor.execute("SELECT id, column_name, visible "
+		cursor.execute("SELECT id, column_name, visible "
 							"FROM settings.document_columns ORDER BY id")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 
 	def request_po_attachment_toggled (self, togglebutton):
 		active = togglebutton.get_active()
-		self.cursor.execute("UPDATE settings "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings "
 							"SET request_po_attachment = %s",
 							(active,))
+		cursor.close()
 		DB.commit()
 
 	def invoice_column_visible_toggled (self, toggle, path):
@@ -183,16 +202,20 @@ class GUI():
 		active = not toggle.get_active()
 		id_ = store[path][0]
 		store[path][2] = active
-		self.cursor.execute("UPDATE settings.invoice_columns SET visible = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings.invoice_columns SET visible = %s "
 							"WHERE id = %s", (active, id_))
+		cursor.close()
 		DB.commit()
 
 	def document_column_name_edited (self, cellrenderertext, path, text):
 		store = self.builder.get_object('document_columns_store')
 		id_ = store[path][0]
-		self.cursor.execute("UPDATE settings.document_columns "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings.document_columns "
 							"SET column_name = %s "
 							"WHERE id = %s", (text, id_))
+		cursor.close()
 		DB.commit()
 		store[path][1] = text
 
@@ -201,8 +224,10 @@ class GUI():
 		active = not toggle.get_active()
 		id_ = store[path][0]
 		store[path][2] = active
-		self.cursor.execute("UPDATE settings.document_columns SET visible = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings.document_columns SET visible = %s "
 							"WHERE id = %s", (active, id_))
+		cursor.close()
 		DB.commit()
 
 	def po_column_visible_toggled (self, toggle, path):
@@ -210,67 +235,83 @@ class GUI():
 		active = not toggle.get_active()
 		id_ = store[path][0]
 		store[path][2] = active
-		self.cursor.execute("UPDATE settings.po_columns SET visible = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings.po_columns SET visible = %s "
 							"WHERE id = %s", (active, id_))
+		cursor.close()
 		DB.commit()
 
 	def exact_payment_checkbutton_toggled (self, checkbutton):
-		self.cursor.execute("UPDATE settings SET enforce_exact_payment = %s",
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings SET enforce_exact_payment = %s",
 													(checkbutton.get_active(),))
+		cursor.close()
 		DB.commit()
 
 	def accrual_based_togglebutton_clicked (self, togglebutton):
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		accrual = self.cursor.fetchone()[0]
+		cursor = DB.cursor()
+		cursor.execute("SELECT accrual_based FROM settings")
+		accrual = cursor.fetchone()[0]
 		if togglebutton.get_active() == True and accrual == False:
 			dialog = self.builder.get_object('accrual_dialog')
 			result = dialog.run()
 			if result == Gtk.ResponseType.ACCEPT:
-				self.cursor.execute("UPDATE settings SET accrual_based = True")
-				self.cursor.execute("ALTER TABLE public.settings "
+				cursor.execute("UPDATE settings SET accrual_based = True")
+				cursor.execute("ALTER TABLE public.settings "
 									"ADD CONSTRAINT accrual_irreversible "
 									"CHECK (accrual_based = True);")
+				cursor.close()
 				transactor.switch_to_accrual_based()
 				DB.commit()
 			else:
+				cursor.close()
 				self.builder.get_object('radiobutton1').set_active(True)
 			dialog.hide()
-		elif accrual == True:
-			togglebutton.set_active(True)
+		else:
+			cursor.close()
+			if accrual == True:
+				togglebutton.set_active(True)
 
 	def add_time_clock_project(self, widget):
 		project_text = widget.get_text()
 		if project_text == "":
 			return
-		self.cursor.execute("INSERT INTO time_clock_projects "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO time_clock_projects "
 							"(name, start_date, permanent, active) VALUES "
 							"(%s, CURRENT_DATE, True, True)", (project_text,))
+		cursor.close()
 		DB.commit()
 		widget.set_text("")
 		self.populate_time_clock_projects ()
 
 	def populate_time_clock_projects(self):
-		self.time_clock_store.clear()		
-		self.cursor.execute("SELECT id, name FROM time_clock_projects "
+		self.time_clock_store.clear()
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM time_clock_projects "
 							"WHERE (permanent, active) = (True, True)")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.time_clock_store.append(row)
+		cursor.close()
 
 	def end_time_clock_project(self, widget):
 		model, path = self.builder.get_object('treeview-selection4').get_selected_rows()
 		if path != []:
 			treeiter = model.get_iter(path)
 			project_id = model.get_value(treeiter, 0)
-			self.cursor.execute("UPDATE time_clock_projects "
+			cursor = DB.cursor()
+			cursor.execute("UPDATE time_clock_projects "
 								"SET (active, stop_date) = "
 								"(False, CURRENT_DATE) "
 								"WHERE id = %s", (project_id, ))
+			cursor.close()
 			DB.commit()
 			self.populate_time_clock_projects ()
 
 	def populate_all_widgets(self):
-		self.cursor.execute("SELECT * FROM company_info")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM company_info")
+		for row in cursor.fetchall():
 			self.builder.get_object('entry15').set_text(row[1])
 			self.builder.get_object('entry16').set_text(row[2])
 			self.builder.get_object('entry17').set_text(row[3])
@@ -282,28 +323,37 @@ class GUI():
 			self.builder.get_object('entry23').set_text(row[9])
 			self.builder.get_object('entry24').set_text(row[10])
 			self.builder.get_object('entry25').set_text(row[11])
+		cursor.close()
 		self.populate_time_clock_projects ()
 
 	def direct_print_toggled (self, checkbutton):
-		self.cursor.execute("UPDATE settings SET print_direct = %s",
-													[checkbutton.get_active()])	
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings SET print_direct = %s",
+													[checkbutton.get_active()])
+		cursor.close()
 		DB.commit()
 
 	def email_when_possible(self, widget):
-		self.cursor.execute("UPDATE settings SET email_when_possible = %s", 
-														[widget.get_active()])	
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings SET email_when_possible = %s",
+														[widget.get_active()])
+		cursor.close()
 		DB.commit()
 
 	def backup_days_spinbutton_changed (self, spinbutton):
 		days = spinbutton.get_value_as_int()
-		self.cursor.execute("UPDATE settings "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings "
 							"SET backup_frequency_days = %s", (days,))
+		cursor.close()
 		DB.commit()
 
 	def statement_date_changed (self, spinbutton):
 		day_of_month = spinbutton.get_value_as_int()
-		self.cursor.execute("UPDATE settings "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE settings "
 							"SET statement_day_of_month = %s", (day_of_month,))
+		cursor.close()
 		DB.commit()
 
 	def save_company_info(self, widget):
@@ -318,20 +368,24 @@ class GUI():
 		email = self.builder.get_object('entry23').get_text()
 		website = self.builder.get_object('entry24').get_text()
 		tax_number = self.builder.get_object('entry25').get_text()
-		
-		self.cursor.execute("UPDATE company_info SET "
+
+		cursor = DB.cursor()
+		cursor.execute("UPDATE company_info SET "
 							"(name, street, city, state, zip, country, phone, "
 							"fax, email, website, tax_number) = "
-							"(%s, %s, %s ,%s, %s, %s, %s, %s, %s, %s, %s)", 
-							(name, street, city, state, zip_, country, phone, 
+							"(%s, %s, %s ,%s, %s, %s, %s, %s, %s, %s, %s)",
+							(name, street, city, state, zip_, country, phone,
 							fax, email, website, tax_number))
+		cursor.close()
 		DB.commit()
 
 	def populate_document_types(self):
 		self.document_type_store.clear()
-		self.cursor.execute("SELECT id, name FROM document_types")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM document_types")
+		for row in cursor.fetchall():
 			self.document_type_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def add_document_type_clicked (self, widget):
@@ -350,14 +404,16 @@ class GUI():
 		text11 = self.builder.get_object('entry32').get_text()
 		text12 = self.builder.get_object('entry33').get_text()
 
-		self.cursor.execute("INSERT INTO document_types "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO document_types "
 							"(name, text1, text2, text3, text4, text5, text6, "
 							"text7, text8, text9, text10, text11, text12) "
 							"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, "
-							"%s, %s, %s, %s)", 
-							(document_type_name, text1, text2, text3, 
-							text4, text5, text6, text7, text8, text9, 
+							"%s, %s, %s, %s)",
+							(document_type_name, text1, text2, text3,
+							text4, text5, text6, text7, text8, text9,
 							text10, text11, text12))
+		cursor.close()
 		DB.commit()
 		self.populate_document_types ()
 		document_type_entry.set_text("")
@@ -368,9 +424,10 @@ class GUI():
 	def document_type_row_activate (self, treeview, path, treeviewcolumn):
 		treeiter = self.document_type_store.get_iter(path)
 		self.document_type_id = self.document_type_store.get_value(treeiter, 0)
-		self.cursor.execute("SELECT * FROM document_types WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM document_types WHERE id = %s",
 							(self.document_type_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.builder.get_object('entry3').set_text(row[2])
 			self.builder.get_object('entry4').set_text(row[3])
 			self.builder.get_object('entry5').set_text(row[4])
@@ -383,6 +440,7 @@ class GUI():
 			self.builder.get_object('entry31').set_text(row[11])
 			self.builder.get_object('entry32').set_text(row[12])
 			self.builder.get_object('entry33').set_text(row[13])
+		cursor.close()
 
 	def document_type_py30_text_changed (self, widget):
 		text1 = self.builder.get_object('entry3').get_text()
@@ -398,14 +456,16 @@ class GUI():
 		text11 = self.builder.get_object('entry32').get_text()
 		text12 = self.builder.get_object('entry33').get_text()
 
-		self.cursor.execute("UPDATE document_types SET "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_types SET "
 							"(text1, text2, text3, text4, text5, text6, text7, "
 							"text8, text9, text10, text11, text12) = "
 							"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-							"%s, %s) WHERE id = %s", 
-							(text1, text2, text3, text4, text5, text6, text7, 
-							text8, text9, text10, text11, text12, 
+							"%s, %s) WHERE id = %s",
+							(text1, text2, text3, text4, text5, text6, text7,
+							text8, text9, text10, text11, text12,
 							self.document_type_id))
+		cursor.close()
 		DB.commit()
 		
 		

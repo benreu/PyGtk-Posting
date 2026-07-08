@@ -29,7 +29,6 @@ class CreditCardMerchantGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -46,41 +45,44 @@ class CreditCardMerchantGUI:
 
 	def destroy (self, window = None):
 		self.exists = False
-		self.cursor.close()
 
 	def populate_stores (self):
+		cursor = DB.cursor()
 		# debit accounts
 		store = self.builder.get_object('debit_account_store')
 		store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE (type = 3) "
 							"AND parent_number IS NULL "
 							"OR bank_account "
 							"ORDER BY number")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			tree_parent = store.append(None, row)
 			self.get_child_accounts (store, account_number, tree_parent)
 		# credit accounts
 		store = self.builder.get_object('credit_account_store')
 		store.clear()
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE (type = 4) "
 							"AND parent_number IS NULL "
 							"OR bank_account "
 							"ORDER BY number")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			tree_parent = store.append(None, row)
 			self.get_child_accounts (store, account_number, tree_parent)
+		cursor.close()
 
 	def get_child_accounts (self, store, parent_number, tree_parent):
-		self.cursor.execute("SELECT number, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name FROM gl_accounts "
 							"WHERE parent_number = %s", (parent_number,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			account_number = row[0]
 			parent = store.append(tree_parent, row)
 			self.get_child_accounts (store, account_number, parent)
+		cursor.close()
 
 	def check_if_all_requirements_valid (self):
 		post_button = self.builder.get_object('button2')

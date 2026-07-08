@@ -30,21 +30,22 @@ class ShippingInfoGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.date = None
 
 		self.contact_store = self.get_object('contact_store')
 		self.invoice_store = self.get_object('invoice_store')
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"id::text, name, ext_name "
 							"FROM contacts AS c "
 							"WHERE deleted = False "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
+		cursor.close()
 		DB.rollback()
 		contact_completion = self.get_object('contact_completion')
 		contact_completion.set_match_func(self.contact_match_func)
@@ -53,7 +54,6 @@ class ShippingInfoGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
 		if self.incoming_invoice:
 			self.incoming_invoice.get_object('window1').destroy()
 
@@ -97,14 +97,16 @@ class ShippingInfoGUI(Gtk.Builder):
 		self.get_object('invoice_id_entry').set_text('')
 		self.get_object('shipping_description_entry').set_sensitive(True)
 		self.invoice_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"i.id::text, i.name "
 							"FROM invoices AS i "
 							"WHERE (i.canceled, i.customer_id) = (False, %s) "
 							"ORDER BY i.id"
 							, (self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.invoice_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def tracking_number_changed (self, entry):
@@ -162,7 +164,8 @@ class ShippingInfoGUI(Gtk.Builder):
 	def populate_shipping_history (self):
 		store = self.get_object('shipping_history_store')
 		store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"sh.id, "
 								"COALESCE(sh.invoice_id, 0), "
 								"COALESCE(sh.invoice_id::text, 'N/A'), "
@@ -173,8 +176,9 @@ class ShippingInfoGUI(Gtk.Builder):
 							"FROM shipping_info AS sh "
 							"WHERE sh.contact_id = %s ORDER BY date_shipped",
 							(self.contact_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def calendar_day_selected (self, calendar):

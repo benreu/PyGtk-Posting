@@ -37,8 +37,7 @@ class GUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.purchase_order_items_store = self.get_object('purchase_order_items_store')
 		self.expense_account_store = self.get_object('expense_account_store')
 		self.po_store = self.get_object('po_store')
@@ -50,19 +49,21 @@ class GUI(Gtk.Builder):
 			self.populate_purchase_order_items_store ()
 			self.get_object("button7").set_sensitive(True)
 
-		self.cursor.execute("SELECT qty_prec, price_prec "
+		cursor = DB.cursor()
+		cursor.execute("SELECT qty_prec, price_prec "
 							"FROM settings.purchase_order")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			qty_prec = row[0]
 			price_prec = row[1]
 			self.qty_places = Decimal(10) ** -qty_prec
 			self.price_places = Decimal(10) ** -price_prec
 
-		self.cursor.execute("SELECT cost_decrease_alert, "
+		cursor.execute("SELECT cost_decrease_alert, "
 							"request_po_attachment FROM settings")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.cost_decrease = row[0]
 			self.request_po_attachment = row[1]
+		cursor.close()
 		
 		qty_renderer = self.get_object('cellrenderertext1')
 		qty_column = self.get_object('treeviewcolumn1')
@@ -85,18 +86,20 @@ class GUI(Gtk.Builder):
 		GLib.idle_add(entry.select_region, 0, -1)
 
 	def view_attachment_clicked (self, button):
-		self.cursor.execute("SELECT attached_pdf FROM purchase_orders "
-							"WHERE id = %s AND attached_pdf IS NOT NULL", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT attached_pdf FROM purchase_orders "
+							"WHERE id = %s AND attached_pdf IS NOT NULL",
 							(self.purchase_order_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = "/tmp/PO %s Attachment.pdf" % self.purchase_order_id
 			with open(file_name,'wb') as f:
 				f.write(row[0])
 			Popen(["xdg-open", file_name])
+		cursor.close()
 		DB.rollback()
 
 	def destroy(self, window):
-		self.cursor.close()
+		pass
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -128,11 +131,13 @@ class GUI(Gtk.Builder):
 		self.save_row_ordering()
 
 	def save_row_ordering (self):
+		cursor = DB.cursor()
 		for row_count, row in enumerate (self.purchase_order_items_store):
 			row_id = row[0]
-			self.cursor.execute("UPDATE purchase_order_items "
-								"SET sort = %s WHERE id = %s", 
+			cursor.execute("UPDATE purchase_order_items "
+								"SET sort = %s WHERE id = %s",
 								(row_count, row_id))
+		cursor.close()
 		DB.commit()
 
 	def product_hub_activated (self, menuitem):
@@ -155,10 +160,12 @@ class GUI(Gtk.Builder):
 	def populate_expense_products (self):
 		store = self.get_object ('expense_products_store')
 		store.clear()
-		self.cursor.execute ("SELECT id::text, name FROM products "
+		cursor = DB.cursor()
+		cursor.execute ("SELECT id::text, name FROM products "
 							"WHERE expense = True ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def expense_spinbutton_value_changed (self, spinbutton):
@@ -191,22 +198,25 @@ class GUI(Gtk.Builder):
 		self.get_object('spinbutton2').set_value(0.00)
 
 	def calculate_cost_clicked (self, button):
-		self.cursor.execute("SELECT SUM(price) FROM purchase_order_items "
+		cursor = DB.cursor()
+		cursor.execute("SELECT SUM(price) FROM purchase_order_items "
 							"JOIN products "
 							"ON purchase_order_items.product_id "
 							"= products.id "
 							"WHERE purchase_order_id = %s AND expense = True",
 							(self.purchase_order_id,))
-		expense = self.cursor.fetchone()[0]
+		expense = cursor.fetchone()[0]
 		if expense == None:
+			cursor.close()
 			return
-		self.cursor.execute("SELECT SUM(qty) FROM purchase_order_items "
+		cursor.execute("SELECT SUM(qty) FROM purchase_order_items "
 							"JOIN products "
 							"ON purchase_order_items.product_id "
 							"= products.id "
 							"WHERE purchase_order_id = %s AND expense = False",
 							(self.purchase_order_id,))
-		qty = self.cursor.fetchone()[0]
+		qty = cursor.fetchone()[0]
+		cursor.close()
 		expense_adder = expense / qty
 		for index, row in enumerate (self.purchase_order_items_store):
 			if row[10] == True: #expense product
@@ -229,17 +239,19 @@ class GUI(Gtk.Builder):
 				paw.connect("pdf_optimized", self.optimized_callback)
 				return
 		invoice_number = self.get_object('entry6').get_text()
-		self.cursor.execute("UPDATE purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders "
 							"SET (amount_due, invoiced, total, "
 								"invoice_description) = "
-							"(%s, True, %s, %s) WHERE id = %s", 
-							(self.total, self.total, invoice_number, 
+							"(%s, True, %s, %s) WHERE id = %s",
+							(self.total, self.total, invoice_number,
 							self.purchase_order_id))
 		post_purchase_order (self.total, self.purchase_order_id)
-		self.cursor.execute("SELECT accrual_based FROM settings")
-		if self.cursor.fetchone()[0] == True:
-			post_purchase_order_accounts (self.purchase_order_id, 
+		cursor.execute("SELECT accrual_based FROM settings")
+		if cursor.fetchone()[0] == True:
+			post_purchase_order_accounts (self.purchase_order_id,
 											datetime.today())
+		cursor.close()
 		DB.commit()
 		self.window.destroy()
 
@@ -253,15 +265,18 @@ class GUI(Gtk.Builder):
 
 	def populate_expense_account_store (self):
 		self.expense_account_store.clear()
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE expense_account = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.expense_account_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def populate_po_combobox (self):
-		name_combo = self.get_object('combobox1') 
-		self.cursor.execute("SELECT "
+		name_combo = self.get_object('combobox1')
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"po.id::text, "
 								"po.name, "
 								"'Vendor: ' || c.name, "
@@ -271,8 +286,9 @@ class GUI(Gtk.Builder):
 							"JOIN contacts AS c ON c.id = po.vendor_id "
 							"WHERE (canceled, invoiced, closed) = "
 							"(False, False, True) ORDER by po.id" )
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.po_store.append(row)
+		cursor.close()
 		DB.rollback()
 		
 	def po_combobox_changed (self, combo): 
@@ -390,20 +406,24 @@ class GUI(Gtk.Builder):
 		price = line[5]
 		ext_price = line[6]
 		expense_account_id = line[7]
-		self.cursor.execute("UPDATE purchase_order_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_order_items "
 							"SET (qty, remark, price, ext_price) = "
-							"(%s, %s, %s, %s) WHERE id = %s", 
+							"(%s, %s, %s, %s) WHERE id = %s",
 							(qty, remarks, price, ext_price, row_id))
+		cursor.close()
 		DB.commit()
-		
+
 	def check_current_cost(self, path):
 		self.product_id = self.purchase_order_items_store[path][2]
 		product_name = self.purchase_order_items_store[path][3]
 		self.get_object('label12').set_label(product_name)
 		new_cost = self.purchase_order_items_store[path][5]
-		self.cursor.execute("SELECT cost FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT cost FROM products "
 							"WHERE id = %s", (self.product_id,))
-		current_cost = self.cursor.fetchone()[0]
+		current_cost = cursor.fetchone()[0]
+		cursor.close()
 		self.get_object('spinbutton1').set_value(current_cost)
 		# set the current cost first and the new cost later
 		cost_formatted = '${:,.2f}'.format(current_cost)
@@ -426,9 +446,11 @@ class GUI(Gtk.Builder):
 		self.purchase_order_items_store[path][7] = int(account_number)
 		self.purchase_order_items_store[path][8] = account_name
 		row_id = self.purchase_order_items_store[path][0]
-		self.cursor.execute("UPDATE purchase_order_items "
-							"SET expense_account = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_order_items "
+							"SET expense_account = %s WHERE id = %s",
 							(account_number, row_id))
+		cursor.close()
 		DB.commit()
 		self.calculate_totals ()
 
@@ -444,9 +466,10 @@ class GUI(Gtk.Builder):
 		listbox = self.get_object('listbox2')
 		cost_spinbutton = self.get_object('spinbutton1')
 		cost = cost_spinbutton.get_text()
-		self.cursor.execute("SELECT id, name, markup_percent "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, markup_percent "
 							"FROM customer_markup_percent ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			terms_id = row[0]
 			terms_name = row[1]
 			terms_markup = row[2]
@@ -472,6 +495,7 @@ class GUI(Gtk.Builder):
 			list_box_row = Gtk.ListBoxRow()
 			list_box_row.add(hbox)
 			listbox.add(list_box_row)
+		cursor.close()
 		listbox.show_all()
 		DB.rollback()
 
@@ -516,10 +540,11 @@ class GUI(Gtk.Builder):
 			sell_spin = widget_list[3]
 			sell_adjustment = sell_spin.get_adjustment()
 			sell_adjustment.set_lower(cost)
-			self.cursor.execute("SELECT price FROM products_markup_prices "
-								"WHERE (product_id, markup_id) = (%s, %s)", 
+			cursor = DB.cursor()
+			cursor.execute("SELECT price FROM products_markup_prices "
+								"WHERE (product_id, markup_id) = (%s, %s)",
 								(self.product_id, terms_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				sell_price = float(row[0])
 				sell_spin.set_value(sell_price)
 				margin = sell_price - cost
@@ -527,19 +552,21 @@ class GUI(Gtk.Builder):
 				markup_spin.set_value(markup)
 				break
 			else:
-				self.cursor.execute("SELECT markup_percent "
+				cursor.execute("SELECT markup_percent "
 									"FROM customer_markup_percent "
 									"WHERE id = %s", (terms_id,))
-				markup = float(self.cursor.fetchone()[0])
+				markup = float(cursor.fetchone()[0])
 				markup_spin.set_value(markup)
 				margin = (markup / 100) * cost
 				sell_price = margin + cost
 				sell_spin.set_value(sell_price)
+			cursor.close()
 		DB.rollback()
 
 	def save_product_terms_prices (self):
 		cost = self.get_object('spinbutton1').get_value()
-		self.cursor.execute("UPDATE products SET cost = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE products SET cost = %s "
 							"WHERE id = %s", (cost, self.product_id))
 		listbox = self.get_object('listbox2')
 		for list_box_row in listbox:
@@ -551,20 +578,21 @@ class GUI(Gtk.Builder):
 			terms_id = terms_id_label.get_label()
 			sell_spin = widget_list[3]
 			sell_price = sell_spin.get_value()
-			self.cursor.execute("SELECT id FROM products_markup_prices "
-								"WHERE (product_id, markup_id) = (%s, %s)", 
+			cursor.execute("SELECT id FROM products_markup_prices "
+								"WHERE (product_id, markup_id) = (%s, %s)",
 								(self.product_id, terms_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				_id_ = row[0]
-				self.cursor.execute("UPDATE products_markup_prices "
-									"SET price = %s WHERE id = %s", 
+				cursor.execute("UPDATE products_markup_prices "
+									"SET price = %s WHERE id = %s",
 									(sell_price, _id_))
 				break
 			else:
-				self.cursor.execute("INSERT INTO products_markup_prices "
+				cursor.execute("INSERT INTO products_markup_prices "
 									"(product_id, markup_id, price) "
-									"VALUES (%s, %s, %s)", 
+									"VALUES (%s, %s, %s)",
 									(self.product_id, terms_id, sell_price))
+		cursor.close()
 		DB.commit()
 
 	def attach_button_clicked (self, button = None):
@@ -574,10 +602,12 @@ class GUI(Gtk.Builder):
 
 	def optimized_callback (self, pdf_attachment_window):
 		pdf_data = pdf_attachment_window.get_pdf ()
-		self.cursor.execute("UPDATE purchase_orders "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders "
 							"SET attached_pdf = %s "
-							"WHERE id = %s", 
+							"WHERE id = %s",
 							(pdf_data, self.purchase_order_id))
+		cursor.close()
 		DB.commit()
 		# update the attachment status for this po
 		active = self.get_object("combobox1").get_active()

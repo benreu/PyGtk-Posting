@@ -26,7 +26,6 @@ class CustomerTermsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.terms_store = self.builder.get_object('terms_store')
 		self.populate_terms_store()
@@ -38,7 +37,7 @@ class CustomerTermsGUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def term_combo_changed (self, combo):
 		term_id = combo.get_active_id()
@@ -49,22 +48,25 @@ class CustomerTermsGUI:
 
 	def populate_terms_store (self):
 		self.terms_store.clear()
-		self.cursor.execute("SELECT id::text, name, standard FROM "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, standard FROM "
 							"terms_and_discounts WHERE deleted = False "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.terms_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def terms_row_activated (self, treeview, path, treeview_column):
 		self.terms_id = self.terms_store[path][0]
-		self.cursor.execute("SELECT name, cash_only, "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, cash_only, "
 							"discount_percent, pay_in_days_active, "
 							"pay_in_days, pay_by_day_of_month_active, "
 							"pay_by_day_of_month, standard, plus_date, text1, "
 							"text2, text3, text4 FROM terms_and_discounts "
 							"WHERE id = %s", (self.terms_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			name = row[0]
 			cash_only = row[1]
 			discount_percent = row[2]
@@ -91,6 +93,7 @@ class CustomerTermsGUI:
 			self.builder.get_object('entry3').set_text(text2)
 			self.builder.get_object('entry4').set_text(text3)
 			self.builder.get_object('entry5').set_text(text4)
+		cursor.close()
 		DB.rollback()
 
 	def cash_only_toggled (self, togglebutton):
@@ -111,11 +114,12 @@ class CustomerTermsGUI:
 		if path == []:
 			return
 		term_id = model[path][0]
+		cursor = DB.cursor()
 		try:
-			self.cursor.execute("DELETE FROM terms_and_discounts "
+			cursor.execute("DELETE FROM terms_and_discounts "
 								"WHERE id = %s", (term_id,))
 			DB.rollback()
-			self.cursor.execute("UPDATE terms_and_discounts "
+			cursor.execute("UPDATE terms_and_discounts "
 								"SET deleted = True "
 								"WHERE id = %s", (term_id,))
 		except Exception as e:
@@ -127,13 +131,14 @@ class CustomerTermsGUI:
 			dialog.hide()
 			if result == Gtk.ResponseType.ACCEPT:
 				new_term_id = self.builder.get_object('combobox1').get_active_id()
-				self.cursor.execute("UPDATE contacts "
+				cursor.execute("UPDATE contacts "
 									"SET terms_and_discounts_id = %s "
 									"WHERE terms_and_discounts_id = %s",
 									(new_term_id, term_id))
-				self.cursor.execute("UPDATE terms_and_discounts "
+				cursor.execute("UPDATE terms_and_discounts "
 									"SET deleted = True "
 									"WHERE id = %s", (term_id,))
+		cursor.close()
 		DB.commit()
 		self.populate_terms_store()
 
@@ -158,8 +163,9 @@ class CustomerTermsGUI:
 		text2 = self.builder.get_object('entry3').get_text()
 		text3 = self.builder.get_object('entry4').get_text()
 		text4 = self.builder.get_object('entry5').get_text()
+		cursor = DB.cursor()
 		if self.terms_id == 0:
-			self.cursor.execute("INSERT INTO terms_and_discounts "
+			cursor.execute("INSERT INTO terms_and_discounts "
 								"(name, cash_only, "
 								"discount_percent, pay_in_days_active, "
 								"pay_in_days, pay_by_day_of_month_active, "
@@ -167,14 +173,14 @@ class CustomerTermsGUI:
 								"text1, text2, text3, text4) VALUES "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s)"
-								"RETURNING id", (term_name, cash_only, 
-								discount, paid_in_days_active, 
-								paid_in_days, paid_by_day_month_active, 
-								paid_by_day_month, False, plus_date, 
+								"RETURNING id", (term_name, cash_only,
+								discount, paid_in_days_active,
+								paid_in_days, paid_by_day_month_active,
+								paid_by_day_month, False, plus_date,
 								text1, text2, text3, text4))
-			self.terms_id = self.cursor.fetchone()[0]
+			self.terms_id = cursor.fetchone()[0]
 		else:
-			self.cursor.execute("UPDATE terms_and_discounts "
+			cursor.execute("UPDATE terms_and_discounts "
 								"SET (name, cash_only, "
 								"discount_percent, pay_in_days_active, "
 								"pay_in_days, pay_by_day_of_month_active, "
@@ -182,25 +188,28 @@ class CustomerTermsGUI:
 								"text3, text4) = "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s) "
-								"WHERE id = %s", (term_name, cash_only, 
-								discount, paid_in_days_active, 
-								paid_in_days, paid_by_day_month_active, 
-								paid_by_day_month, plus_date, 
+								"WHERE id = %s", (term_name, cash_only,
+								discount, paid_in_days_active,
+								paid_in_days, paid_by_day_month_active,
+								paid_by_day_month, plus_date,
 								text1, text2, text3, text4, self.terms_id))
+		cursor.close()
 		DB.commit()
 		self.populate_terms_store ()
 
 	def default_toggled (self, cell_renderer, path):
 		selected_path = Gtk.TreePath(path)
+		cursor = DB.cursor()
 		for row in self.terms_store:
 			if row.path == selected_path:
 				row[2] = True
-				self.cursor.execute("UPDATE terms_and_discounts SET "
+				cursor.execute("UPDATE terms_and_discounts SET "
 									"standard = True WHERE id = (%s)",[row[0]])
 			else:
 				row[2] = False
-				self.cursor.execute("UPDATE terms_and_discounts SET "
+				cursor.execute("UPDATE terms_and_discounts SET "
 									"standard = False WHERE id = %s",[row[0]])
+		cursor.close()
 		DB.commit()
 
 

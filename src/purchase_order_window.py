@@ -78,7 +78,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
 
@@ -119,10 +118,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		column.set_cell_data_func(renderer, self.line_number_cell_func)
 		
 		self.populate_vendor_store ()
+		cursor = DB.cursor()
 		if edit_po_id != None:
-			self.cursor.execute("SELECT name, vendor_id FROM purchase_orders "
+			cursor.execute("SELECT name, vendor_id FROM purchase_orders "
 								"WHERE id = %s", (edit_po_id,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				po_name = row[0]
 				self.vendor_id = row[1]
 				self.get_object('combobox1').set_active_id(str(self.vendor_id))
@@ -135,28 +135,30 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.purchase_order_id = int(edit_po_id)
 				self.populate_purchase_order_items ()
 
-		self.cursor.execute("SELECT print_direct FROM settings")
-		self.get_object('menuitem1').set_active(self.cursor.fetchone()[0]) #set the direct print checkbox
-		
+		cursor.execute("SELECT print_direct FROM settings")
+		self.get_object('menuitem1').set_active(cursor.fetchone()[0]) #set the direct print checkbox
+		cursor.close()
+
 		self.window = self.get_object('window')
 		self.window.show_all()
 		
 		GLib.idle_add(self.load_settings)
 
 	def load_settings (self):
-		self.cursor.execute("SELECT column_id, visible "
+		cursor = DB.cursor()
+		cursor.execute("SELECT column_id, visible "
 							"FROM settings.po_columns")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			column_id = row[0]
 			visible = row[1]
 			self.get_object(column_id).set_visible(visible)
+		cursor.close()
 		DB.rollback()
 
 	def destroy(self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 		self.unlock_po()
-		self.cursor.close()
 
 	def widget_focus_in_event (self, widget, event):
 		GLib.idle_add(widget.select_region, 0, -1)
@@ -323,18 +325,20 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def populate_product_store (self, m=None, i=None):
 		self.product_store.clear()
-		self.cursor.execute("SELECT id::text, name ||'{' || ext_name ||'}' "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name ||'{' || ext_name ||'}' "
 							"FROM products "
 							"WHERE (deleted, purchasable, stock) = "
 							"(False, True, True) ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_store.append(row)
 		self.order_number_store.clear()
-		self.cursor.execute("SELECT product_id, vendor_sku "
+		cursor.execute("SELECT product_id, vendor_sku "
 							"FROM vendor_product_numbers "
 							"WHERE vendor_id = %s", (self.vendor_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.order_number_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def line_items_treeview_vendor_changed (self, combo, path, iter_):
@@ -406,35 +410,38 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.save_row_ordering()
 
 	def save_row_ordering (self):
+		cursor = DB.cursor()
 		for row_count, row in enumerate (self.p_o_store):
 			row_id = row[0]
-			self.cursor.execute("UPDATE purchase_order_items "
-								"SET sort = %s WHERE id = %s", 
+			cursor.execute("UPDATE purchase_order_items "
+								"SET sort = %s WHERE id = %s",
 								(row_count, row_id))
+		cursor.close()
 		DB.commit()
 
 	def update_line_item_vendor (self, _iter, vendor_id):
 		row_id = self.p_o_store[_iter][0]
-		self.cursor.execute("SELECT po.id, c.name FROM purchase_orders AS po "
+		cursor = DB.cursor()
+		cursor.execute("SELECT po.id, c.name FROM purchase_orders AS po "
 							"JOIN contacts AS c ON c.id = vendor_id "
 							"WHERE vendor_id = %s "
 							"AND (paid, closed, canceled) = "
 							"(False, False, False)", (vendor_id, ))
-		for row in self.cursor.fetchall() : # check for active PO
+		for row in cursor.fetchall() : # check for active PO
 			purchase_order_id = row[0]
 			vendor_name = row[1]
 			break
 		else:
-			self.cursor.execute("SELECT name FROM contacts WHERE id = %s", 
+			cursor.execute("SELECT name FROM contacts WHERE id = %s",
 								(vendor_id,))
-			vendor_name = self.cursor.fetchone()[0]
-			self.cursor.execute("INSERT INTO purchase_orders "
+			vendor_name = cursor.fetchone()[0]
+			cursor.execute("INSERT INTO purchase_orders "
 								"( vendor_id, closed, paid, canceled, "
 								"received, date_created) "
 								"VALUES (%s, %s, %s, %s, %s, CURRENT_DATE) "
-								"RETURNING id, date_created", 
+								"RETURNING id, date_created",
 								(vendor_id, False, False, False, False))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				purchase_order_id = row[0]
 				date = row[1]
 			name_str = ""
@@ -443,15 +450,16 @@ class PurchaseOrderGUI(Gtk.Builder):
 			name = name_str.lower()
 			po_date = re.sub("-", "_", str(date))
 			document_name = "PO_" + str(purchase_order_id) + "_"  + name + "_" + po_date
-			self.cursor.execute("UPDATE purchase_orders "
-								"SET name = %s WHERE id = %s", 
+			cursor.execute("UPDATE purchase_orders "
+								"SET name = %s WHERE id = %s",
 								(document_name, purchase_order_id))
 		self.p_o_store[_iter][11] = int(vendor_id)
 		self.p_o_store[_iter][12] = vendor_name
 		self.p_o_store[_iter][13] = purchase_order_id
-		self.cursor.execute("UPDATE purchase_order_items "
+		cursor.execute("UPDATE purchase_order_items "
 							"SET purchase_order_id = %s "
 							"WHERE id = %s", (purchase_order_id, row_id))
+		cursor.close()
 		DB.commit()
 		
 	def products_activated (self, column):
@@ -559,13 +567,15 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def unlock_po (self):
 		if self.purchase_order_id:
-			self.cursor.execute("SELECT "
+			cursor = DB.cursor()
+			cursor.execute("SELECT "
 									"pg_advisory_unlock_shared(id) "
 								"FROM purchase_orders "
-								"WHERE id = %s ", 
+								"WHERE id = %s ",
 								(self.purchase_order_id, ))
+			cursor.close()
 		DB.commit()
-		
+
 	def select_vendor (self, vendor_id):
 		self.p_o_store.clear()
 		self.get_object ('checkbutton1').set_active(False)
@@ -576,7 +586,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.get_object('button3').set_sensitive(True)
 			self.get_object('menuitem5').set_sensitive(True)
 			self.get_object('menuitem2').set_sensitive(True)
-			self.cursor.execute("SELECT * FROM "
+			cursor = DB.cursor()
+			cursor.execute("SELECT * FROM "
 								"(SELECT "
 									"po.id, "
 									"po.date_created, "
@@ -590,7 +601,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"AND (paid, closed, canceled) = "
 								"(False, False, False)) s "
 								"WHERE lock = True", (vendor_id, ))
-			for row in self.cursor.fetchall() : # check for active PO
+			for row in cursor.fetchall() : # check for active PO
 				self.purchase_order_id = row[0]
 				self.datetime = row[1]
 				self.get_object('entry1').set_text(row[2])
@@ -600,19 +611,20 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.populate_purchase_order_items ()
 				break
 			else:
-				self.cursor.execute("SELECT "
+				cursor.execute("SELECT "
 									"CURRENT_DATE, "
 									"format_date(CURRENT_DATE), "
 									"phone "
-									"FROM contacts WHERE id = %s", 
+									"FROM contacts WHERE id = %s",
 									(vendor_id,))
-				for row in self.cursor.fetchall() : 
+				for row in cursor.fetchall() :
 					self.purchase_order_id = None
 					self.datetime = row[0]
 					self.get_object('entry1').set_text(row[1])
 					self.get_object('entry8').set_text(row[2])
 					self.get_object('po_name_entry').set_text('')
 					self.get_object('po_number_entry').set_text('')
+			cursor.close()
 			self.calculate_totals ()
 		DB.rollback()
 
@@ -705,9 +717,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		else:
 			return # order number not updated
 		self.p_o_store[path][3] = order_number
-		self.cursor.execute("UPDATE purchase_order_items "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_order_items "
 							"SET order_number = %s WHERE id = %s",
 							(order_number, row_id))
+		cursor.close()
 		DB.commit()
 
 	def order_number_match_selected (self, completion, store, _iter):
@@ -860,46 +874,52 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def populate_account_store (self):
 		self.expense_account_store.clear()
 		self.revenue_account_store.clear()
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE expense_account = True ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.expense_account_store.append(row)
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts "
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
 							"WHERE revenue_account = True ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.revenue_account_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def create_product_widgets_changed (self, widget):
 		self.get_object ('button1').set_sensitive(False)
-		product_name = self.get_object ('entry4').get_text() 
+		product_name = self.get_object ('entry4').get_text()
+		cursor = DB.cursor()
 		if product_name == '':
+			cursor.close()
 			return # no product name
 		else:
-			self.cursor.execute("SELECT id FROM products "
+			cursor.execute("SELECT id FROM products "
 								"WHERE name = %s", (product_name,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				self.get_object('label15').set_visible(True)
 				break
 			else:
 				self.get_object('label15').set_visible(False)
 		order_number = self.get_object ('entry3').get_text()
 		if order_number == '':
+			cursor.close()
 			return # no order number
 		else:
-			self.cursor.execute("SELECT name FROM vendor_product_numbers "
+			cursor.execute("SELECT name FROM vendor_product_numbers "
 								"JOIN products "
 								"ON products.id = "
 								"vendor_product_numbers.product_id "
 								"WHERE (vendor_sku, vendor_id) = "
 								"(%s, %s)", (order_number, self.vendor_id))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				product_name = row[0]
 				self.get_object('label13').set_text(product_name)
 				self.get_object('box8').set_visible(True)
 				break
 			else:
 				self.get_object('box8').set_visible(False)
+		cursor.close()
 		if self.get_object ('combobox2').get_active_id() == None:
 			return # no expense account
 		if self.get_object ('combobox3').get_active_id() == None:
@@ -1049,9 +1069,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		qty = qty_spinbutton.get_text()
 		self.duplicate_product_primary_row[1] = qty
 		row_id = self.duplicate_product_primary_row[0]
-		self.cursor.execute("UPDATE purchase_order_items "
-							"SET qty = %s WHERE id = %s", 
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_order_items "
+							"SET qty = %s WHERE id = %s",
 							(qty, row_id))
+		cursor.close()
 		DB.commit()
 		self.calculate_totals ()
 		self.get_object('duplicate_product_window').hide()
@@ -1131,7 +1153,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def check_po_id (self):
 		if self.purchase_order_id == None:
 			comment = self.get_object('entry2').get_text()
-			self.cursor.execute("INSERT INTO purchase_orders "
+			cursor = DB.cursor()
+			cursor.execute("INSERT INTO purchase_orders "
 									"(name, "
 									"vendor_id, "
 									"closed, "
@@ -1141,9 +1164,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 									"date_created) "
 								"VALUES "
 									"(%s, %s, False, False, False, False, %s) "
-								"RETURNING id", 
+								"RETURNING id",
 									("", self.vendor_id, self.datetime ))
-			po_id = self.cursor.fetchone()[0]
+			po_id = cursor.fetchone()[0]
+			cursor.close()
 			self.purchase_order_id = po_id
 			self.get_object('po_name_entry').set_text('')
 			self.get_object('po_number_entry').set_text(str(po_id))
@@ -1157,21 +1181,23 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def add_entry (self):
 		self.check_po_id ()
-		self.cursor.execute("SELECT id, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name "
 							"FROM products "
 							"WHERE (deleted, purchasable, stock) = "
 									"(False, True, True) "
 							"ORDER BY id, name "
 							"LIMIT 1")
-		for i in self.cursor.fetchall():
+		for i in cursor.fetchall():
 			product_id = i[0]
 			product_name = i[1]
-			_iter = self.p_o_store.append([0, '1', product_id, 
-										"Select order number", 
-										False, "Select a stock item" , "", "", 
+			_iter = self.p_o_store.append([0, '1', product_id,
+										"Select order number",
+										False, "Select a stock item" , "", "",
 										'1', '1', True, int(self.vendor_id),
 										'', self.purchase_order_id, False])
 			self.check_po_item_id (_iter)
+		cursor.close()
 		DB.commit()
 		return _iter
 
@@ -1180,8 +1206,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows ()
 		if path != []:
 			line_id = model[path][0]
-			self.cursor.execute("DELETE FROM purchase_order_items "
+			cursor = DB.cursor()
+			cursor.execute("DELETE FROM purchase_order_items "
 								"WHERE id = %s", (line_id,))
+			cursor.close()
 			DB.commit()
 			self.populate_purchase_order_items ()
 
@@ -1236,14 +1264,17 @@ class PurchaseOrderGUI(Gtk.Builder):
 		barcode = entry.get_text()
 		if barcode == "":
 			return # blank barcode
-		self.cursor.execute("SELECT id FROM products "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id FROM products "
 							"WHERE barcode = %s", (barcode,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			product_id = row[0]
 			break
 		else:
+			cursor.close()
 			self.process_missing_barcode (barcode)
 			return
+		cursor.close()
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
 			entry.select_region(0,-1)
 			for index, row in enumerate(self.p_o_store):
@@ -1298,8 +1329,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def po_name_icon_release (self, entry, entryiconposition, event):
 		po_name = entry.get_text()
-		self.cursor.execute("UPDATE purchase_orders SET name = %s "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE purchase_orders SET name = %s "
 							"WHERE id = %s", (po_name, self.purchase_order_id))
+		cursor.close()
 		DB.commit()
 
 	def show_message (self, message):

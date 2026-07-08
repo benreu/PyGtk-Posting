@@ -26,16 +26,17 @@ class ProductHubGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.product_id = product_id
-		self.cursor.execute ("SELECT name FROM products WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute ("SELECT name FROM products WHERE id = %s",
 														(product_id,))
-		self.name = self.cursor.fetchone()[0]
-		self.cursor.execute ("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+		self.name = cursor.fetchone()[0]
+		cursor.execute ("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
 							"FROM inventory_transactions WHERE product_id = %s",
 														(product_id,))
-		on_hand = self.cursor.fetchone()[0]
+		on_hand = cursor.fetchone()[0]
+		cursor.close()
 		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
 		self.builder.get_object('label_on_hand').set_label("On hand: %s" % on_hand)
@@ -43,7 +44,7 @@ class ProductHubGUI:
 		self.window.show_all()
 
 	def destroy (self, window):
-		self.cursor.close()
+		pass
 
 	def cancel_clicked (self, button):
 		self.window.destroy()

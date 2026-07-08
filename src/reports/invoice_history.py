@@ -32,7 +32,6 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.search_store = Gtk.ListStore(str)
 		self.invoice_store = self.get_object('invoice_store')
@@ -49,13 +48,15 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		self.customer_id = 0
 
 		self.customer_store = self.get_object('customer_store')
-		self.cursor.execute("SELECT c.id::text, c.name, c.ext_name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT c.id::text, c.name, c.ext_name "
 							"FROM contacts AS c "
 							"JOIN invoices ON invoices.customer_id = c.id "
 							"WHERE deleted = False "
 							"GROUP BY c.id, c.name ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.customer_store.append(row)
+		cursor.close()
 		DB.rollback()
 		if is_admin == True:
 			self.get_object('treeview2').set_tooltip_column(0)
@@ -72,7 +73,6 @@ class InvoiceHistoryGUI(Gtk.Builder):
 
 	def destroy (self, window):
 		self.exists = False
-		self.cursor.close()
 
 	def present(self):
 		self.window.present()
@@ -94,17 +94,20 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		
 	def row_activated(self, treeview, path, treeviewcolumn):
 		file_id = self.invoice_store[path][0]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, pdf_data FROM invoices "
 							"WHERE id = %s", (file_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
+				cursor.close()
 				return
 			file_data = row[1]
 			f = open("/tmp/" + file_name,'wb')
 			f.write(file_data)
 			subprocess.call("xdg-open /tmp/" + str(file_name), shell = True)
 			f.close()
+		cursor.close()
 		DB.rollback()
 		
 	def invoice_treeview_button_release_event (self, treeview, event):
@@ -140,17 +143,20 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		if path == []:
 			return
 		invoice_id = model[path][11]
-		self.cursor.execute("SELECT name, pdf_data FROM invoices "
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, pdf_data FROM invoices "
 							"WHERE id = %s", (invoice_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_name = row[0]
 			if file_name == None:
+				cursor.close()
 				return
 			file_data = row[1]
 			f = open("/tmp/" + file_name,'wb')
 			f.write(file_data)
 			subprocess.call(["xdg-open", "/tmp/%s" % file_name])
 			f.close()
+		cursor.close()
 		DB.rollback()
 
 	def product_hub_activated (self, menuitem):
@@ -199,8 +205,9 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		invoice_treeview.set_model(None)
 		model.clear()
 		total = Decimal()
+		cursor = DB.cursor()
 		if self.get_object('checkbutton3').get_active() == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"i.id, "
 									"dated_for::text, "
 									"format_date(dated_for), "
@@ -218,7 +225,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 								"WHERE canceled =  false "
 								"ORDER BY dated_for")
 		else:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"i.id, "
 									"dated_for::text, "
 									"format_date(dated_for), "
@@ -234,11 +241,12 @@ class InvoiceHistoryGUI(Gtk.Builder):
 								"FROM invoices AS i "
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE (customer_id, canceled) = "
-								"(%s, False) ORDER BY dated_for", 
+								"(%s, False) ORDER BY dated_for",
 								(self.customer_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			total += row[6]
 			model.append(row)
+		cursor.close()
 		invoice_treeview.set_model(model)
 		self.get_object('label3').set_label(str(total))
 		DB.rollback()
@@ -259,8 +267,9 @@ class InvoiceHistoryGUI(Gtk.Builder):
 	def load_invoice_items (self, load_all = False):
 		store = self.get_object('invoice_items_store')
 		store.clear()
+		cursor = DB.cursor()
 		if load_all == True:
-			self.cursor.execute("SELECT "
+			cursor.execute("SELECT "
 									"ili.id, "
 									"ili.qty,  "
 									"ili.qty::text,  "
@@ -289,12 +298,13 @@ class InvoiceHistoryGUI(Gtk.Builder):
 				id_list.append(model[path][0])
 			rows = len(id_list)
 			if rows == 0:
+				cursor.close()
 				return						 #nothing selected
 			elif rows > 1:
 				args = str(tuple(id_list))
 			else:				# single variables do not work in tuple > SQL
-				args = "(%s)" % id_list[0] 
-			self.cursor.execute("SELECT "
+				args = "(%s)" % id_list[0]
+			cursor.execute("SELECT "
 									"ili.id, "
 									"ili.qty,  "
 									"ili.qty::text,  "
@@ -316,8 +326,9 @@ class InvoiceHistoryGUI(Gtk.Builder):
 								"JOIN contacts AS c ON c.id = i.customer_id "
 								"WHERE invoice_id IN %s "
 								"ORDER BY ili.sort, ili.id" % args)
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def search_entry_search_changed (self, entry):

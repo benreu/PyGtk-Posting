@@ -30,7 +30,6 @@ class GUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.customer_id = None
 
@@ -50,15 +49,17 @@ class GUI (Gtk.Builder):
 		self.calendar.show()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def finish_statement_clicked (self, button):
 		dialog = self.get_object('dialog1')
 		response = dialog.run()
 		if response == Gtk.ResponseType.ACCEPT:
-			self.cursor.execute("UPDATE settings "
-								"SET statement_finish_date = %s", 
+			cursor = DB.cursor()
+			cursor.execute("UPDATE settings "
+								"SET statement_finish_date = %s",
 								(self.statement_end_date,))
+			cursor.close()
 			DB.commit()
 		dialog.hide()
 
@@ -187,7 +188,8 @@ class GUI (Gtk.Builder):
 	def populate_statement_store (self):
 		self.statement_store.clear()
 		c_id = self.customer_id
-		self.cursor.execute("SELECT * FROM "
+		cursor = DB.cursor()
+		cursor.execute("SELECT * FROM "
 								"(SELECT "
 									"id, "
 									"'', "
@@ -246,8 +248,9 @@ class GUI (Gtk.Builder):
 							(c_id, c_id, self.statement_end_date, c_id,
 							self.statement_end_date, c_id, 
 							self.statement_end_date))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.statement_store.append(row)
+		cursor.close()
 		self.get_object('button3').set_sensitive(True)
 		DB.rollback()
 

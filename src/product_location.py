@@ -27,7 +27,6 @@ class ProductLocationGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.aisle_text = ""
 		self.product_text = ""
@@ -128,7 +127,8 @@ class ProductLocationGUI(Gtk.Builder):
 	def populate_product_location_treeview (self):
 		location_id = self.get_object('combobox1').get_active_id()
 		self.product_location_store.clear()
-		self.cursor.execute ("SELECT "
+		cursor = DB.cursor()
+		cursor.execute ("SELECT "
 								"pl.id, "
 								"p.name, "
 								"aisle, "
@@ -142,21 +142,24 @@ class ProductLocationGUI(Gtk.Builder):
 							"FROM product_location AS pl "
 							"JOIN products AS p ON p.id = pl.product_id "
 							"WHERE location_id = %s "
-							"ORDER BY p.name", 
+							"ORDER BY p.name",
 							(location_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.product_location_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def populate_location_combo(self):
 		location_combo = self.get_object('combobox1')
 		active_id = location_combo.get_active_id()
 		self.location_store.clear()
-		self.cursor.execute ("SELECT id, name FROM locations")
-		for row in self.cursor.fetchall():
+		cursor = DB.cursor()
+		cursor.execute ("SELECT id, name FROM locations")
+		for row in cursor.fetchall():
 			location_id = row[0]
 			location_name = row[1]
 			self.location_store.append([str(location_id), location_name])
+		cursor.close()
 		if active_id == None:
 			location_combo.set_active(0)
 		else:

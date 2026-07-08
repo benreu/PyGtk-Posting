@@ -28,7 +28,6 @@ class ProfitLossReportGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 		self.populate_fiscals ()
 		self.fiscal = None
 
@@ -36,14 +35,16 @@ class ProfitLossReportGUI(Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_fiscals (self):
 		fiscal_store = self.get_object('fiscal_store')
-		self.cursor.execute("SELECT id::text, name FROM fiscal_years "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM fiscal_years "
 							"ORDER BY name ")
-		for account in self.cursor.fetchall():
+		for account in cursor.fetchall():
 			fiscal_store.append(account)
+		cursor.close()
 		DB.rollback()
 
 	def fiscal_year_combo_changed (self, combobox):
@@ -61,11 +62,12 @@ class ProfitLossReportGUI(Gtk.Builder):
 	def load_profit_loss(self):
 		store = self.get_object("revenue_store")
 		store.clear()
+		cursor = DB.cursor()
 		# Revenues first
-		self.cursor.execute("SELECT is_parent, number, name "
+		cursor.execute("SELECT is_parent, number, name "
 							"FROM gl_accounts "
 							"WHERE type = 4 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
@@ -81,10 +83,10 @@ class ProfitLossReportGUI(Gtk.Builder):
 		# Expenses next
 		store = self.get_object("expense_store")
 		store.clear()
-		self.cursor.execute("SELECT is_parent, number, name "
+		cursor.execute("SELECT is_parent, number, name "
 							"FROM gl_accounts "
 							"WHERE type = 3 AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			is_parent = row[0]
 			number = row[1]
 			name = row[2]
@@ -100,6 +102,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 		income = revenue - expenses
 		label = self.get_object("income_amount_label")
 		label.set_label('${:,.2f}'.format(income))
+		cursor.close()
 		DB.rollback()
 
 	def get_child_accounts (self, store, is_parent, p_account, parent_tree):

@@ -28,8 +28,7 @@ class LoanGUI :
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
-		
+
 		self.loan_store = self.builder.get_object('loan_store')
 
 		self.contact_store = self.builder.get_object('contact_store')
@@ -54,7 +53,7 @@ class LoanGUI :
 		self.window.show_all()
 
 	def window_destroy (self, window):
-		self.cursor.close()
+		pass
 
 	def spinbutton_focus_in_event(self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
@@ -64,35 +63,42 @@ class LoanGUI :
 		cellrenderer.set_property("text", amount)
 
 	def populate_contacts (self):
-		self.cursor.execute("SELECT id::text, name, ext_name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name, ext_name FROM contacts "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.contact_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def populate_accounts (self):
 		accounts_store = self.builder.get_object('liability_account_store')
 		accounts_store.clear()
-		self.cursor.execute("SELECT number::text, name "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name "
 						"FROM gl_accounts WHERE type = 5 "
 						"AND parent_number IS NULL")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			parent = accounts_store.append(None, row)
 			number = row[0]
 			self.populate_child_accounts(number, parent, accounts_store)
+		cursor.close()
 		DB.rollback()
 
 	def populate_child_accounts (self, number, parent, accounts_store):
-		self.cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number::text, name FROM gl_accounts WHERE "
 							"parent_number = %s", (number,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			p = accounts_store.append(parent, row)
 			number = row[0]
 			self.populate_child_accounts (number, p, accounts_store)
+		cursor.close()
 
 	def populate_loans (self):
 		self.loan_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 								"l.id, "
 								"c.name, "
 								"l.date_received::text, "
@@ -104,14 +110,17 @@ class LoanGUI :
 							"FROM loans AS l "
 							"JOIN contacts AS c ON c.id = l.contact_id "
 							"WHERE finished = False")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.loan_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def description_edited (self, cellrenderertext, path, text):
 		row_id = self.loan_store[path][0]
-		self.cursor.execute("UPDATE loans SET description = %s WHERE id = %s",
+		cursor = DB.cursor()
+		cursor.execute("UPDATE loans SET description = %s WHERE id = %s",
 							(text, row_id))
+		cursor.close()
 		DB.commit()
 		self.loan_store[path][4] = text
 
@@ -165,7 +174,8 @@ class LoanGUI :
 		gl_entries_id = transactor.create_loan(self.date, 
 												self.amount, self.account)
 		period_amount = self.builder.get_object('period_amount_spin').get_text()
-		self.cursor.execute("INSERT INTO loans "
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO loans "
 								"(description, "
 								"contact_id, "
 								"date_received, "
@@ -180,8 +190,9 @@ class LoanGUI :
 							self.date,
 							self.amount,
 							self.payment_period,
-							period_amount, 
+							period_amount,
 							gl_entries_id))
+		cursor.close()
 		DB.commit()
 		self.populate_loans ()
 		button.set_sensitive(False)

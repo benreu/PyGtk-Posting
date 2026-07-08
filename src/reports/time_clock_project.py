@@ -31,7 +31,6 @@ class GUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.time_store = self.builder.get_object('time_store')
 		self.employee_time_store = self.builder.get_object('employee_time_store')
@@ -43,14 +42,15 @@ class GUI:
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def focus_in_event (self, window, event):
 		self.populate_project_store ()
 
 	def populate_project_store (self):
 		self.project_store.clear()
-		self.cursor.execute("SELECT "
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
 							"time_clock_projects.id::text, "
 							"name, "
 							"SUM(stop_time-start_time)::text "
@@ -60,8 +60,9 @@ class GUI:
 							"time_clock_entries.project_id "
 							"GROUP BY time_clock_projects.id "
 							"ORDER BY name")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.project_store.append(row)
+		cursor.close()
 		DB.rollback()
 
 	def project_combo_changed (self, combo):

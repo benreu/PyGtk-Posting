@@ -30,7 +30,6 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
@@ -42,26 +41,30 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 		self.window.show_all()
 
 	def destroy (self, widget):
-		self.cursor.close()
+		pass
 
 	def populate_stores (self):
 		self.account_store.clear()
-		self.cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
 							"WHERE parent_number IS NULL "
 							"ORDER BY number")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			iter_ = self.account_store.append(None, row)
 			self.get_child_accounts (row[0], row[2], iter_)
+		cursor.close()
 		DB.rollback()
 
 	def get_child_accounts (self, account_number, account_path, parent):
-		self.cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
-							"WHERE parent_number = %s ORDER BY name", 
+		cursor = DB.cursor()
+		cursor.execute("SELECT number, name, ' / '||name FROM gl_accounts "
+							"WHERE parent_number = %s ORDER BY name",
 							(account_number,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			path = account_path + row[2]
 			iter_ = self.account_store.append(parent, [row[0], row[1], path])
 			self.get_child_accounts (row[0], path, iter_)
+		cursor.close()
 
 	def check_if_all_requirements_valid (self):
 		post_button = self.get_object('button2')

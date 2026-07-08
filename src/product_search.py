@@ -30,7 +30,6 @@ class ProductSearchGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.product_name = ''
 		self.ext_name = ''
@@ -64,7 +63,6 @@ class ProductSearchGUI:
 	def destroy (self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
-		self.cursor.close()
 
 	def load_window_layout (self):
 		sqlite = get_apsw_connection()

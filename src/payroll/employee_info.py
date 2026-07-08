@@ -33,7 +33,6 @@ class EmployeeInfoGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
-		self.cursor = DB.cursor()
 
 		self.employee_store = self.get_object('employee_store')
 		self.s_s_medicare_store = self.get_object('s_s_medicare_store')
@@ -88,10 +87,12 @@ class EmployeeInfoGUI(Gtk.Builder):
 	def populate_employee_store (self):
 		self.populating = True
 		self.employee_store.clear()
-		self.cursor.execute("SELECT id, name FROM contacts "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name FROM contacts "
 							"WHERE employee = True")
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.employee_store.append(row)
+		cursor.close()
 		self.populating = False
 		DB.rollback()
 
@@ -166,75 +167,83 @@ class EmployeeInfoGUI(Gtk.Builder):
 		self.s_s_medicare_store.clear()
 		self.state_withholding_store.clear()
 		self.federal_withholding_store.clear()
-		self.cursor.execute("SELECT id, format_date(date_inserted) "
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, format_date(date_inserted) "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND s_s_medicare_exemption_pdf IS NOT NULL "
-							"ORDER BY id", 
+							"ORDER BY id",
 							(self.employee_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.s_s_medicare_store.append(row)
-		self.cursor.execute("SELECT id, format_date(date_inserted) "
+		cursor.execute("SELECT id, format_date(date_inserted) "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND state_withholding_pdf IS NOT NULL "
-							"ORDER BY id", 
+							"ORDER BY id",
 							(self.employee_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.state_withholding_store.append(row)
-		self.cursor.execute("SELECT id, format_date(date_inserted) "
+		cursor.execute("SELECT id, format_date(date_inserted) "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE employee_id = %s "
 							"AND fed_withholding_pdf IS NOT NULL "
-							"ORDER BY id", 
+							"ORDER BY id",
 							(self.employee_id,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			self.federal_withholding_store.append(row)
+		cursor.close()
 
 	def s_s_m_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
 		id = model[path][0]
-		self.cursor.execute("SELECT s_s_medicare_exemption_pdf "
+		cursor = DB.cursor()
+		cursor.execute("SELECT s_s_medicare_exemption_pdf "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE id = %s",
 							(id ,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_data = row[0]
 			file_name = "/tmp/Social_security_medicare_exemption.pdf"
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.Popen("xdg-open %s" % file_name, shell = True)
 			f.close()
+		cursor.close()
 
 	def federal_withholding_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
 		id = model[path][0]
-		self.cursor.execute("SELECT fed_withholding_pdf "
+		cursor = DB.cursor()
+		cursor.execute("SELECT fed_withholding_pdf "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE id = %s",
 							(id ,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_data = row[0]
 			file_name = "/tmp/Federal_withholding_exemption.pdf"
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.Popen("xdg-open %s" % file_name, shell = True)
 			f.close()
+		cursor.close()
 
 	def state_withholding_row_activated (self, treeview, path, column):
 		model = treeview.get_model()
 		id = model[path][0]
-		self.cursor.execute("SELECT state_withholding_pdf "
+		cursor = DB.cursor()
+		cursor.execute("SELECT state_withholding_pdf "
 							"FROM payroll.emp_pdf_archive "
 							"WHERE id = %s",
 							(id ,))
-		for row in self.cursor.fetchall():
+		for row in cursor.fetchall():
 			file_data = row[0]
 			file_name = "/tmp/State_withholding_exemption.pdf"
 			f = open(file_name,'wb')
 			f.write(file_data)
 			subprocess.Popen("xdg-open %s" % file_name, shell = True)
 			f.close()
+		cursor.close()
 
 	def payments_per_year_value_changed (self, spinbutton):
 		if self.populating == True:
@@ -313,34 +322,39 @@ class EmployeeInfoGUI(Gtk.Builder):
 		file_data = f.read()
 		binary = psycopg2.Binary(file_data)
 		f.close()
-		self.cursor.execute("UPDATE payroll.emp_pdf_archive "
+		cursor = DB.cursor()
+		cursor.execute("UPDATE payroll.emp_pdf_archive "
 							"SET archived = True "
 							"WHERE employee_id = %s "
 							"AND " + column + " IS NOT NULL" ,
 							(self.employee_id,))
-		self.cursor.execute("INSERT INTO payroll.emp_pdf_archive "
+		cursor.execute("INSERT INTO payroll.emp_pdf_archive "
 						"( " + column + ", employee_id, date_inserted) "
-						"VALUES (%s, %s, %s)", 
+						"VALUES (%s, %s, %s)",
 						(binary, self.employee_id, datetime.today()))
+		cursor.close()
 		DB.commit()
 		self.populate_exemption_forms ()
 
 	def state_button_release_event (self, button, event):
 		if event.button == 1:
-			self.cursor.execute("SELECT state_withholding_pdf "
+			cursor = DB.cursor()
+			cursor.execute("SELECT state_withholding_pdf "
 								"FROM payroll.emp_pdf_archive "
 								"WHERE (employee_id, archived) = (%s, False) "
 								"AND state_withholding_pdf IS NOT NULL",
 								(self.employee_id ,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				file_data = row[0]
 				file_name = "/tmp/State_withholding_status.pdf"
 				f = open(file_name,'wb')
 				f.write(file_data)
 				subprocess.Popen("xdg-open %s" % file_name, shell = True)
 				f.close()
+				cursor.close()
 				break
 			else:
+				cursor.close()
 				label = 'Do you want to add a file from the scanner?'
 				self.get_object('label9').set_label(label)
 				self.show_scan_pdf_dialog("state_withholding_pdf")
@@ -348,23 +362,26 @@ class EmployeeInfoGUI(Gtk.Builder):
 			label = 'Do you want to update the file from the scanner?'
 			self.get_object('label9').set_label(label)
 			self.show_scan_pdf_dialog("state_withholding_pdf")
-				
+
 	def s_s_m_button_release_event (self, button, event):
 		if event.button == 1:
-			self.cursor.execute("SELECT s_s_medicare_exemption_pdf "
+			cursor = DB.cursor()
+			cursor.execute("SELECT s_s_medicare_exemption_pdf "
 								"FROM payroll.emp_pdf_archive "
 								"WHERE (employee_id, archived) = (%s, False) "
 								"AND s_s_medicare_exemption_pdf IS NOT NULL",
 								(self.employee_id ,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				file_data = row[0]
 				file_name = "/tmp/Social_security_and_medicare_exemption.pdf"
 				f = open(file_name,'wb')
 				f.write(file_data)
 				subprocess.Popen("xdg-open %s" % file_name, shell = True)
 				f.close()
+				cursor.close()
 				break
 			else:
+				cursor.close()
 				label = 'Do you want to add a file from the scanner?'
 				self.get_object('label9').set_label(label)
 				self.show_scan_pdf_dialog("s_s_medicare_exemption_pdf")
@@ -375,20 +392,23 @@ class EmployeeInfoGUI(Gtk.Builder):
 
 	def fed_button_release_event (self, button, event):
 		if event.button == 1:
-			self.cursor.execute("SELECT fed_withholding_pdf "
+			cursor = DB.cursor()
+			cursor.execute("SELECT fed_withholding_pdf "
 								"FROM payroll.emp_pdf_archive "
 								"WHERE (employee_id, archived) = (%s, False) "
 								"AND fed_withholding_pdf IS NOT NULL",
 								(self.employee_id ,))
-			for row in self.cursor.fetchall():
+			for row in cursor.fetchall():
 				file_data = row[0]
 				file_name = "/tmp/Federal_withholding_exemption.pdf"
 				f = open(file_name,'wb')
 				f.write(file_data)
 				subprocess.Popen("xdg-open %s" % file_name, shell = True)
 				f.close()
+				cursor.close()
 				break
-			else: # table 
+			else: # table
+				cursor.close()
 				label = 'Do you want to add a file from the scanner?'
 				self.get_object('label9').set_label(label)
 				self.show_scan_pdf_dialog("fed_withholding_pdf")
