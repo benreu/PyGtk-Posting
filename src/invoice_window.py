@@ -873,7 +873,7 @@ class InvoiceGUI:
 			if row[12] == True:
 				box.set_visible(True)
 				invoice_line_id = row[0]
-				qty = row[1].split('.')[0] # only whole numbers for serial numbers
+				qty = int(row[1].split('.')[0]) # only whole numbers for serial numbers
 				product_id = row[2]
 				product_name = row[3]
 				self.cursor.execute("SELECT COUNT(id) FROM serial_numbers "
