@@ -140,6 +140,7 @@ class InvoiceGUI:
 		print_direct, email = self.cursor.fetchone()
 		self.builder.get_object('menuitem1').set_active(print_direct) #set the direct print checkbox
 		self.builder.get_object('menuitem4').set_active(email) #set the email checkbox
+		DB.rollback()
 
 	def widget_focus_in_event (self, widget, event):
 		GLib.idle_add(widget.select_region, 0, -1)
@@ -154,6 +155,7 @@ class InvoiceGUI:
 			location_name = row[1]
 			self.location_store.append([str(location_id), location_name])
 		location_combo.set_active_id(active_location)
+		DB.rollback()
 
 	def transfer_invoice_activated (self, menuitem):
 		dialog = self.builder.get_object('transfer_invoice_dialog')
@@ -196,7 +198,9 @@ class InvoiceGUI:
 			product_id = row[0]
 			break
 		else:
+			DB.rollback()
 			return
+		DB.rollback()
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
 			for row in self.invoice_store:
 				if row[2] == product_id:

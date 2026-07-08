@@ -256,8 +256,50 @@ CREATE TABLE IF NOT EXISTS invoice_reprints (
 	pdf_data bytea NOT NULL,
 	time_printed timestamp with time zone NOT NULL DEFAULT now()
 );
-
-
+--0.7.7
+CREATE OR REPLACE FUNCTION public.invoice_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('invoices', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.invoice_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('invoices', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'invoice_update_trigger') THEN
+		CREATE TRIGGER invoice_update_trigger AFTER UPDATE ON public.invoices
+		FOR EACH ROW WHEN (
+			NEW.paid        IS DISTINCT FROM OLD.paid OR
+			NEW.canceled    IS DISTINCT FROM OLD.canceled OR
+			NEW.posted      IS DISTINCT FROM OLD.posted OR
+			NEW.active      IS DISTINCT FROM OLD.active OR
+			NEW.amount_due  IS DISTINCT FROM OLD.amount_due OR
+			NEW.customer_id IS DISTINCT FROM OLD.customer_id OR
+			NEW.dated_for   IS DISTINCT FROM OLD.dated_for OR
+			NEW.name        IS DISTINCT FROM OLD.name
+		) EXECUTE PROCEDURE public.invoice_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'invoice_insert_trigger') THEN
+		CREATE TRIGGER invoice_insert_trigger AFTER INSERT ON public.invoices
+		FOR EACH ROW EXECUTE PROCEDURE public.invoice_inserted();
+	END IF;
+END
+$$;
 --0.7.8
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS finance_rate numeric(12,6) NOT NULL DEFAULT 0.00;
 INSERT INTO public.gl_accounts (name, type, number, parent_number)
