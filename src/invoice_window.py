@@ -632,17 +632,9 @@ class InvoiceGUI:
 		cursor = DB.cursor()
 		cursor.execute("SELECT "
 								"id::text, "
-								"name || '   Unpaid : ' || "
-								"(( SELECT COALESCE(SUM(amount_due), 0.00) "
-								"FROM invoices "
-								"WHERE canceled = False "
-								"AND customer_id = c_outer.id) - "
-								"(SELECT COALESCE(SUM(amount), 0.00) "
-								"FROM payments_incoming "
-								"WHERE (customer_id, misc_income) = "
-								"(c_outer.id, False) ))::money, "
+								"name, "
 								"ext_name "
-							"FROM contacts AS c_outer "
+							"FROM contacts "
 							"WHERE (deleted, customer) = "
 							"(False, True) ORDER BY name")
 		for row in cursor.fetchall():
@@ -705,6 +697,22 @@ class InvoiceGUI:
 			self.builder.get_object('entry15').set_text(row[2])
 			self.builder.get_object('entry16').set_text(row[3])
 			self.builder.get_object('entry17').set_text(row[4])
+		cursor.execute("SELECT "
+							"(( SELECT COALESCE(SUM(amount_due), 0.00) "
+							"FROM invoices "
+							"WHERE (canceled, posted, customer_id) = "
+							"(False, True, %s)) - "
+							"(( SELECT COALESCE(SUM(amount), 0.00) "
+							"FROM payments_incoming "
+							"WHERE (customer_id, misc_income) = "
+							"(%s, False)) + "
+							"( SELECT COALESCE(SUM(amount_owed), 0.00) "
+							"FROM credit_memos "
+							"WHERE (customer_id, posted) = "
+							"(%s, True)) ))::money",
+							(name_id, name_id, name_id))
+		for row in cursor.fetchall():
+			self.builder.get_object('entry_unpaid').set_text(row[0])
 		self.populate_tax_exemption_combo ()
 		self.set_widgets_sensitive ()
 		cursor.execute("SELECT id, comments FROM invoices "
