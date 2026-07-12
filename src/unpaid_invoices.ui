@@ -91,7 +91,6 @@
     <property name="window-position">center</property>
     <property name="icon-name">pygtk-posting</property>
     <signal name="delete-event" handler="window_delete_event" swapped="no"/>
-    <signal name="focus-in-event" handler="focus" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
