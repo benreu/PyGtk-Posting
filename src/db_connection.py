@@ -23,6 +23,7 @@ DEFAULT_CONNECT_TIMEOUT = 5
 MAX_RECONNECT_ATTEMPTS = 5
 RECONNECT_BACKOFF_SECONDS = 2
 RECONNECT_BACKOFF_CAP = 30
+MIN_DIALOG_VISIBLE_SECONDS = 0.6
 
 
 def is_connection_lost(exc, real_conn):
@@ -145,6 +146,7 @@ class DBConnection:
 		if self._reconnecting:
 			return False
 		self._reconnecting = True
+		success = False
 		try:
 			try:
 				if self._real is not None:
@@ -157,18 +159,25 @@ class DBConnection:
 				self._pump(0.05)  # force the dialog to paint/update the try count
 				try:
 					self._connect()
-					self._notify('reconnected')
-					return True
+					success = True
+					break
 				except psycopg2.OperationalError as e:
 					print("db_connection: reconnect attempt %d/%d failed: %s"
 							% (attempt + 1, MAX_RECONNECT_ATTEMPTS, e))
 					self._pump(delay)
 					delay = min(delay * 2, RECONNECT_BACKOFF_CAP)
+		finally:
+			self._reconnecting = False
+		# notify only after _reconnecting is back to False, so 'reconnected'
+		# listeners (eg. Broadcast._on_reconnect re-issuing LISTEN) can use
+		# DB.cursor() again instead of hitting the reconnecting guard
+		if success:
+			self._notify('reconnected')
+			return True
+		else:
 			self._notify('reconnect_failed')
 			self._show_connection_picker()
 			return False
-		finally:
-			self._reconnecting = False
 
 	def _show_connection_picker(self):
 		from db import database_tools
@@ -210,6 +219,7 @@ class ReconnectStatusDialog:
 	def __init__(self):
 		self.dialog = None
 		self.attempt_label = None
+		self._shown_at = None
 
 	def on_reconnect_event(self, event, attempt=None, max_attempts=None):
 		if event == 'reconnecting':
@@ -233,14 +243,29 @@ class ReconnectStatusDialog:
 			self.dialog.get_message_area().pack_start(spinner, False, False, 6)
 			spinner.start()
 			self.dialog.show_all()
+			self._shown_at = time.monotonic()
 		if attempt != None and max_attempts != None:
 			self.attempt_label.set_text("Attempt %d of %d" % (attempt, max_attempts))
 
 	def _hide(self):
-		if self.dialog != None:
-			self.dialog.destroy()
-			self.dialog = None
-			self.attempt_label = None
+		if self.dialog == None:
+			return
+		# a reconnect that succeeds on the first attempt can close this within
+		# milliseconds of opening it, which reads as a window flashing on screen -
+		# hold it open for a minimum stretch so it's actually visible
+		elapsed = time.monotonic() - self._shown_at
+		remaining = MIN_DIALOG_VISIBLE_SECONDS - elapsed
+		if remaining > 0:
+			ctx = GLib.MainContext.default()
+			end = time.monotonic() + remaining
+			while time.monotonic() < end:
+				while ctx.pending():
+					ctx.iteration(False)
+				time.sleep(0.05)
+		self.dialog.destroy()
+		self.dialog = None
+		self.attempt_label = None
+		self._shown_at = None
 
 
 def connect(row_id):
