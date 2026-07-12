@@ -692,11 +692,12 @@ class InvoiceGUI:
 		cursor.execute("SELECT address, phone, city, state, zip "
 							"FROM contacts WHERE id = (%s)",(name_id,))
 		for row in cursor.fetchall() :
-			self.builder.get_object('entry6').set_text(row[0])
-			self.builder.get_object('entry8').set_text(row[1])
-			self.builder.get_object('entry15').set_text(row[2])
-			self.builder.get_object('entry16').set_text(row[3])
-			self.builder.get_object('entry17').set_text(row[4])
+			address, phone, city, state, zip_code = row
+			self.builder.get_object('entry8').set_text(phone)
+			formatted_address = "{}\n{}, {} {}".format(
+				address, city, state, zip_code)
+			self.builder.get_object('address_box').get_buffer().set_text(
+				formatted_address)
 		cursor.execute("SELECT "
 							"(( SELECT COALESCE(SUM(amount_due), 0.00) "
 							"FROM invoices "
