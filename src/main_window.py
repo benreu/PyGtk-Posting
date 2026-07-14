@@ -102,6 +102,8 @@ class MainGUI :
 		if mobile == False:
 			self.window.connect("focus-in-event", self.focus)
 			self.focus()
+			broadcaster.connect("invoices_changed", self.invoices_changed)
+			broadcaster.connect("purchase_orders_changed", self.purchase_orders_changed)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -506,7 +508,40 @@ class MainGUI :
 			print(e)
 		DB.rollback()
 
+	def invoices_changed (self, broadcaster, invoice_id, is_remote):
+		try:
+			self.load_invoice_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def purchase_orders_changed (self, broadcaster, po_id):
+		try:
+			self.load_purchase_order_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
 	def load_statistics (self):
+		self.load_invoice_statistics()
+		self.load_purchase_order_statistics()
+		c = DB.cursor()
+		c.execute("SELECT COUNT(id) FROM job_sheets "
+					"WHERE (invoiced, completed) = (False, False)")
+		jobs = 0
+		for row in c.fetchall():
+			jobs = "Draft Job Sheets\n           (%s)" % row[0]
+		self.builder.get_object('button10').set_label(jobs)
+		c.execute("SELECT COUNT(id) FROM documents "
+					"WHERE (canceled, invoiced, pending_invoice) = "
+					"(False, False, True)")
+		documents = 0
+		for row in c.fetchall():
+			documents = "Documents To Invoice\n                 (%s)" % row[0]
+		self.builder.get_object('button14').set_label(documents)
+		c.close()
+
+	def load_invoice_statistics (self):
 		c = DB.cursor()
 		c.execute("SELECT COUNT(id) FROM invoices "
 					"WHERE (canceled, paid, posted) = (False, False, True)")
@@ -514,6 +549,20 @@ class MainGUI :
 		for row in c.fetchall():
 			unpaid_invoices = "Unpaid Invoices\n          (%s)" % row[0]
 		self.builder.get_object('button2').set_label(unpaid_invoices)
+		c.execute("SELECT COUNT(invoices.id) FROM invoices, "
+					"LATERAL (SELECT product_id FROM invoice_items "
+						"WHERE invoice_items.invoice_id = "
+						"invoices.id LIMIT 1) ILI "
+					"WHERE (invoices.canceled, posted, active) = "
+					"(False, False, True)")
+		draft_invoices = 0
+		for row in c.fetchall():
+			draft_invoices = "Draft invoices\n         (%s)" % row[0]
+		self.builder.get_object('button17').set_label(draft_invoices)
+		c.close()
+
+	def load_purchase_order_statistics (self):
+		c = DB.cursor()
 		c.execute("SELECT COUNT(id) FROM purchase_orders "
 					"WHERE (canceled, invoiced, closed) = "
 					"(False, False, True) ")
@@ -521,43 +570,22 @@ class MainGUI :
 		for row in c.fetchall():
 			unpaid_po = "Unprocessed Orders\n               (%s)" % row[0]
 		self.builder.get_object('button5').set_label(unpaid_po)
-		c.execute("SELECT COUNT(id) FROM job_sheets "
-					"WHERE (invoiced, completed) = (False, False)")	
-		jobs = 0
-		for row in c.fetchall():
-			jobs = "Draft Job Sheets\n           (%s)" % row[0]
-		self.builder.get_object('button10').set_label(jobs)
-		c.execute("SELECT COUNT(id) FROM documents "
-					"WHERE (canceled, invoiced, pending_invoice) = "
-					"(False, False, True)")	
-		documents = 0
-		for row in c.fetchall():
-			documents = "Documents To Invoice\n                 (%s)" % row[0]
-		self.builder.get_object('button14').set_label(documents)
 		c.execute("SELECT COUNT(id) FROM purchase_orders "
 					"WHERE (canceled, invoiced, received) = "
-					"(False, True, False) ")	
+					"(False, True, False) ")
 		unreceived_po = 0
 		for row in c.fetchall():
 			unreceived_po = "Receive Orders\n          (%s)" % row[0]
 		self.builder.get_object('button12').set_label(unreceived_po)
-		c.execute("SELECT COUNT(invoices.id) FROM invoices, "
-					"LATERAL (SELECT product_id FROM invoice_items "
-						"WHERE invoice_items.invoice_id = "
-						"invoices.id LIMIT 1) ILI "
-					"WHERE (invoices.canceled, posted, active) = "
-					"(False, False, True)")
-		for row in c.fetchall():
-			draft_invoices = "Draft invoices\n         (%s)" % row[0]
-		self.builder.get_object('button17').set_label(draft_invoices)
 		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
 					"LATERAL (SELECT product_id FROM purchase_order_items "
 						"WHERE purchase_order_items.purchase_order_id = "
 						"purchase_orders.id LIMIT 1) ILI "
 					"WHERE (purchase_orders.canceled, closed) = (False, False)")
+		draft_pos = 0
 		for row in c.fetchall():
-			draft_invoices = "Draft POs\n         (%s)" % row[0]
-		self.builder.get_object('button13').set_label(draft_invoices)
+			draft_pos = "Draft POs\n         (%s)" % row[0]
+		self.builder.get_object('button13').set_label(draft_pos)
 		c.close()
 
 	def inventory_history_report (self, widget):

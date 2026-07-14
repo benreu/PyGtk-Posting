@@ -346,3 +346,43 @@ ALTER TABLE public.manufacturing_items
 CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq
 	ON public.manufacturing_items (manufacturing_project_id, default_product_id)
 	WHERE deleted = False;
+--0.7.10
+CREATE OR REPLACE FUNCTION public.purchase_order_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('purchase_orders', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.purchase_order_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('purchase_orders', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'purchase_order_update_trigger') THEN
+		CREATE TRIGGER purchase_order_update_trigger AFTER UPDATE ON public.purchase_orders
+		FOR EACH ROW WHEN (
+			NEW.canceled IS DISTINCT FROM OLD.canceled OR
+			NEW.invoiced IS DISTINCT FROM OLD.invoiced OR
+			NEW.closed   IS DISTINCT FROM OLD.closed OR
+			NEW.received IS DISTINCT FROM OLD.received
+		) EXECUTE PROCEDURE public.purchase_order_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'purchase_order_insert_trigger') THEN
+		CREATE TRIGGER purchase_order_insert_trigger AFTER INSERT ON public.purchase_orders
+		FOR EACH ROW EXECUTE PROCEDURE public.purchase_order_inserted();
+	END IF;
+END
+$$;
