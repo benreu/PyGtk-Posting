@@ -457,21 +457,16 @@ class MainGUI :
 
 	def query_date_reminders (self):
 		c = DB.cursor()
-		c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
-					"(SELECT statement_finish_date FROM settings) "
-					"+ INTERVAL'1 month') "
-					"+ ((SELECT statement_day_of_month FROM settings) "
-						"* INTERVAL '1 day') "
-					"- INTERVAL '1 day'")
-		statement_due = c.fetchone()[0]
 		c.execute("SELECT "
-					"date_trunc('day', "
-						"(SELECT last_backup FROM settings)) <= "
-					"date_trunc('day', "
-						"CURRENT_DATE - "
-							"((SELECT backup_frequency_days "
-							"FROM settings) * INTERVAL '1 day'))")
-		backup_due = c.fetchone()[0]
+					"CURRENT_DATE >= date_trunc('month', statement_finish_date "
+						"+ INTERVAL '1 month') "
+						"+ (statement_day_of_month * INTERVAL '1 day') "
+						"- INTERVAL '1 day', "
+					"date_trunc('day', last_backup) <= "
+						"date_trunc('day', "
+							"CURRENT_DATE - (backup_frequency_days * INTERVAL '1 day')) "
+					"FROM settings")
+		statement_due, backup_due = c.fetchone()
 		c.close()
 		return statement_due, backup_due
 
