@@ -111,6 +111,14 @@ class Broadcast(GObject.GObject):
         if condition & (GLib.IO_HUP | GLib.IO_ERR) or DB.closed == 1:
             GLib.idle_add(DB.reconnect)
             return False
+        self.process_notifies()
+        return True
+
+    def process_notifies(self):
+        # commits on our own LISTENing connection deliver self-notifies
+        # synchronously as part of the commit's response, with no later
+        # socket-readable event to wake on_db_readable - so this also gets
+        # called directly from DBConnection.commit() to drain those.
         try:
             DB.poll()
             while DB.notifies:
@@ -152,7 +160,6 @@ class Broadcast(GObject.GObject):
             # already reconnected (or is reconnecting) via the cursor that hit this;
             # there's no user action to retry here, so just skip this refresh
             print("constants: on_db_readable: %s" % e)
-        return True
 
 
 help_dir = ''

@@ -199,6 +199,13 @@ class DBConnection:
 			if is_connection_lost(e, self._real):
 				self.reconnect()
 			raise
+		# a trigger's pg_notify on a table we're LISTENing to gets delivered back
+		# to us as part of this same commit's response, with no later socket-
+		# readable event to wake Broadcast.on_db_readable - drain it now so
+		# windows relying on eg. invoices_changed refresh for our own writes too
+		import constants
+		if constants.broadcaster is not None:
+			constants.broadcaster.process_notifies()
 
 	def rollback(self):
 		if self._reconnecting:
