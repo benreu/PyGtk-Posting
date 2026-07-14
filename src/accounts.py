@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from collections import defaultdict
 from gi.repository import Gtk
 from constants import DB
 
@@ -41,202 +42,184 @@ def populate_accounts():
 			product_expense_list, \
 			product_inventory_list, \
 			product_revenue_list
-	cursor = DB.cursor()
 
-	def populate_child_product_inventory ( number, parent, account_path):
+	# Single round trip: fetch the whole chart of accounts once and build every
+	# tree/list below from an in-memory parent_number -> children map, instead
+	# of issuing a recursive query per node for each of the six trees.
+	cursor = DB.cursor()
+	cursor.execute("SELECT number, name, parent_number, type, is_parent, "
+						"inventory_account, revenue_account, expense_account "
+						"FROM gl_accounts ORDER BY name")
+	rows = cursor.fetchall()
+	cursor.close()
+	DB.rollback()
+
+	children_by_parent = defaultdict(list)
+	for row in rows:
+		children_by_parent[row[2]].append(row)
+
+	def children_of(number):
+		return children_by_parent.get(number, [])
+
+	def populate_child_product_inventory(number, parent, account_path):
 		show = False
-		cursor.execute("SELECT number, name, inventory_account, is_parent, "
-							" ' / '||name "
-							"FROM gl_accounts WHERE parent_number = %s "
-							"ORDER BY name", (number,))
-		for row in cursor.fetchall():
-			number = str(row[0])
+		for row in children_of(number):
+			child_number = str(row[0])
 			name = row[1]
-			path = account_path + row[4]
-			if row[2] == True:
+			path = account_path + ' / ' + name
+			if row[5] == True:
 				show = True
-				product_inventory_tree.append(parent,[number, name])
-				product_inventory_list.append([number, name, path])
-			elif row[3] == True:
-				p = product_inventory_tree.append(parent,[number, name])
-				c_show = False
-				if populate_child_product_inventory(number, p, path) == True:
+				product_inventory_tree.append(parent,[child_number, name])
+				product_inventory_list.append([child_number, name, path])
+			elif row[4] == True:
+				p = product_inventory_tree.append(parent,[child_number, name])
+				c_show = populate_child_product_inventory(row[0], p, path)
+				if c_show == True:
 					show = True
-					c_show = True
-				if c_show == False:
+				else:
 					product_inventory_tree.remove(p)
 		return show
-		
+
 	def populate_child_revenue (number, parent, path):
-		show = False
-		cursor.execute("SELECT number, name, ' / '||name, is_parent "
-							"FROM gl_accounts WHERE parent_number = %s "
-							"ORDER BY name", (number,))
-		for row in cursor.fetchall():
-			number = row[0]
+		for row in children_of(number):
+			child_number = row[0]
 			name = row[1]
-			account_path = path + row[2]
-			if row[3] != True:
-				revenue_list.append([number, name, account_path])
-			p = revenue_account.append(parent,[number, name, account_path])
-			populate_child_revenue(number, p, account_path)
+			account_path = path + ' / ' + name
+			if row[4] != True:
+				revenue_list.append([child_number, name, account_path])
+			p = revenue_account.append(parent,[child_number, name, account_path])
+			populate_child_revenue(child_number, p, account_path)
 
 	def populate_child_product_revenue ( number, parent, account_path):
 		show = False
-		cursor.execute("SELECT number, name, revenue_account, is_parent, "
-							" ' / '||name "
-							"FROM gl_accounts WHERE parent_number = %s "
-							"ORDER BY name", (number,))
-		for row in cursor.fetchall():
-			number = str(row[0])
+		for row in children_of(number):
+			child_number = str(row[0])
 			name = row[1]
-			path = account_path + row[4]
-			if row[2] == True:
+			path = account_path + ' / ' + name
+			if row[6] == True:
 				show = True
-				product_revenue_tree.append(parent,[number, name])
-				product_revenue_list.append([number, name, path])
-			elif row[3] == True:
-				p = product_revenue_tree.append(parent,[number, name])
-				c_show = False
-				if populate_child_product_revenue(number, p, path) == True:
+				product_revenue_tree.append(parent,[child_number, name])
+				product_revenue_list.append([child_number, name, path])
+			elif row[4] == True:
+				p = product_revenue_tree.append(parent,[child_number, name])
+				c_show = populate_child_product_revenue(row[0], p, path)
+				if c_show == True:
 					show = True
-					c_show = True
-				if c_show == False:
+				else:
 					product_revenue_tree.remove(p)
 		return show
 
 	def populate_child_product_expense (number, parent, account_path):
 		show = False
-		cursor.execute("SELECT number, name, expense_account, is_parent, "
-							" ' / '||name "
-							"FROM gl_accounts WHERE parent_number = %s "
-							"ORDER BY name", (number,))
-		for row in cursor.fetchall():
-			number = str(row[0])
+		for row in children_of(number):
+			child_number = str(row[0])
 			name = row[1]
-			path = account_path + row[4]
-			if row[2] == True:
-				product_expense_tree.append(parent,[number, name])
-				product_expense_list.append([number, name, path])
+			path = account_path + ' / ' + name
+			if row[7] == True:
+				product_expense_tree.append(parent,[child_number, name])
+				product_expense_list.append([child_number, name, path])
 				show = True
-			elif row[3] == True:
-				p = product_expense_tree.append(parent,[number, name])
-				c_show = False
-				if populate_child_product_expense(number, p, path) == True:
+			elif row[4] == True:
+				p = product_expense_tree.append(parent,[child_number, name])
+				c_show = populate_child_product_expense(row[0], p, path)
+				if c_show == True:
 					show = True
-					c_show = True
-				if c_show == False:
+				else:
 					product_expense_tree.remove(p)
 		return show
 
 	def populate_child_expense ( number, parent, account_path):
-		cursor.execute("SELECT number::text, name, ' / '||name "
-							"FROM gl_accounts WHERE "
-							"parent_number = %s ORDER BY name", (number,))
-		for row in cursor.fetchall():
-			number = row[0]
+		for row in children_of(number):
+			child_number = str(row[0])
 			name = row[1]
-			path = account_path + row[2]
-			expense_list.append([number, name, path])
-			p = expense_tree.append(parent, [number, name, path])
-			populate_child_expense(number, p, path)
+			path = account_path + ' / ' + name
+			expense_list.append([child_number, name, path])
+			p = expense_tree.append(parent, [child_number, name, path])
+			populate_child_expense(row[0], p, path)
 
 	def populate_child_all ( number, parent, account_path):
-		cursor.execute("SELECT number::text, name, ' / '||name "
-							"FROM gl_accounts WHERE "
-							"parent_number = %s ORDER BY name", (number,))
-		for row in cursor.fetchall():
-			number = row[0]
+		for row in children_of(number):
+			child_number = str(row[0])
 			name = row[1]
-			path = account_path + row[2]
-			p = all_accounts_tree.append(parent, [number, name, path])
-			populate_child_all(number, p, path)
+			path = account_path + ' / ' + name
+			p = all_accounts_tree.append(parent, [child_number, name, path])
+			populate_child_all(row[0], p, path)
+
+	top_level_rows = children_by_parent.get(None, [])
 
 	############## finally, populate the accounts
 	all_accounts_tree.clear()
-	cursor.execute("SELECT number::text, name, ' / '||name "
-						"FROM gl_accounts "
-						"WHERE parent_number IS NULL ORDER BY name")
-	for row in cursor.fetchall():
-		number = row[0]
+	for row in top_level_rows:
+		number = str(row[0])
 		name = row[1]
-		path = row[2]
+		path = ' / ' + name
 		parent = all_accounts_tree.append(None, [number, name, path])
-		populate_child_all (number, parent, path)
+		populate_child_all (row[0], parent, path)
 	#################################################
 	expense_tree.clear()
 	expense_list.clear()
-	cursor.execute("SELECT number::text, name, ' / '||name "
-						"FROM gl_accounts WHERE type = 3 "
-						"AND parent_number IS NULL ORDER BY name")
-	for row in cursor.fetchall():
-		number = row[0]
+	for row in top_level_rows:
+		if row[3] != 3:
+			continue
+		number = str(row[0])
 		name = row[1]
-		path = row[2]
+		path = ' / ' + name
 		expense_list.append([number, name, path])
 		parent = expense_tree.append(None, [number, name, path])
-		populate_child_expense (number, parent, path)
+		populate_child_expense (row[0], parent, path)
 	#################################################
 	product_expense_tree.clear()
 	product_expense_list.clear()
-	cursor.execute("SELECT number, name, ' / '||name "
-						"FROM gl_accounts WHERE type = 3 "
-						"AND parent_number IS NULL ORDER BY name")
-	for row in cursor.fetchall():
+	for row in top_level_rows:
+		if row[3] != 3:
+			continue
 		number = str(row[0])
 		name = row[1]
-		path = row[2]
+		path = ' / ' + name
 		show = False
 		parent = product_expense_tree.append(None,[number, name])
-		if populate_child_product_expense(number, parent, path) == True:
+		if populate_child_product_expense(row[0], parent, path) == True:
 			show = True
 		if show == False:
 			product_expense_tree.remove(parent)
 	##################################################
 	product_revenue_tree.clear()
 	product_revenue_list.clear()
-	cursor.execute("SELECT number, name, ' / '||name "
-						"FROM gl_accounts WHERE type = 4 "
-						"AND parent_number IS NULL ORDER BY name")
-	for row in cursor.fetchall():
+	for row in top_level_rows:
+		if row[3] != 4:
+			continue
 		number = str(row[0])
 		name = row[1]
-		path = row[2]
+		path = ' / ' + name
 		show = False
 		parent = product_revenue_tree.append(None,[number, name])
-		if populate_child_product_revenue (number, parent, path) == True:
+		if populate_child_product_revenue (row[0], parent, path) == True:
 			show = True
 		if show == False:
 			product_revenue_tree.remove(parent)
 	##################################################
 	revenue_account.clear()
 	revenue_list.clear()
-	cursor.execute("SELECT number, name, ' / '||name "
-						"FROM gl_accounts WHERE type = 4 "
-						"AND parent_number IS NULL ORDER BY name")
-	for row in cursor.fetchall():
+	for row in top_level_rows:
+		if row[3] != 4:
+			continue
 		number = row[0]
 		name = row[1]
-		path = row[2]
+		path = ' / ' + name
 		parent = revenue_account.append(None,[number, name, path])
-		populate_child_revenue (number, parent, path)
+		populate_child_revenue (row[0], parent, path)
 	##################################################
 	product_inventory_tree.clear()
 	product_inventory_list.clear()
-	cursor.execute("SELECT number, name, ' / '||name "
-						"FROM gl_accounts WHERE type = 1 "
-						"AND parent_number IS NULL ORDER BY name")
-	for row in cursor.fetchall():
+	for row in top_level_rows:
+		if row[3] != 1:
+			continue
 		number = str(row[0])
 		name = row[1]
-		path = row[2]
+		path = ' / ' + name
 		show = False
 		parent = product_inventory_tree.append(None,[number, name])
-		if populate_child_product_inventory(number, parent, path) == True:
+		if populate_child_product_inventory(row[0], parent, path) == True:
 			show = True
 		if show == False:
 			product_inventory_tree.remove(parent)
-
-	cursor.close()
-	DB.rollback()
-
