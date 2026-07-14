@@ -123,6 +123,9 @@ class MiscellaneousRevenueGUI:
 		if self.payment_method.check_number_missing():
 			button.set_label('No check number')
 			return # no check number
+		if self.payment_method.credit_card_account_missing():
+			button.set_label('No deposit account selected')
+			return # no credit card deposit account selected
 		value = self.builder.get_object('spinbutton1').get_text()
 		if Decimal(value) != total:
 			button.set_label('Amount does not match total')
@@ -182,7 +185,8 @@ class MiscellaneousRevenueGUI:
 							(payment_text, self.contact_id,
 							total, self.date, comments))
 			payment_id = cursor.fetchone()[0]
-			transaction.post_misc_credit_card_payment(total, payment_id)
+			account_number = self.payment_method.get_credit_card_account_number()
+			transaction.post_misc_credit_card_payment(total, payment_id, account_number)
 		elif self.payment_method.payment_type_id == 2:
 			cursor.execute("INSERT INTO payments_incoming "
 							"(cash_payment, payment_text, "

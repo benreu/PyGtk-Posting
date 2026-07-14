@@ -348,7 +348,8 @@ class GUI:
 								payment_text, False, self.customer_id,
 								total, self.date, comments))
 			self.payment_id = cursor.fetchone()[0]
-			self.payment.credit_card (self.payment_id)
+			account_number = self.payment_method.get_credit_card_account_number()
+			self.payment.credit_card (self.payment_id, account_number)
 		elif self.payment_method.payment_type_id == 2:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
@@ -538,6 +539,9 @@ class GUI:
 		if self.payment_method.check_number_missing():
 			button.set_label('No check number')
 			return # no check number
+		if self.payment_method.credit_card_account_missing():
+			button.set_label('No deposit account selected')
+			return # no credit card deposit account selected
 		if self.exact_payment:
 			self.check_amount_totals_absolute ()
 		else:
