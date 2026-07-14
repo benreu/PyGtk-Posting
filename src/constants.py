@@ -56,6 +56,10 @@ class Broadcast(GObject.GObject):
         'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
         'purchase_orders_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+        'job_sheets_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
+        'documents_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
+        'loans_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
+        'resources_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
         'admin_changed': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
     }
@@ -78,7 +82,11 @@ class Broadcast(GObject.GObject):
                   "LISTEN accounts;"
                   "LISTEN time_clock_entries;"
                   "LISTEN invoices;"
-                  "LISTEN purchase_orders;")
+                  "LISTEN purchase_orders;"
+                  "LISTEN job_sheets;"
+                  "LISTEN documents;"
+                  "LISTEN loans;"
+                  "LISTEN resources;")
         c.close()
         DB.commit()
 
@@ -123,6 +131,22 @@ class Broadcast(GObject.GObject):
                     po_id = notify.payload
                     if notify.pid != DB_PROCESS_ID:
                         self.emit("purchase_orders_changed", int(po_id))
+                elif notify.channel == "job_sheets":
+                    job_sheet_id = notify.payload
+                    self.emit("job_sheets_changed", int(job_sheet_id),
+                              notify.pid != DB_PROCESS_ID)
+                elif notify.channel == "documents":
+                    document_id = notify.payload
+                    self.emit("documents_changed", int(document_id),
+                              notify.pid != DB_PROCESS_ID)
+                elif notify.channel == "loans":
+                    loan_id = notify.payload
+                    self.emit("loans_changed", int(loan_id),
+                              notify.pid != DB_PROCESS_ID)
+                elif notify.channel == "resources":
+                    resource_id = notify.payload
+                    self.emit("resources_changed", int(resource_id),
+                              notify.pid != DB_PROCESS_ID)
         except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
             # the connection died while handling a background notification - DB has
             # already reconnected (or is reconnecting) via the cursor that hit this;

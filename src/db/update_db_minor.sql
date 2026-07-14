@@ -386,3 +386,155 @@ BEGIN
 	END IF;
 END
 $$;
+CREATE OR REPLACE FUNCTION public.job_sheet_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('job_sheets', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.job_sheet_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('job_sheets', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'job_sheet_update_trigger') THEN
+		CREATE TRIGGER job_sheet_update_trigger AFTER UPDATE ON public.job_sheets
+		FOR EACH ROW WHEN (
+			NEW.invoiced  IS DISTINCT FROM OLD.invoiced OR
+			NEW.completed IS DISTINCT FROM OLD.completed
+		) EXECUTE PROCEDURE public.job_sheet_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'job_sheet_insert_trigger') THEN
+		CREATE TRIGGER job_sheet_insert_trigger AFTER INSERT ON public.job_sheets
+		FOR EACH ROW EXECUTE PROCEDURE public.job_sheet_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.document_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('documents', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.document_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('documents', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'document_update_trigger') THEN
+		CREATE TRIGGER document_update_trigger AFTER UPDATE ON public.documents
+		FOR EACH ROW WHEN (
+			NEW.canceled        IS DISTINCT FROM OLD.canceled OR
+			NEW.invoiced        IS DISTINCT FROM OLD.invoiced OR
+			NEW.pending_invoice IS DISTINCT FROM OLD.pending_invoice
+		) EXECUTE PROCEDURE public.document_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'document_insert_trigger') THEN
+		CREATE TRIGGER document_insert_trigger AFTER INSERT ON public.documents
+		FOR EACH ROW EXECUTE PROCEDURE public.document_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.loan_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('loans', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.loan_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('loans', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'loan_update_trigger') THEN
+		CREATE TRIGGER loan_update_trigger AFTER UPDATE ON public.loans
+		FOR EACH ROW WHEN (
+			NEW.last_payment_date IS DISTINCT FROM OLD.last_payment_date OR
+			NEW.finished           IS DISTINCT FROM OLD.finished OR
+			NEW.period             IS DISTINCT FROM OLD.period OR
+			NEW.period_amount      IS DISTINCT FROM OLD.period_amount
+		) EXECUTE PROCEDURE public.loan_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'loan_insert_trigger') THEN
+		CREATE TRIGGER loan_insert_trigger AFTER INSERT ON public.loans
+		FOR EACH ROW EXECUTE PROCEDURE public.loan_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.resource_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('resources', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.resource_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('resources', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'resource_update_trigger') THEN
+		CREATE TRIGGER resource_update_trigger AFTER UPDATE ON public.resources
+		FOR EACH ROW WHEN (
+			NEW.posted  IS DISTINCT FROM OLD.posted OR
+			NEW.to_do   IS DISTINCT FROM OLD.to_do OR
+			NEW.subject IS DISTINCT FROM OLD.subject
+		) EXECUTE PROCEDURE public.resource_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'resource_insert_trigger') THEN
+		CREATE TRIGGER resource_insert_trigger AFTER INSERT ON public.resources
+		FOR EACH ROW EXECUTE PROCEDURE public.resource_inserted();
+	END IF;
+END
+$$;
