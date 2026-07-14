@@ -309,3 +309,40 @@ INSERT INTO public.gl_account_flow (function, account)
 SELECT 'finance_charge_income', 4200
 WHERE NOT EXISTS (SELECT 1 FROM public.gl_account_flow WHERE function = 'finance_charge_income');
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS finance_rate numeric(12,6);
+--0.7.9
+ALTER TABLE public.manufacturing_items
+	ADD COLUMN IF NOT EXISTS default_product_id integer,
+	ADD COLUMN IF NOT EXISTS vendor_id integer,
+	ADD COLUMN IF NOT EXISTS purchase_order_item_id bigint,
+	ADD COLUMN IF NOT EXISTS from_bom boolean NOT NULL DEFAULT True;
+
+UPDATE public.manufacturing_items
+	SET default_product_id = product_id
+	WHERE default_product_id IS NULL;
+
+ALTER TABLE public.manufacturing_items
+	ALTER COLUMN default_product_id SET NOT NULL;
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_product_id_fkey,
+	ADD CONSTRAINT manufacturing_items_product_id_fkey
+		FOREIGN KEY (product_id) REFERENCES public.products (id);
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_default_product_id_fkey,
+	ADD CONSTRAINT manufacturing_items_default_product_id_fkey
+		FOREIGN KEY (default_product_id) REFERENCES public.products (id);
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_vendor_id_fkey,
+	ADD CONSTRAINT manufacturing_items_vendor_id_fkey
+		FOREIGN KEY (vendor_id) REFERENCES public.contacts (id);
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_purchase_order_item_id_fkey,
+	ADD CONSTRAINT manufacturing_items_purchase_order_item_id_fkey
+		FOREIGN KEY (purchase_order_item_id) REFERENCES public.purchase_order_items (id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq
+	ON public.manufacturing_items (manufacturing_project_id, default_product_id)
+	WHERE deleted = False;
