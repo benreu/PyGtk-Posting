@@ -19,7 +19,7 @@ from gi.repository import Gtk, GLib
 from decimal import Decimal
 from datetime import date, timedelta
 import subprocess
-from dateutils import DateTimeCalendar, date_to_text
+from dateutils import DateTimeCalendar
 from db import transactor
 from constants import DB, ui_directory, help_dir
 from accounts import expense_tree
@@ -159,7 +159,8 @@ class GUI:
 				date_created = row[2]
 				date_difference = self.date - date_created
 				discount_due_date = date_created + timedelta(pay_in_days)
-				due_date_text = date_to_text (discount_due_date)
+				cursor.execute("SELECT format_date(%s)", (discount_due_date,))
+				due_date_text = cursor.fetchone()[0]
 				self.builder.get_object('label9').set_label(due_date_text)
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))
@@ -169,7 +170,8 @@ class GUI:
 				total = float(row[1])
 				date_created = row[2]
 				discount_date = date_created.replace(day=pay_by_day_of_month)
-				due_date_text = date_to_text (discount_date)
+				cursor.execute("SELECT format_date(%s)", (discount_date,))
+				due_date_text = cursor.fetchone()[0]
 				self.builder.get_object('label9').set_label(due_date_text)
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))

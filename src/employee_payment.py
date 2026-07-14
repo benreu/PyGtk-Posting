@@ -18,8 +18,8 @@
 from gi.repository import Gtk, Gdk, GLib, GObject
 import os, sys, subprocess, time, re, psycopg2
 from datetime import datetime, timedelta
-from dateutils import datetime_to_text, calendar_to_text, \
-					calendar_to_datetime, set_calendar_from_datetime 
+from dateutils import calendar_to_text, \
+					calendar_to_datetime, set_calendar_from_datetime
 from constants import ui_directory, DB, template_dir
 
 UI_FILE = ui_directory + "/employee_time.ui"
@@ -34,7 +34,11 @@ class EmployeePaymentGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.datetime = datetime.today()
-		date_text = datetime_to_text(self.datetime)
+		cursor = DB.cursor()
+		cursor.execute("SELECT format_date(%s::date)", (self.datetime,))
+		date_text = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
 		self.builder.get_object('entry8').set_text(date_text)
 		morrow = self.datetime + timedelta(days = 1)
 		morrow_string = str(morrow)[0:10]
@@ -228,7 +232,11 @@ class EmployeePaymentGUI:
 	def calendar_day_selected (self, calendar):
 		date_tuple = calendar.get_date()
 		self.datetime = calendar_to_datetime(date_tuple)
-		day_text = datetime_to_text(self.datetime)
+		cursor = DB.cursor()
+		cursor.execute("SELECT format_date(%s::date)", (self.datetime,))
+		day_text = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
 		self.builder.get_object('entry8').set_text(day_text)
 		morrow = self.datetime + timedelta(days = 1)
 		morrow_string = str(morrow)[0:10]
