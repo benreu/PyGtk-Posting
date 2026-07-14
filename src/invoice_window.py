@@ -1242,8 +1242,8 @@ class InvoiceGUI:
 	def calendar(self, widget, icon, event):
 		self.calendar.show()
 
-	def show_reload_infobar (self, broadcaster, invoice_id):
-		if invoice_id != self.invoice_id:
+	def show_reload_infobar (self, broadcaster, invoice_id, is_remote):
+		if invoice_id != self.invoice_id and is_remote:
 			return
 		cursor = DB.cursor()
 		cursor.execute("SELECT posted FROM invoices WHERE id = %s", (self.invoice_id,))

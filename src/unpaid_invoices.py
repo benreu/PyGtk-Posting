@@ -34,13 +34,14 @@ class GUI (Gtk.Builder):
 		self.window = self.get_object('window')
 		self.set_window_layout_from_settings()
 		self.window.show_all()
+		self.populate_unpaid_invoices()
 
 		self.date_calendar = DateTimeCalendar()
 		self.date_calendar.connect("day-selected", self.date_selected)
 
 		broadcaster.connect("invoices_changed", self.invoices_changed)
 
-	def invoices_changed(self, broadcaster, invoice_id):
+	def invoices_changed(self, broadcaster, invoice_id, is_remote):
 		self.populate_unpaid_invoices()
 
 	def set_window_layout_from_settings(self):
@@ -389,9 +390,6 @@ class GUI (Gtk.Builder):
 				f.close()
 			cursor.close()
 			DB.rollback()
-
-	def focus(self, window, event):
-		self.populate_unpaid_invoices()
 
 	def populate_unpaid_invoices(self):
 		unpaid_invoice_amount = decimal.Decimal()

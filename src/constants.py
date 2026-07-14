@@ -54,7 +54,7 @@ class Broadcast(GObject.GObject):
         'products_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'contacts_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
-        'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+        'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
         'purchase_orders_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         'admin_changed': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
         'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
@@ -117,8 +117,8 @@ class Broadcast(GObject.GObject):
                     self.emit('clock_entries_changed')
                 elif notify.channel == "invoices":
                     invoice_id = notify.payload
-                    if notify.pid != DB_PROCESS_ID:
-                        self.emit("invoices_changed", int(invoice_id))
+                    self.emit("invoices_changed", int(invoice_id),
+                              notify.pid != DB_PROCESS_ID)
                 elif notify.channel == "purchase_orders":
                     po_id = notify.payload
                     if notify.pid != DB_PROCESS_ID:
