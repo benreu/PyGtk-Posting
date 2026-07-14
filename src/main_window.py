@@ -630,49 +630,40 @@ class MainGUI :
 
 	def load_invoice_statistics (self):
 		c = DB.cursor()
-		c.execute("SELECT COUNT(id) FROM invoices "
-					"WHERE (canceled, paid, posted) = (False, False, True)")
-		unpaid_invoices = 0
-		for row in c.fetchall():
-			unpaid_invoices = "Unpaid Invoices\n          (%s)" % row[0]
-		self.builder.get_object('button2').set_label(unpaid_invoices)
-		c.execute("SELECT COUNT(invoices.id) FROM invoices, "
-					"LATERAL (SELECT product_id FROM invoice_items "
-						"WHERE invoice_items.invoice_id = "
-						"invoices.id LIMIT 1) ILI "
-					"WHERE (invoices.canceled, posted, active) = "
-					"(False, False, True)")
-		draft_invoices = 0
-		for row in c.fetchall():
-			draft_invoices = "Draft invoices\n         (%s)" % row[0]
-		self.builder.get_object('button17').set_label(draft_invoices)
+		c.execute("SELECT "
+					"COUNT(*) FILTER (WHERE (canceled, paid, posted) = "
+						"(False, False, True)), "
+					"COUNT(*) FILTER (WHERE (canceled, posted, active) = "
+						"(False, False, True) "
+						"AND EXISTS (SELECT 1 FROM invoice_items "
+							"WHERE invoice_items.invoice_id = invoices.id)) "
+					"FROM invoices")
+		unpaid_count, draft_count = c.fetchone()
+		self.builder.get_object('button2').set_label(
+			"Unpaid Invoices\n          (%s)" % unpaid_count)
+		self.builder.get_object('button17').set_label(
+			"Draft invoices\n         (%s)" % draft_count)
 		c.close()
 
 	def load_purchase_order_statistics (self):
 		c = DB.cursor()
-		c.execute("SELECT COUNT(id) FROM purchase_orders "
-					"WHERE (canceled, invoiced, closed) = "
-					"(False, False, True) ")
-		unpaid_po = 0
-		for row in c.fetchall():
-			unpaid_po = "Unprocessed Orders\n               (%s)" % row[0]
-		self.builder.get_object('button5').set_label(unpaid_po)
-		c.execute("SELECT COUNT(id) FROM purchase_orders "
-					"WHERE (canceled, invoiced, received) = "
-					"(False, True, False) ")
-		unreceived_po = 0
-		for row in c.fetchall():
-			unreceived_po = "Receive Orders\n          (%s)" % row[0]
-		self.builder.get_object('button12').set_label(unreceived_po)
-		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
-					"LATERAL (SELECT product_id FROM purchase_order_items "
-						"WHERE purchase_order_items.purchase_order_id = "
-						"purchase_orders.id LIMIT 1) ILI "
-					"WHERE (purchase_orders.canceled, closed) = (False, False)")
-		draft_pos = 0
-		for row in c.fetchall():
-			draft_pos = "Draft POs\n         (%s)" % row[0]
-		self.builder.get_object('button13').set_label(draft_pos)
+		c.execute("SELECT "
+					"COUNT(*) FILTER (WHERE (canceled, invoiced, closed) = "
+						"(False, False, True)), "
+					"COUNT(*) FILTER (WHERE (canceled, invoiced, received) = "
+						"(False, True, False)), "
+					"COUNT(*) FILTER (WHERE (canceled, closed) = (False, False) "
+						"AND EXISTS (SELECT 1 FROM purchase_order_items "
+							"WHERE purchase_order_items.purchase_order_id = "
+							"purchase_orders.id)) "
+					"FROM purchase_orders")
+		unpaid_count, unreceived_count, draft_count = c.fetchone()
+		self.builder.get_object('button5').set_label(
+			"Unprocessed Orders\n               (%s)" % unpaid_count)
+		self.builder.get_object('button12').set_label(
+			"Receive Orders\n          (%s)" % unreceived_count)
+		self.builder.get_object('button13').set_label(
+			"Draft POs\n         (%s)" % draft_count)
 		c.close()
 
 	def inventory_history_report (self, widget):
