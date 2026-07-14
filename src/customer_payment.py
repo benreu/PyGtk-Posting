@@ -56,14 +56,6 @@ class GUI:
 		cursor.close()
 		self.populate_contacts ()
 
-		total_column = self.builder.get_object ('treeviewcolumn3')
-		total_renderer = self.builder.get_object ('cellrenderertext5')
-		total_column.set_cell_data_func(total_renderer, self.total_cell_func)
-
-		amount_due_column = self.builder.get_object ('treeviewcolumn4')
-		amount_due_renderer = self.builder.get_object ('cellrendererspin7')
-		amount_due_column.set_cell_data_func(amount_due_renderer, self.amount_due_cell_func)
-
 		self.payment_method = PaymentMethodEntry()
 		self.payment_method.connect('changed', self.payment_method_changed)
 		self.builder.get_object('check_credit_cash_placeholder').pack_start(self.payment_method.box, True, True, 0)
@@ -84,14 +76,6 @@ class GUI:
 
 	def help_button_clicked (self, button):
 		subprocess.Popen (["yelp", help_dir + "/customer_payment.page"])
-
-	def total_cell_func(self, column, cellrenderer, model, iter1, data):
-		amount = model.get_value(iter1, 4)
-		cellrenderer.set_property("text" , str(amount))
-
-	def amount_due_cell_func(self, column, cellrenderer, model, iter1, data):
-		amount = model.get_value(iter1, 5)
-		cellrenderer.set_property("text" , str(amount))
 
 	def populate_contacts (self):
 		cursor = DB.cursor()
@@ -229,7 +213,12 @@ class GUI:
 							"AND customer_id = %s ORDER BY i.date_created",
 							(self.customer_id,))
 		for row in cursor.fetchall():
-			self.invoice_store.append(row)
+			total_formatted = '{:,.2f}'.format(row[4])
+			amount_due_formatted = '{:,.2f}'.format(row[5])
+			self.invoice_store.append((row[0], row[1], row[2], row[3],
+										row[4], total_formatted,
+										row[5], amount_due_formatted,
+										row[6]))
 		cursor.close()
 		self.builder.get_object('amount_spinbutton').set_value(0)
 
@@ -237,11 +226,11 @@ class GUI:
 		total = Decimal()
 		model, path = selection.get_selected_rows ()
 		for row in path:
-			total += model[row][5]
+			total += model[row][6]
 		if len(path) == 1:
-			amount_due = model[path][5]
+			amount_due = model[path][6]
 			self.builder.get_object('amount_spinbutton').set_value(amount_due)
-			if not model[path][6]:
+			if not model[path][8]:
 				invoice_id = model[path][0]
 				self.calculate_invoice_discount (invoice_id)
 			else:
@@ -262,7 +251,7 @@ class GUI:
 			menu.popup_at_pointer()
 
 	def amount_due_edited (self, renderer, path, amount):
-		if self.invoice_store[path][6]:
+		if self.invoice_store[path][8]:
 			return
 		invoice_id = self.invoice_store[path][0]
 		if amount == '' or Decimal(amount) > self.invoice_store[path][4]:
@@ -273,25 +262,26 @@ class GUI:
 		cursor.close()
 		DB.commit()
 		self.builder.get_object('amount_spinbutton').set_value(float(amount))
-		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
+		self.invoice_store[path][6] = Decimal(amount).quantize(Decimal('.01'))
+		self.invoice_store[path][7] = '{:,.2f}'.format(self.invoice_store[path][6])
 
 	def amount_due_editing_started (self, renderer, spinbutton, path):
-		if self.invoice_store[path][6]:
-			upper_limit = self.invoice_store[path][5]
+		if self.invoice_store[path][8]:
+			upper_limit = self.invoice_store[path][6]
 		else:
 			upper_limit = self.invoice_store[path][4]
 		spinbutton.set_numeric(True)
 		self.builder.get_object('amount_due_adjustment').set_upper(upper_limit)
-		spinbutton.set_value(self.invoice_store[path][5])
+		spinbutton.set_value(self.invoice_store[path][6])
 
 	def apply_discount_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		if model[path][6]:
+		if model[path][8]:
 			return
-		amount = model[path][5]
+		amount = model[path][6]
 		self.builder.get_object('spinbutton3').set_value(amount)
 		dialog = self.builder.get_object('invoice_discount_dialog')
 		result = dialog.run()
@@ -305,7 +295,8 @@ class GUI:
 			cursor.close()
 			DB.commit()
 			self.builder.get_object('amount_spinbutton').set_value(discounted_amount)
-			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
+			model[path][6] = Decimal(discounted_amount).quantize(Decimal('.01'))
+			model[path][7] = '{:,.2f}'.format(model[path][6])
 			#self.populate_invoices ()
 
 	def payment_method_changed (self, payment_method):
@@ -425,9 +416,9 @@ class GUI:
 		model, paths = selection.get_selected_rows()
 		discount = Decimal('0.00')
 		for row in paths:
-			is_fc = model[row][6]
+			is_fc = model[row][8]
 			invoice_id = model[row][0]
-			amount = model[row][5]
+			amount = model[row][6]
 			if not is_fc and self.accrual == False:
 				transactor.post_invoice_accounts (self.date, invoice_id, amount)
 			c.execute("UPDATE invoices "
@@ -557,7 +548,7 @@ class GUI:
 		model, path = selection.get_selected_rows()
 		invoice_amount_due_totals = Decimal()
 		for row in path:
-			invoice_amount_due_totals += model[row][5]
+			invoice_amount_due_totals += model[row][6]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
 		if float(invoice_amount_due_totals) == payment :
 			label.set_visible (False) #hide the off balance alert
@@ -575,7 +566,7 @@ class GUI:
 			return
 		invoice_amount_due_totals = Decimal()
 		for row in path:
-			invoice_amount_due_totals += model[row][5]
+			invoice_amount_due_totals += model[row][6]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
 		if float(invoice_amount_due_totals) != payment :
 			button.set_label ("Totals do not match")

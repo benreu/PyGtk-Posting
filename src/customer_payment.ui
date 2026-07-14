@@ -85,8 +85,12 @@
       <column type="gchararray"/>
       <!-- column-name invoice_total -->
       <column type="PyObject"/>
+      <!-- column-name invoice_total_formatted -->
+      <column type="gchararray"/>
       <!-- column-name invoice_amount_due -->
       <column type="PyObject"/>
+      <!-- column-name invoice_amount_due_formatted -->
+      <column type="gchararray"/>
       <!-- column-name finance_charge -->
       <column type="gboolean"/>
     </columns>
@@ -429,6 +433,18 @@
                 <child>
                   <placeholder/>
                 </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -708,6 +724,9 @@
                           <object class="GtkCellRendererText" id="cellrenderertext5">
                             <property name="xalign">1</property>
                           </object>
+                          <attributes>
+                            <attribute name="text">5</attribute>
+                          </attributes>
                         </child>
                       </object>
                     </child>
@@ -716,7 +735,7 @@
                         <property name="resizable">True</property>
                         <property name="title" translatable="yes">Amount due</property>
                         <property name="reorderable">True</property>
-                        <property name="sort-column-id">5</property>
+                        <property name="sort-column-id">6</property>
                         <child>
                           <object class="GtkCellRendererSpin" id="cellrendererspin7">
                             <property name="xalign">1</property>
@@ -726,6 +745,9 @@
                             <signal name="edited" handler="amount_due_edited" swapped="no"/>
                             <signal name="editing-started" handler="amount_due_editing_started" swapped="no"/>
                           </object>
+                          <attributes>
+                            <attribute name="text">7</attribute>
+                          </attributes>
                         </child>
                       </object>
                     </child>
