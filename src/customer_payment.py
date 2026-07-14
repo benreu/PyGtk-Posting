@@ -23,6 +23,7 @@ from dateutils import DateTimeCalendar, date_to_text
 from db import transactor
 from constants import DB, ui_directory, help_dir
 from accounts import expense_tree
+from payment_entry_panel import PaymentMethodEntry
 
 UI_FILE = ui_directory + "/customer_payment.ui"
 
@@ -30,7 +31,6 @@ class GUI:
 	def __init__(self, customer_id = None):
 
 		self.customer_id = customer_id
-		self.payment_type_id = 0
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -64,15 +64,16 @@ class GUI:
 		amount_due_renderer = self.builder.get_object ('cellrendererspin7')
 		amount_due_column.set_cell_data_func(amount_due_renderer, self.amount_due_cell_func)
 
+		self.payment_method = PaymentMethodEntry()
+		self.payment_method.connect('changed', self.payment_method_changed)
+		self.builder.get_object('check_credit_cash_placeholder').pack_start(self.payment_method.box, True, True, 0)
+
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today ()
 		self.date = self.calendar.get_date()
 		self.builder.get_object ('combobox1').set_active_id(str(customer_id))
-		
-		self.check_entry = self.builder.get_object('entry3')
-		self.credit_entry = self.builder.get_object('entry4')
-		self.cash_entry = self.builder.get_object('entry5')
+
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
@@ -305,24 +306,8 @@ class GUI:
 			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
 			#self.populate_invoices ()
 
-	def check_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(True)
-		self.credit_entry.set_sensitive(False)
-		self.cash_entry.set_sensitive(False)
-		self.payment_type_id = 0
-		self.check_amount_totals_validity()
-
-	def credit_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(False)
-		self.credit_entry.set_sensitive(True)
-		self.cash_entry.set_sensitive(False)
-		self.payment_type_id = 1
-
-	def cash_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(False)
-		self.credit_entry.set_sensitive(False)
-		self.cash_entry.set_sensitive(True)
-		self.payment_type_id = 2
+	def payment_method_changed (self, payment_method):
+		self.check_amount_totals_validity ()
 
 	def post_payment_clicked (self, widget):
 		total = self.builder.get_object('amount_spinbutton').get_text()
@@ -334,10 +319,10 @@ class GUI:
 			if response != Gtk.ResponseType.OK:
 				return
 		comments = 	self.builder.get_object('entry2').get_text()
+		payment_text = self.payment_method.get_payment_text()
 		self.payment = transactor.CustomerInvoicePayment(self.date, total)
 		cursor = DB.cursor()
-		if self.payment_type_id == 0:
-			payment_text = self.check_entry.get_text()
+		if self.payment_method.payment_type_id == 0:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
@@ -350,8 +335,7 @@ class GUI:
 								comments))
 			self.payment_id = cursor.fetchone()[0]
 			self.payment.bank_check (self.payment_id)
-		elif self.payment_type_id == 1:
-			payment_text = self.credit_entry.get_text()
+		elif self.payment_method.payment_type_id == 1:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
@@ -363,8 +347,7 @@ class GUI:
 								total, self.date, comments))
 			self.payment_id = cursor.fetchone()[0]
 			self.payment.credit_card (self.payment_id)
-		elif self.payment_type_id == 2:
-			payment_text = self.cash_entry.get_text()
+		elif self.payment_method.payment_type_id == 2:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
@@ -541,9 +524,6 @@ class GUI:
 		elif amount > 0.00:
 			combobox.set_model(self.cash_account_store)
 
-	def check_number_changed (self, entry):
-		self.check_amount_totals_validity ()
-
 	def check_amount_totals_validity (self):
 		button = self.builder.get_object('button1')
 		button.set_sensitive (False)
@@ -553,9 +533,7 @@ class GUI:
 		if self.customer_id == None:
 			button.set_label("No contact selected")
 			return
-		check_text = self.builder.get_object('entry3').get_text()
-		check_active = self.builder.get_object('check_radiobutton').get_active()
-		if check_active == True and check_text == '':
+		if self.payment_method.check_number_missing():
 			button.set_label('No check number')
 			return # no check number
 		if self.exact_payment:
