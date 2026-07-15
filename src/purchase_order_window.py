@@ -61,10 +61,82 @@ def add_expense_to_po (po_id, product_id, expense_amount ):
 					"ext_price, canceled, expense_account) "
 					"VALUES (%s, %s, 1, '', %s, %s, False, "
 						"(SELECT default_expense_account "
-						"FROM products WHERE id = %s))", 
-					(po_id, product_id, expense_amount, expense_amount, 
+						"FROM products WHERE id = %s))",
+					(po_id, product_id, expense_amount, expense_amount,
 					product_id))
 	DB.commit ()
+	cursor.close()
+
+def find_or_create_open_po (vendor_id):
+	cursor = DB.cursor()
+	cursor.execute("SELECT id FROM purchase_orders WHERE vendor_id = %s "
+					"AND (paid, closed, canceled) = (False, False, False)",
+					(vendor_id, ))
+	row = cursor.fetchone()
+	if row:
+		po_id = row[0]
+	else:
+		cursor.execute("SELECT name FROM contacts WHERE id = %s",
+						(vendor_id,))
+		vendor_name = cursor.fetchone()[0]
+		cursor.execute("INSERT INTO purchase_orders "
+						"(vendor_id, closed, paid, canceled, "
+						"received, date_created) "
+						"VALUES (%s, False, False, False, False, CURRENT_DATE) "
+						"RETURNING id, date_created", (vendor_id, ))
+		po_id, date = cursor.fetchone()
+		name_str = ""
+		for i in vendor_name.split(' '):
+			name_str = name_str + i[0:3]
+		name = name_str.lower()
+		po_date = re.sub("-", "_", str(date))
+		document_name = "PO_" + str(po_id) + "_" + name + "_" + po_date
+		cursor.execute("UPDATE purchase_orders "
+						"SET name = %s WHERE id = %s",
+						(document_name, po_id))
+	DB.commit()
+	cursor.close()
+	return po_id
+
+def add_manufacturing_item_to_po (po_id, product_id, qty):
+	cursor = DB.cursor()
+	cursor.execute("SELECT COALESCE(vendor_sku, ''), COALESCE(price, 0) "
+					"FROM vendor_product_numbers WHERE product_id = %s "
+					"AND vendor_id = (SELECT vendor_id FROM purchase_orders "
+					"WHERE id = %s) AND deleted = False LIMIT 1",
+					(product_id, po_id))
+	row = cursor.fetchone()
+	order_number, price = row if row else ('', 0)
+	cursor.execute("INSERT INTO purchase_order_items "
+					"(purchase_order_id, qty, product_id, remark, price, "
+					"ext_price, canceled, expense_account, order_number) "
+					"VALUES (%s, %s, %s, '', %s, %s, False, "
+						"(SELECT default_expense_account "
+						"FROM products WHERE id = %s), %s) "
+					"RETURNING id",
+					(po_id, qty, product_id, price, price * qty, product_id,
+					order_number))
+	po_item_id = cursor.fetchone()[0]
+	DB.commit()
+	cursor.close()
+	return po_item_id
+
+def find_po_item (po_id, product_id):
+	cursor = DB.cursor()
+	cursor.execute("SELECT id, qty FROM purchase_order_items "
+					"WHERE purchase_order_id = %s AND product_id = %s "
+					"AND canceled = False", (po_id, product_id))
+	row = cursor.fetchone()
+	cursor.close()
+	DB.rollback()
+	return row
+
+def update_po_item_qty (po_item_id, qty):
+	cursor = DB.cursor()
+	cursor.execute("UPDATE purchase_order_items SET qty = %s, "
+					"ext_price = price * %s WHERE id = %s",
+					(qty, qty, po_item_id))
+	DB.commit()
 	cursor.close()
 
 class Item(object):#this is used by py3o library see their example for more info

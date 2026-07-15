@@ -309,3 +309,232 @@ INSERT INTO public.gl_account_flow (function, account)
 SELECT 'finance_charge_income', 4200
 WHERE NOT EXISTS (SELECT 1 FROM public.gl_account_flow WHERE function = 'finance_charge_income');
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS finance_rate numeric(12,6);
+--0.7.9
+ALTER TABLE public.manufacturing_items
+	ADD COLUMN IF NOT EXISTS default_product_id integer,
+	ADD COLUMN IF NOT EXISTS vendor_id integer,
+	ADD COLUMN IF NOT EXISTS purchase_order_item_id bigint,
+	ADD COLUMN IF NOT EXISTS from_bom boolean NOT NULL DEFAULT True;
+
+UPDATE public.manufacturing_items
+	SET default_product_id = product_id
+	WHERE default_product_id IS NULL;
+
+ALTER TABLE public.manufacturing_items
+	ALTER COLUMN default_product_id SET NOT NULL;
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_product_id_fkey,
+	ADD CONSTRAINT manufacturing_items_product_id_fkey
+		FOREIGN KEY (product_id) REFERENCES public.products (id);
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_default_product_id_fkey,
+	ADD CONSTRAINT manufacturing_items_default_product_id_fkey
+		FOREIGN KEY (default_product_id) REFERENCES public.products (id);
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_vendor_id_fkey,
+	ADD CONSTRAINT manufacturing_items_vendor_id_fkey
+		FOREIGN KEY (vendor_id) REFERENCES public.contacts (id);
+
+ALTER TABLE public.manufacturing_items
+	DROP CONSTRAINT IF EXISTS manufacturing_items_purchase_order_item_id_fkey,
+	ADD CONSTRAINT manufacturing_items_purchase_order_item_id_fkey
+		FOREIGN KEY (purchase_order_item_id) REFERENCES public.purchase_order_items (id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq
+	ON public.manufacturing_items (manufacturing_project_id, default_product_id)
+	WHERE deleted = False;
+--0.7.10
+CREATE OR REPLACE FUNCTION public.purchase_order_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('purchase_orders', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.purchase_order_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('purchase_orders', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'purchase_order_update_trigger') THEN
+		CREATE TRIGGER purchase_order_update_trigger AFTER UPDATE ON public.purchase_orders
+		FOR EACH ROW WHEN (
+			NEW.canceled IS DISTINCT FROM OLD.canceled OR
+			NEW.invoiced IS DISTINCT FROM OLD.invoiced OR
+			NEW.closed   IS DISTINCT FROM OLD.closed OR
+			NEW.received IS DISTINCT FROM OLD.received
+		) EXECUTE PROCEDURE public.purchase_order_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'purchase_order_insert_trigger') THEN
+		CREATE TRIGGER purchase_order_insert_trigger AFTER INSERT ON public.purchase_orders
+		FOR EACH ROW EXECUTE PROCEDURE public.purchase_order_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.job_sheet_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('job_sheets', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.job_sheet_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('job_sheets', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'job_sheet_update_trigger') THEN
+		CREATE TRIGGER job_sheet_update_trigger AFTER UPDATE ON public.job_sheets
+		FOR EACH ROW WHEN (
+			NEW.invoiced  IS DISTINCT FROM OLD.invoiced OR
+			NEW.completed IS DISTINCT FROM OLD.completed
+		) EXECUTE PROCEDURE public.job_sheet_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'job_sheet_insert_trigger') THEN
+		CREATE TRIGGER job_sheet_insert_trigger AFTER INSERT ON public.job_sheets
+		FOR EACH ROW EXECUTE PROCEDURE public.job_sheet_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.document_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('documents', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.document_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('documents', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'document_update_trigger') THEN
+		CREATE TRIGGER document_update_trigger AFTER UPDATE ON public.documents
+		FOR EACH ROW WHEN (
+			NEW.canceled        IS DISTINCT FROM OLD.canceled OR
+			NEW.invoiced        IS DISTINCT FROM OLD.invoiced OR
+			NEW.pending_invoice IS DISTINCT FROM OLD.pending_invoice
+		) EXECUTE PROCEDURE public.document_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'document_insert_trigger') THEN
+		CREATE TRIGGER document_insert_trigger AFTER INSERT ON public.documents
+		FOR EACH ROW EXECUTE PROCEDURE public.document_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.loan_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('loans', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.loan_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('loans', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'loan_update_trigger') THEN
+		CREATE TRIGGER loan_update_trigger AFTER UPDATE ON public.loans
+		FOR EACH ROW WHEN (
+			NEW.last_payment_date IS DISTINCT FROM OLD.last_payment_date OR
+			NEW.finished           IS DISTINCT FROM OLD.finished OR
+			NEW.period             IS DISTINCT FROM OLD.period OR
+			NEW.period_amount      IS DISTINCT FROM OLD.period_amount
+		) EXECUTE PROCEDURE public.loan_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'loan_insert_trigger') THEN
+		CREATE TRIGGER loan_insert_trigger AFTER INSERT ON public.loans
+		FOR EACH ROW EXECUTE PROCEDURE public.loan_inserted();
+	END IF;
+END
+$$;
+CREATE OR REPLACE FUNCTION public.resource_updated() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('resources', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+CREATE OR REPLACE FUNCTION public.resource_inserted() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('resources', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'resource_update_trigger') THEN
+		CREATE TRIGGER resource_update_trigger AFTER UPDATE ON public.resources
+		FOR EACH ROW WHEN (
+			NEW.posted  IS DISTINCT FROM OLD.posted OR
+			NEW.to_do   IS DISTINCT FROM OLD.to_do OR
+			NEW.subject IS DISTINCT FROM OLD.subject
+		) EXECUTE PROCEDURE public.resource_updated();
+	END IF;
+END
+$$;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'resource_insert_trigger') THEN
+		CREATE TRIGGER resource_insert_trigger AFTER INSERT ON public.resources
+		FOR EACH ROW EXECUTE PROCEDURE public.resource_inserted();
+	END IF;
+END
+$$;

@@ -28,49 +28,15 @@ TIMECARD_TIME = "%I:%M %p"
 
 # -- datetime utils -- #
 
-def datetime_to_user_date_time (date_time):
-	print ("datetime_to_user_date_time is deprecated, please use Postgres function")
-	if date_time == None:
-		return ''
-	date_string = datetime.strftime(date_time, USER_FORMAT_DATE_TIME)
-	return date_string
-
 def datetime_to_time_card_format (date_time):
 	if date_time == None:
 		return ''
 	date_string = datetime.strftime(date_time, TIMECARD_TIME)
 	return date_string
-def datetime_to_compact_string (date_time):
-	print ("datetime_to_compact_string is deprecated, please use Postgres function")
-	if date_time == None:
-		return ''
-	date_string = datetime.strftime(date_time, "%H:%M:%S")
-	return date_string
-
-def datetime_to_user_date (date_time):
-	print ("datetime_to_user_date is deprecated, please use Postgres function")
-	if date_time == None:
-		return ''
-	date_string = datetime.strftime(date_time, USER_FORMAT_DATE)
-	return date_string
 
 def text_to_datetime (text):
 	date_time = datetime.strptime (text, PARSE_STRING)
 	return date_time
-
-def datetime_to_text (date_time):
-	print ("datetime_to_text is deprecated, please use Postgres function")
-	if date_time == None or date_time == '':
-		return ''
-	date_string = datetime.strftime(date_time, PARSE_STRING)
-	return date_string
-
-def calendar_to_text (calendar_date):
-	if calendar_date == None or calendar_date == '':
-		return ''
-	date = calendar_to_datetime (calendar_date)
-	day_text = datetime_to_text (date)
-	return day_text
 
 def calendar_to_datetime (calendar_date):
 	day = calendar_date[2]
@@ -90,19 +56,13 @@ def set_calendar_from_datetime (calendar, date_time):
 
 #-- date (not datetime) utils --#
 
-def date_to_text (date):
-	print ("date_to_text is deprecated, please use Postgres function")
-	date_string = date.strftime(PARSE_STRING)
-	return date_string
-
-def date_to_user_format (date):
-	print ("date_to_user_format is deprecated, please use Postgres function")
-	date_string = date.strftime(USER_FORMAT_DATE)
-	return date_string
-
 def calendar_to_text (calendar_date):
 	date = calendar_to_date(calendar_date)
-	day_text = date_to_text (date)
+	cursor = DB.cursor()
+	cursor.execute("SELECT format_date(%s)", (date,))
+	day_text = cursor.fetchone()[0]
+	cursor.close()
+	DB.rollback()
 	return day_text
 
 def calendar_to_date (calendar_date):

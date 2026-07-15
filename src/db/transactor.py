@@ -99,15 +99,14 @@ class CustomerInvoicePayment:
 					"WHERE id = %s", (pi_id, payment_id))
 		c.close()
 
-	def credit_card (self, payment_id):
+	def credit_card (self, payment_id, account_number):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
 					"(debit_account, credit_account, amount, gl_transaction_id) "
-					"VALUES ((SELECT account FROM gl_account_flow "
-					"WHERE function = 'credit_card_payment'), "
+					"VALUES (%s, "
 					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total, self.transaction_id)) 
+					"WHERE function = 'post_invoice'), %s, %s) RETURNING id",
+					(account_number, self.total, self.transaction_id))
 		pi_id = c.fetchone()[0]
 		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
@@ -728,14 +727,12 @@ class MiscRevenueTransaction :
 					"WHERE id = %s", (pi_id, payment_id))
 		c.close()
 
-	def post_misc_credit_card_payment (self, amount, payment_id):
+	def post_misc_credit_card_payment (self, amount, payment_id, account_number):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
 				"(date_inserted, gl_transaction_id, debit_account, amount) "
-				"VALUES (%s, %s, "
-					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'credit_card_payment'), %s) RETURNING id", 
-				(self.date, self.trans_id, amount))
+				"VALUES (%s, %s, %s, %s) RETURNING id",
+				(self.date, self.trans_id, account_number, amount))
 		pi_id = c.fetchone()[0]
 		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "

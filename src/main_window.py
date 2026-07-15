@@ -17,7 +17,7 @@
 
 import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
-import os, subprocess, re, psycopg2
+import os, subprocess, re, psycopg2, threading
 from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
 						help_dir, broadcaster, mobile
 from sqlite_utils import get_apsw_connection
@@ -98,10 +98,16 @@ class MainGUI :
 	def check_db_version (self):
 		from db import version
 		version.CheckVersion(self)
-		# avoid rollbacks during upgrade process by connecting focus afterwards
+		# avoid rollbacks during upgrade process by loading data afterwards
 		if mobile == False:
-			self.window.connect("focus-in-event", self.focus)
-			self.focus()
+			self.initial_load()
+			broadcaster.connect("invoices_changed", self.invoices_changed)
+			broadcaster.connect("purchase_orders_changed", self.purchase_orders_changed)
+			broadcaster.connect("job_sheets_changed", self.job_sheets_changed)
+			broadcaster.connect("documents_changed", self.documents_changed)
+			broadcaster.connect("loans_changed", self.loans_changed)
+			broadcaster.connect("resources_changed", self.resources_changed)
+			GLib.timeout_add_seconds(3600, self.check_date_reminders_timer)
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -433,20 +439,31 @@ class MainGUI :
 		loan_payment.LoanPaymentGUI (id_)
 
 	def populate_to_do_treeview (self):
-		c = DB.cursor()
 		store = self.builder.get_object('to_do_store')
 		store.clear()
-		red = Gdk.RGBA(1, 0, 0, 1)
-		orange = Gdk.RGBA(1, 0.5, 0, 1)
-		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
+		self.refresh_date_reminders()
+		self.refresh_loan_reminders()
+		self.refresh_resource_reminders()
+
+	def remove_to_do_rows (self, callbacks):
+		store = self.builder.get_object('to_do_store')
+		it = store.get_iter_first()
+		while it is not None:
+			if store.get_value(it, 2) in callbacks:
+				if not store.remove(it):
+					it = None
+			else:
+				it = store.iter_next(it)
+
+	def query_date_reminders (self):
+		c = DB.cursor()
 		c.execute("SELECT CURRENT_DATE >= date_trunc( 'month', "
 					"(SELECT statement_finish_date FROM settings) "
 					"+ INTERVAL'1 month') "
 					"+ ((SELECT statement_day_of_month FROM settings) "
 						"* INTERVAL '1 day') "
 					"- INTERVAL '1 day'")
-		if c.fetchone()[0] == True:
-			store.append(["Print statements", 0, self.statement_window, orange])
+		statement_due = c.fetchone()[0]
 		c.execute("SELECT "
 					"date_trunc('day', "
 						"(SELECT last_backup FROM settings)) <= "
@@ -454,8 +471,38 @@ class MainGUI :
 						"CURRENT_DATE - "
 							"((SELECT backup_frequency_days "
 							"FROM settings) * INTERVAL '1 day'))")
-		if c.fetchone()[0] == True:
-			store.append(['Backup database', 0, self.backup_window, red])
+		backup_due = c.fetchone()[0]
+		c.close()
+		return statement_due, backup_due
+
+	def apply_date_reminders (self, statement_due, backup_due):
+		DB.rollback()
+		store = self.builder.get_object('to_do_store')
+		self.remove_to_do_rows((self.statement_window, self.backup_window))
+		if statement_due == True:
+			store.append(["Print statements", 0, self.statement_window, Gdk.RGBA(1, 0.5, 0, 1)])
+		if backup_due == True:
+			store.append(['Backup database', 0, self.backup_window, Gdk.RGBA(1, 0, 0, 1)])
+
+	def refresh_date_reminders (self):
+		self.apply_date_reminders(*self.query_date_reminders())
+
+	def check_date_reminders_timer (self):
+		if not self.window.is_active():
+			threading.Thread(target=self.check_date_reminders_background, daemon=True).start()
+		return True # keep the timer repeating
+
+	def check_date_reminders_background (self):
+		try:
+			statement_due, backup_due = self.query_date_reminders()
+		except psycopg2.Error as e:
+			print(e)
+			GLib.idle_add(DB.rollback)
+			return
+		GLib.idle_add(self.apply_date_reminders, statement_due, backup_due)
+
+	def refresh_loan_reminders (self):
+		c = DB.cursor()
 		c.execute("SELECT l.id, c.name || ' loan payment' "
 					"FROM loans AS l "
 					"JOIN contacts AS c ON l.contact_id = c.id "
@@ -465,10 +512,18 @@ class MainGUI :
 						"CURRENT_DATE - "
 							"(l.period_amount||' '||l.period)::interval "
 					") AND finished = False")
-		for row in c.fetchall():
+		rows = c.fetchall()
+		c.close()
+		store = self.builder.get_object('to_do_store')
+		self.remove_to_do_rows((self.loan_payment,))
+		brown = Gdk.RGBA(0.5, 0.3, 0.1, 1)
+		for row in rows:
 			loan_id = row[0]
 			reminder = row[1]
 			store.append([reminder, loan_id, self.loan_payment, brown])
+
+	def refresh_resource_reminders (self):
+		c = DB.cursor()
 		c.execute("SELECT "
 					"rm.id, "
 					"rm.subject, "
@@ -483,7 +538,11 @@ class MainGUI :
 						"ON rt.id = riti.resource_tag_id "
 					"WHERE posted != True "
 					"AND to_do = True")
-		for row in c.fetchall():
+		rows = c.fetchall()
+		c.close()
+		store = self.builder.get_object('to_do_store')
+		self.remove_to_do_rows((self.resource_window,))
+		for row in rows:
 			id_ = row[0]
 			subject = row[1]
 			rgba = Gdk.RGBA(1, 1, 1, 1)
@@ -492,13 +551,12 @@ class MainGUI :
 			rgba.blue = row[4]
 			rgba.alpha = row[5]
 			store.append([subject, id_, self.resource_window, rgba])
-		c.close()
 
 	def resource_window (self, id_):
 		from resources import resource_management
 		resource_management.ResourceManagementGUI(id_)
-		
-	def focus (self, widget = None, d = None):
+
+	def initial_load (self, widget = None, d = None):
 		try:
 			self.populate_to_do_treeview()
 			self.load_statistics()
@@ -506,7 +564,76 @@ class MainGUI :
 			print(e)
 		DB.rollback()
 
+	def invoices_changed (self, broadcaster, invoice_id, is_remote):
+		try:
+			self.load_invoice_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def purchase_orders_changed (self, broadcaster, po_id):
+		try:
+			self.load_purchase_order_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def job_sheets_changed (self, broadcaster, job_sheet_id, is_remote):
+		try:
+			self.load_job_sheet_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def documents_changed (self, broadcaster, document_id, is_remote):
+		try:
+			self.load_document_statistics()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def loans_changed (self, broadcaster, loan_id, is_remote):
+		try:
+			self.refresh_loan_reminders()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
+	def resources_changed (self, broadcaster, resource_id, is_remote):
+		try:
+			self.refresh_resource_reminders()
+		except psycopg2.Error as e:
+			print(e)
+		DB.rollback()
+
 	def load_statistics (self):
+		self.load_invoice_statistics()
+		self.load_purchase_order_statistics()
+		self.load_job_sheet_statistics()
+		self.load_document_statistics()
+
+	def load_job_sheet_statistics (self):
+		c = DB.cursor()
+		c.execute("SELECT COUNT(id) FROM job_sheets "
+					"WHERE (invoiced, completed) = (False, False)")
+		jobs = 0
+		for row in c.fetchall():
+			jobs = "Draft Job Sheets\n           (%s)" % row[0]
+		self.builder.get_object('button10').set_label(jobs)
+		c.close()
+
+	def load_document_statistics (self):
+		c = DB.cursor()
+		c.execute("SELECT COUNT(id) FROM documents "
+					"WHERE (canceled, invoiced, pending_invoice) = "
+					"(False, False, True)")
+		documents = 0
+		for row in c.fetchall():
+			documents = "Documents To Invoice\n                 (%s)" % row[0]
+		self.builder.get_object('button14').set_label(documents)
+		c.close()
+
+	def load_invoice_statistics (self):
 		c = DB.cursor()
 		c.execute("SELECT COUNT(id) FROM invoices "
 					"WHERE (canceled, paid, posted) = (False, False, True)")
@@ -514,6 +641,20 @@ class MainGUI :
 		for row in c.fetchall():
 			unpaid_invoices = "Unpaid Invoices\n          (%s)" % row[0]
 		self.builder.get_object('button2').set_label(unpaid_invoices)
+		c.execute("SELECT COUNT(invoices.id) FROM invoices, "
+					"LATERAL (SELECT product_id FROM invoice_items "
+						"WHERE invoice_items.invoice_id = "
+						"invoices.id LIMIT 1) ILI "
+					"WHERE (invoices.canceled, posted, active) = "
+					"(False, False, True)")
+		draft_invoices = 0
+		for row in c.fetchall():
+			draft_invoices = "Draft invoices\n         (%s)" % row[0]
+		self.builder.get_object('button17').set_label(draft_invoices)
+		c.close()
+
+	def load_purchase_order_statistics (self):
+		c = DB.cursor()
 		c.execute("SELECT COUNT(id) FROM purchase_orders "
 					"WHERE (canceled, invoiced, closed) = "
 					"(False, False, True) ")
@@ -521,43 +662,22 @@ class MainGUI :
 		for row in c.fetchall():
 			unpaid_po = "Unprocessed Orders\n               (%s)" % row[0]
 		self.builder.get_object('button5').set_label(unpaid_po)
-		c.execute("SELECT COUNT(id) FROM job_sheets "
-					"WHERE (invoiced, completed) = (False, False)")	
-		jobs = 0
-		for row in c.fetchall():
-			jobs = "Draft Job Sheets\n           (%s)" % row[0]
-		self.builder.get_object('button10').set_label(jobs)
-		c.execute("SELECT COUNT(id) FROM documents "
-					"WHERE (canceled, invoiced, pending_invoice) = "
-					"(False, False, True)")	
-		documents = 0
-		for row in c.fetchall():
-			documents = "Documents To Invoice\n                 (%s)" % row[0]
-		self.builder.get_object('button14').set_label(documents)
 		c.execute("SELECT COUNT(id) FROM purchase_orders "
 					"WHERE (canceled, invoiced, received) = "
-					"(False, True, False) ")	
+					"(False, True, False) ")
 		unreceived_po = 0
 		for row in c.fetchall():
 			unreceived_po = "Receive Orders\n          (%s)" % row[0]
 		self.builder.get_object('button12').set_label(unreceived_po)
-		c.execute("SELECT COUNT(invoices.id) FROM invoices, "
-					"LATERAL (SELECT product_id FROM invoice_items "
-						"WHERE invoice_items.invoice_id = "
-						"invoices.id LIMIT 1) ILI "
-					"WHERE (invoices.canceled, posted, active) = "
-					"(False, False, True)")
-		for row in c.fetchall():
-			draft_invoices = "Draft invoices\n         (%s)" % row[0]
-		self.builder.get_object('button17').set_label(draft_invoices)
 		c.execute("SELECT COUNT(purchase_orders.id) FROM purchase_orders, "
 					"LATERAL (SELECT product_id FROM purchase_order_items "
 						"WHERE purchase_order_items.purchase_order_id = "
 						"purchase_orders.id LIMIT 1) ILI "
 					"WHERE (purchase_orders.canceled, closed) = (False, False)")
+		draft_pos = 0
 		for row in c.fetchall():
-			draft_invoices = "Draft POs\n         (%s)" % row[0]
-		self.builder.get_object('button13').set_label(draft_invoices)
+			draft_pos = "Draft POs\n         (%s)" % row[0]
+		self.builder.get_object('button13').set_label(draft_pos)
 		c.close()
 
 	def inventory_history_report (self, widget):

@@ -1243,9 +1243,29 @@ class InvoiceGUI:
 		self.calendar.show()
 
 	def show_reload_infobar (self, broadcaster, invoice_id, is_remote):
-		if invoice_id == self.invoice_id and is_remote:
-			infobar = self.builder.get_object('invoice_changed_infobar')
-			infobar.set_revealed(True)
+		if invoice_id != self.invoice_id and is_remote:
+			return
+		cursor = DB.cursor()
+		cursor.execute("SELECT posted FROM invoices WHERE id = %s", (self.invoice_id,))
+		posted = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		if posted:
+			self.invoice_posted_elsewhere()
+			return
+		infobar = self.builder.get_object('invoice_changed_infobar')
+		infobar.set_revealed(True)
+
+	def invoice_posted_elsewhere (self):
+		self.builder.get_object('button2').set_sensitive(False)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.WARNING,
+										buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup("This invoice has already been posted elsewhere.\n"
+							"This window will now close.")
+		dialog.run()
+		dialog.destroy()
+		self.window.destroy()
 
 	def info_bar_close (self, infobar):
 		infobar.set_revealed(False)
