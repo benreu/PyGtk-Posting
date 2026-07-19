@@ -689,11 +689,12 @@ class InvoiceGUI:
 
 	def customer_selected(self, name_id):
 		cursor = DB.cursor()
-		cursor.execute("SELECT address, phone, city, state, zip "
+		cursor.execute("SELECT address, phone, city, state, zip, email "
 							"FROM contacts WHERE id = (%s)",(name_id,))
 		for row in cursor.fetchall() :
-			address, phone, city, state, zip_code = row
+			address, phone, city, state, zip_code, email = row
 			self.builder.get_object('entry8').set_text(phone)
+			self.builder.get_object('entry_email').set_text(email or '')
 			formatted_address = "{}\n{}, {} {}".format(
 				address, city, state, zip_code)
 			self.builder.get_object('address_box').get_buffer().set_text(
@@ -742,6 +743,12 @@ class InvoiceGUI:
 			self.calendar.set_today()
 		cursor.close()
 		DB.rollback()
+
+	def email_button_clicked (self, button):
+		email = self.builder.get_object('entry_email').get_text()
+		if email == "":
+			return
+		subprocess.Popen(["thunderbird", "-compose", "to=" + email])
 
 	################## start qty
 
