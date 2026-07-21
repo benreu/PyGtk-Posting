@@ -241,6 +241,32 @@ class DBConnection:
 		return getattr(self._real, name)
 
 
+class _SafeSignalProxy:
+	# wraps a signal-handler object so DB errors from a mid-reconnect call don't
+	# escape through PyGObject's C signal marshaling as a printed unraisable exception
+	def __init__(self, target):
+		self._target = target
+
+	def __getattr__(self, name):
+		attr = getattr(self._target, name)
+		if not callable(attr):
+			return attr
+		def wrapper(*args, **kwargs):
+			try:
+				return attr(*args, **kwargs)
+			except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+				print("db_connection: %s.%s during reconnect: %s" %
+						(type(self._target).__name__, name, e))
+		return wrapper
+
+
+def install_safe_signal_connect():
+	original_connect_signals = Gtk.Builder.connect_signals
+	def safe_connect_signals(self, obj):
+		return original_connect_signals(self, _SafeSignalProxy(obj))
+	Gtk.Builder.connect_signals = safe_connect_signals
+
+
 def start_broadcaster():
 	global broadcaster, ACCOUNTS, reconnect_status
 	import accounts as ACCOUNTS
