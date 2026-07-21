@@ -18,7 +18,8 @@
 
 from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/resources/resource_types.ui"
 

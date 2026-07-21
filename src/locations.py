@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/locations.ui"
 

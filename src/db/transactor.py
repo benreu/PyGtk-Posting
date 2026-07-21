@@ -17,7 +17,7 @@
 
 
 from datetime import datetime
-from constants import DB
+from db_connection import DB
 
 class Deposit:
 	def __init__(self, date):

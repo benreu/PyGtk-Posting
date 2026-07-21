@@ -19,7 +19,8 @@ from gi.repository import Gtk, GLib
 from decimal import Decimal
 from db.transactor import MiscRevenueTransaction
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from accounts import revenue_account, revenue_list
 from payment_entry_panel import PaymentMethodEntry
 

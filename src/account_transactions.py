@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/account_transactions.ui"
 

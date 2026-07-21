@@ -17,7 +17,8 @@
 
 
 from gi.repository import Gtk, Gdk, GLib
-from constants import ui_directory, DB, broadcaster, MANUFACTURING_PROJECT_LOCK_CLASSID
+from db_connection import DB, broadcaster
+from constants import ui_directory, MANUFACTURING_PROJECT_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/manufacturing/project_edit_main.ui"
 

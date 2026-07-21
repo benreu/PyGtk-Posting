@@ -23,7 +23,8 @@ from datetime import datetime
 import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/unprocessed_po.ui"
 

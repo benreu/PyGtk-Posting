@@ -19,7 +19,8 @@ from gi.repository import Gtk, GLib
 import psycopg2
 from db import transactor
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 import admin_utils
 
 UI_FILE = ui_directory + "/credit_card_statements.ui"

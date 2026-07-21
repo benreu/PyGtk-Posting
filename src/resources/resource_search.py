@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 import re
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/resources/resource_search.ui"
 

@@ -20,7 +20,8 @@ import subprocess
 from inventory import inventorying
 import locations, barcode_generator
 from pricing import product_retail_price
-from constants import ui_directory, DB, template_dir
+from db_connection import DB
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/receive_orders.ui"
 

@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk, Gdk
 from datetime import datetime, date, timedelta
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/admin/time_clock_tool.ui"
 

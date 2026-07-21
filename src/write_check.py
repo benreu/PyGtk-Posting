@@ -25,7 +25,8 @@ from db.transactor import post_incoming_invoice_expense,\
 							service_provider_transfer ,\
 							service_provider_cash_payment
 import contacts
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/incoming_invoice.ui"
 

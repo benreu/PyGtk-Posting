@@ -19,7 +19,8 @@ from gi.repository import Gtk, GLib, Gdk, GObject
 from datetime import datetime, date
 from dateutils import DateTimeCalendar
 import spell_check
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/resources/resource_management.ui"
 

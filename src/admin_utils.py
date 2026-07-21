@@ -16,7 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-from constants import ui_directory, broadcaster
+from db_connection import broadcaster
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/admin_utils.ui"
 

@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 from datetime import datetime
 from invoice_window import create_new_invoice 
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/draft_job_sheets.ui"
 

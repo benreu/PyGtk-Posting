@@ -21,7 +21,8 @@ from urllib.parse import quote
 from datetime import datetime, timedelta
 from db import transactor
 import printing
-from constants import DB, template_dir
+from db_connection import DB
+from constants import template_dir
 
 
 class Item(object):

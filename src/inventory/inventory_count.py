@@ -17,7 +17,8 @@
 from gi.repository import Gtk, GLib
 from decimal import Decimal
 from pricing import product_retail_price
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/inventory/inventory_count.ui"
 

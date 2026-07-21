@@ -15,20 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import GLib, GObject
-import os, shutil, psycopg2
-from db_connection import ReconnectStatusDialog
+import os, shutil
 
 dev_mode = False
-DB = None
-DB_PROCESS_ID = 0
-cursor = None
-broadcaster = None
-reconnect_status = None
-ACCOUNTS = None
 is_admin = False
 log_file = None
-mobile = False
 installed = False
 PRODUCT_LOCK_CLASSID = 1
 CONTACT_LOCK_CLASSID = 2
@@ -39,127 +30,6 @@ MANUFACTURING_PROJECT_LOCK_CLASSID = 6
 CONTACT_FILES_LOCK_CLASSID = 7
 CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID = 8
 CONTACT_INDIVIDUALS_LOCK_CLASSID = 9
-
-
-def start_broadcaster():
-    global broadcaster, ACCOUNTS, reconnect_status
-    import accounts as ACCOUNTS
-    broadcaster = Broadcast()
-    reconnect_status = ReconnectStatusDialog()
-    DB.register_reconnect_listener(reconnect_status.on_reconnect_event)
-
-
-class Broadcast(GObject.GObject):
-    __gsignals__ = {
-        'products_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
-        'contacts_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
-        'clock_entries_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
-        'invoices_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
-        'purchase_orders_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)),
-        'job_sheets_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
-        'documents_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
-        'loans_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
-        'resources_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
-        'admin_changed': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-        'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
-    }
-
-    def __init__(self):
-        global DB_PROCESS_ID
-        GObject.GObject.__init__(self)
-        self.io_watch_id = GLib.io_add_watch(
-            DB.fileno(), GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self.on_db_readable
-        )
-        self.connect("shutdown", self.on_shutdown)
-        self._listen()
-        DB_PROCESS_ID = DB.get_backend_pid()
-        DB.register_reconnect_listener(self._on_reconnect)
-
-    def _listen(self):
-        c = DB.cursor()
-        c.execute("LISTEN products;"
-                  "LISTEN contacts;"
-                  "LISTEN accounts;"
-                  "LISTEN time_clock_entries;"
-                  "LISTEN invoices;"
-                  "LISTEN purchase_orders;"
-                  "LISTEN job_sheets;"
-                  "LISTEN documents;"
-                  "LISTEN loans;"
-                  "LISTEN resources;")
-        c.close()
-        DB.commit()
-
-    def _on_reconnect(self, event, attempt=None, max_attempts=None):
-        global DB_PROCESS_ID
-        if event != 'reconnected':
-            return
-        try:
-            GLib.source_remove(self.io_watch_id)
-        except Exception:
-            pass
-        self.io_watch_id = GLib.io_add_watch(
-            DB.fileno(), GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self.on_db_readable
-        )
-        self._listen()
-        DB_PROCESS_ID = DB.get_backend_pid()
-
-    def on_shutdown(self, broadcaster):
-        GLib.source_remove(self.io_watch_id)
-
-    def on_db_readable(self, source, condition):
-        if condition & (GLib.IO_HUP | GLib.IO_ERR) or DB.closed == 1:
-            GLib.idle_add(DB.reconnect)
-            return False
-        self.process_notifies()
-        return True
-
-    def process_notifies(self):
-        # commits on our own LISTENing connection deliver self-notifies
-        # synchronously as part of the commit's response, with no later
-        # socket-readable event to wake on_db_readable - so this also gets
-        # called directly from DBConnection.commit() to drain those.
-        try:
-            DB.poll()
-            while DB.notifies:
-                notify = DB.notifies.pop(0)
-                if notify.channel == "products":
-                    self.emit('products_changed')
-                elif notify.channel == "contacts":
-                    self.emit('contacts_changed')
-                elif notify.channel == "accounts":
-                    ACCOUNTS.populate_accounts()
-                elif notify.channel == "time_clock_entries":
-                    self.emit('clock_entries_changed')
-                elif notify.channel == "invoices":
-                    invoice_id = notify.payload
-                    self.emit("invoices_changed", int(invoice_id),
-                              notify.pid != DB_PROCESS_ID)
-                elif notify.channel == "purchase_orders":
-                    po_id = notify.payload
-                    if notify.pid != DB_PROCESS_ID:
-                        self.emit("purchase_orders_changed", int(po_id))
-                elif notify.channel == "job_sheets":
-                    job_sheet_id = notify.payload
-                    self.emit("job_sheets_changed", int(job_sheet_id),
-                              notify.pid != DB_PROCESS_ID)
-                elif notify.channel == "documents":
-                    document_id = notify.payload
-                    self.emit("documents_changed", int(document_id),
-                              notify.pid != DB_PROCESS_ID)
-                elif notify.channel == "loans":
-                    loan_id = notify.payload
-                    self.emit("loans_changed", int(loan_id),
-                              notify.pid != DB_PROCESS_ID)
-                elif notify.channel == "resources":
-                    resource_id = notify.payload
-                    self.emit("resources_changed", int(resource_id),
-                              notify.pid != DB_PROCESS_ID)
-        except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
-            # the connection died while handling a background notification - DB has
-            # already reconnected (or is reconnecting) via the cursor that hit this;
-            # there's no user action to retry here, so just skip this refresh
-            print("constants: on_db_readable: %s" % e)
 
 
 help_dir = ''

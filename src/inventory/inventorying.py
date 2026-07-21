@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from constants import DB
+from db_connection import DB
 
 def sell (invoice_store, location_id, contact_id, date):
 	'''adjust inventory taking in consideration that invoices can be edited afterwards'''
