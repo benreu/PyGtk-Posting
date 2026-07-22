@@ -17,7 +17,7 @@
 
 from collections import defaultdict
 from gi.repository import Gtk
-from constants import DB
+from db_connection import DB
 
 all_accounts_tree = Gtk.TreeStore(str, str, str)
 expense_tree = Gtk.TreeStore(str, str, str)

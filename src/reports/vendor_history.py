@@ -19,7 +19,8 @@
 from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
 import subprocess
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from sqlite_utils import get_apsw_connection
 import admin_utils
 

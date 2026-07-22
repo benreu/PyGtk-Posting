@@ -18,7 +18,8 @@
 
 from gi.repository import Gtk, GLib
 import subprocess, os, glob
-from constants import DB, ui_directory, template_dir, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory, template_dir
 import barcode_generator, pricing
 
 UI_FILE = ui_directory + "/product_print_label.ui"

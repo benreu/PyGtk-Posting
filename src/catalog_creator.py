@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
 import subprocess
-from constants import ui_directory, DB, broadcaster, template_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/catalog_creator.ui"
 

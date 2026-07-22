@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GObject
-from constants import DB
+from db_connection import DB
 
 class PaymentMethodEntry (GObject.GObject):
 	'''Check/credit-card/cash entry cluster, shared by

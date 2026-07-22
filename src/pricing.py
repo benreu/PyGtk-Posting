@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from constants import DB
+from db_connection import DB
 
 def get_customer_product_price (customer_id, product_id):
 	cursor = DB.cursor()	

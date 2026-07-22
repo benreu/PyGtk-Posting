@@ -21,7 +21,8 @@ from datetime import date, timedelta
 import subprocess
 from dateutils import DateTimeCalendar
 from db import transactor
-from constants import DB, ui_directory, help_dir
+from db_connection import DB
+from constants import ui_directory, help_dir
 from accounts import expense_tree
 from payment_entry_panel import PaymentMethodEntry
 

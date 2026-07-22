@@ -19,7 +19,8 @@ import gi
 gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
 import os
-from constants import ui_directory, DB, preferences_path
+from db_connection import DB
+from constants import ui_directory, preferences_path
 
 class Operation (Gtk.PrintOperation):
 	settings_file = None

@@ -19,7 +19,8 @@
 
 from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/product_search.ui"

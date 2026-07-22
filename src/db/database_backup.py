@@ -19,7 +19,8 @@ import gi
 gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Vte
 import time, os, signal
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_backup.ui"

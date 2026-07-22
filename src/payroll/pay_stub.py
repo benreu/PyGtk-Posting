@@ -26,7 +26,8 @@ from check_writing import get_check_number, get_written_check_amount_text
 #from posting_functions import get_gcalccmd_result
 from decimal import Decimal							
 import printing
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = "src/payroll/pay_stub.ui"
 

@@ -15,7 +15,8 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/draft_invoices.ui"

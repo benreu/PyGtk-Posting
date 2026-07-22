@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 from datetime import datetime, timedelta
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/fiscal_years.ui"
 

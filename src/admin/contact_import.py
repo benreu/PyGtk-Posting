@@ -18,7 +18,8 @@
 from gi.repository import Gtk, Gdk
 import xlrd
 from xlrd.biffh import XLRDError
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/admin/contact_import.ui"
 

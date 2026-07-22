@@ -20,7 +20,8 @@ from gi.repository import Gtk
 import psycopg2
 import invoice_window
 from datetime import datetime
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/documents_to_invoice.ui"
 

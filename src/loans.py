@@ -18,7 +18,8 @@
 from gi.repository import Gtk, GLib
 from dateutils import DateTimeCalendar
 from db import transactor
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/loans.ui"
 

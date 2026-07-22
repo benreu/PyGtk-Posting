@@ -22,7 +22,8 @@ from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
-from constants import ui_directory, DB, broadcaster, help_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, help_dir
 
 UI_FILE = ui_directory + "/invoice_window.ui"
 

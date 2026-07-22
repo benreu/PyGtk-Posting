@@ -17,7 +17,8 @@
 from gi.repository import Gtk
 from datetime import datetime
 from decimal import Decimal
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 from db import transactor
 
 UI_FILE = ui_directory + "/inventory/inventory_adjustment.ui"

@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk
 import psycopg2
-from constants import DB, ui_directory, ORDER_NUMBER_LOCK_CLASSID
+from db_connection import DB
+from constants import ui_directory, ORDER_NUMBER_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/product_edit_order_numbers.ui"
 

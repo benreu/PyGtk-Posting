@@ -18,7 +18,8 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
-from constants import ui_directory, DB, help_dir
+from db_connection import DB
+from constants import ui_directory, help_dir
 
 UI_FILE = ui_directory + "/customer_tax_exemptions.ui"
 

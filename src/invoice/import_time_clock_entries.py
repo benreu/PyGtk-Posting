@@ -19,7 +19,8 @@
 from gi.repository import Gtk
 from datetime import datetime
 from pricing import get_customer_product_price
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/invoice/import_time_clock_entries.ui"
 

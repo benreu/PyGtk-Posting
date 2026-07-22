@@ -16,7 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from constants import DB, ui_directory, PRODUCT_LOCATION_LOCK_CLASSID
+from db_connection import DB
+from constants import ui_directory, PRODUCT_LOCATION_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/product_edit_location.ui"
 

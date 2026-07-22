@@ -18,7 +18,8 @@
 from gi.repository import Gtk, GLib
 import os, subprocess, glob
 import barcode_generator
-from constants import ui_directory, template_dir, DB, MANUFACTURING_SERIAL_LOCK_CLASSID
+from db_connection import DB
+from constants import ui_directory, template_dir, MANUFACTURING_SERIAL_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/manufacturing/serial_numbers.ui"
 

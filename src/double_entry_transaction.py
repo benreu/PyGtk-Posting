@@ -19,7 +19,8 @@ from gi.repository import Gtk
 from dateutils import DateTimeCalendar
 from decimal import Decimal
 from db.transactor import DoubleEntryTransaction
-from constants import DB, ui_directory 
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/double_entry_transaction.ui"
 TWO_PLACES = Decimal('0.01')

@@ -17,7 +17,8 @@
 
 
 from gi.repository import Gtk, GLib
-from constants import ui_directory, template_dir, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/manufacturing/projects.ui"
 

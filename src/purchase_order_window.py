@@ -21,7 +21,8 @@ from datetime import datetime
 import subprocess, re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
-from constants import ui_directory, DB, broadcaster, help_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, help_dir
 
 items = list()
 

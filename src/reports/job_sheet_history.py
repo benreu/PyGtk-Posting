@@ -17,7 +17,8 @@
 
 
 from gi.repository import Gtk
-from constants import ui_directory, DB, is_admin
+from db_connection import DB
+from constants import ui_directory, is_admin
 
 UI_FILE = ui_directory + "/reports/job_sheet_history.ui"
 

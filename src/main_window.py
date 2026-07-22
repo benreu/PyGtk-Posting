@@ -18,8 +18,8 @@
 import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re, psycopg2, threading
-from constants import DB, ui_directory, db_name, dev_mode, modules_dir, \
-						help_dir, broadcaster, mobile
+from db_connection import DB, db_name, broadcaster, mobile
+from constants import ui_directory, dev_mode, modules_dir, help_dir
 from sqlite_utils import get_apsw_connection
 import admin_utils
 

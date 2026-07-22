@@ -22,7 +22,8 @@ from datetime import datetime
 from db import transactor
 from decimal import Decimal
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from accounts import expense_tree
 import admin_utils
 

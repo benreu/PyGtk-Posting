@@ -20,7 +20,8 @@ import os, sys, subprocess, time, re, psycopg2
 from datetime import datetime, timedelta
 from dateutils import calendar_to_text, \
 					calendar_to_datetime, set_calendar_from_datetime
-from constants import ui_directory, DB, template_dir
+from db_connection import DB
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/employee_time.ui"
 
