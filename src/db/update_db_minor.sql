@@ -543,3 +543,12 @@ UPDATE public.product_assembly_items SET remark = '' WHERE remark IS NULL;
 
 ALTER TABLE public.product_assembly_items ALTER COLUMN remark SET DEFAULT '';
 ALTER TABLE public.product_assembly_items ALTER COLUMN remark SET NOT NULL;
+--0.7.12
+DELETE FROM public.manufacturing_items WHERE deleted = True;
+
+DROP INDEX IF EXISTS manufacturing_items_project_default_product_uq;
+
+ALTER TABLE public.manufacturing_items DROP COLUMN IF EXISTS deleted;
+
+CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq
+	ON public.manufacturing_items (manufacturing_project_id, default_product_id);

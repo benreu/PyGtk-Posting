@@ -359,16 +359,15 @@ class ProjectEditGUI(Gtk.Builder):
 					"JOIN products AS p ON p.id = pai.assembly_product_id "
 					"WHERE pai.version_id = %(version_id)s "
 					"ON CONFLICT (manufacturing_project_id, default_product_id) "
-					"WHERE deleted = False DO UPDATE SET "
+					"DO UPDATE SET "
 					"qty = EXCLUDED.qty, remark = EXCLUDED.remark, "
 					"cost = EXCLUDED.cost, ext_cost = EXCLUDED.ext_cost, "
 					"from_bom = True",
 					params)
 		# never touch manually-added rows (from_bom = False) here -- only
-		# BOM-derived rows are added/updated/soft-deleted by this sync
-		c.execute("UPDATE manufacturing_items SET deleted = True "
+		# BOM-derived rows are added/updated/removed by this sync
+		c.execute("DELETE FROM manufacturing_items "
 					"WHERE manufacturing_project_id = %(project_id)s "
-					"AND deleted = False "
 					"AND from_bom = True "
 					"AND default_product_id NOT IN ("
 					"SELECT assembly_product_id FROM product_assembly_items "
@@ -380,8 +379,8 @@ class ProjectEditGUI(Gtk.Builder):
 		# used by "Reload from BOM": wipes the whole list (including manually
 		# added parts and substitutions) and rebuilds it fresh from the BOM
 		c = DB.cursor()
-		c.execute("UPDATE manufacturing_items SET deleted = True "
-					"WHERE manufacturing_project_id = %s AND deleted = False",
+		c.execute("DELETE FROM manufacturing_items "
+					"WHERE manufacturing_project_id = %s",
 					(project_id,))
 		c.close()
 		self.sync_manufacturing_items(project_id, version_id, project_qty)
@@ -405,7 +404,6 @@ class ProjectEditGUI(Gtk.Builder):
 					"ON (vpn.vendor_id, vpn.product_id) = "
 					"(mi.vendor_id, mi.product_id) AND vpn.deleted = False "
 					"WHERE mi.manufacturing_project_id = %s "
-					"AND mi.deleted = False "
 					"ORDER BY mi.id", (self.project_id,))
 		for row in c.fetchall():
 			needed, on_hand = row[1], row[5]
@@ -430,7 +428,7 @@ class ProjectEditGUI(Gtk.Builder):
 		if item_id == 0:
 			c.execute("SELECT id FROM manufacturing_items WHERE "
 						"manufacturing_project_id = %s AND "
-						"default_product_id = %s AND deleted = False",
+						"default_product_id = %s",
 						(self.project_id, product_id))
 			existing = c.fetchone()
 			if existing:
@@ -590,7 +588,7 @@ class ProjectEditGUI(Gtk.Builder):
 		for tree_iter in tree_iters:
 			item_id = model[tree_iter][0]
 			if item_id != 0:
-				c.execute("UPDATE manufacturing_items SET deleted = True "
+				c.execute("DELETE FROM manufacturing_items "
 							"WHERE id = %s", (item_id,))
 			model.remove(tree_iter)
 		DB.commit()
