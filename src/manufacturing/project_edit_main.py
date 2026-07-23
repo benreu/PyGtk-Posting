@@ -86,11 +86,13 @@ class ProjectEditGUI(Gtk.Builder):
 		if product_id != None:
 			c = DB.cursor()
 			self.product_id = product_id
+			self.get_object('version_combo').set_active(-1)
+			self.version_store.clear()
 			c = DB.cursor()
 			c.execute("SELECT id::text, version_name "
 						"FROM product_assembly_versions "
-						"WHERE product_id = %s AND active = True",
-						(self.product_id,))
+						"WHERE product_id = %s AND (active = True OR id = %s)",
+						(self.product_id, self.version_id))
 			for row in c.fetchall():
 				self.version_store.append(row)
 			c.close()
@@ -151,6 +153,7 @@ class ProjectEditGUI(Gtk.Builder):
 						"FROM manufacturing_projects WHERE id = %s",
 						(self.project_id, ))
 		for row in cursor.fetchall():
+			self.version_id = row[4]
 			self.get_object('product_combo').set_active_id(row[0])
 			self.get_object('units_spinbutton').set_value(row[1])
 			self.get_object('description_entry').set_text(row[2])
@@ -354,10 +357,7 @@ class ProjectEditGUI(Gtk.Builder):
 					"True "
 					"FROM product_assembly_items AS pai "
 					"JOIN products AS p ON p.id = pai.assembly_product_id "
-					"WHERE pai.manufactured_product_id = "
-					"(SELECT product_id FROM manufacturing_projects "
-					"WHERE id = %(project_id)s) "
-					"AND pai.version_id = %(version_id)s "
+					"WHERE pai.version_id = %(version_id)s "
 					"ON CONFLICT (manufacturing_project_id, default_product_id) "
 					"WHERE deleted = False DO UPDATE SET "
 					"qty = EXCLUDED.qty, remark = EXCLUDED.remark, "
@@ -372,10 +372,7 @@ class ProjectEditGUI(Gtk.Builder):
 					"AND from_bom = True "
 					"AND default_product_id NOT IN ("
 					"SELECT assembly_product_id FROM product_assembly_items "
-					"WHERE manufactured_product_id = "
-					"(SELECT product_id FROM manufacturing_projects "
-					"WHERE id = %(project_id)s) "
-					"AND version_id = %(version_id)s)",
+					"WHERE version_id = %(version_id)s)",
 					params)
 		c.close()
 
