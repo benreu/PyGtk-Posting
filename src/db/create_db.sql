@@ -643,7 +643,7 @@ CREATE TABLE public.product_assembly_items (
     manufactured_product_id integer REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     qty smallint NOT NULL,
     assembly_product_id integer REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
-    remark character varying,
+    remark character varying NOT NULL DEFAULT '',
     alternative_to_id integer
 );
 --CREATE TABLE public.product_location

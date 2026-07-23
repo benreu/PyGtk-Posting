@@ -538,3 +538,8 @@ BEGIN
 	END IF;
 END
 $$;
+--0.7.11
+UPDATE public.product_assembly_items SET remark = '' WHERE remark IS NULL;
+
+ALTER TABLE public.product_assembly_items ALTER COLUMN remark SET DEFAULT '';
+ALTER TABLE public.product_assembly_items ALTER COLUMN remark SET NOT NULL;

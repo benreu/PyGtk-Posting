@@ -99,8 +99,8 @@ class AssembledVersionsGUI (Gtk.Builder):
 						"WHERE id = %s)"
 					"WHERE id = %s; "
 					"INSERT INTO product_assembly_items "
-					"(qty, assembly_product_id, version_id)"
-					"SELECT qty, assembly_product_id, %s "
+					"(qty, assembly_product_id, remark, version_id)"
+					"SELECT qty, assembly_product_id, remark, %s "
 					"FROM product_assembly_items WHERE version_id = %s",
 					(old_version_id, new_version_id,
 					new_version_id, old_version_id))
