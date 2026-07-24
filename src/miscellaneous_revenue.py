@@ -54,6 +54,7 @@ class MiscellaneousRevenueGUI:
 
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
+		self.check_if_all_entries_valid ()
 
 	def focus_in_event (self, window, event):
 		return
@@ -100,40 +101,42 @@ class MiscellaneousRevenueGUI:
 		self.check_if_all_entries_valid ()
 
 	def check_if_all_entries_valid (self):
-		button = self.builder.get_object('button2')
-		button.set_sensitive(False)
+		label = self.builder.get_object('info_label')
+		label.set_visible(True)
+		self.builder.get_object('box_post_buttons').set_visible(False)
 		if self.contact_id == None:
-			button.set_label('No contact selected')
+			label.set_label('No contact selected')
 			return
 		if self.date == None:
-			button.set_label('No date selected')
+			label.set_label('No date selected')
 			return
 		total = Decimal('0.00')
 		model = self.builder.get_object('revenue_store')
 		for row in model:
 			total += Decimal(row[3])
 			if row[0] == 0:
-				button.set_label('No account selected')
+				label.set_label('No account selected')
 				return # no account selected
 			if Decimal(row[3]) == Decimal('0.00'):
-				button.set_label('Row amount is 0.00')
+				label.set_label('Row amount is 0.00')
 				return # row amount is 0.00
 		if total == Decimal('0.00'):
-			button.set_label('No revenue rows added')
+			label.set_label('No revenue rows added')
 			return # row amount is 0.00
 		if self.payment_method.check_number_missing():
-			button.set_label('No check number')
+			label.set_label('No check number')
 			return # no check number
 		if self.payment_method.credit_card_account_missing():
-			button.set_label('No deposit account selected')
+			label.set_label('No deposit account selected')
 			return # no credit card deposit account selected
 		value = self.builder.get_object('spinbutton1').get_text()
 		if Decimal(value) != total:
-			button.set_label('Amount does not match total')
+			label.set_label('Amount does not match total')
 			return
-		button.set_sensitive(True)
-		button.set_label('Post Revenue')
-	
+		label.set_visible(False)
+		self.builder.get_object('box_post_buttons').set_visible(True)
+		self.builder.get_object('box_post_buttons').set_sensitive(True)
+
 	def amount_spinbutton_changed (self, spinbutton):
 		self.check_if_all_entries_valid ()
 
@@ -160,6 +163,16 @@ class MiscellaneousRevenueGUI:
 		self.check_if_all_entries_valid()
 
 	def post_revenue_clicked (self, button):
+		self.builder.get_object('box_post_buttons').set_sensitive(False)
+		self._post_revenue()
+		self.window.destroy()
+
+	def post_and_clear_clicked (self, button):
+		self.builder.get_object('box_post_buttons').set_sensitive(False)
+		self._post_revenue()
+		self.clear_widgets()
+
+	def _post_revenue (self):
 		comments = self.builder.get_object('entry5').get_text()
 		total = self.builder.get_object('spinbutton1').get_text()
 		payment_text = self.payment_method.get_payment_text()
@@ -206,7 +219,17 @@ class MiscellaneousRevenueGUI:
 			transaction.post_credit_entry(revenue_account, amount)
 		DB.commit()
 		cursor.close()
-		self.window.destroy()
+
+	def clear_widgets (self):
+		self.builder.get_object('combobox1').get_child().set_text('')
+		self.contact_id = None
+		self.builder.get_object('entry4').set_text('')
+		self.date = None
+		self.builder.get_object('spinbutton1').set_value(0)
+		self.builder.get_object('revenue_store').clear()
+		self.builder.get_object('entry5').set_text('')
+		self.payment_method.reset()
+		self.check_if_all_entries_valid()
 
 	def date_entry_icon_release (self, entry, icon, event):
 		self.calendar.set_relative_to(entry)

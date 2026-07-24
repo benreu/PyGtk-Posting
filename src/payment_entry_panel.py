@@ -51,6 +51,7 @@ class PaymentMethodEntry (GObject.GObject):
 		credit_radio = Gtk.RadioButton.new_from_widget(check_radio)
 		cash_radio = Gtk.RadioButton.new_from_widget(check_radio)
 		check_radio.set_active(True)
+		self.check_radio = check_radio
 		check_radio.connect('toggled', self._check_toggled)
 		credit_radio.connect('toggled', self._credit_toggled)
 		cash_radio.connect('toggled', self._cash_toggled)
@@ -112,6 +113,12 @@ class PaymentMethodEntry (GObject.GObject):
 
 	def _credit_account_changed (self, combo):
 		self.emit('changed')
+
+	def reset (self):
+		self.check_entry.set_text('')
+		self.cash_entry.set_text('')
+		self.credit_account_combo.set_active_id(None)
+		self.check_radio.set_active(True)
 
 	def get_payment_text (self):
 		if self.payment_type_id == 0:
