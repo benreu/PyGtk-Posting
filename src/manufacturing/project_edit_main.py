@@ -344,20 +344,26 @@ class ProjectEditGUI(Gtk.Builder):
 		c = DB.cursor()
 		params = {'project_id': project_id, 'project_qty': project_qty,
 					'version_id': version_id}
+		# The BOM (product_assembly_items) has no constraint preventing the
+		# same part from being listed on more than one line within a version,
+		# so duplicates are aggregated here -- manufacturing_items can only
+		# ever hold one row per part per project (see the unique index on
+		# (manufacturing_project_id, default_product_id)).
 		c.execute("INSERT INTO manufacturing_items "
 					"(manufacturing_project_id, qty, product_id, "
 					"default_product_id, remark, cost, ext_cost, from_bom) "
 					"SELECT %(project_id)s, "
-					"CEIL(pai.qty * %(project_qty)s)::smallint, "
+					"CEIL(SUM(pai.qty) * %(project_qty)s)::smallint, "
 					"pai.assembly_product_id, "
 					"pai.assembly_product_id, "
-					"pai.remark, "
+					"COALESCE(string_agg(DISTINCT NULLIF(pai.remark, ''), '; '), ''), "
 					"p.cost, "
-					"p.cost * CEIL(pai.qty * %(project_qty)s), "
+					"p.cost * CEIL(SUM(pai.qty) * %(project_qty)s), "
 					"True "
 					"FROM product_assembly_items AS pai "
 					"JOIN products AS p ON p.id = pai.assembly_product_id "
 					"WHERE pai.version_id = %(version_id)s "
+					"GROUP BY pai.assembly_product_id, p.cost "
 					"ON CONFLICT (manufacturing_project_id, default_product_id) "
 					"DO UPDATE SET "
 					"qty = EXCLUDED.qty, remark = EXCLUDED.remark, "
