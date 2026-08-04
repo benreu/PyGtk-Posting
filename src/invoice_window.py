@@ -16,7 +16,7 @@
 
 
 from gi.repository import Gtk, Gdk, GLib
-import os, subprocess, psycopg2, re
+import subprocess, psycopg2, re
 from datetime import datetime
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
@@ -542,16 +542,8 @@ class InvoiceGUI:
 												comment, 
 												self.datetime, 
 												self.invoice_id,
-												self, 
+												self,
 												self.document_type)
-		else:
-			if os.path.exists(self.invoice.lock_file):
-				dialog = self.builder.get_object('dialog1')
-				response = dialog.run()
-				dialog.hide()
-				if response != Gtk.ResponseType.ACCEPT:
-					return
-			self.invoice.save()
 		if self.builder.get_object('menuitem1').get_active() == True:
 			self.invoice.print_directly(self.window)
 		else:
