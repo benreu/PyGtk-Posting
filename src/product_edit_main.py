@@ -17,13 +17,8 @@
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess
-from constants import 	broadcaster, \
-						DB, \
-						ui_directory, \
-						is_admin, \
-						help_dir, \
-						template_dir, \
-						PRODUCT_LOCK_CLASSID
+from db_connection import broadcaster, DB
+from constants import ui_directory, is_admin, help_dir, template_dir, PRODUCT_LOCK_CLASSID
 from accounts import 	product_revenue_tree, \
 						product_expense_tree, \
 						product_inventory_tree, \

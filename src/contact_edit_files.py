@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk
 import subprocess
-from constants import ui_directory, DB, CONTACT_FILES_LOCK_CLASSID
+from db_connection import DB
+from constants import ui_directory, CONTACT_FILES_LOCK_CLASSID
 
 UI_FILE = ui_directory + "/contact_edit_files.ui"
 

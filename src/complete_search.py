@@ -18,7 +18,8 @@
 import psycopg2
 from gi.repository import Gtk, GLib
 import threading
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/complete_search.ui"
 

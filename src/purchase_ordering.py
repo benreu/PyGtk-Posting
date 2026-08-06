@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 import subprocess, re
 import printing
-from constants import DB, template_dir
+from db_connection import DB
+from constants import template_dir
 
 
 items = list()

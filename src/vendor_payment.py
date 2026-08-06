@@ -21,7 +21,8 @@ import subprocess, printing
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db.transactor import VendorPayment, post_purchase_order_accounts
-from constants import ui_directory, DB, template_dir
+from db_connection import DB
+from constants import ui_directory, template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

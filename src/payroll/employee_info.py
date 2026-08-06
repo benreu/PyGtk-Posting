@@ -21,7 +21,8 @@ from datetime import datetime
 from multiprocessing import Queue, Process
 from queue import Empty
 import sane, psycopg2, subprocess
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/payroll/employee_info.ui"
 

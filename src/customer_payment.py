@@ -19,10 +19,12 @@ from gi.repository import Gtk, GLib
 from decimal import Decimal
 from datetime import date, timedelta
 import subprocess
-from dateutils import DateTimeCalendar, date_to_text
+from dateutils import DateTimeCalendar
 from db import transactor
-from constants import DB, ui_directory, help_dir
+from db_connection import DB
+from constants import ui_directory, help_dir
 from accounts import expense_tree
+from payment_entry_panel import PaymentMethodEntry
 
 UI_FILE = ui_directory + "/customer_payment.ui"
 
@@ -30,7 +32,6 @@ class GUI:
 	def __init__(self, customer_id = None):
 
 		self.customer_id = customer_id
-		self.payment_type_id = 0
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -56,23 +57,16 @@ class GUI:
 		cursor.close()
 		self.populate_contacts ()
 
-		total_column = self.builder.get_object ('treeviewcolumn3')
-		total_renderer = self.builder.get_object ('cellrenderertext5')
-		total_column.set_cell_data_func(total_renderer, self.total_cell_func)
-
-		amount_due_column = self.builder.get_object ('treeviewcolumn4')
-		amount_due_renderer = self.builder.get_object ('cellrendererspin7')
-		amount_due_column.set_cell_data_func(amount_due_renderer, self.amount_due_cell_func)
+		self.payment_method = PaymentMethodEntry()
+		self.payment_method.connect('changed', self.payment_method_changed)
+		self.builder.get_object('check_credit_cash_placeholder').pack_start(self.payment_method.box, True, True, 0)
 
 		self.calendar = DateTimeCalendar()
 		self.calendar.connect('day-selected', self.calendar_day_selected)
 		self.calendar.set_today ()
 		self.date = self.calendar.get_date()
 		self.builder.get_object ('combobox1').set_active_id(str(customer_id))
-		
-		self.check_entry = self.builder.get_object('entry3')
-		self.credit_entry = self.builder.get_object('entry4')
-		self.cash_entry = self.builder.get_object('entry5')
+
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 
@@ -83,14 +77,6 @@ class GUI:
 
 	def help_button_clicked (self, button):
 		subprocess.Popen (["yelp", help_dir + "/customer_payment.page"])
-
-	def total_cell_func(self, column, cellrenderer, model, iter1, data):
-		amount = model.get_value(iter1, 4)
-		cellrenderer.set_property("text" , str(amount))
-
-	def amount_due_cell_func(self, column, cellrenderer, model, iter1, data):
-		amount = model.get_value(iter1, 5)
-		cellrenderer.set_property("text" , str(amount))
 
 	def populate_contacts (self):
 		cursor = DB.cursor()
@@ -158,7 +144,8 @@ class GUI:
 				date_created = row[2]
 				date_difference = self.date - date_created
 				discount_due_date = date_created + timedelta(pay_in_days)
-				due_date_text = date_to_text (discount_due_date)
+				cursor.execute("SELECT format_date(%s)", (discount_due_date,))
+				due_date_text = cursor.fetchone()[0]
 				self.builder.get_object('label9').set_label(due_date_text)
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))
@@ -168,7 +155,8 @@ class GUI:
 				total = float(row[1])
 				date_created = row[2]
 				discount_date = date_created.replace(day=pay_by_day_of_month)
-				due_date_text = date_to_text (discount_date)
+				cursor.execute("SELECT format_date(%s)", (discount_date,))
+				due_date_text = cursor.fetchone()[0]
 				self.builder.get_object('label9').set_label(due_date_text)
 				discounted_amount = self.calculate_discount (discount, total)
 				self.builder.get_object('label4').set_label(str(discounted_amount))
@@ -226,7 +214,12 @@ class GUI:
 							"AND customer_id = %s ORDER BY i.date_created",
 							(self.customer_id,))
 		for row in cursor.fetchall():
-			self.invoice_store.append(row)
+			total_formatted = '{:,.2f}'.format(row[4])
+			amount_due_formatted = '{:,.2f}'.format(row[5])
+			self.invoice_store.append((row[0], row[1], row[2], row[3],
+										row[4], total_formatted,
+										row[5], amount_due_formatted,
+										row[6]))
 		cursor.close()
 		self.builder.get_object('amount_spinbutton').set_value(0)
 
@@ -234,11 +227,11 @@ class GUI:
 		total = Decimal()
 		model, path = selection.get_selected_rows ()
 		for row in path:
-			total += model[row][5]
+			total += model[row][6]
 		if len(path) == 1:
-			amount_due = model[path][5]
+			amount_due = model[path][6]
 			self.builder.get_object('amount_spinbutton').set_value(amount_due)
-			if not model[path][6]:
+			if not model[path][8]:
 				invoice_id = model[path][0]
 				self.calculate_invoice_discount (invoice_id)
 			else:
@@ -259,7 +252,7 @@ class GUI:
 			menu.popup_at_pointer()
 
 	def amount_due_edited (self, renderer, path, amount):
-		if self.invoice_store[path][6]:
+		if self.invoice_store[path][8]:
 			return
 		invoice_id = self.invoice_store[path][0]
 		if amount == '' or Decimal(amount) > self.invoice_store[path][4]:
@@ -270,25 +263,26 @@ class GUI:
 		cursor.close()
 		DB.commit()
 		self.builder.get_object('amount_spinbutton').set_value(float(amount))
-		self.invoice_store[path][5] = Decimal(amount).quantize(Decimal('.01'))
+		self.invoice_store[path][6] = Decimal(amount).quantize(Decimal('.01'))
+		self.invoice_store[path][7] = '{:,.2f}'.format(self.invoice_store[path][6])
 
 	def amount_due_editing_started (self, renderer, spinbutton, path):
-		if self.invoice_store[path][6]:
-			upper_limit = self.invoice_store[path][5]
+		if self.invoice_store[path][8]:
+			upper_limit = self.invoice_store[path][6]
 		else:
 			upper_limit = self.invoice_store[path][4]
 		spinbutton.set_numeric(True)
 		self.builder.get_object('amount_due_adjustment').set_upper(upper_limit)
-		spinbutton.set_value(self.invoice_store[path][5])
+		spinbutton.set_value(self.invoice_store[path][6])
 
 	def apply_discount_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
 		if path == []:
 			return
-		if model[path][6]:
+		if model[path][8]:
 			return
-		amount = model[path][5]
+		amount = model[path][6]
 		self.builder.get_object('spinbutton3').set_value(amount)
 		dialog = self.builder.get_object('invoice_discount_dialog')
 		result = dialog.run()
@@ -302,27 +296,12 @@ class GUI:
 			cursor.close()
 			DB.commit()
 			self.builder.get_object('amount_spinbutton').set_value(discounted_amount)
-			model[path][5] = Decimal(discounted_amount).quantize(Decimal('.01'))
+			model[path][6] = Decimal(discounted_amount).quantize(Decimal('.01'))
+			model[path][7] = '{:,.2f}'.format(model[path][6])
 			#self.populate_invoices ()
 
-	def check_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(True)
-		self.credit_entry.set_sensitive(False)
-		self.cash_entry.set_sensitive(False)
-		self.payment_type_id = 0
-		self.check_amount_totals_validity()
-
-	def credit_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(False)
-		self.credit_entry.set_sensitive(True)
-		self.cash_entry.set_sensitive(False)
-		self.payment_type_id = 1
-
-	def cash_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(False)
-		self.credit_entry.set_sensitive(False)
-		self.cash_entry.set_sensitive(True)
-		self.payment_type_id = 2
+	def payment_method_changed (self, payment_method):
+		self.check_amount_totals_validity ()
 
 	def post_payment_clicked (self, widget):
 		total = self.builder.get_object('amount_spinbutton').get_text()
@@ -334,10 +313,10 @@ class GUI:
 			if response != Gtk.ResponseType.OK:
 				return
 		comments = 	self.builder.get_object('entry2').get_text()
+		payment_text = self.payment_method.get_payment_text()
 		self.payment = transactor.CustomerInvoicePayment(self.date, total)
 		cursor = DB.cursor()
-		if self.payment_type_id == 0:
-			payment_text = self.check_entry.get_text()
+		if self.payment_method.payment_type_id == 0:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
@@ -350,8 +329,7 @@ class GUI:
 								comments))
 			self.payment_id = cursor.fetchone()[0]
 			self.payment.bank_check (self.payment_id)
-		elif self.payment_type_id == 1:
-			payment_text = self.credit_entry.get_text()
+		elif self.payment_method.payment_type_id == 1:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
@@ -362,9 +340,9 @@ class GUI:
 								payment_text, False, self.customer_id,
 								total, self.date, comments))
 			self.payment_id = cursor.fetchone()[0]
-			self.payment.credit_card (self.payment_id)
-		elif self.payment_type_id == 2:
-			payment_text = self.cash_entry.get_text()
+			account_number = self.payment_method.get_credit_card_account_number()
+			self.payment.credit_card (self.payment_id, account_number)
+		elif self.payment_method.payment_type_id == 2:
 			cursor.execute("INSERT INTO payments_incoming "
 								"(check_payment, cash_payment, "
 								"credit_card_payment, payment_text , "
@@ -439,9 +417,9 @@ class GUI:
 		model, paths = selection.get_selected_rows()
 		discount = Decimal('0.00')
 		for row in paths:
-			is_fc = model[row][6]
+			is_fc = model[row][8]
 			invoice_id = model[row][0]
-			amount = model[row][5]
+			amount = model[row][6]
 			if not is_fc and self.accrual == False:
 				transactor.post_invoice_accounts (self.date, invoice_id, amount)
 			c.execute("UPDATE invoices "
@@ -541,9 +519,6 @@ class GUI:
 		elif amount > 0.00:
 			combobox.set_model(self.cash_account_store)
 
-	def check_number_changed (self, entry):
-		self.check_amount_totals_validity ()
-
 	def check_amount_totals_validity (self):
 		button = self.builder.get_object('button1')
 		button.set_sensitive (False)
@@ -553,11 +528,12 @@ class GUI:
 		if self.customer_id == None:
 			button.set_label("No contact selected")
 			return
-		check_text = self.builder.get_object('entry3').get_text()
-		check_active = self.builder.get_object('check_radiobutton').get_active()
-		if check_active == True and check_text == '':
+		if self.payment_method.check_number_missing():
 			button.set_label('No check number')
 			return # no check number
+		if self.payment_method.credit_card_account_missing():
+			button.set_label('No deposit account selected')
+			return # no credit card deposit account selected
 		if self.exact_payment:
 			self.check_amount_totals_absolute ()
 		else:
@@ -573,7 +549,7 @@ class GUI:
 		model, path = selection.get_selected_rows()
 		invoice_amount_due_totals = Decimal()
 		for row in path:
-			invoice_amount_due_totals += model[row][5]
+			invoice_amount_due_totals += model[row][6]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
 		if float(invoice_amount_due_totals) == payment :
 			label.set_visible (False) #hide the off balance alert
@@ -591,7 +567,7 @@ class GUI:
 			return
 		invoice_amount_due_totals = Decimal()
 		for row in path:
-			invoice_amount_due_totals += model[row][5]
+			invoice_amount_due_totals += model[row][6]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
 		if float(invoice_amount_due_totals) != payment :
 			button.set_label ("Totals do not match")

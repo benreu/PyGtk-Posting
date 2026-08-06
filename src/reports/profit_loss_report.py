@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk
 import os
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 from decimal import Decimal
 
 UI_FILE = ui_directory + "/reports/profit_loss_report.ui"

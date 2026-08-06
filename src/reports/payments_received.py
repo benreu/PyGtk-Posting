@@ -19,7 +19,8 @@
 from gi.repository import Gtk
 import dateutils, psycopg2
 from decimal import Decimal
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/payments_received.ui"

@@ -20,7 +20,8 @@ gi.require_version('EvinceView', '3.0')
 from gi.repository import EvinceView, EvinceDocument
 from gi.repository import Gtk
 import subprocess, tempfile
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/invoice_hub.ui"
 

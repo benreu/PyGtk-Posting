@@ -17,7 +17,8 @@
 
 
 from gi.repository import Gtk
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/accounts_overview.ui"
 

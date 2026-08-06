@@ -19,7 +19,8 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject, Pango
 from datetime import datetime
 import time, ssl
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/reports/time_clock_history.ui"
 

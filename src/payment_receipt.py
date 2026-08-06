@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 import subprocess, psycopg2
 import printing
-from constants import ui_directory, DB, template_dir
+from db_connection import DB
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/payment_receipt.ui"
 

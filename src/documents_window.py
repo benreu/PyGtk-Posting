@@ -22,7 +22,8 @@ import subprocess, re, psycopg2
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
-from constants import ui_directory, DB, broadcaster, help_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, help_dir
 
 UI_FILE = ui_directory + "/documents_window.ui"
 

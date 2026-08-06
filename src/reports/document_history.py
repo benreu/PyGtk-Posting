@@ -19,7 +19,8 @@
 from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
-from constants import ui_directory, DB, broadcaster, is_admin
+from db_connection import DB, broadcaster
+from constants import ui_directory, is_admin
 
 UI_FILE = ui_directory + "/reports/document_history.ui"
 

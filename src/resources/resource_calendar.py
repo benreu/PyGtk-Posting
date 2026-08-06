@@ -19,7 +19,8 @@ from datetime import datetime
 from dateutils import calendar_to_datetime, \
 						set_calendar_from_datetime, \
 						calendar_to_text
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 from sqlite_utils import get_apsw_connection
 try:
 	import holidays

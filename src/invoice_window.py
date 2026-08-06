@@ -16,13 +16,14 @@
 
 
 from gi.repository import Gtk, Gdk, GLib
-import os, subprocess, psycopg2, re
+import subprocess, psycopg2, re
 from datetime import datetime
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
-from constants import ui_directory, DB, broadcaster, help_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, help_dir
 
 UI_FILE = ui_directory + "/invoice_window.ui"
 
@@ -541,16 +542,8 @@ class InvoiceGUI:
 												comment, 
 												self.datetime, 
 												self.invoice_id,
-												self, 
+												self,
 												self.document_type)
-		else:
-			if os.path.exists(self.invoice.lock_file):
-				dialog = self.builder.get_object('dialog1')
-				response = dialog.run()
-				dialog.hide()
-				if response != Gtk.ResponseType.ACCEPT:
-					return
-			self.invoice.save()
 		if self.builder.get_object('menuitem1').get_active() == True:
 			self.invoice.print_directly(self.window)
 		else:
@@ -689,11 +682,12 @@ class InvoiceGUI:
 
 	def customer_selected(self, name_id):
 		cursor = DB.cursor()
-		cursor.execute("SELECT address, phone, city, state, zip "
+		cursor.execute("SELECT address, phone, city, state, zip, email "
 							"FROM contacts WHERE id = (%s)",(name_id,))
 		for row in cursor.fetchall() :
-			address, phone, city, state, zip_code = row
+			address, phone, city, state, zip_code, email = row
 			self.builder.get_object('entry8').set_text(phone)
+			self.builder.get_object('entry_email').set_text(email or '')
 			formatted_address = "{}\n{}, {} {}".format(
 				address, city, state, zip_code)
 			self.builder.get_object('address_box').get_buffer().set_text(
@@ -742,6 +736,12 @@ class InvoiceGUI:
 			self.calendar.set_today()
 		cursor.close()
 		DB.rollback()
+
+	def email_button_clicked (self, button):
+		email = self.builder.get_object('entry_email').get_text()
+		if email == "":
+			return
+		subprocess.Popen(["thunderbird", "-compose", "to=" + email])
 
 	################## start qty
 
@@ -1243,9 +1243,29 @@ class InvoiceGUI:
 		self.calendar.show()
 
 	def show_reload_infobar (self, broadcaster, invoice_id, is_remote):
-		if invoice_id == self.invoice_id and is_remote:
-			infobar = self.builder.get_object('invoice_changed_infobar')
-			infobar.set_revealed(True)
+		if invoice_id != self.invoice_id or not is_remote:
+			return
+		cursor = DB.cursor()
+		cursor.execute("SELECT posted FROM invoices WHERE id = %s", (self.invoice_id,))
+		posted = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		if posted:
+			self.invoice_posted_elsewhere()
+			return
+		infobar = self.builder.get_object('invoice_changed_infobar')
+		infobar.set_revealed(True)
+
+	def invoice_posted_elsewhere (self):
+		self.builder.get_object('button2').set_sensitive(False)
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.WARNING,
+										buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup("This invoice has already been posted elsewhere.\n"
+							"This window will now close.")
+		dialog.run()
+		dialog.destroy()
+		self.window.destroy()
 
 	def info_bar_close (self, infobar):
 		infobar.set_revealed(False)

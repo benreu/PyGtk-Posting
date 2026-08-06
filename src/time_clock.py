@@ -17,7 +17,8 @@
 
 from gi.repository import Gtk, GLib
 from datetime import datetime
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/time_clock.ui"
 

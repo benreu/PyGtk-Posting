@@ -20,7 +20,8 @@ from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
 import subprocess
 from invoice_window import create_new_invoice 
-from constants import ui_directory, DB, broadcaster, template_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, template_dir
 import printing
 
 UI_FILE = ui_directory + "/job_sheet.ui"

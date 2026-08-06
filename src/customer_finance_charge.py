@@ -18,7 +18,8 @@
 from gi.repository import Gtk
 import subprocess, re
 import printing
-from constants import ui_directory, DB, help_dir, template_dir
+from db_connection import DB
+from constants import ui_directory, help_dir, template_dir
 
 UI_FILE = ui_directory + "/customer_finance_charge.ui"
 

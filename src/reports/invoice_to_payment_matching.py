@@ -17,7 +17,8 @@
 import gi
 gi.require_version('GooCanvas', '2.0')
 from gi.repository import Gtk, Gdk, GooCanvas
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/reports/invoice_to_payment_matching.ui"
 

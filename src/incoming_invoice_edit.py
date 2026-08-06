@@ -21,7 +21,8 @@ from decimal import Decimal, ROUND_HALF_UP
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
-from constants import ui_directory, DB, broadcaster, template_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, template_dir
 from accounts import expense_list, expense_tree
 import subprocess, printing
 

@@ -19,7 +19,8 @@ from gi.repository import Gtk, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
 import customer_payment, statementing
-from constants import ui_directory, DB, help_dir
+from db_connection import DB
+from constants import ui_directory, help_dir
 from dateutils import DateTimeCalendar
 
 UI_FILE = ui_directory + "/customer_statement.ui"

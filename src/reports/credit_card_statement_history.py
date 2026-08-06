@@ -20,7 +20,8 @@ from gi.repository import Gtk, GLib
 from queue import Queue
 from threading import Thread
 import time
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/credit_card_statement_history.ui"

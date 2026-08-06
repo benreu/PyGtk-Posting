@@ -18,7 +18,8 @@
 
 from gi.repository import Gtk, GLib
 from decimal import Decimal
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from accounts import all_accounts_tree
 
 UI_FILE = ui_directory + "/admin/edit_gl_entry.ui"

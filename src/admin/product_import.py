@@ -19,7 +19,8 @@ from gi.repository import Gtk
 import xlrd
 from xlrd.biffh import XLRDError
 from psycopg2 import IntegrityError
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/admin/product_import.ui"
 

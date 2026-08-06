@@ -19,7 +19,8 @@ from gi.repository import Gtk, Gdk, GLib, GObject
 from check_writing import get_written_check_amount_text, get_check_number
 from dateutils import DateTimeCalendar
 from db import transactor 
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/loan_payment.ui"
 

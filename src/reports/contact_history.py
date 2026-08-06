@@ -20,7 +20,8 @@ from gi.repository import Gtk, GObject, Gdk, GLib
 from decimal import Decimal
 import subprocess
 import dateutils
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/reports/contact_history.ui"
 

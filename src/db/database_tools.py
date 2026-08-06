@@ -21,7 +21,8 @@ from gi.repository import Gtk, GLib, Vte
 import subprocess, psycopg2, re, os
 from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from constants import DB, ui_directory, sql_dir
+from db_connection import DB
+from constants import ui_directory, sql_dir
 from constants import log_file as LOG_FILE
 from sqlite_utils import get_apsw_connection
 

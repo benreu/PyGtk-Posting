@@ -19,7 +19,8 @@
 from gi.repository import Gtk, GLib
 import subprocess, psycopg2
 from decimal import Decimal
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from accounts import expense_tree
 import admin_utils
 

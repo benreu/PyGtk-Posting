@@ -19,15 +19,15 @@
 from gi.repository import Gtk, GdkPixbuf, Gdk, GLib, GObject, Pango
 from datetime import datetime
 import time, calendar, subprocess
-from dateutils import datetime_to_text, DateTimeCalendar, datetime_to_user_date,\
-						datetime_to_time_card_format
+from dateutils import DateTimeCalendar, datetime_to_time_card_format
 from check_writing import get_check_number, get_written_check_amount_text
 #from db.transactor import vendor_check_payment, vendor_credit_card_payment,\
 #							vendor_debit_payment, post_expense_account
 #from posting_functions import get_gcalccmd_result
 from decimal import Decimal							
 import printing
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = "src/payroll/pay_stub.ui"
 
@@ -179,7 +179,8 @@ class PayStubGUI:
 
 			item = Item()
 			item.hrs_today = row[1]
-			item.roll_call_date = datetime_to_user_date(row[0])
+			cursor.execute("SELECT format_date(%s::date)", (row[0],))
+			item.roll_call_date = cursor.fetchone()[0]
 			item.time_out = row[5]
 			item.start_time = datetime_to_time_card_format (row[2])
 			item.ending_time = datetime_to_time_card_format (row[3])
@@ -200,7 +201,8 @@ class PayStubGUI:
 			company.fax = row6[8]
 			company.website = row6[10]
 			company.tax_number = row6[11]
-		pp_info.ppd_end = datetime_to_user_date(self.pay_ending_date)
+		cursor.execute("SELECT format_date(%s::date)", (self.pay_ending_date,))
+		pp_info.ppd_end = cursor.fetchone()[0]
 		pp_info.temporary_copy = 'Temporary Copy'
 		
 		deductions = list()
@@ -227,7 +229,8 @@ class PayStubGUI:
 		" IS NULL ",(self.employee_id,))
 		for line in cursor.fetchall():
 			cash_advance_item = Item()
-			cash_advance_item.date = str(datetime_to_user_date(line[0]))
+			cursor.execute("SELECT format_date(%s::date)", (line[0],))
+			cash_advance_item.date = cursor.fetchone()[0]
 			cash_advance_item.amount = line[1]
 			cash_advance.append (cash_advance_item)
 

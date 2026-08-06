@@ -18,7 +18,8 @@
 
 from gi.repository import Gtk, GLib
 import psycopg2, csv
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/purchase_order_import.ui"
 

@@ -21,7 +21,8 @@ from dateutils import DateTimeCalendar
 import psycopg2
 import subprocess, glob, os
 import barcode_generator
-from constants import ui_directory, DB, broadcaster, template_dir
+from db_connection import DB, broadcaster
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
 

@@ -19,7 +19,8 @@ from gi.repository import Gtk
 import re, subprocess
 from db import transactor
 import printing
-from constants import DB, template_dir
+from db_connection import DB
+from constants import template_dir
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

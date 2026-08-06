@@ -18,7 +18,8 @@
 
 from gi.repository import Gtk, GdkPixbuf, Gdk
 import subprocess
-from constants import ui_directory, DB
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/reports/customer_statements.ui"
 

@@ -20,7 +20,8 @@ from time import strftime
 from decimal import Decimal
 from datetime import datetime, timedelta
 import printing
-from constants import DB, template_dir
+from db_connection import DB
+from constants import template_dir
 
 items = list()
 class Item(object):#this is used by py3o library see their example for more info

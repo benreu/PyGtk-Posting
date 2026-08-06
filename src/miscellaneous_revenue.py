@@ -19,8 +19,10 @@ from gi.repository import Gtk, GLib
 from decimal import Decimal
 from db.transactor import MiscRevenueTransaction
 from dateutils import DateTimeCalendar
-from constants import ui_directory, DB, broadcaster
+from db_connection import DB, broadcaster
+from constants import ui_directory
 from accounts import revenue_account, revenue_list
+from payment_entry_panel import PaymentMethodEntry
 
 UI_FILE = ui_directory + "//miscellaneous_revenue.ui"
 
@@ -45,13 +47,14 @@ class MiscellaneousRevenueGUI:
 		self.calendar.connect('day-selected', self.day_selected)
 		self.date = None
 		self.populate_contacts ()
+
+		self.payment_method = PaymentMethodEntry()
+		self.payment_method.connect('changed', self.payment_method_changed)
+		self.builder.get_object('check_credit_cash_placeholder').pack_start(self.payment_method.box, True, True, 0)
+
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
-
-		self.check_entry = self.builder.get_object('entry1')
-		self.credit_entry = self.builder.get_object('entry2')
-		self.cash_entry = self.builder.get_object('entry3')
-		self.payment_type_id = 0
+		self.check_if_all_entries_valid ()
 
 	def focus_in_event (self, window, event):
 		return
@@ -94,62 +97,46 @@ class MiscellaneousRevenueGUI:
 		cursor.close()
 		DB.rollback()
 
-	def check_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(True)
-		self.credit_entry.set_sensitive(False)
-		self.cash_entry.set_sensitive(False)
-		self.payment_type_id = 0
-		self.check_if_all_entries_valid()
-
-	def credit_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(False)
-		self.credit_entry.set_sensitive(True)
-		self.cash_entry.set_sensitive(False)
-		self.payment_type_id = 1
-
-	def cash_btn_toggled(self, widget):
-		self.check_entry.set_sensitive(False)
-		self.credit_entry.set_sensitive(False)
-		self.cash_entry.set_sensitive(True)
-		self.payment_type_id = 2
-
-	def check_number_changed (self, entry):
+	def payment_method_changed (self, payment_method):
 		self.check_if_all_entries_valid ()
 
 	def check_if_all_entries_valid (self):
-		button = self.builder.get_object('button2')
-		button.set_sensitive(False)
+		label = self.builder.get_object('info_label')
+		label.set_visible(True)
+		self.builder.get_object('box_post_buttons').set_visible(False)
 		if self.contact_id == None:
-			button.set_label('No contact selected')
+			label.set_label('No contact selected')
 			return
 		if self.date == None:
-			button.set_label('No date selected')
+			label.set_label('No date selected')
 			return
 		total = Decimal('0.00')
 		model = self.builder.get_object('revenue_store')
 		for row in model:
 			total += Decimal(row[3])
 			if row[0] == 0:
-				button.set_label('No account selected')
+				label.set_label('No account selected')
 				return # no account selected
 			if Decimal(row[3]) == Decimal('0.00'):
-				button.set_label('Row amount is 0.00')
+				label.set_label('Row amount is 0.00')
 				return # row amount is 0.00
 		if total == Decimal('0.00'):
-			button.set_label('No revenue rows added')
+			label.set_label('No revenue rows added')
 			return # row amount is 0.00
-		check_text = self.builder.get_object('entry1').get_text()
-		check_active = self.builder.get_object('radiobutton1').get_active()
-		if check_active == True and check_text == '':
-			button.set_label('No check number')
+		if self.payment_method.check_number_missing():
+			label.set_label('No check number')
 			return # no check number
+		if self.payment_method.credit_card_account_missing():
+			label.set_label('No deposit account selected')
+			return # no credit card deposit account selected
 		value = self.builder.get_object('spinbutton1').get_text()
 		if Decimal(value) != total:
-			button.set_label('Amount does not match total')
+			label.set_label('Amount does not match total')
 			return
-		button.set_sensitive(True)
-		button.set_label('Post Revenue')
-	
+		label.set_visible(False)
+		self.builder.get_object('box_post_buttons').set_visible(True)
+		self.builder.get_object('box_post_buttons').set_sensitive(True)
+
 	def amount_spinbutton_changed (self, spinbutton):
 		self.check_if_all_entries_valid ()
 
@@ -176,43 +163,52 @@ class MiscellaneousRevenueGUI:
 		self.check_if_all_entries_valid()
 
 	def post_revenue_clicked (self, button):
+		self.builder.get_object('box_post_buttons').set_sensitive(False)
+		self._post_revenue()
+		self.window.destroy()
+
+	def post_and_clear_clicked (self, button):
+		self.builder.get_object('box_post_buttons').set_sensitive(False)
+		self._post_revenue()
+		self.clear_widgets()
+
+	def _post_revenue (self):
 		comments = self.builder.get_object('entry5').get_text()
 		total = self.builder.get_object('spinbutton1').get_text()
+		payment_text = self.payment_method.get_payment_text()
 		cursor = DB.cursor()
 		transaction = MiscRevenueTransaction(self.date)
-		if self.payment_type_id == 0:
-			payment_text = self.check_entry.get_text()
+		if self.payment_method.payment_type_id == 0:
 			cursor.execute("INSERT INTO payments_incoming "
 							"(check_payment, payment_text, "
 							"customer_id, amount, "
 							"date_inserted, comments, misc_income) "
 							"VALUES (True, %s, %s, %s, %s, %s, True) "
-							"RETURNING id", 
-							(payment_text, self.contact_id, 
+							"RETURNING id",
+							(payment_text, self.contact_id,
 							total, self.date, comments))
 			payment_id = cursor.fetchone()[0]
 			transaction.post_misc_check_payment(total, payment_id)
-		elif self.payment_type_id == 1:
-			payment_text = self.credit_entry.get_text()
+		elif self.payment_method.payment_type_id == 1:
 			cursor.execute("INSERT INTO payments_incoming "
 							"(credit_card_payment, payment_text, "
 							"customer_id, amount, date_inserted, "
 							"comments, misc_income) "
 							"VALUES (True, %s, %s, %s, %s, %s, True) "
-							"RETURNING id", 
-							(payment_text, self.contact_id, 
+							"RETURNING id",
+							(payment_text, self.contact_id,
 							total, self.date, comments))
 			payment_id = cursor.fetchone()[0]
-			transaction.post_misc_credit_card_payment(total, payment_id)
-		elif self.payment_type_id == 2:
-			payment_text = self.cash_entry.get_text()
+			account_number = self.payment_method.get_credit_card_account_number()
+			transaction.post_misc_credit_card_payment(total, payment_id, account_number)
+		elif self.payment_method.payment_type_id == 2:
 			cursor.execute("INSERT INTO payments_incoming "
 							"(cash_payment, payment_text, "
 							"customer_id, amount, date_inserted, "
 							"comments, misc_income) "
 							"VALUES (True, %s, %s, %s, %s, %s, True) "
-							"RETURNING id", 
-							(payment_text, self.contact_id, 
+							"RETURNING id",
+							(payment_text, self.contact_id,
 							total, self.date, comments))
 			payment_id = cursor.fetchone()[0]
 			transaction.post_misc_cash_payment(total, payment_id)
@@ -223,7 +219,17 @@ class MiscellaneousRevenueGUI:
 			transaction.post_credit_entry(revenue_account, amount)
 		DB.commit()
 		cursor.close()
-		self.window.destroy()
+
+	def clear_widgets (self):
+		self.builder.get_object('combobox1').get_child().set_text('')
+		self.contact_id = None
+		self.builder.get_object('entry4').set_text('')
+		self.date = None
+		self.builder.get_object('spinbutton1').set_value(0)
+		self.builder.get_object('revenue_store').clear()
+		self.builder.get_object('entry5').set_text('')
+		self.payment_method.reset()
+		self.check_if_all_entries_valid()
 
 	def date_entry_icon_release (self, entry, icon, event):
 		self.calendar.set_relative_to(entry)

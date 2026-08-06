@@ -18,7 +18,8 @@
 
 from gi.repository import Gtk
 import subprocess, os
-from constants import DB, ui_directory, template_dir
+from db_connection import DB
+from constants import ui_directory, template_dir
 
 UI_FILE = ui_directory + "/mailing_list_printing.ui"
 

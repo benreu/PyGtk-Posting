@@ -20,7 +20,8 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
-from constants import DB, ui_directory
+from db_connection import DB
+from constants import ui_directory
 
 UI_FILE = ui_directory + "/reports/charts.ui"
 
