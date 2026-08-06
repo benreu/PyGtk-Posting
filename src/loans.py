@@ -72,6 +72,9 @@ class LoanGUI :
 		cursor.close()
 		DB.rollback()
 
+	def refresh_liability_accounts_clicked (self, button):
+			self.populate_accounts()
+
 	def populate_accounts (self):
 		accounts_store = self.builder.get_object('liability_account_store')
 		accounts_store.clear()
