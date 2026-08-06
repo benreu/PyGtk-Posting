@@ -161,11 +161,7 @@ class AssembledProductsGUI:
 		product_name = self.product_store[combo_iter][1]
 		model, path = self.builder.get_object('treeview-selection2').get_selected_rows()
 		tree_iter = self.assembly_store.get_iter(path)
-		self.assembly_store[tree_iter][2] = int(product_id)
-		self.assembly_store[tree_iter][3] = product_name
-		self.save_assembly_product_line (tree_iter)
-		self.calculate_row_total (tree_iter)
-		self.calculate_totals()
+		self.set_assembly_product (tree_iter, product_id, product_name)
 
 	def product_combo_editing_started (self, combo_renderer, combo, path):
 		entry = combo.get_child()
@@ -242,11 +238,71 @@ class AssembledProductsGUI:
 
 	def product_combo_changed (self, combo_renderer, path, combo_iter):
 		product_id = self.product_store[combo_iter][0]
-		text = self.product_store[combo_iter][1]
+		product_name = self.product_store[combo_iter][1]
 		tree_iter = self.assembly_store.get_iter(path)
-		self.assembly_store[tree_iter][2] = int(product_id)
-		self.assembly_store[tree_iter][3] = text
+		self.set_assembly_product (tree_iter, product_id, product_name)
+
+	def set_assembly_product (self, tree_iter, product_id, product_name):
+		product_id = int(product_id)
+		if self.check_for_duplicate_product (product_id, tree_iter):
+			self.duplicate_product_id = product_id
+			self.duplicate_product_name = product_name
+			self.duplicate_product_new_iter = tree_iter
+			return
+		self.assembly_store[tree_iter][2] = product_id
+		self.assembly_store[tree_iter][3] = product_name
 		self.save_assembly_product_line (tree_iter)
+		self.calculate_row_total (tree_iter)
+		self.calculate_totals()
+
+	def check_for_duplicate_product (self, product_id, tree_iter):
+		path = self.assembly_store.get_path(tree_iter)
+		for row in self.assembly_store:
+			if row.path == path:
+				continue # continue with the rest of the liststore
+			if product_id == row[2]: # the liststore has duplicates
+				self.builder.get_object('duplicate_product_label').set_label(
+							"This part (" + row[3] + ") is already on this BOM.\n"
+							"Do you want to update the quantity to ")
+				qty_spinbutton = self.builder.get_object('duplicate_qty_spinbutton')
+				qty_spinbutton.set_value(int(row[1]))
+				self.duplicate_product_primary_row = row
+				window = self.builder.get_object('duplicate_product_window')
+				window.show_all()
+				return True
+		return False
+
+	def cancel_product_cell_editing (self):
+		# neither cancel nor update-qty touch the row that's still being
+		# edited in the treeview, so the combo cell is left in editing mode
+		# unless we cancel it explicitly (add-again exits editing as a side
+		# effect of writing into that same row)
+		area = self.builder.get_object('treeviewcolumn3').get_area()
+		area.stop_editing(True)
+
+	def duplicate_product_cancel_clicked (self, button):
+		self.cancel_product_cell_editing ()
+		self.builder.get_object('duplicate_product_window').hide()
+
+	def duplicate_product_update_qty_clicked (self, button):
+		qty_spinbutton = self.builder.get_object('duplicate_qty_spinbutton')
+		qty = qty_spinbutton.get_value_as_int()
+		self.duplicate_product_primary_row[1] = qty
+		primary_iter = self.assembly_store.get_iter(self.duplicate_product_primary_row.path)
+		self.calculate_row_total (primary_iter)
+		self.save_assembly_product_line (primary_iter)
+		self.calculate_totals()
+		self.cancel_product_cell_editing ()
+		self.builder.get_object('duplicate_product_window').hide()
+
+	def duplicate_product_add_again_clicked (self, button):
+		tree_iter = self.duplicate_product_new_iter
+		self.assembly_store[tree_iter][2] = self.duplicate_product_id
+		self.assembly_store[tree_iter][3] = self.duplicate_product_name
+		self.save_assembly_product_line (tree_iter)
+		self.calculate_row_total (tree_iter)
+		self.calculate_totals()
+		self.builder.get_object('duplicate_product_window').hide()
 
 	def save_assembly_product_line(self, tree_iter):
 		c = DB.cursor()
