@@ -71,6 +71,23 @@
         <accelerator key="Up" signal="activate" modifiers="GDK_CONTROL_MASK"/>
       </object>
     </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="cancel_line_separator">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="cancel_line_menuitem">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Cancel this line</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="cancel_line_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="po_store">
     <columns>
@@ -112,6 +129,8 @@
       <column type="gboolean"/>
       <!-- column-name order_number -->
       <column type="gchararray"/>
+      <!-- column-name canceled -->
+      <column type="gboolean"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
@@ -317,6 +336,7 @@
                       <object class="GtkCellRendererText" id="cellrenderertext2"/>
                       <attributes>
                         <attribute name="text">3</attribute>
+                        <attribute name="strikethrough">12</attribute>
                       </attributes>
                     </child>
                   </object>

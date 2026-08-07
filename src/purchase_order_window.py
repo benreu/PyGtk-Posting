@@ -587,6 +587,15 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def post_purchase_order(self, widget = None):
 		cursor = DB.cursor()
+		cursor.execute("SELECT invoiced FROM purchase_orders "
+						"WHERE id = %s ", (self.purchase_order_id, ))
+		if cursor.fetchone()[0] == True:
+			cursor.close()
+			DB.rollback()
+			self.show_message("This purchase order is already invoiced; "
+								"correct it from the vendor payment window "
+								"instead")
+			return
 		cursor.execute("SELECT "
 							"pg_try_advisory_lock(id) "
 						"FROM purchase_orders "
@@ -641,7 +650,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def unlock_po (self):
 		if self.purchase_order_id:
 			cursor = DB.cursor()
+			#post_purchase_order takes an exclusive lock while select_vendor
+			#takes a shared one, so release both or the exclusive lock leaks
+			#for the life of the connection
 			cursor.execute("SELECT "
+									"pg_advisory_unlock(id), "
 									"pg_advisory_unlock_shared(id) "
 								"FROM purchase_orders "
 								"WHERE id = %s ",
@@ -1280,6 +1293,20 @@ class PurchaseOrderGUI(Gtk.Builder):
 		if path != []:
 			line_id = model[path][0]
 			cursor = DB.cursor()
+			#deleting a posted line succeeds and orphans its gl_entries row,
+			#because the ON DELETE RESTRICT sits on gl_entries, not here
+			cursor.execute("SELECT poli.gl_entries_id IS NOT NULL OR po.closed "
+								"FROM purchase_order_items AS poli "
+								"JOIN purchase_orders AS po "
+									"ON po.id = poli.purchase_order_id "
+								"WHERE poli.id = %s", (line_id,))
+			if cursor.fetchone()[0] == True:
+				cursor.close()
+				DB.rollback()
+				self.show_message("This line is already posted; cancel it from "
+									"the purchase order correction window "
+									"instead")
+				return
 			cursor.execute("DELETE FROM purchase_order_items "
 								"WHERE id = %s", (line_id,))
 			cursor.close()

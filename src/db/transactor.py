@@ -588,9 +588,13 @@ def post_purchase_order_accounts (po_id, date):
 						"ON purchase_orders.gl_entries_id = gl_entries.id "
 					"WHERE purchase_orders.id = %s", (po_id,))
 	gl_transaction_id = cursor.fetchone()[0]
+	#skip lines that already carry an entry, so a purchase order that was
+	#corrected before payment does not get its expenses posted twice, and skip
+	#canceled lines, which carry a zeroed entry of their own
 	cursor.execute("SELECT id, ext_price, expense_account "
 							"FROM purchase_order_items "
-							"WHERE purchase_order_id = %s ", (po_id,))
+							"WHERE (purchase_order_id, canceled) = (%s, False) "
+							"AND gl_entries_id IS NULL ", (po_id,))
 	for row in cursor.fetchall():
 		row_id = row[0]
 		amount = row[1]
@@ -601,11 +605,186 @@ def post_purchase_order_accounts (po_id, date):
 						"(%s, %s, %s, %s) RETURNING id) "
 						"UPDATE purchase_order_items SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s",
-						(amount, expense_account_number, 
+						(amount, expense_account_number,
 						gl_transaction_id, date, row_id))
 	cursor.close()
 
-def bank_to_credit_card_transfer(bank_account, credit_card_account, amount, 
+def purchase_order_correction_blocked (po_id):
+	'''returns a message explaining why this purchase order must not be
+	corrected, or None when correcting it is safe'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT "
+						"po.paid OR po.gl_transaction_payment_id IS NOT NULL, "
+						"po.canceled, "
+						"po.closed, "
+						"COALESCE((SELECT bool_or(g.reconciled) "
+							"FROM gl_entries AS g "
+							"WHERE g.gl_transaction_id = "
+								"h.gl_transaction_id), False), "
+						"EXISTS (SELECT 1 FROM purchase_order_items "
+							"WHERE (purchase_order_id, canceled) = "
+								"(po.id, False) "
+							"AND expense_account IS NULL) "
+					"FROM purchase_orders AS po "
+					"LEFT JOIN gl_entries AS h ON h.id = po.gl_entries_id "
+					"WHERE po.id = %s", (po_id,))
+	row = cursor.fetchone()
+	cursor.close()
+	DB.rollback()
+	if row == None:
+		return "This purchase order no longer exists"
+	paid, canceled, closed, reconciled, missing_account = row
+	if paid == True:
+		return "This purchase order is already paid"
+	if canceled == True:
+		return "This purchase order is canceled"
+	if closed == False:
+		return "This purchase order is not posted yet"
+	if reconciled == True:
+		return "The ledger entries for this purchase order are reconciled"
+	if missing_account == True:
+		return "Every line needs an expense account"
+	return None
+
+def repost_purchase_order_accounts (po_id):
+	'''re-syncs the ledger entries of an already posted purchase order to its
+	current line items. Safe on a purchase order that has no entries yet'''
+	cursor = DB.cursor()
+	cursor.execute("UPDATE purchase_orders AS po SET (total, amount_due) = "
+						"(t.sum, t.sum) "
+					"FROM (SELECT COALESCE(SUM(ext_price), 0.00) AS sum "
+							"FROM purchase_order_items "
+							"WHERE (purchase_order_id, canceled) = "
+								"(%s, False)) AS t "
+					"WHERE po.id = %s "
+					"RETURNING po.total, po.gl_entries_id", (po_id, po_id))
+	total, header_gl_entries_id = cursor.fetchone()
+	if header_gl_entries_id == None: #closed but not invoiced, nothing posted
+		cursor.close()
+		return total
+	#the accounts payable credit always carries the whole document
+	cursor.execute("UPDATE gl_entries SET amount = %s WHERE id = %s "
+					"RETURNING gl_transaction_id, date_inserted",
+					(total, header_gl_entries_id))
+	gl_transaction_id, date = cursor.fetchone()
+	cursor.execute("SELECT gl_entries_id, "
+						"CASE WHEN canceled THEN 0.00 ELSE ext_price END, "
+						"expense_account "
+					"FROM purchase_order_items "
+					"WHERE purchase_order_id = %s "
+					"AND gl_entries_id IS NOT NULL", (po_id,))
+	for row in cursor.fetchall():
+		cursor.execute("UPDATE gl_entries SET (amount, debit_account) = "
+						"(%s, %s) WHERE id = %s", (row[1], row[2], row[0]))
+	#lines added after posting only get an expense debit when this document is
+	#already carrying them, otherwise a cash based purchase order would
+	#recognize the expense before the vendor is paid. The second test catches
+	#documents back posted by switch_to_accrual_based
+	cursor.execute("SELECT (SELECT accrual_based FROM settings) "
+					"OR EXISTS (SELECT 1 FROM purchase_order_items "
+						"WHERE purchase_order_id = %s "
+						"AND gl_entries_id IS NOT NULL)", (po_id,))
+	if cursor.fetchone()[0] == True:
+		cursor.execute("SELECT id, ext_price, expense_account "
+							"FROM purchase_order_items "
+							"WHERE (purchase_order_id, canceled) = (%s, False) "
+							"AND gl_entries_id IS NULL", (po_id,))
+		for row in cursor.fetchall():
+			#reuse the header date so both legs land in the same period
+			cursor.execute("WITH new_row AS (INSERT INTO gl_entries "
+							"(amount, debit_account, gl_transaction_id, "
+							"date_inserted) VALUES "
+							"(%s, %s, %s, %s) RETURNING id) "
+							"UPDATE purchase_order_items SET gl_entries_id = "
+								"((SELECT id FROM new_row)) WHERE id = %s",
+							(row[1], row[2], gl_transaction_id, date, row[0]))
+	cursor.close()
+	return total
+
+def cancel_purchase_order_item (line_id):
+	'''soft cancels a line. The ledger entry is zeroed rather than deleted,
+	nothing in this program deletes from gl_entries'''
+	cursor = DB.cursor()
+	cursor.execute("WITH canceled AS "
+						"(UPDATE purchase_order_items "
+						"SET (qty, price, ext_price, canceled) = "
+							"(0, 0.00, 0.00, True) "
+						"WHERE id = %s RETURNING id, gl_entries_id), "
+					"zeroed AS "
+						"(UPDATE gl_entries SET amount = 0.00 "
+						"WHERE id = (SELECT gl_entries_id FROM canceled)) "
+					"UPDATE inventory_transactions SET qty_in = 0 "
+					"WHERE purchase_order_item_id = "
+						"(SELECT id FROM canceled)", (line_id,))
+	cursor.close()
+
+def purchase_order_inventory_blocked (po_id):
+	'''returns a message when the corrected quantities cannot be applied to
+	inventory, or None. This reads the corrections already written in the open
+	transaction, so it must not commit or roll back; the caller decides'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT p.name FROM inventory_transactions AS it "
+					"JOIN products AS p ON p.id = it.product_id "
+					"WHERE it.product_id IN (SELECT product_id "
+						"FROM purchase_order_items "
+						"WHERE purchase_order_id = %s) "
+					"GROUP BY p.name "
+					"HAVING SUM(it.qty_in) - SUM(it.qty_out) < 0", (po_id,))
+	row = cursor.fetchone()
+	if row != None:
+		cursor.close()
+		return "'%s' would go negative in inventory" % row[0]
+	cursor.execute("SELECT poli.id FROM purchase_order_items AS poli "
+					"JOIN serial_numbers AS sn "
+						"ON sn.purchase_order_item_id = poli.id "
+					"WHERE poli.purchase_order_id = %s "
+					"GROUP BY poli.id, poli.qty "
+					"HAVING COUNT(sn.id) > poli.qty", (po_id,))
+	row = cursor.fetchone()
+	cursor.close()
+	if row != None:
+		return "Line %s has more serial numbers than its new quantity" % row[0]
+	return None
+
+def resync_purchase_order_inventory (po_id):
+	'''follows corrected quantities and prices into inventory. Purchase order
+	receipts carry no ledger entry, so the receipt rows are updated in place
+	rather than offset with an adjusting row'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT received FROM purchase_orders WHERE id = %s",
+					(po_id,))
+	if cursor.fetchone()[0] == False: #receive() will pick these up later
+		cursor.close()
+		return
+	cursor.execute("UPDATE inventory_transactions AS it SET (qty_in, price) = "
+						"(CASE WHEN poli.canceled THEN 0 "
+							"ELSE poli.qty::int END, poli.price) "
+					"FROM purchase_order_items AS poli "
+					"WHERE it.purchase_order_item_id = poli.id "
+					"AND poli.purchase_order_id = %s", (po_id,))
+	#lines added after the purchase order was received still need a receipt
+	cursor.execute("INSERT INTO inventory_transactions "
+						"(purchase_order_item_id, qty_in, product_id, price, "
+						"location_id, date_inserted) "
+					"SELECT poli.id, poli.qty::int, poli.product_id, poli.price, "
+						"COALESCE((SELECT it.location_id "
+							"FROM inventory_transactions AS it "
+							"JOIN purchase_order_items AS sibling "
+								"ON sibling.id = it.purchase_order_item_id "
+							"WHERE sibling.purchase_order_id = %s "
+							"ORDER BY it.id DESC LIMIT 1), "
+							"(SELECT id FROM locations ORDER BY id LIMIT 1)), "
+						"CURRENT_DATE "
+					"FROM purchase_order_items AS poli "
+					"JOIN products AS p ON p.id = poli.product_id "
+					"WHERE (poli.purchase_order_id, poli.canceled, "
+						"p.inventory_enabled) = (%s, False, True) "
+					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
+						"WHERE purchase_order_item_id = poli.id)",
+					(po_id, po_id))
+	cursor.close()
+
+def bank_to_credit_card_transfer(bank_account, credit_card_account, amount,
 								date, transaction_number):
 	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "

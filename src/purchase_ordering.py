@@ -180,20 +180,21 @@ class Setup():
 		dat = f.read()
 		f.close()
 		cursor = DB.cursor()
+		#'invoiced' is deliberately not touched here; resetting it would send an
+		#already invoiced PO back through unprocessed_po and post a second
+		#accounts payable entry, see repost_purchase_order_accounts
 		cursor.execute("UPDATE purchase_orders "
 								"SET (pdf_data, "
 									"closed, "
-									"invoiced, "
 									"name, "
 									"date_created, "
 									"comments) "
 								"= (%s, "
 									"True, "
-									"False, "
 									"%s, "
 									"%s, "
 									"%s) "
-								"WHERE id = %s", 
+								"WHERE id = %s",
 							(dat, 
 							self.document_name, 
 							datetime,

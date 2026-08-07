@@ -23,6 +23,11 @@ from datetime import datetime
 import psycopg2
 import purchase_ordering
 from db.transactor import post_purchase_order, post_purchase_order_accounts
+from db.transactor import purchase_order_correction_blocked
+from db.transactor import purchase_order_inventory_blocked
+from db.transactor import repost_purchase_order_accounts
+from db.transactor import resync_purchase_order_inventory
+from db.transactor import cancel_purchase_order_item
 from db_connection import DB
 from constants import ui_directory
 
@@ -33,12 +38,17 @@ class Item(object):#this is used by py3o library see their example for more info
 	
 class GUI(Gtk.Builder):
 	purchase_order_id = None
-	def __init__(self, po_id = None):
+	def __init__(self, po_id = None, correction = False):
+		'''correction opens an already invoiced purchase order for editing;
+		the ledger entries are re-synced when the corrections are saved'''
 
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 
+		self.correction = correction
+		self.correction_blocked = None
+		self.locked_po_id = None
 		self.purchase_order_items_store = self.get_object('purchase_order_items_store')
 		self.expense_account_store = self.get_object('expense_account_store')
 		self.po_store = self.get_object('po_store')
@@ -49,6 +59,9 @@ class GUI(Gtk.Builder):
 			self.purchase_order_id = po_id
 			self.populate_purchase_order_items_store ()
 			self.get_object("button7").set_sensitive(True)
+			self.load_purchase_order_metadata ()
+		if correction == True:
+			self.setup_correction_mode ()
 
 		cursor = DB.cursor()
 		cursor.execute("SELECT qty_prec, price_prec "
@@ -100,7 +113,105 @@ class GUI(Gtk.Builder):
 		DB.rollback()
 
 	def destroy(self, window):
-		pass
+		self.unlock_po ()
+
+	def unlock_po (self):
+		if self.locked_po_id == None:
+			return
+		cursor = DB.cursor()
+		cursor.execute("SELECT pg_advisory_unlock(%s)", (self.locked_po_id,))
+		cursor.close()
+		DB.commit()
+		self.locked_po_id = None
+
+	def load_purchase_order_metadata (self):
+		'''the combobox path fills these in from po_store; the direct id path
+		has to read them itself'''
+		cursor = DB.cursor()
+		cursor.execute("SELECT COALESCE(po.invoice_description, c.name), "
+							"po.attached_pdf IS NOT NULL "
+						"FROM purchase_orders AS po "
+						"JOIN contacts AS c ON c.id = po.vendor_id "
+						"WHERE po.id = %s", (self.purchase_order_id,))
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		if row == None:
+			return
+		self.get_object('entry6').set_text(row[0])
+		self.attachment = row[1]
+		self.get_object("button15").set_sensitive(self.attachment)
+
+	def setup_correction_mode (self):
+		self.get_object('button1').set_visible(False) #Edit PO, unsafe here
+		self.get_object('button2').set_visible(False) #Save and pay
+		self.get_object('cancel_line_separator').set_visible(True)
+		self.get_object('cancel_line_menuitem').set_visible(True)
+		self.get_object('window').set_title("Correct Purchase Order")
+		cursor = DB.cursor()
+		cursor.execute("SELECT pg_try_advisory_lock(%s)",
+						(int(self.purchase_order_id),))
+		locked = cursor.fetchone()[0]
+		cursor.close()
+		DB.commit()
+		if locked == True:
+			self.locked_po_id = int(self.purchase_order_id)
+		else:
+			self.correction_blocked = "Somebody else is still accessing this PO"
+		self.check_all_entries_completed ()
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
+
+	def cancel_line_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		line_id = model[path][0]
+		cancel_purchase_order_item (line_id)
+		#re-sync straight away; leaving the accounts payable credit carrying a
+		#canceled line would misstate the books if this window is closed now
+		repost_purchase_order_accounts (self.purchase_order_id)
+		DB.commit()
+		self.populate_purchase_order_items_store ()
+
+	def save_corrections_clicked (self, button):
+		message = purchase_order_correction_blocked (self.purchase_order_id)
+		if message != None:
+			self.show_message (message)
+			return
+		cursor = DB.cursor()
+		for row in self.purchase_order_items_store:
+			if row[12] == True: #canceled lines are already written out
+				continue
+			cursor.execute("UPDATE purchase_order_items SET "
+								"(qty, remark, price, ext_price, "
+								"expense_account) = (%s, %s, %s, %s, %s) "
+							"WHERE id = %s",
+							(row[1], row[4], row[5], row[6], row[7], row[0]))
+		cursor.execute("UPDATE purchase_orders SET invoice_description = %s "
+							"WHERE id = %s",
+						(self.get_object('entry6').get_text(),
+						self.purchase_order_id))
+		repost_purchase_order_accounts (self.purchase_order_id)
+		resync_purchase_order_inventory (self.purchase_order_id)
+		cursor.close()
+		#validate after the work is done, so the checks see the corrected
+		#quantities and the updated receipts rather than the old ones
+		message = purchase_order_inventory_blocked (self.purchase_order_id)
+		if message != None:
+			DB.rollback()
+			self.show_message (message)
+			self.populate_purchase_order_items_store ()
+			return
+		DB.commit()
+		self.window.destroy()
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -194,6 +305,11 @@ class GUI(Gtk.Builder):
 		product_id = self.get_object('expense_product_combo').get_active_id()
 		amount = self.get_object('spinbutton2').get_value()
 		add_expense_to_po (self.purchase_order_id, product_id, amount)
+		if self.correction == True:
+			#add_expense_to_po commits on its own, so post the new line right
+			#away rather than leaving a posted document half posted
+			repost_purchase_order_accounts (self.purchase_order_id)
+			DB.commit()
 		self.populate_purchase_order_items_store ()
 		self.get_object('expense_product_combo').set_active(-1)
 		self.get_object('spinbutton2').set_value(0.00)
@@ -228,6 +344,8 @@ class GUI(Gtk.Builder):
 		DB.rollback()
 
 	def save_invoice_button_clicked (self, button):
+		if self.correction == True:
+			return self.save_corrections_clicked (button)
 		if self.request_po_attachment and not self.attachment:
 			dialog = self.get_object('missing_attachment_dialog')
 			result = dialog.run()
@@ -320,7 +438,8 @@ class GUI(Gtk.Builder):
 						"a.name, "
 						"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
 						"expense, "
-						"order_number "
+						"order_number, "
+						"poli.canceled "
 					"FROM purchase_order_items AS poli "
 					"JOIN products AS p ON p.id = poli.product_id "
 					"LEFT JOIN gl_accounts AS a "
@@ -340,16 +459,22 @@ class GUI(Gtk.Builder):
 	def check_all_entries_completed (self):
 		button = self.get_object('button5')
 		button.set_sensitive(False)
+		if self.correction_blocked != None:
+			button.set_label(self.correction_blocked)
+			return
 		if self.get_object('entry6').get_text() == '':
 			button.set_label("PO description is blank")
 			return
 		for row in self.purchase_order_items_store:
-			if row[7] == 0:
+			if row[7] == 0 and row[12] == False:
 				button.set_label("Missing expense account")
 				self.get_object('button2').set_sensitive(False)
 				return
 			continue
 		button.set_sensitive(True)
+		if self.correction == True:
+			button.set_label("Save corrections")
+			return
 		button.set_label("Save as invoice")
 		self.get_object('button2').set_sensitive(True)
 
@@ -400,6 +525,10 @@ class GUI(Gtk.Builder):
 		self.check_current_cost(path)
 
 	def save_line_item (self, path):
+		if self.correction == True:
+			#corrections are written as one transaction with the ledger
+			#re-sync, committing a line on its own would unbalance the books
+			return
 		line = self.purchase_order_items_store[path]
 		row_id = line[0]
 		qty = line[1]
@@ -416,6 +545,11 @@ class GUI(Gtk.Builder):
 		DB.commit()
 
 	def check_current_cost(self, path):
+		if self.correction == True:
+			#the document being corrected may be months old and superseded by
+			#newer purchases; repricing stock from it is a deliberate act, so
+			#leave it to the product hub
+			return
 		self.product_id = self.purchase_order_items_store[path][2]
 		product_name = self.purchase_order_items_store[path][3]
 		self.get_object('label12').set_label(product_name)
@@ -447,17 +581,20 @@ class GUI(Gtk.Builder):
 		self.purchase_order_items_store[path][7] = int(account_number)
 		self.purchase_order_items_store[path][8] = account_name
 		row_id = self.purchase_order_items_store[path][0]
-		cursor = DB.cursor()
-		cursor.execute("UPDATE purchase_order_items "
-							"SET expense_account = %s WHERE id = %s",
-							(account_number, row_id))
-		cursor.close()
-		DB.commit()
+		if self.correction == False:
+			cursor = DB.cursor()
+			cursor.execute("UPDATE purchase_order_items "
+								"SET expense_account = %s WHERE id = %s",
+								(account_number, row_id))
+			cursor.close()
+			DB.commit()
 		self.calculate_totals ()
 
 	def calculate_totals(self):
 		self.total = Decimal()
 		for item in self.purchase_order_items_store:
+			if item[12] == True: #canceled
+				continue
 			self.total += item[6]
 		total = '${:,.2f}'.format(self.total)
 		self.get_object('entry4').set_text(total)

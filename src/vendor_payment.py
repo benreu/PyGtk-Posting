@@ -21,6 +21,7 @@ import subprocess, printing
 from dateutils import DateTimeCalendar
 from check_writing import get_written_check_amount_text, get_check_number
 from db.transactor import VendorPayment, post_purchase_order_accounts
+from db.transactor import purchase_order_correction_blocked
 from db_connection import DB
 from constants import ui_directory, template_dir
 
@@ -144,9 +145,43 @@ class GUI:
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
+			selection = self.builder.get_object('treeview-selection1')
+			model, paths = selection.get_selected_rows()
+			#correcting is a single document operation, paying is not
+			self.builder.get_object('correct_po_menuitem').set_sensitive(
+															len(paths) == 1)
 			menu = self.builder.get_object('menu1')
 			menu.popup_at_pointer()
-	
+
+	def correct_po_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, paths = selection.get_selected_rows()
+		if len(paths) != 1:
+			return
+		po_id = model[paths[0]][0]
+		message = purchase_order_correction_blocked (po_id)
+		if message != None:
+			self.show_message (message)
+			return
+		import unprocessed_po
+		gui = unprocessed_po.GUI (po_id, correction = True)
+		gui.window.connect("destroy", self.correction_window_destroyed)
+
+	def correction_window_destroyed (self, window):
+		#a correction changes amount_due, and this window caches it in the
+		#store and in self.total; refreshing clears the selection, which
+		#re-derives the total through invoice_selection_changed
+		self.populate_vendor_invoice_store ()
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (message)
+		dialog.run()
+		dialog.destroy()
+
+
 	def view_attachment_activated (self, menuitem):
 		selection = self.builder.get_object('treeview-selection1')
 		model, path = selection.get_selected_rows()
