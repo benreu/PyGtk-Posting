@@ -22,6 +22,7 @@ import subprocess, re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
 from db_connection import DB, broadcaster
+from db.transactor import create_draft_purchase_order
 from constants import ui_directory, help_dir
 
 items = list()
@@ -74,29 +75,12 @@ def find_or_create_open_po (vendor_id):
 					"AND (paid, closed, canceled) = (False, False, False)",
 					(vendor_id, ))
 	row = cursor.fetchone()
+	cursor.close()
 	if row:
 		po_id = row[0]
 	else:
-		cursor.execute("SELECT name FROM contacts WHERE id = %s",
-						(vendor_id,))
-		vendor_name = cursor.fetchone()[0]
-		cursor.execute("INSERT INTO purchase_orders "
-						"(vendor_id, closed, paid, canceled, "
-						"received, date_created) "
-						"VALUES (%s, False, False, False, False, CURRENT_DATE) "
-						"RETURNING id, date_created", (vendor_id, ))
-		po_id, date = cursor.fetchone()
-		name_str = ""
-		for i in vendor_name.split(' '):
-			name_str = name_str + i[0:3]
-		name = name_str.lower()
-		po_date = re.sub("-", "_", str(date))
-		document_name = "PO_" + str(po_id) + "_" + name + "_" + po_date
-		cursor.execute("UPDATE purchase_orders "
-						"SET name = %s WHERE id = %s",
-						(document_name, po_id))
+		po_id = create_draft_purchase_order (vendor_id)
 	DB.commit()
-	cursor.close()
 	return po_id
 
 def add_manufacturing_item_to_po (po_id, product_id, qty):

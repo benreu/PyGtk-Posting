@@ -28,6 +28,9 @@ from db.transactor import purchase_order_inventory_blocked
 from db.transactor import repost_purchase_order_accounts
 from db.transactor import resync_purchase_order_inventory
 from db.transactor import cancel_purchase_order_item
+from db.transactor import move_purchase_order_item
+from db.transactor import move_purchase_order_item_blocked
+from db.transactor import create_draft_purchase_order
 from db_connection import DB
 from constants import ui_directory
 
@@ -160,13 +163,85 @@ class GUI(Gtk.Builder):
 			self.correction_blocked = "Somebody else is still accessing this PO"
 		self.check_all_entries_completed ()
 
-	def show_message (self, message):
-		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+	def show_message (self, message,
+						message_type = Gtk.MessageType.ERROR):
+		dialog = Gtk.MessageDialog(	message_type = message_type,
 									buttons = Gtk.ButtonsType.CLOSE)
 		dialog.set_transient_for(self.window)
 		dialog.set_markup (message)
 		dialog.run()
 		dialog.destroy()
+
+	def move_line_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		line_id = model[path][0]
+		product_name = model[path][3]
+		self.get_object('move_line_label').set_label(
+							"Move '%s' to:" % product_name)
+		store = self.get_object('move_target_store')
+		store.clear()
+		store.append(['new', "A new purchase order for this vendor"])
+		cursor = DB.cursor()
+		#only this vendor's open documents; order numbers and pricing are
+		#negotiated per vendor, so a line does not belong on another vendor's PO
+		#the document this line is already on is left out, as are invoiced
+		#ones; once a vendor invoice is entered against a PO it may not be
+		#edited for correctness afterwards
+		cursor.execute("SELECT po.id::text, "
+							"format_date(po.date_created) || '  ' || po.name "
+							"|| CASE WHEN po.closed THEN ' (closed)' "
+								"ELSE ' (draft)' END "
+						"FROM purchase_orders AS po "
+						"WHERE po.vendor_id = (SELECT vendor_id "
+							"FROM purchase_orders WHERE id = %s) "
+						"AND (po.paid, po.canceled, po.invoiced) = "
+							"(False, False, False) "
+						"AND po.id <> %s "
+						"ORDER BY po.date_created, po.id",
+						(self.purchase_order_id, self.purchase_order_id))
+		for row in cursor.fetchall():
+			store.append(row)
+		cursor.close()
+		DB.rollback()
+		combo = self.get_object('move_target_combo')
+		combo.set_active(-1)
+		dialog = self.get_object('move_line_dialog')
+		result = dialog.run()
+		dialog.hide()
+		if result != 0:
+			return
+		target = combo.get_active_id()
+		if target == None:
+			return
+		self.move_line_to (line_id, target)
+
+	def move_target_combo_changed (self, combo):
+		self.get_object('move_accept_button').set_sensitive(
+											combo.get_active_id() != None)
+
+	def move_line_to (self, line_id, target):
+		if target == 'new':
+			cursor = DB.cursor()
+			cursor.execute("SELECT vendor_id FROM purchase_orders "
+								"WHERE id = %s", (self.purchase_order_id,))
+			vendor_id = cursor.fetchone()[0]
+			cursor.close()
+			destination_id = create_draft_purchase_order (vendor_id)
+		else:
+			destination_id = int(target)
+		message = move_purchase_order_item_blocked (line_id, destination_id)
+		if message != None:
+			DB.rollback() #discards the new purchase order if one was created
+			self.show_message (message)
+			return
+		move_purchase_order_item (line_id, destination_id)
+		DB.commit()
+		self.populate_purchase_order_items_store ()
+		self.show_message ("Line moved to purchase order %s" % destination_id,
+							Gtk.MessageType.INFO)
 
 	def cancel_line_activated (self, menuitem):
 		selection = self.get_object('treeview-selection')

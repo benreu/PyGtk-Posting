@@ -17,7 +17,30 @@
 
 
 from datetime import datetime
+import re
 from db_connection import DB
+
+def create_draft_purchase_order (vendor_id):
+	'''always creates a new open purchase order for this vendor'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT name FROM contacts WHERE id = %s", (vendor_id,))
+	vendor_name = cursor.fetchone()[0]
+	cursor.execute("INSERT INTO purchase_orders "
+					"(vendor_id, closed, paid, canceled, "
+					"received, date_created) "
+					"VALUES (%s, False, False, False, False, CURRENT_DATE) "
+					"RETURNING id, date_created", (vendor_id, ))
+	po_id, date = cursor.fetchone()
+	name_str = ""
+	for i in vendor_name.split(' '):
+		name_str = name_str + i[0:3]
+	name = name_str.lower()
+	po_date = re.sub("-", "_", str(date))
+	document_name = "PO_" + str(po_id) + "_" + name + "_" + po_date
+	cursor.execute("UPDATE purchase_orders SET name = %s WHERE id = %s",
+					(document_name, po_id))
+	cursor.close()
+	return po_id
 
 class Deposit:
 	def __init__(self, date):
@@ -717,6 +740,75 @@ def cancel_purchase_order_item (line_id):
 					"WHERE purchase_order_item_id = "
 						"(SELECT id FROM canceled)", (line_id,))
 	cursor.close()
+
+def move_purchase_order_item_blocked (line_id, destination_po_id):
+	'''returns a message explaining why this line cannot be moved, or None.
+	The destination may have just been created in the open transaction, so
+	this must not commit or roll back; the caller decides'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT "
+						"poli.canceled, "
+						"poli.gl_entries_id IS NOT NULL, "
+						"dest.paid OR dest.canceled, "
+						"dest.invoiced, "
+						"dest.gl_entries_id IS NOT NULL, "
+						"EXISTS (SELECT 1 FROM purchase_order_items "
+							"WHERE (purchase_order_id, canceled) = "
+								"(dest.id, False) "
+							"AND gl_entries_id IS NOT NULL) "
+					"FROM purchase_order_items AS poli "
+					"CROSS JOIN purchase_orders AS dest "
+					"WHERE poli.id = %s AND dest.id = %s",
+					(line_id, destination_po_id))
+	row = cursor.fetchone()
+	cursor.close()
+	if row == None:
+		return "That line or purchase order no longer exists"
+	#the document the line is already on is left out of the chooser, so there
+	#is no same purchase order case to report here
+	canceled, posted, dest_closed, dest_invoiced, dest_has_entry, \
+													dest_lines_posted = row
+	if canceled == True:
+		return "That line is canceled"
+	if dest_closed == True:
+		return "The destination purchase order is paid or canceled"
+	if dest_invoiced == True:
+		return "The destination purchase order is already invoiced and may "\
+				"not be edited afterwards"
+	if posted == True and dest_has_entry == False:
+		return "This line is already posted to the ledger, so it cannot be "\
+				"moved to a purchase order that is not posted"
+	if posted == True and dest_lines_posted == False:
+		return "The destination purchase order has no expense entries yet; "\
+				"moving a posted line there would leave it half posted"
+	return None
+
+def move_purchase_order_item (line_id, destination_po_id):
+	'''moves a line to another purchase order and re-syncs the ledger of both.
+	A posted line keeps its own entry, which is re-pointed at the destination
+	transaction, so no row is orphaned and none is created'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT purchase_order_id, gl_entries_id "
+					"FROM purchase_order_items WHERE id = %s", (line_id,))
+	source_po_id, line_gl_entries_id = cursor.fetchone()
+	if line_gl_entries_id != None:
+		cursor.execute("UPDATE gl_entries SET gl_transaction_id = "
+							"(SELECT h.gl_transaction_id "
+							"FROM purchase_orders AS po "
+							"JOIN gl_entries AS h ON h.id = po.gl_entries_id "
+							"WHERE po.id = %s) "
+						"WHERE id = %s",
+						(destination_po_id, line_gl_entries_id))
+	cursor.execute("UPDATE purchase_order_items SET (purchase_order_id, sort) "
+						"= (%s, (SELECT COALESCE(MAX(sort), 0) + 1 "
+								"FROM purchase_order_items "
+								"WHERE purchase_order_id = %s)) "
+					"WHERE id = %s",
+					(destination_po_id, destination_po_id, line_id))
+	cursor.close()
+	repost_purchase_order_accounts (source_po_id)
+	repost_purchase_order_accounts (destination_po_id)
+	return source_po_id
 
 def purchase_order_inventory_blocked (po_id):
 	'''returns a message when the corrected quantities cannot be applied to
