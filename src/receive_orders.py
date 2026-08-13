@@ -118,6 +118,20 @@ class ReceiveOrdersGUI:
 		receive_spinbutton.set_value(qty)
 		receive_spinbutton.set_range(0, ordered)
 
+	def treeview_button_release_event (self, treeview, event):
+		if event.button == 3:
+			menu = self.builder.get_object('receive_order_item_menu')
+			menu.popup_at_pointer()
+
+	def product_hub_activated (self, menuitem):
+		selection = self.builder.get_object('treeview-selection1')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		product_id = model[path][2]
+		import product_hub
+		product_hub.ProductHubGUI(product_id)
+
 	def location_clicked (self, widget):
 		locations.LocationsGUI()
 
