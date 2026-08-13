@@ -748,14 +748,8 @@ def move_purchase_order_item_blocked (line_id, destination_po_id):
 	cursor = DB.cursor()
 	cursor.execute("SELECT "
 						"poli.canceled, "
-						"poli.gl_entries_id IS NOT NULL, "
 						"dest.paid OR dest.canceled, "
-						"dest.invoiced, "
-						"dest.gl_entries_id IS NOT NULL, "
-						"EXISTS (SELECT 1 FROM purchase_order_items "
-							"WHERE (purchase_order_id, canceled) = "
-								"(dest.id, False) "
-							"AND gl_entries_id IS NOT NULL) "
+						"dest.invoiced "
 					"FROM purchase_order_items AS poli "
 					"CROSS JOIN purchase_orders AS dest "
 					"WHERE poli.id = %s AND dest.id = %s",
@@ -765,9 +759,10 @@ def move_purchase_order_item_blocked (line_id, destination_po_id):
 	if row == None:
 		return "That line or purchase order no longer exists"
 	#the document the line is already on is left out of the chooser, so there
-	#is no same purchase order case to report here
-	canceled, posted, dest_closed, dest_invoiced, dest_has_entry, \
-													dest_lines_posted = row
+	#is no same purchase order case to report here. A line that already carries
+	#an expense entry is not refused either; move_purchase_order_item zeroes
+	#that entry and detaches it, see there
+	canceled, dest_closed, dest_invoiced = row
 	if canceled == True:
 		return "That line is canceled"
 	if dest_closed == True:
@@ -775,34 +770,31 @@ def move_purchase_order_item_blocked (line_id, destination_po_id):
 	if dest_invoiced == True:
 		return "The destination purchase order is already invoiced and may "\
 				"not be edited afterwards"
-	if posted == True and dest_has_entry == False:
-		return "This line is already posted to the ledger, so it cannot be "\
-				"moved to a purchase order that is not posted"
-	if posted == True and dest_lines_posted == False:
-		return "The destination purchase order has no expense entries yet; "\
-				"moving a posted line there would leave it half posted"
 	return None
 
 def move_purchase_order_item (line_id, destination_po_id):
 	'''moves a line to another purchase order and re-syncs the ledger of both.
-	A posted line keeps its own entry, which is re-pointed at the destination
-	transaction, so no row is orphaned and none is created'''
+	An expense entry belongs to the transaction of the document it was invoiced
+	on, and a destination is never invoiced, so there is nowhere to carry it
+	across: the entry is zeroed in place and the line is detached from it. The
+	line is posted again, in the destination's own transaction, when that
+	document is invoiced'''
 	cursor = DB.cursor()
 	cursor.execute("SELECT purchase_order_id, gl_entries_id "
 					"FROM purchase_order_items WHERE id = %s", (line_id,))
 	source_po_id, line_gl_entries_id = cursor.fetchone()
 	if line_gl_entries_id != None:
-		cursor.execute("UPDATE gl_entries SET gl_transaction_id = "
-							"(SELECT h.gl_transaction_id "
-							"FROM purchase_orders AS po "
-							"JOIN gl_entries AS h ON h.id = po.gl_entries_id "
-							"WHERE po.id = %s) "
-						"WHERE id = %s",
-						(destination_po_id, line_gl_entries_id))
-	cursor.execute("UPDATE purchase_order_items SET (purchase_order_id, sort) "
+		#the debit account is left alone so the row still reads sensibly in
+		#the general ledger reports
+		cursor.execute("UPDATE gl_entries SET (amount, transaction_description) "
+							"= (0.00, %s) WHERE id = %s",
+						("Line moved to purchase order %s" % destination_po_id,
+						line_gl_entries_id))
+	cursor.execute("UPDATE purchase_order_items "
+						"SET (purchase_order_id, sort, gl_entries_id) "
 						"= (%s, (SELECT COALESCE(MAX(sort), 0) + 1 "
 								"FROM purchase_order_items "
-								"WHERE purchase_order_id = %s)) "
+								"WHERE purchase_order_id = %s), NULL) "
 					"WHERE id = %s",
 					(destination_po_id, destination_po_id, line_id))
 	cursor.close()
