@@ -20,7 +20,7 @@ from gi.repository import Gtk, GLib
 from queue import Queue
 from threading import Thread
 import time
-from db_connection import DB, broadcaster
+from db_connection import DB, broadcaster, background_connection
 from constants import ui_directory
 import admin_utils
 
@@ -404,62 +404,68 @@ class CreditCardHistoryGUI(Gtk.Builder):
 		return rows
 
 	def db_query (self, db_queue, model_queue):
-		c = DB.cursor()
-		while True:
-			list_ = db_queue.get()
-			if list_ == 'End':
-				break
-			parent, entry_id, tx_id, progress = list_
-			c.execute("SELECT ge.id, "
-						"ge.date_inserted::text, "
-						"format_date(ge.date_inserted), "
-						"ga.name, "
-						"reconciled, "
-						"ge.date_reconciled::text, "
-						"format_date(ge.date_reconciled), "
-						"CASE WHEN ge.credit_account IS NOT NULL "
-							"THEN ge.amount ELSE 0.00 END, "
-						"CASE WHEN ge.credit_account IS NOT NULL "
-							"THEN ge.amount::text ELSE '' END, "
-						"CASE WHEN ge.debit_account IS NOT NULL "
-							"THEN ge.amount ELSE 0.00 END, "
-						"CASE WHEN ge.debit_account IS NOT NULL "
-							"THEN ge.amount::text ELSE '' END, "
-						"ge.gl_transaction_id "
-						"FROM gl_entries AS ge "
-						"JOIN gl_accounts AS ga "
-							"ON ga.number = ge.credit_account "
-							"OR ga.number = ge.debit_account "
-						"WHERE ge.id != %s AND ge.gl_transaction_id = %s "
-						"UNION "
-						# handle POs with special treatment
-						"SELECT 0, "
-						"'', "
-						"'', "
-						"ga.name, "
-						"False, "
-						"'', "
-						"'', "
-						"0.00, "
-						"'', "
-						"SUM(ge.amount), "
-						"SUM(ge.amount)::text, "
-						"0 "
-						"FROM purchase_orders AS po "
-						"JOIN purchase_order_items AS poli "
-							"ON poli.purchase_order_id = po.id "
-						"JOIN gl_entries AS ge "
-							"ON ge.id = poli.gl_entries_id "
-						"JOIN gl_accounts AS ga "
-							"ON ga.number = ge.debit_account "
-						"WHERE po.gl_transaction_payment_id = %s "
-						"GROUP BY ga.name "
-						"ORDER BY date_inserted",
-						(entry_id, tx_id, tx_id))
-			for row in c.fetchall():
-				model_queue.put((parent, progress, row))
-		model_queue.put('End')
-		c.close()
+		# runs on a worker thread, so it gets its own connection - sharing the
+		# main loop's DB here can segfault the app when the connection drops
+		try:
+			with background_connection() as conn:
+				c = conn.cursor()
+				while True:
+					list_ = db_queue.get()
+					if list_ == 'End':
+						break
+					parent, entry_id, tx_id, progress = list_
+					c.execute("SELECT ge.id, "
+								"ge.date_inserted::text, "
+								"format_date(ge.date_inserted), "
+								"ga.name, "
+								"reconciled, "
+								"ge.date_reconciled::text, "
+								"format_date(ge.date_reconciled), "
+								"CASE WHEN ge.credit_account IS NOT NULL "
+									"THEN ge.amount ELSE 0.00 END, "
+								"CASE WHEN ge.credit_account IS NOT NULL "
+									"THEN ge.amount::text ELSE '' END, "
+								"CASE WHEN ge.debit_account IS NOT NULL "
+									"THEN ge.amount ELSE 0.00 END, "
+								"CASE WHEN ge.debit_account IS NOT NULL "
+									"THEN ge.amount::text ELSE '' END, "
+								"ge.gl_transaction_id "
+								"FROM gl_entries AS ge "
+								"JOIN gl_accounts AS ga "
+									"ON ga.number = ge.credit_account "
+									"OR ga.number = ge.debit_account "
+								"WHERE ge.id != %s AND ge.gl_transaction_id = %s "
+								"UNION "
+								# handle POs with special treatment
+								"SELECT 0, "
+								"'', "
+								"'', "
+								"ga.name, "
+								"False, "
+								"'', "
+								"'', "
+								"0.00, "
+								"'', "
+								"SUM(ge.amount), "
+								"SUM(ge.amount)::text, "
+								"0 "
+								"FROM purchase_orders AS po "
+								"JOIN purchase_order_items AS poli "
+									"ON poli.purchase_order_id = po.id "
+								"JOIN gl_entries AS ge "
+									"ON ge.id = poli.gl_entries_id "
+								"JOIN gl_accounts AS ga "
+									"ON ga.number = ge.debit_account "
+								"WHERE po.gl_transaction_payment_id = %s "
+								"GROUP BY ga.name "
+								"ORDER BY date_inserted",
+								(entry_id, tx_id, tx_id))
+					for row in c.fetchall():
+						model_queue.put((parent, progress, row))
+		finally:
+			# always release populate_statement_linked, which blocks reading this
+			# queue - without it a failed query here hangs the window for good
+			model_queue.put('End')
 
 	def info_bar_close (self, infobar):
 		infobar.set_revealed(False)

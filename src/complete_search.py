@@ -18,7 +18,7 @@
 import psycopg2
 from gi.repository import Gtk, GLib
 import threading
-from db_connection import DB
+from db_connection import DB, background_connection
 from constants import ui_directory
 
 UI_FILE = ui_directory + "/complete_search.ui"
@@ -52,18 +52,20 @@ class CompleteSearchGUI(Gtk.Builder):
 		spinner.start()
 
 	def get_results(self):
-		cursor = DB.cursor()
+		# runs on a worker thread, so it gets its own connection - sharing the
+		# main loop's DB here can segfault the app when the connection drops
 		try:
-			cursor.execute("SELECT * FROM complete_search(%s)", 
-												(self.search_text,))
+			with background_connection() as conn:
+				cursor = conn.cursor()
+				cursor.execute("SELECT * FROM complete_search(%s)", 
+													(self.search_text,))
+				tupl = cursor.fetchall()
+				cursor.close()
 		except psycopg2.DataError as e:
-			DB.rollback()
 			GLib.idle_add(self.show_message, e)
 			GLib.idle_add(self.stop_spinner)
 			return
-		tupl = cursor.fetchall()
 		GLib.idle_add(self.show_results, tupl)
-		cursor.close()
 
 	def stop_spinner (self):
 		spinner = self.get_object("spinner")

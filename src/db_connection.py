@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import GLib, GObject, Gtk
-import time, threading, psycopg2, psycopg2.extensions
+import time, threading, contextlib, traceback, psycopg2, psycopg2.extensions
 import sqlite_utils
 
 DEFAULT_CONNECT_TIMEOUT = 5
@@ -87,6 +87,23 @@ def get_db_params(row_id):
 	return _fetch_params(constants.sqlite_connection, row_id)
 
 
+_off_thread_warned = set()
+
+
+def _warn_off_main_thread(what):
+	# DB belongs to the main loop, which polls it for LISTEN notifications. A
+	# worker thread sharing it can be inside libpq's error path at the same
+	# moment as that poller and double-free the PGconn, which segfaults the app.
+	worker = threading.current_thread().name
+	frame = traceback.extract_stack()[-3]
+	site = "%s:%s" % (frame.filename, frame.lineno)
+	if site in _off_thread_warned:
+		return  # one line per offending call site, not per call
+	_off_thread_warned.add(site)
+	print("db_connection: WARNING - DB.%s() called from thread '%s' at %s; use "
+			"background_connection() for worker-thread queries" % (what, worker, site))
+
+
 class DBCursor:
 	# created fresh on every DB.cursor() call, never cached - nothing here goes stale on reconnect
 
@@ -128,6 +145,7 @@ class DBConnection:
 		# only ever held across the guard check-and-set in reconnect(), never across
 		# _pump(), which would deadlock as soon as the main loop re-enters reconnect()
 		self._lock = threading.Lock()
+		self._params = None
 		self.db_name = None
 		self.mobile = False
 		self._connect()
@@ -136,6 +154,9 @@ class DBConnection:
 		params, mobile = get_db_params(self._row_id)
 		self.db_name = params['dbname']
 		self.mobile = mobile
+		# kept so background_connection() can dial the same server without
+		# re-reading the sqlite settings file from a worker thread
+		self._params = params
 		self._real = psycopg2.connect(**params)
 
 	def _is_alive(self):
@@ -242,6 +263,8 @@ class DBConnection:
 		database_tools.GUI(True)
 
 	def cursor(self, *args, **kwargs):
+		if threading.current_thread() is not threading.main_thread():
+			_warn_off_main_thread('cursor')
 		if self._reconnecting:
 			raise psycopg2.OperationalError("database connection is reconnecting")
 		if self._real is None or self._real.closed != 0:
@@ -277,6 +300,30 @@ class DBConnection:
 
 	def __getattr__(self, name):
 		return getattr(self._real, name)
+
+
+@contextlib.contextmanager
+def background_connection():
+	"""A private psycopg2 connection for queries run on a worker thread.
+
+	Worker threads must not touch the shared DB: the main loop polls that
+	connection for LISTEN notifications, and two threads landing in libpq's
+	error path on one PGconn double-free it, segfaulting the app. Dialing the
+	server separately keeps a worker's queries - and its failures - to itself.
+
+	Deliberately outside the reconnect machinery: these are short lived, so a
+	failure simply raises to the caller, which already has an error path.
+	"""
+	if DB is None or DB._params is None:
+		raise psycopg2.OperationalError("no database connection to copy settings from")
+	conn = psycopg2.connect(**DB._params)
+	try:
+		yield conn
+	finally:
+		try:
+			conn.close()
+		except Exception:
+			pass
 
 
 class _SafeSignalProxy:
