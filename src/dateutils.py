@@ -18,7 +18,7 @@
 from gi.repository import Gtk, GObject, GLib
 from datetime import datetime, date, timedelta
 from db_connection import DB
-import time
+import time, psycopg2
 
 PARSE_STRING = "%b %d %Y"
 USER_FORMAT_DATE_TIME = "%a %b %d %Y %I:%M:%S %p"
@@ -219,12 +219,24 @@ class DateTimeCalendar (Gtk.Popover):
 		self.set_datetime (date_time)
 
 	def day_selected (self, calendar, date_label, fiscal_label, override):
-		cursor = DB.cursor()
 		date_time = self.get_datetime ()
-		cursor.execute("SELECT id FROM fiscal_years "
-							"WHERE active = True AND %s >= start_date "
-							"AND %s <= end_date", (date_time, date_time))
-		if cursor.fetchone() == None and override == False:
+		# this calendar is connected directly rather than through
+		# Gtk.Builder.connect_signals, so it is not covered by the proxy that
+		# absorbs DB errors in autoconnected handlers - handle it here
+		try:
+			cursor = DB.cursor()
+			cursor.execute("SELECT id FROM fiscal_years "
+								"WHERE active = True AND %s >= start_date "
+								"AND %s <= end_date", (date_time, date_time))
+			outside_fiscal_year = cursor.fetchone() == None
+			cursor.close()
+			DB.rollback()
+		except psycopg2.Error:
+			# with no connection the fiscal year cannot be checked, so show the
+			# date rather than blocking the calendar behind a warning that
+			# could not actually be verified
+			outside_fiscal_year = False
+		if outside_fiscal_year and override == False:
 			fiscal_label.show()
 			date_string = ''
 			date_label.hide()
@@ -241,8 +253,6 @@ class DateTimeCalendar (Gtk.Popover):
 				self.timeout = None		
 		date_label.set_label(str(date_string))
 		self.emit('day-selected')
-		cursor.close()
-		DB.rollback()
 
 	def force_show (self):
 		self.show()
