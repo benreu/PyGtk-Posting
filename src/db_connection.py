@@ -306,7 +306,11 @@ class DBConnection:
 		if self._reconnecting:
 			raise psycopg2.OperationalError("database connection is reconnecting")
 		if self._real is None or self._real.closed != 0:
-			self.reconnect()
+			if not self.reconnect():
+				# the server is down and all attempts failed. Say so plainly
+				# instead of letting the closed connection raise InterfaceError
+				# from somewhere callers do not expect it
+				raise psycopg2.OperationalError("no database connection")
 		return DBCursor(self, self._real.cursor(*args, **kwargs))
 
 	def commit(self):
