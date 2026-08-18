@@ -87,6 +87,19 @@ def get_db_params(row_id):
 	return _fetch_params(constants.sqlite_connection, row_id)
 
 
+def _active_toplevel():
+	# a modal dialog with no transient parent is not really enforced by GTK, so
+	# input still reaches the window underneath - which is how a click during a
+	# reconnect got dispatched and built a window against a refusing connection
+	try:
+		for window in Gtk.Window.list_toplevels():
+			if window.is_active() and window.get_visible():
+				return window
+	except Exception:
+		pass
+	return None
+
+
 _off_thread_warned = set()
 
 
@@ -111,21 +124,46 @@ class DBCursor:
 		self._parent = parent
 		self._real = real_cursor
 
-	def execute(self, *args, **kwargs):
+	def _transaction_idle(self):
+		# True when this statement would open its own transaction. Only such a
+		# statement can be replayed after a reconnect: mid-transaction the server
+		# has already discarded everything, so re-running one statement of it
+		# would post a fragment of a transaction that never completed.
+		conn = self._parent._real
+		if conn is None or conn.closed != 0:
+			return False
 		try:
-			return self._real.execute(*args, **kwargs)
+			status = conn.get_transaction_status()
+		except Exception:
+			return False
+		return status == psycopg2.extensions.TRANSACTION_STATUS_IDLE
+
+	def _run(self, method, args, kwargs):
+		# a connection idle long enough to be dropped looks alive to libpq until
+		# something is sent on it, so the statement that discovers the drop is
+		# usually the first query of a window populating itself. Reconnecting but
+		# re-raising left those windows built and empty, so replay it once.
+		parent = self._parent
+		replayable = self._transaction_idle()
+		try:
+			return getattr(self._real, method)(*args, **kwargs)
 		except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
-			if is_connection_lost(e, self._parent._real):
-				self._parent.reconnect()
-			raise
+			if not is_connection_lost(e, parent._real):
+				raise
+			reconnected = parent.reconnect()
+			if not (reconnected and replayable):
+				raise
+			# the old cursor belongs to the connection that just died. Every
+			# DB.cursor() call in the app is argument-free, so a plain cursor on
+			# the new connection is an exact replacement
+			self._real = parent._real.cursor()
+			return getattr(self._real, method)(*args, **kwargs)
+
+	def execute(self, *args, **kwargs):
+		return self._run('execute', args, kwargs)
 
 	def executemany(self, *args, **kwargs):
-		try:
-			return self._real.executemany(*args, **kwargs)
-		except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
-			if is_connection_lost(e, self._parent._real):
-				self._parent.reconnect()
-			raise
+		return self._run('executemany', args, kwargs)
 
 	def __getattr__(self, name):
 		return getattr(self._real, name)
@@ -326,6 +364,43 @@ def background_connection():
 			pass
 
 
+_connection_error_showing = False
+
+
+def _show_connection_error():
+	# a handler that died on a DB error has left its window half built - usually
+	# visibly empty, sometimes not shown at all - so say so rather than leaving
+	# the click looking ignored
+	global _connection_error_showing
+	dialog = Gtk.MessageDialog(
+		transient_for = _active_toplevel(),
+		modal = True,
+		message_type = Gtk.MessageType.ERROR,
+		buttons = Gtk.ButtonsType.CLOSE
+	)
+	dialog.set_title("Database connection lost")
+	dialog.set_markup("Lost the connection to the database, so this window "
+						"could not load its data.\n\nPlease close it and try again.")
+	dialog.run()
+	dialog.destroy()
+	_connection_error_showing = False
+	return False
+
+
+def _report_connection_error():
+	global _connection_error_showing
+	if DB is not None and DB._reconnecting:
+		return  # the reconnect dialog is already up and the call will be retried
+	if _connection_error_showing:
+		return  # one message for a burst of failing handlers, not one each
+	# claimed here rather than in _show_connection_error, so a burst arriving
+	# before the idle runs queues one dialog instead of one per handler
+	_connection_error_showing = True
+	# deferred: this can be reached from inside _pump(), and running a dialog
+	# there would nest another main loop inside the reconnect
+	GLib.idle_add(_show_connection_error)
+
+
 class _SafeSignalProxy:
 	# wraps a signal-handler object so DB errors from a mid-reconnect call don't
 	# escape through PyGObject's C signal marshaling as a printed unraisable exception
@@ -342,6 +417,7 @@ class _SafeSignalProxy:
 			except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
 				print("db_connection: %s.%s during reconnect: %s" %
 						(type(self._target).__name__, name, e))
+				_report_connection_error()
 		return wrapper
 
 
@@ -500,7 +576,7 @@ class ReconnectStatusDialog:
 	def _show(self, attempt=None, max_attempts=None):
 		if self.dialog == None:
 			self.dialog = Gtk.MessageDialog(
-				transient_for = None,
+				transient_for = _active_toplevel(),
 				modal = True,
 				message_type = Gtk.MessageType.INFO,
 				buttons = Gtk.ButtonsType.NONE
