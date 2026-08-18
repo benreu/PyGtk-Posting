@@ -17,7 +17,7 @@
 
 import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
-import os, subprocess, re, psycopg2, threading
+import os, subprocess, re, psycopg2
 from db_connection import DB, db_name, broadcaster, mobile
 from constants import ui_directory, dev_mode, modules_dir, help_dir
 from sqlite_utils import get_apsw_connection
@@ -483,18 +483,18 @@ class MainGUI :
 		self.apply_date_reminders(*self.query_date_reminders())
 
 	def check_date_reminders_timer (self):
+		# deliberately not threaded: it is a single row from settings, and running
+		# it off the main thread put the whole DB reconnect path - GTK dialog, main
+		# loop pumping, io watch re-registration - on a worker thread
 		if not self.window.is_active():
-			threading.Thread(target=self.check_date_reminders_background, daemon=True).start()
+			try:
+				statement_due, backup_due = self.query_date_reminders()
+			except psycopg2.Error as e:
+				print(e)
+				DB.rollback()
+			else:
+				self.apply_date_reminders(statement_due, backup_due)
 		return True # keep the timer repeating
-
-	def check_date_reminders_background (self):
-		try:
-			statement_due, backup_due = self.query_date_reminders()
-		except psycopg2.Error as e:
-			print(e)
-			GLib.idle_add(DB.rollback)
-			return
-		GLib.idle_add(self.apply_date_reminders, statement_due, backup_due)
 
 	def refresh_loan_reminders (self):
 		c = DB.cursor()
