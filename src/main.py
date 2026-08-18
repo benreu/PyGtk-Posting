@@ -28,6 +28,7 @@ import db_connection
 def main_app():
 	import constants
 	db_connection.install_safe_signal_connect()
+	db_connection.install_deferred_window_show()
 	log_file = None
 	try:
 		variable = sys.argv[1]

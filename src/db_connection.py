@@ -432,6 +432,26 @@ def install_safe_signal_connect():
 	Gtk.Builder.connect_signals = safe_connect_signals
 
 
+def install_deferred_window_show():
+	# a .ui file marking its GtkWindow visible=True puts the window on screen
+	# from add_from_file(), before __init__ has loaded a single row into it. If
+	# a DB call then fails, the window is left visible but half built, and its
+	# own handlers keep firing against attributes __init__ never got to assign -
+	# eg. purchase_order_window.focus() -> populate_product_store() ->
+	# self.product_store, AttributeError, once per focus event.
+	# Every window in the app calls show_all() itself once it is ready, so hold
+	# them back until then: a window whose __init__ died is then simply never
+	# shown, instead of sitting there empty and raising.
+	original_add_from_file = Gtk.Builder.add_from_file
+	def add_from_file(self, *args, **kwargs):
+		result = original_add_from_file(self, *args, **kwargs)
+		for obj in self.get_objects():
+			if isinstance(obj, Gtk.Window) and obj.get_visible():
+				obj.hide()
+		return result
+	Gtk.Builder.add_from_file = add_from_file
+
+
 def start_broadcaster():
 	global broadcaster, ACCOUNTS, reconnect_status
 	import accounts as ACCOUNTS
