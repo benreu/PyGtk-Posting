@@ -198,15 +198,25 @@ class DBConnection:
 		self._real = psycopg2.connect(**params)
 
 	def _is_alive(self):
-		# libpq's own view of the socket - no query, so no transaction side effects.
-		# closed is 2 when the server dropped us, 1 only after our own close()
+		# libpq's own view of the socket first - closed is 2 when the server dropped
+		# us, 1 only after our own close()
 		if self._real is None or self._real.closed != 0:
 			return False
 		try:
 			status = self._real.get_transaction_status()
+			if status == psycopg2.extensions.TRANSACTION_STATUS_UNKNOWN:
+				return False
+			# that status is only libpq's last-known state, and after a suspend the
+			# peer is long gone while nothing has touched the socket - so it still
+			# reads IDLE and the connection looks fine. poll() runs PQconsumeInput,
+			# the cheapest call that actually reaches the socket: still no query, so
+			# still no transaction side effects, but it is what flips closed to 2
+			# when the server has gone away. Any NOTIFY it picks up lands in
+			# self._real.notifies, where Broadcast.process_notifies() still drains it
+			self._real.poll()
 		except Exception:
 			return False
-		return status != psycopg2.extensions.TRANSACTION_STATUS_UNKNOWN
+		return self._real.closed == 0
 
 	def register_reconnect_listener(self, fn):
 		self._listeners.append(fn)
@@ -231,13 +241,21 @@ class DBConnection:
 				ctx.iteration(False)
 			time.sleep(0.05)
 
+	def _reconnect_from_idle(self):
+		# GLib reads a truthy return from an idle callback as "call me again", and
+		# reconnect() returns True to report success - so handing it straight to
+		# idle_add re-armed the source on every pass and spun the main loop at 100%
+		# for as long as the connection stayed healthy. Always one-shot.
+		self.reconnect()
+		return False
+
 	def reconnect(self):
 		# the dialog, the main loop pumping and the io watch re-registration below
 		# are all main-thread-only work, so a worker thread that trips over a dead
 		# connection hands the repair to the main loop and lets its own query fail -
 		# every threaded caller already has an error path for that
 		if threading.current_thread() is not threading.main_thread():
-			GLib.idle_add(self.reconnect)
+			GLib.idle_add(self._reconnect_from_idle)
 			return False
 		with self._lock:
 			# guards the whole call, including the 'reconnected' notify below, so a
@@ -250,9 +268,18 @@ class DBConnection:
 			# failing cursor, the io watch, a background timer. Whichever runs first
 			# repairs the connection and the rest must not tear the fresh one back
 			# down: doing so re-armed the io watch and looped forever at ~0.6s a cycle
-			if self._is_alive():
-				return True
-			self._in_reconnect_call = True
+			alive = self._is_alive()
+			if not alive:
+				self._in_reconnect_call = True
+		if alive:
+			# on_db_readable drops its source before queueing this call, so a
+			# connection that turns out to be healthy still needs its watch put
+			# back - otherwise LISTEN notifications stop for the rest of the
+			# session. Notified outside the lock on purpose: listeners reach for
+			# DB.cursor(), which can come back through reconnect() and deadlock
+			# on a Lock that is not reentrant
+			self._notify('connection_verified')
+			return True
 		try:
 			self._reconnecting = True
 			success = False
@@ -486,8 +513,15 @@ class Broadcast(GObject.GObject):
 		DB.register_reconnect_listener(self._on_reconnect)
 
 	def _add_io_watch(self):
+		# IO_NVAL is not optional: a closed fd polls back NVAL and nothing else, and
+		# GLib dispatches a watch only when revents & condition is non-zero. Leaving
+		# NVAL out of the mask means poll() returns instantly forever while the
+		# source never fires - the main loop stops blocking and burns a whole core,
+		# silently, until something else happens to tear the watch down
 		self.io_watch_id = GLib.io_add_watch(
-			DB.fileno(), GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, self.on_db_readable
+			DB.fileno(),
+			GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR | GLib.IO_NVAL,
+			self.on_db_readable
 		)
 
 	def _remove_io_watch(self):
@@ -517,6 +551,13 @@ class Broadcast(GObject.GObject):
 		if event == 'disconnected':
 			self._remove_io_watch()
 			return
+		if event == 'connection_verified':
+			# the connection never actually dropped, so the server still holds our
+			# LISTENs and the backend pid is unchanged - only the watch needs putting
+			# back, and only if some earlier trigger already removed it
+			if self.io_watch_id is None:
+				self._add_io_watch()
+			return
 		if event != 'reconnected':
 			return
 		self._remove_io_watch()
@@ -532,9 +573,15 @@ class Broadcast(GObject.GObject):
 		# fd closed out from under the watch polls back as NVAL rather than HUP
 		if condition & (GLib.IO_HUP | GLib.IO_ERR | GLib.IO_NVAL) or DB.closed != 0:
 			self.io_watch_id = None  # returning False removes this source
-			GLib.idle_add(DB.reconnect)
+			GLib.idle_add(DB._reconnect_from_idle)
 			return False
-		self.process_notifies()
+		if not self.process_notifies():
+			# the socket woke us but could not be read, so it is gone even though
+			# libpq had not caught up when we checked closed above. Staying armed
+			# just re-fires on the same unreadable socket, once per main loop pass
+			self.io_watch_id = None
+			GLib.idle_add(DB._reconnect_from_idle)
+			return False
 		return True
 
 	def process_notifies(self):
@@ -583,6 +630,8 @@ class Broadcast(GObject.GObject):
 			# already reconnected (or is reconnecting) via the cursor that hit this;
 			# there's no user action to retry here, so just skip this refresh
 			print("db_connection: on_db_readable: %s" % e)
+			return False
+		return True
 
 
 class ReconnectStatusDialog:
