@@ -21,8 +21,17 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, GLib
 import psycopg2, apsw, os, shutil, sys, re
+import faulthandler, signal
 import sqlite_utils
 import db_connection
+
+# faulthandler writes to stderr, which run.sh already tees into the session log,
+# so these need no plumbing of their own. 'kill -USR1 <pid>' dumps every thread's
+# stack - the way to find out what a hung or spinning main loop is actually doing
+# - and enable() does the same for a hard crash, eg. the segfault from freeing a
+# connection out from under a thread still holding a cursor on it.
+faulthandler.enable()
+faulthandler.register(signal.SIGUSR1)
 
 
 def main_app():
