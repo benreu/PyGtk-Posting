@@ -56,9 +56,10 @@ class ProductHubGUI:
 		self.window.destroy()
 
 	def edit_product_clicked (self, button):
-		import products_overview
-		p_gui = products_overview.ProductsOverviewGUI(self.product_id)
-		p_gui.edit_product (self.product_id)
+		import product_edit_main
+		pe = product_edit_main.ProductEditMainGUI()
+		if pe.select_product (self.product_id) == False:
+			return # somebody else is editing it, keep the hub up
 		self.window.destroy()
 
 	def product_overview_clicked (self, button):
