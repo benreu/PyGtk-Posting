@@ -35,8 +35,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.exists = True
 		self.treeview = self.get_object('treeview2')
 		self.product_store = self.get_object('product_store')
-		self.product_name_store = Gtk.ListStore(str) # for product suggestions
-		self.populate_product_names ()
 		self.filtered_product_store = self.get_object('filtered_product_store')
 		self.filtered_product_store.set_visible_func(self.filter_func)
 		dnd = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
@@ -153,22 +151,12 @@ class ProductsOverviewGUI (Gtk.Builder):
 		self.filter_list = filter_text.split(" ")
 		self.filtered_product_store.refilter()
 
-	def populate_product_names (self):
-		c = DB.cursor()
-		c.execute("SELECT name FROM products "
-					"WHERE deleted = False "
-					"ORDER BY name")
-		for row in c.fetchall():
-			self.product_name_store.append(row)
-		c.close()
-
 	def product_type_radiobutton_toggled (self, radiobutton):
 		if radiobutton.get_active() == True:
 			self.populate_product_store()
 
 	def refresh_clicked (self, button):
 		self.populate_product_store()
-		self.populate_product_names()
 		button.set_visible(False)
 
 	def populate_product_store (self, widget = None):
@@ -331,8 +319,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 
 	def edit_product (self, product_id):
 		import product_edit_main
-		pe = product_edit_main.ProductEditMainGUI()
-		pe.get_object('product_completion').set_model(self.product_name_store)
+		pe = product_edit_main.ProductEditMainGUI(self)
 		if pe.select_product(product_id) == False:
 			return
 		pe.window.set_transient_for(self.window)
@@ -340,7 +327,6 @@ class ProductsOverviewGUI (Gtk.Builder):
 	def new_clicked (self, button):
 		import product_edit_main
 		pe = product_edit_main.ProductEditMainGUI(self)
-		pe.get_object('product_completion').set_model(self.product_name_store)
 		pe.new_product()
 		pe.window.set_transient_for(self.window)
 

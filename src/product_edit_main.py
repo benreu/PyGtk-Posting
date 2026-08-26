@@ -71,6 +71,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.connect_signals(self)
 		self.product_overview = product_overview
 		self.set_models ()
+		self.populate_product_names ()
 		textview = self.get_object('textview1')
 		spell_check.add_checker_to_widget (textview)
 		self.treeview = self.get_object('treeview2')
@@ -94,6 +95,17 @@ class ProductEditMainGUI (Gtk.Builder):
 		comp = self.get_object('revenue_completion')
 		comp.set_model(product_revenue_list)
 		comp.set_match_func(self.account_match_func, product_revenue_list)
+
+	def populate_product_names (self):
+		store = self.get_object('product_completion_store_placeholder')
+		c = DB.cursor()
+		c.execute("SELECT name FROM products "
+					"WHERE deleted = False "
+					"ORDER BY name")
+		for row in c.fetchall():
+			store.append(row)
+		c.close()
+		DB.rollback()
 
 	def set_window_layout_from_settings (self):
 		sqlite = get_apsw_connection ()
