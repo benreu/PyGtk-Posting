@@ -254,8 +254,9 @@ class ContactEditMainGUI(Gtk.Builder):
 			contact_id = cursor.fetchone()[0]
 			cursor.close()
 			DB.commit()
-			self.overview_class.append_contact(contact_id)
-			self.overview_class.select_contact(contact_id)
+			if self.overview_class != None:
+				self.overview_class.append_contact(contact_id)
+				self.overview_class.select_contact(contact_id)
 		self.window.destroy()
 
 	def name_entry_focus_out_event (self, entry, event):
