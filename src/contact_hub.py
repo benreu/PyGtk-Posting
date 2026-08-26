@@ -60,10 +60,10 @@ class ContactHubGUI:
 		self.window.destroy()
 
 	def edit_contact_clicked (self, button):
-		import contacts_overview
-		cov = contacts_overview.ContactsOverviewGUI()
-		cov.select_contact(self.contact_id)
-		cov.edit_contact()
+		import contact_edit_main
+		ce = contact_edit_main.ContactEditMainGUI(self.contact_id)
+		if ce.contact_lock_acquired == False:
+			return # somebody else is editing it, keep the hub up
 		self.window.destroy()
 
 	def job_sheet_history_clicked (self, button):
