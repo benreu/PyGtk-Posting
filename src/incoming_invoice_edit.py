@@ -304,7 +304,28 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		else:
 			payment_button.set_label('No payment account selected')
 
+	def reconciled_edit_accepted (self):
+		c = DB.cursor()
+		c.execute("SELECT COUNT(ge.id) FROM gl_entries ge "
+					"JOIN incoming_invoices ii "
+					"ON ii.gl_transaction_id = ge.gl_transaction_id "
+					"WHERE ii.id = %s AND ge.reconciled = True",
+					(self.invoice_id,))
+		reconciled = c.fetchone()[0]
+		c.close()
+		if reconciled == 0:
+			return True
+		dialog = self.get_object('reconciled_dialog')
+		response = dialog.run()
+		dialog.hide()
+		if response != Gtk.ResponseType.ACCEPT:
+			DB.rollback()
+			return False
+		return True
+
 	def save_edits_clicked (self, button):
+		if self.reconciled_edit_accepted () == False:
+			return
 		c = DB.cursor()
 		contact_id = self.get_object('contact_combobox').get_active_id()
 		contact_name = self.get_object('contact_name_entry').get_text()
@@ -312,11 +333,11 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		total = Decimal(self.get_object('spinbutton1').get_text())
 		tx_description = self.get_object('transaction_description_entry').get_text()
 		payment_account = self.get_object('payment_combo').get_active_id()
-		cheque_number = self.get_object('cheque_number_spin').get_text()
+		cheque_number = self.get_object('cheque_number_spin').get_value_as_int()
 		if tx_description == '':
 			tx_description = None
 		if cheque_number == 0:
-			cheque_number = None
+			cheque_number = None # 0 is the "no cheque" sentinel, see the tooltip
 		c.execute(	"UPDATE incoming_invoices SET "
 						"(contact_id, "
 						"date_created, "
@@ -325,22 +346,28 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 						"attached_pdf) "
 					"= (%s, %s, %s, %s, %s) WHERE id = %s;"
 					"UPDATE gl_entries SET "
-					"(transaction_description, check_number, credit_account) = (%s, %s, %s) "
+					"(amount, date_inserted, transaction_description, "
+						"check_number, credit_account) = (%s, %s, %s, %s, %s) "
 					"WHERE id = (SELECT gl_entry_id "
-						"FROM incoming_invoices WHERE id = %s)", 
-					(contact_id, self.date, total, description, 
-					self.file_data, self.invoice_id, 
-					tx_description, cheque_number, payment_account, self.invoice_id))
+						"FROM incoming_invoices WHERE id = %s);"
+					"UPDATE gl_transactions SET date_inserted = %s "
+					"WHERE id = (SELECT gl_transaction_id "
+						"FROM incoming_invoices WHERE id = %s)",
+					(contact_id, self.date, total, description,
+					self.file_data, self.invoice_id,
+					total, self.date, tx_description, cheque_number,
+					payment_account, self.invoice_id,
+					self.date, self.invoice_id))
 		for row in self.expense_percentage_store:
 			row_id = row[0]
 			amount = row[3]
 			account = row[4]
 			remark = row[7]
-			c.execute("UPDATE gl_entries SET (amount, debit_account) = "
-						"(%s, %s) WHERE id = %s; "
+			c.execute("UPDATE gl_entries SET (amount, date_inserted, "
+						"debit_account) = (%s, %s, %s) WHERE id = %s; "
 						"UPDATE incoming_invoices_gl_entry_expenses_ids "
 						"SET remark = %s WHERE gl_entry_expense_id = %s",
-						(amount, account, row_id, remark, row_id))
+						(amount, self.date, account, row_id, remark, row_id))
 		DB.commit()
 		c.close()
 		self.window.destroy()
