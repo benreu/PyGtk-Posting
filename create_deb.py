@@ -21,12 +21,37 @@ import shutil, os, subprocess, re
 JOIN = os.path.join
 CWD = os.getcwd()
 
+SKIP_NAMES = ("__pycache__", ".git", ".vscode")
+# src/linuxzpl is the LinuxZPL submodule, a whole application. Only its zplcore
+# engine and gtkui frontend are Posting's business; qtui is PySide2, tests
+# imports qtui, and linuxzpl.py is its standalone launcher. None are ever
+# imported by Posting, so shipping them would be dead weight in the .deb.
+SKIP_PATHS = tuple(JOIN("src", "linuxzpl", name)
+					for name in ("qtui", "tests", "linuxzpl.py"))
+
+
+def skip (folder, name):
+	return name in SKIP_NAMES or JOIN(folder, name) in SKIP_PATHS
+
+
+def check_submodule ():
+	"a .deb built without the submodule ships a designer that cannot open"
+	if not os.path.isdir(JOIN(CWD, "src", "linuxzpl", "zplcore")):
+		raise SystemExit("src/linuxzpl is empty. Run:\n"
+							"    git submodule update --init src/linuxzpl")
+	status = subprocess.run(["git", "submodule", "status", "src/linuxzpl"],
+							capture_output = True, text = True).stdout
+	if status.startswith('+'):
+		print("WARNING: src/linuxzpl is not at the pinned commit, so this "
+				"package would ship an engine no commit describes:\n  "
+				+ status.strip())
+
 
 def copy_files (folder, dest_folder):
 	"copy all the .py, .sql, and .ui files to their respective folders"
 	orig_folder = JOIN(CWD, folder)
 	with os.scandir(orig_folder) as objects:
-		for obj in (o for o in objects if o.name != "__pycache__"):
+		for obj in (o for o in objects if not skip(folder, o.name)):
 			if not obj.is_dir():
 				source_obj = JOIN(folder, obj)
 			if obj.is_dir():
@@ -50,6 +75,8 @@ def copy_files (folder, dest_folder):
 				py_dest = JOIN(py_dest, obj.name)
 				shutil.copy2(py_file, py_dest)
 				os.chmod (py_dest, 0o644)
+
+check_submodule ()
 
 with open ("./Makefile", 'r') as mf:
 	"read Anjuta makefile for version number"

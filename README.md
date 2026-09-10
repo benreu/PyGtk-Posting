@@ -130,9 +130,13 @@ sudo apt-get install -f
 
 ### From Source
 ```bash
-# Clone the repository
-git clone https://github.com/benreu/PyGtk-Posting.git
+# Clone the repository. --recursive also fetches the LinuxZPL label engine,
+# which powers the Zebra label designer and lives in a git submodule.
+git clone --recursive https://github.com/benreu/PyGtk-Posting.git
 cd PyGtk-Posting
+
+# Already cloned without --recursive? This fetches it after the fact:
+git submodule update --init
 
 # Install dependencies (Debian/Ubuntu)
 sudo apt-get install python3-apsw python3-cairocffi python3-genshi \
@@ -176,8 +180,10 @@ PyGtk-Posting/
 │   ├── manufacturing/     # Manufacturing and assembly
 │   ├── payroll/           # Payroll management
 │   ├── reports/           # Reporting engine
+│   ├── linuxzpl/          # LinuxZPL label engine (git submodule)
 │   └── *.py               # Core modules (accounts, customers, vendors, etc.)
 ├── templates/             # LibreOffice document templates (.odt)
+├── tools/                 # Developer checks, not shipped
 ├── help/                  # Help documentation
 ├── icons/                 # Application icons
 └── pygtk-posting         # Main launcher script
