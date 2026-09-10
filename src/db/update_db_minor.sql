@@ -578,3 +578,39 @@ ALTER TABLE public.manufacturing_items DROP COLUMN IF EXISTS deleted;
 
 CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq
 	ON public.manufacturing_items (manufacturing_project_id, default_product_id);
+--0.7.13
+CREATE TABLE IF NOT EXISTS settings.zebra_templates (
+	id serial PRIMARY KEY,
+	name varchar NOT NULL UNIQUE,
+	label_type varchar NOT NULL DEFAULT 'product',
+	template text NOT NULL,
+	date_created date NOT NULL DEFAULT now(),
+	date_changed timestamp with time zone NOT NULL DEFAULT now(),
+	CONSTRAINT zebra_templates_label_type_ck
+		CHECK (label_type IN ('product', 'serial'))
+);
+
+INSERT INTO settings.zebra_templates (name, label_type, template) VALUES
+('Product barcode', 'product', '^XA
+^PW182
+
+^FO0,15
+^BY2
+^A0N,20,20
+^BCN,25,Y,N,N,A
+^FD%s^FS
+
+^FO0,70
+^A0N,40,40
+^FB182,4,1,C,0
+^FD%s\&^FS
+
+^XZ
+'),
+('Serial barcode', 'serial', '^XA
+^FO45,50^BY3
+^A0N,70,70^BCN,100,Y,N,N,A
+^FD%s^FS
+^XZ
+')
+ON CONFLICT (name) DO NOTHING;

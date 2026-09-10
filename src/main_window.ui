@@ -1074,6 +1074,16 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem84">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Zebra label designer</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="zebra_designer_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem50">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>

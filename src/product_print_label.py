@@ -17,10 +17,10 @@
 
 
 from gi.repository import Gtk, GLib
-import subprocess, os, glob
+import subprocess, os
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
-import barcode_generator, pricing
+import barcode_generator, pricing, zebra
 
 UI_FILE = ui_directory + "/product_print_label.ui"
 
@@ -72,17 +72,11 @@ class ProductPrintLabelGUI (Gtk.Builder):
 
 	def populate_system_labels(self):
 		store = self.get_object('printer_template_store')
-		store.clear()
-		for path in glob.glob('./templates/product*.odt'):
-			name = path.replace('./templates/', '')
-			store.append(["odt", name])
-			
+		zebra.populate_odt_store(store, 'product*.odt')
+
 	def populate_zebra_labels(self):
 		store = self.get_object('printer_template_store')
-		store.clear()
-		for path in glob.glob('./templates/Zebra/*'):
-			name = path.replace('./templates/', '')
-			store.append(["zpl", name])
+		zebra.populate_template_store(store, zebra.PRODUCT)
 
 	def populate_printers(self):
 		store = self.get_object('printer_store')
@@ -162,21 +156,17 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		else:
 			self.get_object('print_label_checkbutton').set_sensitive(True)
 
-	def get_template_path (self):
-		template_id = self.get_object('template_combo').get_active_id()
-		if template_id == None:
-			return None, None
+	def get_template (self):
+		"The selected template, as (kind, zpl template id or .odt path)."
 		template_iter = self.get_object('template_combo').get_active_iter()
-		model = self.get_object('printer_template_store')
-		template = model[template_iter][1]
-		try:
-			template_dir = os.path.join( os.getcwd() , "templates")
-			abs_file_path = os.path.join(template_dir, template)
-		except Exception as e:
-			print(e)
-			self.show_message(str(e))
+		if template_iter == None:
 			return None, None
-		return template_id, abs_file_path
+		model = self.get_object('printer_template_store')
+		kind, name, db_id = model[template_iter][0], model[template_iter][1], \
+							model[template_iter][2]
+		if kind == 'zpl':
+			return kind, db_id
+		return kind, os.path.join(template_dir, name)
 
 	def print_label (self):
 		print("print")
@@ -185,37 +175,24 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		printer_id = self.get_object('printer_combo').get_active_id()
 		if printer_id == None:
 			return
-		template_id, abs_file_path = self.get_template_path()
-		if template_id == None:
+		kind, template = self.get_template()
+		if kind == None:
 			return
-		if template_id == 'zpl':
-			self.zebra_print_label(barcode, product_name, 1, abs_file_path)
-		elif template_id == 'odt':
-			label_file = self.system_print_label(barcode, product_name, 1, abs_file_path)
+		if kind == 'zpl':
+			self.zebra_print_label(barcode, product_name, 1, template)
+		elif kind == 'odt':
+			label_file = self.system_print_label(barcode, product_name, 1, template)
 
-	def zebra_print_label (self, barcode, product_name, label_qty, template_file):
+	def zebra_print_label (self, barcode, product_name, label_qty, template_id):
 		printer_iter = self.get_object('printer_combo').get_active_iter()
 		model = self.get_object('printer_store')
 		host = model[printer_iter][2]
 		port = model[printer_iter][3]
 		try:
-			with open(template_file) as template:
-				template_str = template.read()
-		except Exception as e:
-			print (e)
-			return
-		import socket
-		mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		try:
-			mysocket.connect((host, port))
-		except OSError as e:
-			print(e)
+			zebra.print_label(host, port, template_id,
+								(barcode, product_name), label_qty)
+		except zebra.ZebraError as e:
 			self.show_message(str(e))
-			return
-		for i in range(label_qty):
-			barcode_str = template_str % (barcode, product_name) 
-			mysocket.send(bytes(barcode_str, 'utf-8'))#using bytes 
-		mysocket.close () #closing connection
 
 	def system_print_label (self, barcode, product_name, label_qty, template_file):
 		label_file = self.generate_label(template_file)
@@ -225,10 +202,10 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		self.print_label()
 
 	def view_label_clicked (self, button):
-		template_id, abs_file_path = self.get_template_path()
-		if template_id != 'odt':
+		kind, template = self.get_template()
+		if kind != 'odt':
 			return
-		label_file = self.generate_label(abs_file_path)
+		label_file = self.generate_label(template)
 		subprocess.Popen(["soffice", label_file])
 
 	def generate_label (self, template):

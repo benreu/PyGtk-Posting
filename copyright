@@ -8,3 +8,10 @@ License:   GPL-3
 Files:     *
 Copyright: 2015-2018 Reuben Rissler <pygtk.posting@gmail.com>
 License:   GPL-3+
+
+Files:     src/linuxzpl/*
+Copyright: 2026 Reuben Rissler <pygtk.posting@gmail.com>
+License:   GPL-3+
+Comment:   The LinuxZPL label engine, tracked as a git submodule of
+           https://github.com/benreu/LinuxZPL and shipped in this package.
+           The exact commit is recorded by the submodule in git.

@@ -113,6 +113,21 @@ class MainGUI :
 		from db import sql_window
 		sql_window.SQLWindowGUI()
 
+	def zebra_designer_activated (self, menuitem):
+		try:
+			import zebra_designer
+		except ImportError as e:
+			# the designer lives in a git submodule that a plain clone leaves
+			# empty; without this the traceback dies inside the Gtk callback
+			dialog = Gtk.MessageDialog(message_type = Gtk.MessageType.ERROR,
+										buttons = Gtk.ButtonsType.CLOSE)
+			dialog.set_transient_for(self.window)
+			dialog.set_markup(str(e))
+			dialog.run()
+			dialog.destroy()
+			return
+		zebra_designer.ZebraDesignerGUI()
+
 	def complete_search_activated (self, menuitem):
 		import complete_search
 		complete_search.CompleteSearchGUI()

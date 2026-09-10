@@ -28,6 +28,8 @@
       <column type="gchararray"/>
       <!-- column-name name -->
       <column type="gchararray"/>
+      <!-- column-name db_id -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkListStore" id="product_store">
