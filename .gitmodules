@@ -1,0 +1,4 @@
+[submodule "src/linuxzpl"]
+	path = src/linuxzpl
+	url = https://github.com/benreu/LinuxZPL.git
+	branch = develop
