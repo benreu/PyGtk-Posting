@@ -343,9 +343,21 @@ ALTER TABLE public.manufacturing_items
 	ADD CONSTRAINT manufacturing_items_purchase_order_item_id_fkey
 		FOREIGN KEY (purchase_order_item_id) REFERENCES public.purchase_order_items (id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq
-	ON public.manufacturing_items (manufacturing_project_id, default_product_id)
-	WHERE deleted = False;
+/* Guarded because this whole file re-runs from the top on every upgrade,
+   and 0.7.12 below drops manufacturing_items.deleted. Without the guard this
+   statement fails to parse on any database already at 0.7.12. EXECUTE keeps
+   the inner SQL a string, so it is only parsed when the column is really
+   there. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns
+				WHERE table_schema = 'public'
+					AND table_name = 'manufacturing_items'
+					AND column_name = 'deleted') THEN
+		EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS manufacturing_items_project_default_product_uq ON public.manufacturing_items (manufacturing_project_id, default_product_id) WHERE deleted = False';
+	END IF;
+END
+$$;
 --0.7.10
 CREATE OR REPLACE FUNCTION public.purchase_order_updated() RETURNS trigger
     LANGUAGE plpgsql
@@ -544,7 +556,21 @@ UPDATE public.product_assembly_items SET remark = '' WHERE remark IS NULL;
 ALTER TABLE public.product_assembly_items ALTER COLUMN remark SET DEFAULT '';
 ALTER TABLE public.product_assembly_items ALTER COLUMN remark SET NOT NULL;
 --0.7.12
-DELETE FROM public.manufacturing_items WHERE deleted = True;
+/* Guarded because this whole file re-runs from the top on every upgrade,
+   and the statement three lines below drops manufacturing_items.deleted. On
+   the second run the column is gone and this would fail to parse. EXECUTE
+   keeps the inner SQL a string, so it is only parsed when the column is
+   really there. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns
+				WHERE table_schema = 'public'
+					AND table_name = 'manufacturing_items'
+					AND column_name = 'deleted') THEN
+		EXECUTE 'DELETE FROM public.manufacturing_items WHERE deleted = True';
+	END IF;
+END
+$$;
 
 DROP INDEX IF EXISTS manufacturing_items_project_default_product_uq;
 
