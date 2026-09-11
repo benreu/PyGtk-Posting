@@ -168,9 +168,10 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 	def build_database_menu (self):
 		'''Beside File, in the same shape: mnemonics, groups, an ellipsis on
 		anything that asks first. Save template has no accelerator because
-		Ctrl+S already saves to wherever the document lives, and Delete has
-		none because it removes the template from every client.
+		Ctrl+S already saves to wherever the document lives, and Rename and
+		Delete have none because they change the template for every client.
 		'''
+		self.stored_only = [] # items that act on the row, so need one
 		menu = Gtk.Menu()
 		top = Gtk.MenuItem.new_with_mnemonic("_Database")
 		top.set_submenu(menu)
@@ -180,6 +181,7 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 				("_Save template", self.save_template, None),
 				("Save template _as…", self.save_template_as, None),
 				(None, None, None),
+				("_Rename template…", self.rename_template, None),
 				("_Delete template…", self.delete_template, None)):
 			if label == None:
 				menu.append(Gtk.SeparatorMenuItem())
@@ -191,8 +193,8 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 				item.add_accelerator("activate", self.database_accels, key, mods,
 										Gtk.AccelFlags.VISIBLE)
 			menu.append(item)
-			if action == self.delete_template:
-				self.delete_item = item
+			if action in (self.rename_template, self.delete_template):
+				self.stored_only.append(item)
 		# upstream keeps its menu bar as a local, so find it where it was
 		# packed: the header bar's only child
 		bars = [child for child in self.get_titlebar().get_children()
@@ -253,8 +255,8 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		if titlebar != None:
 			titlebar.set_title(name)
 			titlebar.set_subtitle(where)
-		if hasattr(self, 'delete_item'):
-			self.delete_item.set_sensitive(self.template_id != None)
+		for item in getattr(self, 'stored_only', []):
+			item.set_sensitive(self.template_id != None)
 
 	###########################################################################
 	# the file path, left to upstream except for re-homing
@@ -453,6 +455,34 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		self.update_status("Saved: %s" % name)
 		return True
 
+	def rename_template (self, widget = None):
+		'''Database > Rename template...: the row's name changes, nothing else.
+
+		Save as under a new name is a copy, and left the old row behind; this
+		is the rename it was being used for. The canvas is untouched, so the
+		dirty flag is left alone: unsaved edits stay unsaved, under the new
+		name.
+		'''
+		if self.template_id == None:
+			return
+		old = self.template_name
+		name = self.ask_new_name()
+		if name == None or name == old:
+			return
+		try:
+			zebra.rename_template(self.template_id, name)
+		except zebra.TemplateGone as e:
+			# as save_template: the name stays, as the Save as prefill
+			self.show_error_dialog(str(e))
+			self.detach()
+			return
+		except zebra.ZebraError as e:
+			self.show_error_dialog(str(e))
+			return
+		self.template_name = name
+		self.update_title()
+		self.update_status('Renamed "%s" to "%s"' % (old, name))
+
 	def delete_template (self, widget = None):
 		"Database > Delete template...: the row goes, the canvas stays."
 		if self.template_id == None:
@@ -526,6 +556,35 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 				label_type = combo.get_active_id()
 				dialog.destroy()
 				return name, label_type
+			self.show_error_dialog("The template needs a name.")
+
+	def ask_new_name (self):
+		'''Prompt for the open template's new name, or None.
+
+		Not ask_name_and_type with the type combo hidden: changing the type
+		re-validates the ZPL's placeholder count, which is a different thing
+		from renaming, and Save as is where that already lives.
+		'''
+		dialog = Gtk.Dialog(title="Rename label template", parent=self, flags=0)
+		dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+							"Rename", Gtk.ResponseType.OK)
+		dialog.set_default_response(Gtk.ResponseType.OK)
+		entry = Gtk.Entry()
+		entry.set_activates_default(True)
+		entry.set_text(self.template_name)
+		grid = Gtk.Grid(row_spacing = 4, column_spacing = 6, border_width = 6)
+		grid.attach(Gtk.Label(label = "Name", halign = Gtk.Align.END), 0, 0, 1, 1)
+		grid.attach(entry, 1, 0, 1, 1)
+		dialog.get_content_area().pack_start(grid, True, True, 0)
+		dialog.show_all()
+		while True:
+			if dialog.run() != Gtk.ResponseType.OK:
+				dialog.destroy()
+				return None
+			name = entry.get_text().strip()
+			if name != '':
+				dialog.destroy()
+				return name
 			self.show_error_dialog("The template needs a name.")
 
 	def confirm_overwrite (self, name):

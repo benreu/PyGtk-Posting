@@ -113,6 +113,28 @@ def save_template (name, label_type, text, template_id = None):
 	return row[0]
 
 
+def rename_template (template_id, name):
+	"Change a template's name, leaving its ZPL and type alone."
+	cursor = DB.cursor()
+	try:
+		cursor.execute("UPDATE settings.zebra_templates SET "
+						"(name, date_changed) = (%s, now()) WHERE id = %s "
+						"RETURNING id", (name, template_id))
+	except psycopg2.IntegrityError:
+		# as in save_template: UNIQUE(name), and roll back or the shared
+		# connection is left in an aborted transaction
+		cursor.close()
+		DB.rollback()
+		raise ZebraError("A label template named '%s' already exists." % name)
+	row = cursor.fetchone()
+	cursor.close()
+	if row == None:
+		DB.rollback()
+		raise TemplateGone("The label template no longer exists; it may have "
+							"been deleted by another user.")
+	DB.commit()
+
+
 def delete_template (template_id):
 	cursor = DB.cursor()
 	cursor.execute("DELETE FROM settings.zebra_templates WHERE id = %s",
