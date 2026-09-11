@@ -1,11 +1,11 @@
-#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=PyGtk Posting
-Categories=Office
+Categories=Office;Finance;
+Keywords=accounting;invoice;inventory;payroll;business;
 Exec=pygtk-posting
 Comment=Open source accounting and business management system
 Icon=pygtk-posting
 Type=Application
 Name[en_US]=PyGtk Posting
 X-GNOME-FullName=PyGtk Posting
-Terminal=False
+Terminal=false

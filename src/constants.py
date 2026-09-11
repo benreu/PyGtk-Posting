@@ -17,6 +17,10 @@
 
 import os, shutil
 
+# the release number. create_deb.py stamps it into the debian control file
+# and the about dialog shows it, so this is the only place it is written
+VERSION = "0.5.35"
+
 dev_mode = False
 is_admin = False
 log_file = None

@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk
 
-from constants import ui_directory
+from constants import ui_directory, VERSION
 
 UI_FILE = ui_directory + "/about_window.ui"
 
@@ -27,6 +27,7 @@ class AboutWindowGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		about_window = self.get_object('aboutdialog1')
+		about_window.set_version(VERSION)
 		about_window.set_transient_for(main_window)
 		about_window.add_credit_section("Special thanks", ["Eli Sauder"])
 		about_window.add_credit_section("Suggestions/advice from (in no particular order)", 

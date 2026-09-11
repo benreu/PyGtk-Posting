@@ -1,0 +1,39 @@
+.TH PYGTK-POSTING 1 "September 2026" "PyGtk Posting" "User Commands"
+.SH NAME
+pygtk-posting \- accounting and business management for Linux
+.SH SYNOPSIS
+.B pygtk-posting
+.SH DESCRIPTION
+.B pygtk-posting
+starts PyGtk Posting, an open source accounting and business management
+system built with Gtk and backed by PostgreSQL. It covers invoicing,
+purchase orders, inventory, manufacturing, payroll, time tracking and
+reporting, and prints documents from LibreOffice (.odt) and HTML
+templates, including Zebra (ZPL) product labels.
+.PP
+The program takes no options. It connects to the PostgreSQL server
+recorded in its settings file; when that fails, or on the first run, it
+opens the database settings window instead so the server can be chosen.
+.SH FILES
+.TP
+.I ~/.config/posting/local_settings
+Connection details and per-user settings (an SQLite database).
+.TP
+.I ~/.config/posting/templates/
+Working copies of the document templates, seeded from
+.I /usr/share/pygtk_posting/templates/
+on the first run. Edit these to customise printed documents.
+.TP
+.I ~/.config/posting/modules/
+Working copies of the optional modules, seeded from
+.IR /usr/lib/python3/dist-packages/pygtk_posting/modules/ .
+.TP
+.I ~/.config/posting/logs/
+One log file per session.
+.SH SEE ALSO
+The Help menu inside the program, and
+.UR https://github.com/benreu/PyGtk-Posting
+the project page
+.UE .
+.SH AUTHOR
+Reuben Rissler <pygtk.posting@gmail.com>

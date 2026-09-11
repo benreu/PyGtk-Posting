@@ -15,28 +15,76 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-# run this file with the command    fakeroot python3 ./create_deb.py
+# run this file with the command    python3 ./create_deb.py
+# (dpkg-deb --root-owner-group makes root own the files, so no fakeroot)
 
-import shutil, os, subprocess, re
-JOIN = os.path.join
-CWD = os.getcwd()
+import shutil, os, sys, subprocess, re, gzip, hashlib
+from pathlib import Path
 
-SKIP_NAMES = ("__pycache__", ".git", ".vscode")
+ROOT = Path(__file__).resolve().parent
+
+# git decides what exists; these are the only trees anything is swept from
+PACKAGED_DIRS = ("src", "templates", "help", "icons")
+# (source prefix, suffixes that ship, destination prefix). whatever lies
+# below the source prefix keeps its relative path under the destination,
+# so src/admin/x.ui lands in .../ui/admin/x.ui. first matching row wins.
+ROUTES = (
+	("src", (".py", ".sql"), "usr/lib/python3/dist-packages/pygtk_posting"),
+	("src", (".ui",), "usr/share/pygtk_posting/ui"),
+	("templates", (".odt", ".txt", ".html"), "usr/share/pygtk_posting/templates"),
+	("help/C/pygtk-posting", (".page",), "usr/share/help/C/pygtk-posting"),
+	("icons", None, "usr/share/icons"),
+)
 # src/linuxzpl is the LinuxZPL submodule, a whole application. Only its zplcore
 # engine and gtkui frontend are Posting's business; qtui is PySide2, tests
 # imports qtui, and linuxzpl.py is its standalone launcher. None are ever
 # imported by Posting, so shipping them would be dead weight in the .deb.
-SKIP_PATHS = tuple(JOIN("src", "linuxzpl", name)
+SKIP_PATHS = tuple(Path("src", "linuxzpl", name)
 					for name in ("qtui", "tests", "linuxzpl.py"))
+# 1:1 copies into unrelated trees, with the mode debian policy wants: only
+# the launcher and the maintainer scripts are executable
+SINGLE_FILES = (
+	("pygtk-posting", "usr/bin", 0o755),
+	("pygtk-posting.desktop", "usr/share/applications", 0o644),
+	("copyright", "usr/share/doc/pygtk-posting", 0o644),
+	("code128.ttf", "usr/share/fonts/truetype/code128", 0o644),
+	("control", "DEBIAN", 0o644),
+	("postinst", "DEBIAN", 0o755),
+	("prerm", "DEBIAN", 0o755),
+)
+# (source, destination file) pairs that policy wants gzipped at level 9
+GZIPPED_FILES = (
+	("changelog", "usr/share/doc/pygtk-posting/changelog.gz"),
+	("pygtk-posting.1", "usr/share/man/man1/pygtk-posting.1.gz"),
+)
 
 
-def skip (folder, name):
-	return name in SKIP_NAMES or JOIN(folder, name) in SKIP_PATHS
+def git_ls_files (*args, cwd = None):
+	"NUL separated so git never quotes a path, decoded the way the os sees names"
+	out = subprocess.run(["git", "ls-files", "-z", *args], cwd = cwd,
+						capture_output = True, check = True).stdout
+	return [os.fsdecode(name) for name in out.split(b"\0") if name]
+
+
+def tracked_files ():
+	"every file git knows about under the packaged trees, submodule included"
+	return [Path(name) for name in
+			git_ls_files("--recurse-submodules", "--", *PACKAGED_DIRS)]
+
+
+def destination (path):
+	"where a repo-relative file lands in the package, or None if it does not ship"
+	if any(path.is_relative_to(skip) for skip in SKIP_PATHS):
+		return None
+	for source, suffixes, dest in ROUTES:
+		if path.is_relative_to(source) and (suffixes is None or path.suffix in suffixes):
+			return Path(dest) / path.relative_to(source)
+	return None
 
 
 def check_submodule ():
 	"a .deb built without the submodule ships a designer that cannot open"
-	if not os.path.isdir(JOIN(CWD, "src", "linuxzpl", "zplcore")):
+	if not Path("src", "linuxzpl", "zplcore").is_dir():
 		raise SystemExit("src/linuxzpl is empty. Run:\n"
 							"    git submodule update --init src/linuxzpl")
 	status = subprocess.run(["git", "submodule", "status", "src/linuxzpl"],
@@ -47,109 +95,123 @@ def check_submodule ():
 				+ status.strip())
 
 
-def copy_files (folder, dest_folder):
-	"copy all the .py, .sql, and .ui files to their respective folders"
-	orig_folder = JOIN(CWD, folder)
-	with os.scandir(orig_folder) as objects:
-		for obj in (o for o in objects if not skip(folder, o.name)):
-			if not obj.is_dir():
-				source_obj = JOIN(folder, obj)
-			if obj.is_dir():
-				if dest_folder == '':
-					copy_files (os.path.relpath(obj), obj.name)
-				else:
-					copy_files (os.path.relpath(obj), (dest_folder+"/"+obj.name))
-			elif obj.name.endswith (".ui") :
-				ui_dest = JOIN(ui_dest_folder, dest_folder)
-				if not os.path.exists(ui_dest):
-					os.mkdir(ui_dest)
-				ui_file = JOIN(orig_folder, obj)
-				ui_dest = JOIN(ui_dest, obj.name)
-				shutil.copy2(ui_file, ui_dest)
-				os.chmod(ui_dest, 0o644)
-			elif obj.name.endswith (".py") or obj.name.endswith (".sql") :
-				py_dest = JOIN(py_dest_folder, dest_folder)
-				if not os.path.exists(py_dest):
-					os.makedirs (py_dest)
-				py_file = JOIN(orig_folder, obj)
-				py_dest = JOIN(py_dest, obj.name)
-				shutil.copy2(py_file, py_dest)
-				os.chmod (py_dest, 0o644)
+def warn_untracked ():
+	"a module that was never git added would silently be missing from the .deb"
+	names = git_ls_files("--others", "--exclude-standard", "--", *PACKAGED_DIRS)
+	# --others does not recurse into submodules, so ask linuxzpl itself
+	names += ["src/linuxzpl/" + name for name in
+				git_ls_files("--others", "--exclude-standard", cwd = "src/linuxzpl")]
+	missing = [name for name in names if destination(Path(name)) is not None]
+	if missing:
+		print("WARNING: these files would ship but are not tracked by git, "
+				"so they are NOT in this package (git add them if they belong):")
+		for name in missing:
+			print("  " + name)
 
-check_submodule ()
 
-with open ("./Makefile", 'r') as mf:
-	"read Anjuta makefile for version number"
-	for line in mf.read().split('\n'):
-		if line[0:14] == 'PACKAGE_STRING': # get current version of Posting
-			tupl = line.split()
-			version = tupl[-1]
-output = ''
-with open ("control", 'r') as old_c:
-	"read current debian control file"
-	for row, text in enumerate(old_c.read().split('\n')):
-		if row == 1:
-			output += ("Version: %s\n" % version)
-		elif text != '':
-			output += (text + "\n")
-with open ("control", 'w') as new_c:
-	"write posting version to debian control file"
-	new_c.write(output)
-package_name = "pygtk_posting_%s-1" % version
-package_folder = JOIN(CWD, package_name)
-if os.path.exists(package_folder):
-	print ("folder %s already exists, this may result in improper debian packaging" % package_folder)
-#create .ui file directory
-ui_dest_folder = JOIN(package_folder, "usr/share/pygtk_posting/ui")
-os.makedirs (ui_dest_folder)
-#create .py file directory
-py_dest_folder = JOIN(package_folder, "usr/lib/python3/dist-packages/pygtk_posting")
-os.makedirs (py_dest_folder)
-copy_files ("src", '')
-#create .odt template folders
-odt_dest_folder = JOIN(package_folder, "usr/share/pygtk_posting/templates")
-os.makedirs (odt_dest_folder)
-with os.scandir(JOIN(CWD, "templates")) as odts:
-	for odt in odts:
-		end = odt.name.endswith
-		if end(".odt") or end(".txt"): 
-			shutil.copy2(odt, odt_dest_folder)
-#create .page help file directory
-help_dest_folder = JOIN(package_folder, "usr/share/help/C/pygtk-posting")
-os.makedirs (help_dest_folder)
-with os.scandir(JOIN(CWD, "help/C/pygtk-posting")) as pages:
-	for page in pages:
-		if page.name.endswith(".page") : 
-			shutil.copy2(page, help_dest_folder)
-#create usr/bin folder + main executable
-exec_dest_folder = JOIN(package_folder, "usr/bin")
-os.makedirs (exec_dest_folder)
-shutil.copy2(JOIN(CWD, "pygtk-posting"), exec_dest_folder)
-#create desktop entry
-desktop_dest_folder = JOIN(package_folder, "usr/share/applications")
-os.makedirs (desktop_dest_folder)
-shutil.copy2(JOIN(CWD, "pygtk-posting.desktop"), desktop_dest_folder)
-#create icon directory
-shutil.copytree(JOIN(CWD, "icons"), JOIN(package_folder, "usr/share/icons"))
-#create directory required for all debian packages
-doc_dest_folder = JOIN(package_folder, "usr/share/doc/pygtk-posting")
-os.makedirs (doc_dest_folder)
-shutil.copy2(JOIN(CWD, "copyright"), doc_dest_folder)
-#include code128 truetype font for templates with barcodes
-font_dest_folder = JOIN(package_folder, "usr/share/fonts/truetype/code128")
-os.makedirs (font_dest_folder)
-shutil.copy2(JOIN(CWD, "code128.ttf"), font_dest_folder)
-#copy files for debian packaging
-debian_folder = JOIN(package_folder, "DEBIAN")
-os.mkdir (debian_folder)
-shutil.copy2(JOIN(CWD, "control"), debian_folder)
-shutil.copy2(JOIN(CWD, "postinst"), debian_folder)
-shutil.copy2(JOIN(CWD, "prerm"), debian_folder)
-#create debian package
-subprocess.call(["dpkg-deb", "--build", package_name])
-#call lintian to report problems
-subprocess.call(["lintian", package_name+".deb"])
-shutil.rmtree (package_folder)
+def posting_version ():
+	"VERSION in src/constants.py is the one source, shared with the about dialog"
+	sys.dont_write_bytecode = True
+	sys.path.insert(0, str(ROOT / "src"))
+	from constants import VERSION
+	return VERSION
 
-	
 
+def write_control_version (version):
+	"keep the tracked control file in step with constants.py"
+	control = Path("control")
+	text, count = re.subn(r"^Version: .*$", "Version: " + version,
+							control.read_text(), count = 1, flags = re.M)
+	if count != 1:
+		raise SystemExit("control has no Version: line")
+	control.write_text(text)
+
+
+def check_changelog (version):
+	"the changelog is written by hand, so make sure it was not forgotten"
+	top = Path("changelog").read_text().split("\n", 1)[0]
+	match = re.match(r"^pygtk-posting \((\S+)\) ", top)
+	if match is None:
+		raise SystemExit("changelog does not start with a 'pygtk-posting (version)' entry")
+	if match.group(1) != version:
+		raise SystemExit("changelog's newest entry is %s but src/constants.py says %s. "
+							"Add a changelog entry for this release." % (match.group(1), version))
+
+
+def copy_tracked_files (package_folder):
+	"copy every tracked file that has a place in the package"
+	copied = 0
+	for path in tracked_files():
+		dest = destination(path)
+		if dest is None:
+			continue
+		target = package_folder / dest
+		target.parent.mkdir(parents = True, exist_ok = True)
+		shutil.copy2(path, target)
+		os.chmod(target, 0o644)
+		copied += 1
+	return copied
+
+
+def copy_single_files (package_folder):
+	"launcher, desktop entry, docs, font and the debian maintainer files"
+	for name, dest, mode in SINGLE_FILES:
+		target = package_folder / dest
+		target.mkdir(parents = True, exist_ok = True)
+		shutil.copy2(name, target)
+		os.chmod(target / name, mode)
+
+
+def gzip_files (package_folder):
+	"changelog and man page. mtime 0 keeps the archive reproducible"
+	for name, dest in GZIPPED_FILES:
+		target = package_folder / dest
+		target.parent.mkdir(parents = True, exist_ok = True)
+		with gzip.GzipFile(target, "wb", compresslevel = 9, mtime = 0) as gz:
+			gz.write(Path(name).read_bytes())
+		os.chmod(target, 0o644)
+
+
+def write_md5sums (package_folder):
+	"DEBIAN/md5sums lets dpkg --verify spot files changed after installing"
+	lines = []
+	for path in sorted(package_folder.rglob("*")):
+		if path.is_file() and not path.is_relative_to(package_folder / "DEBIAN"):
+			digest = hashlib.md5(path.read_bytes()).hexdigest()
+			lines.append("%s  %s\n" % (digest, path.relative_to(package_folder)))
+	md5sums = package_folder / "DEBIAN" / "md5sums"
+	md5sums.write_text("".join(lines))
+	os.chmod(md5sums, 0o644)
+
+
+def main ():
+	os.chdir(ROOT)
+	os.umask(0o022) # so every directory the package creates is 0755
+	if shutil.which("dpkg-deb") is None:
+		raise SystemExit("dpkg-deb is not installed")
+	check_submodule()
+	warn_untracked()
+	version = posting_version()
+	check_changelog(version)
+	write_control_version(version)
+	package_name = "pygtk_posting_%s-1" % version
+	package_folder = ROOT / package_name
+	if package_folder.exists():
+		print("removing %s left behind by an earlier run" % package_name)
+		shutil.rmtree(package_folder)
+	copied = copy_tracked_files(package_folder)
+	copy_single_files(package_folder)
+	gzip_files(package_folder)
+	write_md5sums(package_folder)
+	print("%d tracked files packaged" % copied)
+	subprocess.run(["dpkg-deb", "--build", "--root-owner-group", package_name],
+					check = True)
+	if shutil.which("lintian") is None:
+		print("lintian is not installed, skipping the package check")
+	else:
+		subprocess.call(["lintian", package_name + ".deb"])
+	shutil.rmtree(package_folder)
+
+
+if __name__ == "__main__":
+	main()

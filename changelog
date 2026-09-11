@@ -1,0 +1,17 @@
+pygtk-posting (0.5.35) unstable; urgency=medium
+
+  * Add a Zebra label designer, powered by the LinuxZPL engine tracked as a
+    git submodule, with label templates stored in the database.
+  * Give the Zebra printers their own page in the Settings window.
+  * Recover cleanly from a lost database connection: no more endless
+    reconnect loops or a main loop spinning at 100% after a suspend.
+  * Give worker-thread queries their own database connection.
+  * Allow moving purchase order lines between orders and correcting a
+    closed purchase order from the vendor payment window.
+  * Open the contact and product editors directly from their hubs.
+  * Ship the HTML invoice, finance charge and purchase order templates,
+    which the package had been leaving out.
+  * Build the package from the git file list; the version now lives in
+    src/constants.py instead of the long-gone Anjuta Makefile.
+
+ -- Reuben Rissler <pygtk.posting@gmail.com>  Fri, 11 Sep 2026 07:06:26 -0400
