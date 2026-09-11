@@ -20,7 +20,7 @@ from gi.repository import Gtk, GLib
 from dateutils import DateTimeCalendar
 import psycopg2
 import subprocess, os
-import barcode_generator, zebra
+import barcode_generator, zebra, admin_utils
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
 
@@ -231,6 +231,25 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		else:
 			self.get_object('serial_number_entry').set_sensitive(True)
 			self.get_object('print_serial_number_button').set_sensitive(True)
+		self.get_object('edit_template_button').set_sensitive(
+			zebra.selected_template_id(combobox) != None)
+
+	def edit_template_clicked (self, button):
+		template_id = zebra.selected_template_id(self.get_object('template_combo'))
+		if template_id == None or not admin_utils.check_admin(self.window):
+			return
+		import zebra_designer
+		designer = zebra_designer.edit_template(template_id)
+		designer.connect('destroy', self.template_designer_closed, template_id)
+
+	def template_designer_closed (self, designer, template_id):
+		# a rename, or a Save as under a new name, should show in the combo.
+		# Repopulate the way the printer combo does, since the store is shared
+		# with the .odt list, then put the selection back: on the designer's
+		# final template if it still has one, else on the one that was open.
+		self.printer_combo_changed(self.get_object('printer_combo'))
+		zebra.select_template(self.get_object('template_combo'),
+								designer.template_id or template_id)
 
 	def serial_number_treeview_row_activated (self, treeview, path, column):
 		model = treeview.get_model()

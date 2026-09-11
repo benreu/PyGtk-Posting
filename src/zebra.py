@@ -25,6 +25,7 @@ pg_dump backs them up with everything else.
 '''
 
 import os, glob, socket
+import psycopg2
 from db_connection import DB
 from constants import template_dir
 
@@ -40,6 +41,15 @@ PLACEHOLDER_COUNT = {PRODUCT: 2, SERIAL: 1}
 
 class ZebraError (Exception):
 	'A failure with a message worth showing the user in a dialog.'
+
+
+class TemplateGone (ZebraError):
+	'''The template was deleted from under us, by another client.
+
+	Its own class so the designer can tell this apart from a template that
+	failed validation: the right response to "gone" is to offer Save as,
+	not to keep failing on the same dead id forever.
+	'''
 
 
 def list_templates (label_type = None):
@@ -67,7 +77,7 @@ def fetch_template (template_id):
 	DB.rollback()
 	if row == None:
 		# Another client can delete a template while this window sits open
-		raise ZebraError("The label template no longer exists; "
+		raise TemplateGone("The label template no longer exists; "
 							"reselect the printer to refresh the list.")
 	return row[0]
 
@@ -76,20 +86,28 @@ def save_template (name, label_type, text, template_id = None):
 	"Insert or update a template, returning its id."
 	validate_template(text, label_type)
 	cursor = DB.cursor()
-	if template_id == None:
-		cursor.execute("INSERT INTO settings.zebra_templates "
-						"(name, label_type, template) VALUES (%s, %s, %s) "
-						"RETURNING id", (name, label_type, text))
-	else:
-		cursor.execute("UPDATE settings.zebra_templates SET "
-						"(name, label_type, template, date_changed) = "
-						"(%s, %s, %s, now()) WHERE id = %s RETURNING id",
-						(name, label_type, text, template_id))
+	try:
+		if template_id == None:
+			cursor.execute("INSERT INTO settings.zebra_templates "
+							"(name, label_type, template) VALUES (%s, %s, %s) "
+							"RETURNING id", (name, label_type, text))
+		else:
+			cursor.execute("UPDATE settings.zebra_templates SET "
+							"(name, label_type, template, date_changed) = "
+							"(%s, %s, %s, now()) WHERE id = %s RETURNING id",
+							(name, label_type, text, template_id))
+	except psycopg2.IntegrityError:
+		# The name is UNIQUE, and another client can take it between our
+		# check and this write. Roll back, or the shared connection sits in
+		# an aborted transaction and every later query in the app fails.
+		cursor.close()
+		DB.rollback()
+		raise ZebraError("A label template named '%s' already exists." % name)
 	row = cursor.fetchone()
 	cursor.close()
 	if row == None:
 		DB.rollback()
-		raise ZebraError("The label template no longer exists; it may have "
+		raise TemplateGone("The label template no longer exists; it may have "
 							"been deleted by another user.")
 	DB.commit()
 	return row[0]
@@ -135,6 +153,31 @@ def populate_template_store (store, label_type):
 	store.clear()
 	for template_id, name, _label_type in list_templates(label_type):
 		store.append(["zpl", name, template_id])
+
+
+def selected_template_id (combo):
+	'''The stored template a label window's combo has selected, or None.
+
+	None also for an .odt row: those are files, and have nothing to edit in
+	the designer. The combos' id-column is the kind, not the id, which is why
+	this reads the row rather than asking the combo.
+	'''
+	treeiter = combo.get_active_iter()
+	if treeiter == None:
+		return None
+	row = combo.get_model()[treeiter]
+	if row[0] != 'zpl':
+		return None
+	return row[2]
+
+
+def select_template (combo, template_id):
+	"Select a stored template's row, if the combo lists it. True when it did."
+	for row in combo.get_model():
+		if row[0] == 'zpl' and row[2] == template_id:
+			combo.set_active_iter(row.iter)
+			return True
+	return False
 
 
 def populate_odt_store (store, pattern):

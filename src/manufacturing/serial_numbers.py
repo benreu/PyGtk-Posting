@@ -17,7 +17,7 @@
 
 from gi.repository import Gtk, GLib
 import os, subprocess
-import barcode_generator, zebra
+import barcode_generator, zebra, admin_utils
 from db_connection import DB
 from constants import ui_directory, template_dir, MANUFACTURING_SERIAL_LOCK_CLASSID
 
@@ -122,6 +122,27 @@ class SerialNumbersGUI(Gtk.Builder):
 			self.populate_system_labels()
 		else:
 			self.populate_zebra_labels()
+
+	def printer_template_combo_changed (self, combobox):
+		self.get_object('edit_template_button').set_sensitive(
+			zebra.selected_template_id(combobox) != None)
+
+	def edit_template_clicked (self, button):
+		template_id = zebra.selected_template_id(self.get_object('template_combo'))
+		if template_id == None or not admin_utils.check_admin(self.window):
+			return
+		import zebra_designer
+		designer = zebra_designer.edit_template(template_id)
+		designer.connect('destroy', self.template_designer_closed, template_id)
+
+	def template_designer_closed (self, designer, template_id):
+		# a rename, or a Save as under a new name, should show in the combo.
+		# Repopulate the way the printer combo does, since the store is shared
+		# with the .odt list, then put the selection back: on the designer's
+		# final template if it still has one, else on the one that was open.
+		self.printer_combo_changed(self.get_object('printer_combo'))
+		zebra.select_template(self.get_object('template_combo'),
+								designer.template_id or template_id)
 
 	def reprint_serial_number_clicked (self, button):
 		barcode = self.get_object('reprint_spinbutton').get_value_as_int()
