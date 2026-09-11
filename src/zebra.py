@@ -209,6 +209,20 @@ def send_to_printer (host, port, data, timeout = 10):
 		mysocket.close()
 
 
+def test_label (name, host, port):
+	'''A one-off label naming the printer, for confirming an address.
+
+	The name is typed by whoever set the printer up; a caret or tilde in it
+	would end the field early, so both are dropped rather than escaped.
+	'''
+	name = name.replace('^', '').replace('~', '')
+	return ("^XA"
+			"^FO30,30^A0N,40,40^FDPosting test label^FS"
+			"^FO30,90^A0N,30,30^FD%s^FS"
+			"^FO30,140^A0N,30,30^FD%s:%s^FS"
+			"^XZ" % (name, host, port))
+
+
 def print_label (host, port, template_id, args, copies = 1):
 	'''Print a stored template, substituting args, copies times.
 

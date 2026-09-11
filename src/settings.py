@@ -16,9 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
+import ipaddress
 from db import transactor
 from db_connection import DB
 from constants import ui_directory
+import zebra
 
 UI_FILE = ui_directory + "/settings.ui"
 
@@ -70,6 +72,8 @@ class GUI():
 		self.populate_all_widgets ()
 		self.populate_columns()
 		self.populate_document_types()
+		self.zebra_printer_id = 0
+		self.populate_zebra_printers()
 		DB.rollback()
 
 		self.window = self.builder.get_object('window1')
@@ -472,3 +476,109 @@ class GUI():
 		
 		
 	
+
+	def populate_zebra_printers (self, select_id = None):
+		"Refill the printer list; select_id, when given, is re-selected afterwards."
+		store = self.builder.get_object('zebra_printer_store')
+		selection = self.builder.get_object('zebra_printer_selection')
+		store.clear()
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, host, port "
+							"FROM settings.zebra_printers ORDER BY name")
+		for row in cursor.fetchall():
+			tree_iter = store.append(row)
+			if row[0] == select_id:
+				selection.select_iter(tree_iter)
+		cursor.close()
+		DB.rollback()
+
+	def zebra_printer_selection_changed (self, selection):
+		model, tree_iter = selection.get_selected()
+		if tree_iter == None:
+			return
+		self.zebra_printer_id = model[tree_iter][0]
+		self.builder.get_object('zebra_printer_name_entry').set_text(model[tree_iter][1])
+		self.builder.get_object('zebra_printer_host_entry').set_text(model[tree_iter][2])
+		self.builder.get_object('zebra_printer_port_spinbutton').set_value(model[tree_iter][3])
+
+	def zebra_printer_new_clicked (self, button):
+		self.builder.get_object('zebra_printer_selection').unselect_all()
+		self.zebra_printer_id = 0
+		self.builder.get_object('zebra_printer_name_entry').set_text('')
+		self.builder.get_object('zebra_printer_host_entry').set_text('')
+		self.builder.get_object('zebra_printer_port_spinbutton').set_value(9100)
+		self.builder.get_object('zebra_printer_name_entry').grab_focus()
+
+	def zebra_printer_form (self):
+		"The form's name, host and port; None when they cannot make a printer."
+		name = self.builder.get_object('zebra_printer_name_entry').get_text().strip()
+		host = self.builder.get_object('zebra_printer_host_entry').get_text().strip()
+		port = self.builder.get_object('zebra_printer_port_spinbutton').get_value_as_int()
+		if name == '':
+			self.show_message("The printer needs a name.")
+			return None
+		# the column is inet, so a hostname or a subnet would be refused by the
+		# database anyway; checking here keeps the message readable and the
+		# connection out of an aborted transaction
+		try:
+			ipaddress.ip_address(host)
+		except ValueError:
+			self.show_message("'%s' is not an IP address." % host)
+			return None
+		return name, host, port
+
+	def zebra_printer_save_clicked (self, button):
+		form = self.zebra_printer_form()
+		if form == None:
+			return
+		name, host, port = form
+		cursor = DB.cursor()
+		if self.zebra_printer_id == 0:
+			cursor.execute("INSERT INTO settings.zebra_printers "
+								"(name, host, port) VALUES (%s, %s, %s) "
+								"RETURNING id", (name, host, port))
+			self.zebra_printer_id = cursor.fetchone()[0]
+		else:
+			cursor.execute("UPDATE settings.zebra_printers "
+								"SET (name, host, port) = (%s, %s, %s) "
+								"WHERE id = %s",
+								(name, host, port, self.zebra_printer_id))
+		cursor.close()
+		DB.commit()
+		self.populate_zebra_printers(self.zebra_printer_id)
+
+	def zebra_printer_delete_clicked (self, button):
+		if self.zebra_printer_id == 0:
+			return
+		cursor = DB.cursor()
+		cursor.execute("DELETE FROM settings.zebra_printers WHERE id = %s",
+							(self.zebra_printer_id,))
+		cursor.close()
+		DB.commit()
+		self.zebra_printer_new_clicked(button)
+		self.populate_zebra_printers()
+
+	def zebra_printer_test_clicked (self, button):
+		# the form, not the saved row, so an address can be tried before saving
+		form = self.zebra_printer_form()
+		if form == None:
+			return
+		name, host, port = form
+		status = self.builder.get_object('zebra_printer_status_label')
+		try:
+			# a wrong address should not hang the window for the default 10s
+			zebra.send_to_printer(host, port, zebra.test_label(name, host, port),
+									timeout = 3)
+		except zebra.ZebraError as e:
+			self.show_message(str(e))
+			return
+		status.set_text("Test label sent to %s:%s" % (host, port))
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		# a typed host or a socket error is not markup
+		dialog.set_markup (GLib.markup_escape_text(message))
+		dialog.run()
+		dialog.destroy()
