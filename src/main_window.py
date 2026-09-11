@@ -114,6 +114,11 @@ class MainGUI :
 		sql_window.SQLWindowGUI()
 
 	def zebra_designer_activated (self, menuitem):
+		# under Edit rather than Administration, and asks for admin the way
+		# the label windows' Edit template buttons do, instead of sitting
+		# greyed out until Admin login
+		if not admin_utils.check_admin(self.window):
+			return
 		try:
 			import zebra_designer
 		except ImportError as e:
