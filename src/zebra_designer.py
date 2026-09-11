@@ -55,6 +55,7 @@ if _ENGINE not in sys.path:
 from gtkui.window import ZPLViewerWindow
 from zplcore import parser as zpl_parser
 from zplcore import workflow
+from zplcore import fonts as zpl_fonts
 
 from db_connection import DB
 import zebra
@@ -87,6 +88,8 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		self.build_database_menu()
 		self.connect('destroy', self.forget)
 		self.update_title()
+		if self.dpi_note != None:
+			self.update_status(self.dpi_note)
 		self.present()
 		if template_id != None:
 			self.load_template(template_id)
@@ -116,14 +119,23 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 	# printer
 
 	def _load_settings (self):
-		'''Take the printer from Posting, falling back to the designer's own.
+		'''Take the printer from Posting, and its resolution from the printer.
 
 		Called from ZPLViewerWindow.__init__ before the label size is derived
 		from the dpi, which is why this is the hook rather than assigning to
 		printer_address afterwards. (close_app later writes it back out to the
 		designer's own ~/.config/linuxzpl/settings.ini, which is harmless.)
+
+		The dpi is asked of the printer itself rather than taken from that
+		ini, which starts life at 203 whatever the printer is. Left alone it
+		once had a 300 dpi ZT410 designed for at 203, and every label came out
+		two-thirds size in the top corner. The ini's value is only the
+		fallback for a printer that cannot be reached, and since close_app
+		saves whatever was found here it is the last answer, not a default,
+		after the first successful open.
 		'''
 		ZPLViewerWindow._load_settings(self)
+		self.dpi_note = None
 		cursor = DB.cursor()
 		# host, not host::text: the column is inet, and casting to text brings
 		# the netmask with it ("10.1.2.3/32"), which is not a hostname.
@@ -132,9 +144,23 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		row = cursor.fetchone()
 		cursor.close()
 		DB.rollback()
-		if row != None:
-			self.printer_address = row[0]
-			self.printer_port = row[1]
+		if row == None:
+			return
+		self.printer_address = row[0]
+		self.printer_port = row[1]
+		# This blocks before the window exists, so a short timeout: ~HI is
+		# answered at once, and a printer that is off should not hold the
+		# designer for the default five seconds.
+		dpi = zpl_fonts.query_printer_dpi(row[0], row[1], timeout = 3)
+		if dpi in zpl_fonts.SUPPORTED_DPI:
+			self.printer_dpi = dpi
+		elif dpi == None:
+			self.dpi_note = ("The printer at %s did not report its resolution; "
+							"designing at %s dpi" % (row[0], self.printer_dpi))
+		else:
+			self.dpi_note = ("The printer at %s reports %s dpi, which the "
+							"designer does not support; designing at %s dpi"
+							% (row[0], dpi, self.printer_dpi))
 
 	###########################################################################
 	# the Database menu
