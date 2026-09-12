@@ -87,7 +87,7 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		self.add_accel_group(self.database_accels)
 		self.build_database_menu()
 		self.connect('destroy', self.forget)
-		self.update_title()
+		self._update_title()
 		if self.dpi_note != None:
 			self.update_status(self.dpi_note)
 		self.present()
@@ -113,7 +113,7 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 	@unsaved_changes.setter
 	def unsaved_changes (self, value):
 		self._dirty = bool(value)
-		self.update_title()
+		self._update_title()
 
 	###########################################################################
 	# printer
@@ -218,13 +218,13 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		self.label_type = label_type
 		self.current_filepath = None
 		self.register()
-		self.update_title()
+		self._update_title()
 
 	def detach (self):
 		"No longer a stored template; the name stays, as a Save as prefill."
 		self.template_id = None
 		self.register()
-		self.update_title()
+		self._update_title()
 
 	def register (self):
 		for stored_id, window in list(_open_windows.items()):
@@ -233,11 +233,15 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		if self.template_id != None:
 			_open_windows[self.template_id] = self
 
-	def update_title (self):
+	def _update_title (self):
 		'''Header title is the name, subtitle is where it lives.
 
-		Runs from the unsaved_changes setter too, which upstream first hits
-		inside its own __init__ before the header bar exists.
+		Overrides upstream's, which names the file or the program: it is
+		called wherever upstream sets the title (its __init__, New, and the
+		file load and save), so those land here instead of writing over the
+		template's name. Runs from the unsaved_changes setter too, which
+		upstream first hits inside its own __init__ before the header bar
+		exists.
 		'''
 		if self.template_id != None:
 			name = self.template_name
@@ -392,7 +396,11 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 			self.design_canvas.sync_size()
 			opened = "Opened: %s" % name
 			self.update_status("%s - %s" % (opened, rescaled) if rescaled else opened)
-			self.unsaved_changes = False
+			# As upstream: parsing is not an edit, but a rescale is. The user
+			# was asked and answered, and the stored template still records
+			# the resolution it was drawn for, so a clean flag here would
+			# discard the answer on close and ask again at every open.
+			self.unsaved_changes = bool(rescaled)
 			self._reset_history()
 			workflow.warn_unsupported(content, self._warn_unsupported)
 			return True
@@ -480,7 +488,7 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 			self.show_error_dialog(str(e))
 			return
 		self.template_name = name
-		self.update_title()
+		self._update_title()
 		self.update_status('Renamed "%s" to "%s"' % (old, name))
 
 	def delete_template (self, widget = None):
