@@ -82,13 +82,6 @@ class PaymentMethodEntry (GObject.GObject):
 		self.credit_account_combo.set_active_id(account_id)
 		DB.rollback()
 
-	# -- payment method --
-	# NOTE: only the check toggle emits 'changed' below, matching the
-	# pre-existing behavior of the two windows this replaces, where
-	# switching to credit/cash does not re-run validation on its own.
-	# The credit-card account combo does emit 'changed' on selection,
-	# since an account must be picked before posting is allowed.
-
 	def _check_toggled (self, widget):
 		self.check_entry.set_sensitive(True)
 		self.credit_account_combo.set_sensitive(False)
@@ -101,12 +94,14 @@ class PaymentMethodEntry (GObject.GObject):
 		self.credit_account_combo.set_sensitive(True)
 		self.cash_entry.set_sensitive(False)
 		self.payment_type_id = 1
+		self.emit('changed')
 
 	def _cash_toggled (self, widget):
 		self.check_entry.set_sensitive(False)
 		self.credit_account_combo.set_sensitive(False)
 		self.cash_entry.set_sensitive(True)
 		self.payment_type_id = 2
+		self.emit('changed')
 
 	def _check_number_changed (self, entry):
 		self.emit('changed')
