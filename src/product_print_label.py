@@ -208,7 +208,8 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		host = model[printer_iter][2]
 		port = model[printer_iter][3]
 		try:
-			zebra.print_label(host, port, template_id,
+			template = zebra.fetch_template(template_id)
+			zebra.print_label(host, port, template,
 								(barcode, product_name), label_qty)
 		except zebra.ZebraError as e:
 			self.show_message(str(e))

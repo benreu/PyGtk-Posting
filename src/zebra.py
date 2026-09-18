@@ -245,13 +245,17 @@ def test_label (name, host, port):
 			"^XZ" % (name, host, port))
 
 
-def print_label (host, port, template_id, args, copies = 1):
-	'''Print a stored template, substituting args, copies times.
+def print_label (host, port, template, args, copies = 1):
+	'''Print a template's ZPL text, substituting args, copies times.
+
+	The caller reads the text with fetch_template, at a moment of its own
+	choosing: that read ends whatever transaction it finds open, so nothing in
+	here touches the database, and a window with writes pending can print
+	after it commits rather than around a helper that would roll them back.
 
 	The whole payload is built before the socket is opened, so a template that
 	cannot be formatted fails with nothing left half open, and the copies go
 	out down one connection.
 	'''
-	template = fetch_template(template_id)
 	label = format_template(template, args)
 	send_to_printer(host, port, label * copies)

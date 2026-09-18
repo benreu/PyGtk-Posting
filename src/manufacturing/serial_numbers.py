@@ -152,23 +152,34 @@ class SerialNumbersGUI(Gtk.Builder):
 		spinbutton = self.get_object('serial_number_spinbutton')
 		serial_start = spinbutton.get_value_as_int()
 		label_qty = self.get_object('label_qty_spinbutton').get_value_as_int()
+		# only the rest of the project, as the "start to end" above promises:
+		# a run that stopped part way already has rows behind it
+		qty = self.serials_required - self.serials_generated
+		if qty < 1:
+			return
+		serials = [serial_start + i for i in range(qty)]
+		# committed before the first label goes out. Each print reads its
+		# template, and zebra.fetch_template ends whatever transaction it finds
+		# open - printing in this loop once rolled back every row but the last.
+		# Printing also pumps the main loop and can raise dialogs, so anything
+		# may run under it; and a label printed with no row behind it would be
+		# issued again next time
 		cursor = DB.cursor()
-		for i in range(self.serials_required):
-			barcode = serial_start + i
-			while Gtk.events_pending():
-				Gtk.main_iteration()
-			self.print_serial_number(barcode, label_qty)
+		for barcode in serials:
 			cursor.execute("INSERT INTO serial_numbers "
 							"(product_id, date_inserted, serial_number, "
 							"manufacturing_id) "
 							"VALUES (%s, CURRENT_DATE, %s, %s)", 
 							(self.product_id, barcode, self.manufacturing_id))
-		serial = self.serials_required + serial_start
 		cursor.execute("UPDATE products SET serial_number = %s "
-						"WHERE id = %s", (serial, self.product_id))
+						"WHERE id = %s", (serial_start + qty, self.product_id))
 		DB.commit()
 		cursor.close()
 		self.populate_serial_numbers()
+		for barcode in serials:
+			while Gtk.events_pending():
+				Gtk.main_iteration()
+			self.print_serial_number(barcode, label_qty)
 
 	def print_serial_number (self, barcode, label_qty):
 		printer_id = self.get_object('printer_combo').get_active_id()
@@ -191,7 +202,8 @@ class SerialNumbersGUI(Gtk.Builder):
 		host = model[printer_iter][2]
 		port = model[printer_iter][3]
 		try:
-			zebra.print_label(host, port, template_id, barcode, label_qty)
+			template = zebra.fetch_template(template_id)
+			zebra.print_label(host, port, template, barcode, label_qty)
 		except zebra.ZebraError as e:
 			self.show_message(str(e))
 
