@@ -213,9 +213,13 @@ class ContactsOverviewGUI(Gtk.Builder):
 			return
 		self.contact_id = model[path][0]
 		self.populate_contact_individuals()
+		self.populate_contact_shipping_addresses()
 
 	def contact_individuals_clicked (self, button):
 		self.get_object('stack1').set_visible_child_name('individuals_page')
+
+	def contact_shipping_addresses_clicked (self, button):
+		self.get_object('stack1').set_visible_child_name('shipping_addresses_page')
 
 	def go_back_to_contacts_clicked (self, button):
 		self.get_object('stack1').set_visible_child_name('contacts_page')
@@ -340,7 +344,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 		contact = Item()
 		c = DB.cursor()
 		c.execute("SELECT name, address, city, state, zip, phone, "
-							"fax, email FROM contacts WHERE id = %s", 
+							"fax, email FROM contacts WHERE id = %s",
 							(self.contact_id,))
 		for row in c.fetchall():
 			contact.name = row[0]
@@ -351,6 +355,15 @@ class ContactsOverviewGUI(Gtk.Builder):
 			contact.phone = row[5]
 			contact.fax = row[6]
 			contact.email = row[7]
+		c.execute("SELECT address, city, state, zip "
+							"FROM contact_shipping_addresses "
+							"WHERE (contact_id, standard, deleted) = (%s, True, False)",
+							(self.contact_id,))
+		for row in c.fetchall():
+			contact.street = row[0]
+			contact.city = row[1]
+			contact.state = row[2]
+			contact.zip = row[3]
 		company = Item()
 		c.execute("SELECT * FROM company_info")
 		for row in c.fetchall():
@@ -428,6 +441,62 @@ class ContactsOverviewGUI(Gtk.Builder):
 	def edit_contact_individual (self, individual_id):
 		import contact_edit_individual as ced
 		ced_gui = ced.ContactEditIndividualGUI(self, individual_id)
+
+################   contact shipping addresses
+
+	def populate_contact_shipping_addresses (self):
+		store = self.get_object('contact_shipping_addresses_store')
+		store.clear()
+		button = self.get_object('contact_shipping_addresses_button')
+		c = DB.cursor()
+		c.execute("SELECT "
+						"sa.id, "
+						"sa.description, "
+						"sa.address, "
+						"sa.city, "
+						"sa.state, "
+						"sa.zip, "
+						"COALESCE(sc.name, ''), "
+						"sa.standard "
+					"FROM contact_shipping_addresses AS sa "
+					"LEFT JOIN shipping_carriers AS sc "
+						"ON sc.id = sa.shipping_carrier_id "
+					"WHERE (sa.contact_id, sa.deleted) = (%s, False) "
+					"ORDER BY sa.standard DESC, sa.description",
+					(self.contact_id,))
+		tupl = c.fetchall()
+		if tupl == []: # only show the shipping addresses button when addresses exist
+			button.hide()
+		else:
+			button.show()
+		for row in tupl:
+			store.append(row)
+		c.close()
+		DB.rollback()
+
+	def new_shipping_address_clicked (self, button):
+		if self.contact_id == 0:
+			return
+		import contact_edit_shipping_address
+		ced_gui = contact_edit_shipping_address.ContactEditShippingAddressGUI(self)
+		ced_gui.contact_id = self.contact_id
+
+	def shipping_address_row_activated (self, treeview, path, treeviewcolumn):
+		model = self.get_object('contact_shipping_addresses_store')
+		shipping_address_id = model[path][0]
+		self.edit_contact_shipping_address (shipping_address_id)
+
+	def edit_shipping_address_clicked (self, button):
+		selection = self.get_object('treeview-selection4')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		shipping_address_id = model[path][0]
+		self.edit_contact_shipping_address (shipping_address_id)
+
+	def edit_contact_shipping_address (self, shipping_address_id):
+		import contact_edit_shipping_address as cesa
+		ced_gui = cesa.ContactEditShippingAddressGUI(self, shipping_address_id)
 
 
 

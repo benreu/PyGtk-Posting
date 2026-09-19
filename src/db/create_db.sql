@@ -56,6 +56,15 @@ CREATE TABLE public.customer_markup_percent (
     standard boolean DEFAULT false NOT NULL,
     deleted boolean DEFAULT false NOT NULL
 );
+--CREATE TABLE public.shipping_carriers
+CREATE TABLE public.shipping_carriers (
+    id bigserial primary key,
+    name character varying NOT NULL,
+    standard boolean DEFAULT false NOT NULL,
+    deleted boolean DEFAULT false NOT NULL,
+    date_created date DEFAULT now() NOT NULL,
+    date_edited date DEFAULT now() NOT NULL
+);
 --CREATE TABLE public.contacts
 CREATE TABLE public.contacts (
     id bigserial primary key,
@@ -313,6 +322,21 @@ CREATE TABLE public.contact_individuals (
     ext_name varchar DEFAULT '' NOT NULL,
     notes varchar DEFAULT '' NOT NULL
 );
+--CREATE TABLE public.contact_shipping_addresses
+CREATE TABLE public.contact_shipping_addresses (
+    id bigserial primary key,
+    contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    description character varying DEFAULT '' NOT NULL,
+    address character varying DEFAULT '' NOT NULL,
+    city character varying DEFAULT '' NOT NULL,
+    state character varying DEFAULT '' NOT NULL,
+    zip character varying DEFAULT '' NOT NULL,
+    shipping_carrier_id bigint REFERENCES public.shipping_carriers(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    standard boolean DEFAULT false NOT NULL,
+    deleted boolean DEFAULT false NOT NULL,
+    date_created date DEFAULT now() NOT NULL,
+    date_edited date DEFAULT now() NOT NULL
+);
 --CREATE TABLE public.statements
 CREATE TABLE public.statements (
     id bigserial primary key,
@@ -368,7 +392,8 @@ CREATE TABLE public.invoices (
     statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     dated_for date,
     finance_charge boolean NOT NULL DEFAULT false,
-    finance_rate numeric(12,6)
+    finance_rate numeric(12,6),
+    shipping_address_id bigint REFERENCES public.contact_shipping_addresses(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 --CREATE TABLE public.invoice_items
 CREATE TABLE public.invoice_items (

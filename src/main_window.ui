@@ -1011,6 +1011,16 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem85">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Shipping carriers</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="shipping_carriers_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem67">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>

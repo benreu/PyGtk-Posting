@@ -42,6 +42,7 @@ def set_admin (value):
 	main_class.builder.get_object('menuitem64').set_sensitive(value)
 	main_class.builder.get_object('menuitem49').set_sensitive(value)
 	main_class.builder.get_object('menuitem80').set_sensitive(value)
+	main_class.builder.get_object('menuitem85').set_sensitive(value)
 	if value == True:
 		main_class.builder.get_object('menuitem35').set_label("Admin logout")
 	else:

@@ -533,6 +533,20 @@
                           </packing>
                         </child>
                         <child>
+                          <object class="GtkComboBoxText" id="comboboxtext_shipping">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-start">5</property>
+                            <property name="tooltip-text" translatable="yes">Ship to</property>
+                            <signal name="changed" handler="shipping_address_combo_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">1</property>
+                            <property name="width">2</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkEntry" id="entry_email">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>

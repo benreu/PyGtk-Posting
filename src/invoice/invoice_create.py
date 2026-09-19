@@ -44,11 +44,18 @@ class Setup:
         cursor = DB.cursor()
         cursor.execute(
             "SELECT c.name, c.ext_name, c.address, c.city, c.state, c.zip, "
-            "c.fax, c.phone, c.email, c.label, c.tax_number, i.name "
+            "c.fax, c.phone, c.email, c.label, c.tax_number, i.name, "
+            "COALESCE(sa.address, c.address), "
+            "COALESCE(sa.city, c.city), "
+            "COALESCE(sa.state, c.state), "
+            "COALESCE(sa.zip, c.zip) "
             "FROM contacts AS c "
             "JOIN invoices AS i ON i.customer_id = c.id "
+            "LEFT JOIN contact_shipping_addresses AS sa "
+            "ON sa.id = i.shipping_address_id "
             "WHERE i.id = %s", [self.invoice_id])
         customer = Item()
+        shipping = Item()
         for row in cursor.fetchall():
             customer.name = row[0]
             customer.ext_name = row[1]
@@ -62,6 +69,11 @@ class Setup:
             customer.label = row[9]
             customer.tax_exempt_number = row[10]
             invoice_name = row[11]
+            shipping.name = row[0]
+            shipping.street = row[12]
+            shipping.city = row[13]
+            shipping.state = row[14]
+            shipping.zip = row[15]
 
         company = Item()
         cursor.execute("SELECT * FROM company_info")
@@ -171,6 +183,7 @@ class Setup:
             items=items,
             document=document,
             contact=customer,
+            shipping=shipping,
             terms=terms,
             company=company,
             serial_numbers=serial_numbers,

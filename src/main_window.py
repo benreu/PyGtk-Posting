@@ -414,6 +414,10 @@ class MainGUI :
 		import customer_markup_percent
 		customer_markup_percent.CustomerMarkupPercentGUI()
 
+	def shipping_carriers_activated (self, menuitem):
+		import shipping_carriers
+		shipping_carriers.ShippingCarriersGUI()
+
 	def process_po(self, widget):
 		import unprocessed_po
 		unprocessed_po.GUI()
