@@ -148,6 +148,8 @@
       <column type="gchararray"/>
       <!-- column-name canceled -->
       <column type="gboolean"/>
+      <!-- column-name surcharge -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
@@ -418,6 +420,23 @@
                       </object>
                       <attributes>
                         <attribute name="text">8</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="surcharge_column">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Surcharge</property>
+                    <property name="reorderable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText">
+                        <property name="xalign">1</property>
+                        <property name="editable">True</property>
+                        <signal name="edited" handler="surcharge_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">13</attribute>
                       </attributes>
                     </child>
                   </object>

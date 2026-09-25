@@ -17,7 +17,7 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib, Gdk
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from subprocess import Popen
 from datetime import datetime
 import psycopg2
@@ -148,6 +148,7 @@ class GUI(Gtk.Builder):
 	def setup_correction_mode (self):
 		self.get_object('button1').set_visible(False) #Edit PO, unsafe here
 		self.get_object('button2').set_visible(False) #Save and pay
+		self.get_object('surcharge_column').set_visible(False)
 		self.get_object('cancel_line_separator').set_visible(True)
 		self.get_object('cancel_line_menuitem').set_visible(True)
 		self.get_object('window').set_title("Correct Purchase Order")
@@ -415,6 +416,7 @@ class GUI(Gtk.Builder):
 				continue
 			calculated_cost = Decimal(row[5]) + expense_adder
 			row[9] = float(calculated_cost)
+			row[13] = '' #the expense adder replaces any surcharge
 			self.check_current_cost (index)
 		DB.rollback()
 
@@ -514,7 +516,8 @@ class GUI(Gtk.Builder):
 						"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
 						"expense, "
 						"order_number, "
-						"poli.canceled "
+						"poli.canceled, "
+						"'' " #surcharge, only used to calculate the cost
 					"FROM purchase_order_items AS poli "
 					"JOIN products AS p ON p.id = poli.product_id "
 					"LEFT JOIN gl_accounts AS a "
@@ -597,6 +600,36 @@ class GUI(Gtk.Builder):
 		t = Decimal(text).quantize(self.price_places, rounding = ROUND_HALF_UP)
 		self.purchase_order_items_store[path][5] = t
 		self.calculate_row_amounts (path)
+		line = self.purchase_order_items_store[path]
+		if line[10] == False: #expense products do not have a cost
+			line[9] = float(self.line_cost (line[5], line[13]))
+		self.check_current_cost(path)
+
+	def line_cost (self, price, surcharge_text):
+		'''price plus a surcharge of either a per unit amount or a percent
+		of the price; raises InvalidOperation on unparseable text'''
+		price = Decimal(price)
+		text = surcharge_text.strip()
+		if text == '':
+			surcharge = Decimal()
+		elif text.endswith('%'):
+			surcharge = price * Decimal(text[:-1].strip()) / 100
+		else:
+			surcharge = Decimal(text)
+		cost = price + surcharge
+		return cost.quantize(self.price_places, rounding = ROUND_HALF_UP)
+
+	def surcharge_edited (self, renderer, path, text):
+		'''the surcharge is not saved, it only feeds the product cost update'''
+		line = self.purchase_order_items_store[path]
+		if line[10] == True or line[12] == True: #expense or canceled
+			return
+		try:
+			cost = self.line_cost (line[5], text)
+		except InvalidOperation:
+			return
+		line[13] = text.strip()
+		line[9] = float(cost)
 		self.check_current_cost(path)
 
 	def save_line_item (self, path):
@@ -628,7 +661,8 @@ class GUI(Gtk.Builder):
 		self.product_id = self.purchase_order_items_store[path][2]
 		product_name = self.purchase_order_items_store[path][3]
 		self.get_object('label12').set_label(product_name)
-		new_cost = self.purchase_order_items_store[path][5]
+		#the calculated cost includes any surcharge or expense adder
+		new_cost = Decimal(str(self.purchase_order_items_store[path][9]))
 		cursor = DB.cursor()
 		cursor.execute("SELECT cost FROM products "
 							"WHERE id = %s", (self.product_id,))
