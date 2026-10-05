@@ -382,10 +382,16 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		dpi rescale the widget is otherwise still the old size and the label
 		draws clipped. warn_unsupported is what stops a template quietly
 		losing commands the designer cannot model: it names them before any
-		editing is invested.
+		editing is invested, and says so too when the label moves ZPL's own
+		control characters, which a save writes back as the standard ones.
 		'''
 		try:
 			document, loaded_dpi = zpl_parser.parse_zpl(content, self.renderer)
+			# Which printer memory the document's fonts are addressed in;
+			# upstream hands every document its copy, and a document built
+			# here rather than loaded from a file would otherwise keep the
+			# class default whatever the setting says.
+			document.font_device = self.printer_font_device
 			self.design_canvas.set_document(document)
 			self.current_zpl_content = content
 			self.label_width = document.label_width
@@ -402,7 +408,10 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 			# discard the answer on close and ask again at every open.
 			self.unsaved_changes = bool(rescaled)
 			self._reset_history()
-			workflow.warn_unsupported(content, self._warn_unsupported)
+			# No read_file step, so no code page to report: psycopg2 hands
+			# the template over already decoded.
+			workflow.warn_unsupported(content, self._warn_unsupported,
+										self._warn_control_redefined)
 			return True
 		except Exception as e:
 			self.show_error_dialog("Failed to open %s: %s" % (name, e))
