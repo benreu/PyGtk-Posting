@@ -1202,24 +1202,24 @@ class InvoiceGUI:
 
 	def key_tree_tab(self, treeview, event):
 		keyname = Gdk.keyval_name(event.keyval)
+		if keyname != "Tab":
+			return
 		path, col = treeview.get_cursor()
+		if path is None or col is None:
+			return
 		# only visible columns!!
 		columns = [c for c in treeview.get_columns() if c.get_visible()]
 		colnum = columns.index(col)
-		if keyname=="Tab" or keyname=="Esc":
-			if colnum + 1 < len(columns):
-				next_column = columns[colnum + 1]
-			else:
-				tmodel = treeview.get_model()
-				titer = tmodel.iter_next(tmodel.get_iter(path))
-				if titer is None:
-					titer = tmodel.get_iter_first()
-					path = tmodel.get_path(titer)
-					next_column = columns[0]
-			if keyname == 'Tab':
-				GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
-			elif keyname == 'Escape':
-				pass
+		if colnum + 1 < len(columns):
+			next_column = columns[colnum + 1]
+		else: # last column, move to the first column of the next row
+			tmodel = treeview.get_model()
+			titer = tmodel.iter_next(tmodel.get_iter(path))
+			if titer is None:
+				titer = tmodel.get_iter_first()
+			path = tmodel.get_path(titer)
+			next_column = columns[0]
+		GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
 
 	def help_clicked (self, widget):
 		import subprocess
