@@ -113,7 +113,8 @@ class InvoiceGUI:
 			cursor.execute("SELECT customer_id, "
 									"COALESCE(dated_for, CURRENT_DATE), "
 									"format_date(COALESCE(dated_for, CURRENT_DATE)), "
-									"comments "
+									"comments, "
+									"doc_type "
 								"FROM invoices "
 								"WHERE id = %s", (invoice_id,))
 			for row in cursor.fetchall():
@@ -121,7 +122,15 @@ class InvoiceGUI:
 				self.datetime = row[1] # load separately from calendar, in case date has a problem
 				self.builder.get_object('entry1').set_text(row[2])
 				comments = row[3]
+				self.document_type = row[4]
+			# an already posted invoice keeps the location it took its stock from
+			cursor.execute("SELECT it.location_id FROM inventory_transactions AS it "
+								"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
+								"WHERE ii.invoice_id = %s LIMIT 1", (invoice_id,))
+			for row in cursor.fetchall():
+				self.builder.get_object('combobox2').set_active_id(str(row[0]))
 			cursor.close()
+			DB.rollback()
 			self.loading = True # customer_selected must not swap in another invoice
 			self.invoice_id = invoice_id
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
@@ -783,20 +792,23 @@ class InvoiceGUI:
 			cursor.close()
 			DB.rollback()
 			return
-		cursor.execute("SELECT id, comments FROM invoices "
+		cursor.execute("SELECT id, comments, doc_type FROM invoices "
 							"WHERE (customer_id, posted) = (%s, False) ",
 							(name_id,))
 		tupl = cursor.fetchall()
 		if len(tupl) > 1:
 			self.invoice_id = 0
+			self.document_type = "Invoice"
 			self.show_document_list_window ()
 			self.builder.get_object("comment_buffer").set_text('')
 		elif len(tupl) == 1:
 			self.invoice_id = tupl[0][0]
 			comments = tupl[0][1]
-			self.builder.get_object("comment_buffer").set_text(comments)
+			self.document_type = tupl[0][2]
+			self.builder.get_object("comment_buffer").set_text(comments or '')
 		else:
 			self.invoice_id = 0
+			self.document_type = "Invoice"
 			self.builder.get_object("comment_buffer").set_text('')
 		self.populate_invoice_items()
 		cursor.execute("SELECT dated_for FROM invoices WHERE id = %s "
