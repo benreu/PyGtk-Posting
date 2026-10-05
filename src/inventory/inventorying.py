@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
+from decimal import Decimal
 from db_connection import DB
 
 def sell (invoice_store, location_id, contact_id, date):
@@ -23,7 +24,7 @@ def sell (invoice_store, location_id, contact_id, date):
 	cursor = DB.cursor()
 	for row in invoice_store:
 		invoice_line_id = row[0]
-		qty = row[1]
+		qty = int(Decimal(row[1])) # the store holds text like '1.00', qty_out is an integer
 		product_id = row[2]
 		price = row[6]
 		cursor.execute("SELECT inventory_enabled "
