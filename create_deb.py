@@ -37,11 +37,12 @@ ROUTES = (
 )
 # src/linuxzpl is the LinuxZPL submodule, a whole application. Only its zplcore
 # engine and gtkui frontend are Posting's business; qtui is PySide2, tests
-# imports qtui, linuxzpl.py is its standalone launcher and make_zip.py packs
-# its own release zip. None are ever imported by Posting, so shipping them
-# would be dead weight in the .deb.
+# imports qtui, linuxzpl.py is its standalone launcher, make_zip.py packs its
+# own release zip and examples demonstrates its Python API. None are ever
+# imported by Posting, so shipping them would be dead weight in the .deb.
 SKIP_PATHS = tuple(Path("src", "linuxzpl", name)
-					for name in ("qtui", "tests", "linuxzpl.py", "make_zip.py"))
+					for name in ("qtui", "tests", "examples", "linuxzpl.py",
+								"make_zip.py"))
 # 1:1 copies into unrelated trees, with the mode debian policy wants: only
 # the launcher and the maintainer scripts are executable
 SINGLE_FILES = (
