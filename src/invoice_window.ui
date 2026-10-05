@@ -603,7 +603,7 @@
                         <property name="enable-grid-lines">horizontal</property>
                         <property name="activate-on-single-click">True</property>
                         <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
-                        <signal name="key-release-event" handler="key_tree_tab" swapped="no"/>
+                        <signal name="key-press-event" handler="key_tree_tab" swapped="no"/>
                         <signal name="row-activated" handler="invoice_item_row_activated" swapped="no"/>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection" id="treeview-selection"/>

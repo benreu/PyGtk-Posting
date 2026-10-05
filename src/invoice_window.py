@@ -1276,25 +1276,33 @@ class InvoiceGUI:
 		self.populate_invoice_items ()
 
 	def key_tree_tab(self, treeview, event):
-		keyname = Gdk.keyval_name(event.keyval)
-		if keyname != "Tab":
-			return
+		'''Tab moves to the next editable cell, wrapping to the next row'''
+		if Gdk.keyval_name(event.keyval) != "Tab":
+			return False
 		path, col = treeview.get_cursor()
 		if path is None or col is None:
-			return
-		# only visible columns!!
-		columns = [c for c in treeview.get_columns() if c.get_visible()]
-		colnum = columns.index(col)
-		if colnum + 1 < len(columns):
-			next_column = columns[colnum + 1]
+			return False
+		# only visible columns that can be edited
+		columns = [c for c in treeview.get_columns() 
+					if c.get_visible() and c.get_cells()[0].get_property('editable')]
+		if col in columns and columns.index(col) + 1 < len(columns):
+			next_column = columns[columns.index(col) + 1]
 		else: # last column, move to the first column of the next row
-			tmodel = treeview.get_model()
-			titer = tmodel.iter_next(tmodel.get_iter(path))
+			model = treeview.get_model()
+			titer = model.iter_next(model.get_iter(path))
 			if titer is None:
-				titer = tmodel.get_iter_first()
-			path = tmodel.get_path(titer)
+				titer = model.get_iter_first()
+			path = model.get_path(titer)
 			next_column = columns[0]
-		GLib.timeout_add(10, treeview.set_cursor, path, next_column, True)
+		# save the cell being edited, then edit the next one
+		cell_editable = self.window.get_focus()
+		while cell_editable is not None and cell_editable is not treeview:
+			if isinstance(cell_editable, Gtk.CellEditable):
+				cell_editable.editing_done()
+				break
+			cell_editable = cell_editable.get_parent()
+		GLib.idle_add(treeview.set_cursor, path, next_column, True)
+		return True # don't let Tab move the focus to the next widget
 
 	def help_clicked (self, widget):
 		import subprocess
