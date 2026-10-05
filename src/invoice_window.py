@@ -515,8 +515,21 @@ class InvoiceGUI:
 		self.invoice_store.clear()
 
 	def new_invoice_clicked (self, button):
+		self.clear_invoice ()
+
+	def clear_invoice (self):
+		'''leave the current invoice and show a blank one for the same customer'''
+		self.loading = True # don't write the cleared comments to the old invoice
+		self.builder.get_object('comment_buffer').set_text('')
+		self.loading = False
 		self.invoice_id = 0
+		self.document_type = "Invoice"
+		self.datetime = datetime.today()
+		self.calendar.set_today()
 		self.invoice_store.clear()
+		self.invoice = None
+		self.calculate_totals ()
+		self.populate_document_list ()
 
 	def comment_textbuffer_changed (self, buf):
 		if self.loading:
