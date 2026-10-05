@@ -200,6 +200,9 @@ class InvoiceGUI:
 				entry.insert_text(number, position)
 				entry.set_position(position + 1)
 			return
+		state = event.get_state()
+		if not state & (Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK):
+			return # plain enter is handled by barcode_entry_activate
 		barcode = entry.get_text()
 		if barcode == "":
 			return # blank barcode
@@ -240,36 +243,35 @@ class InvoiceGUI:
 		cursor = DB.cursor()
 		cursor.execute("SELECT process_invoice_barcode(%s, %s)", 
 							(barcode, self.invoice_id))
+		row_id = cursor.fetchone()[0]
 		DB.commit()
-		for row in cursor.fetchall():
-			if row[0] != 0:
-				row_id = row[0]
-				cursor.execute("UPDATE invoice_items SET (price, tax_rate_id) = "
-								"(customer_product_price(%s, product_id), %s) "
-								"WHERE id = %s", 
-								(self.customer_id, self.tax_rate_id, row_id))
-				self.populate_invoice_items()
-			else:            #barcode not found
-				for row in self.barcodes_not_found_store:
-					if row[2] == barcode:
-						row[1] += 1
-						break
-					continue
-				else:
-					self.barcodes_not_found_store.append([0, 1, barcode])
-				self.builder.get_object('entry10').grab_focus()
-				barcode_error_dialog = self.builder.get_object('barcode_error_dialog')
-				barcode_error_dialog.run()
-				barcode_error_dialog.hide()
-				return
+		if row_id == 0:            #barcode not found
+			cursor.close()
+			for not_found_row in self.barcodes_not_found_store:
+				if not_found_row[2] == barcode:
+					not_found_row[1] += 1
+					break
+			else:
+				self.barcodes_not_found_store.append([0, 1, barcode])
+			self.builder.get_object('entry10').grab_focus()
+			barcode_error_dialog = self.builder.get_object('barcode_error_dialog')
+			barcode_error_dialog.run()
+			barcode_error_dialog.hide()
+			return
+		tax_rate_id = self.builder.get_object('comboboxtext1').get_active_id()
+		cursor.execute("UPDATE invoice_items SET (price, tax_rate_id) = "
+						"(customer_product_price(%s, product_id), %s) "
+						"WHERE id = %s", 
+						(self.customer_id, tax_rate_id, row_id))
+		cursor.close()
+		DB.commit() # populate_invoice_items rolls back, so save first
+		self.populate_invoice_items()
 		for row in self.invoice_store:   #select the item we scanned
 			if row[0] == row_id:
 				treeview = self.builder.get_object('treeview2')
 				c = treeview.get_column(0)
-				#path = self.invoice_store.get_path(row.path)
 				treeview.set_cursor(row.path, c, False)
-		DB.commit()
-		cursor.close()
+				break
 
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
