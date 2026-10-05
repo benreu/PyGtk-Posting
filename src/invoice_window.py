@@ -57,6 +57,7 @@ class InvoiceGUI:
 	def __init__(self, invoice_id = None, date_editable = True):
 
 		self.invoice_id = 0
+		self.loading = False # True while the window is being filled with an existing invoice
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
@@ -121,10 +122,11 @@ class InvoiceGUI:
 				self.builder.get_object('entry1').set_text(row[2])
 				comments = row[3]
 			cursor.close()
-			self.builder.get_object('combobox1').set_active_id(str(customer_id))
+			self.loading = True # customer_selected must not swap in another invoice
 			self.invoice_id = invoice_id
-			# customer_selected only looks at unposted invoices, so load this invoice's comments here
+			self.builder.get_object('combobox1').set_active_id(str(customer_id))
 			self.builder.get_object('comment_buffer').set_text(comments or '')
+			self.loading = False
 			self.set_widgets_sensitive ()
 			self.populate_invoice_items()
 			
@@ -517,6 +519,8 @@ class InvoiceGUI:
 		self.invoice_store.clear()
 
 	def comment_textbuffer_changed (self, buf):
+		if self.loading:
+			return
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
@@ -731,6 +735,10 @@ class InvoiceGUI:
 			self.builder.get_object('entry_unpaid').set_text(row[0])
 		self.populate_tax_exemption_combo ()
 		self.set_widgets_sensitive ()
+		if self.loading: # the invoice is already known, don't look for a draft
+			cursor.close()
+			DB.rollback()
+			return
 		cursor.execute("SELECT id, comments FROM invoices "
 							"WHERE (customer_id, posted) = (%s, False) ",
 							(name_id,))
