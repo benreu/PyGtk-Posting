@@ -1275,6 +1275,12 @@ class InvoiceGUI:
 		DB.commit()
 		self.populate_invoice_items ()
 
+	def column_is_editable (self, column):
+		for cell in column.get_cells():
+			if isinstance(cell, Gtk.CellRendererText) and cell.get_property('editable'):
+				return True
+		return False
+
 	def key_tree_tab(self, treeview, event):
 		'''Tab moves to the next editable cell, wrapping to the next row'''
 		if Gdk.keyval_name(event.keyval) != "Tab":
@@ -1284,7 +1290,7 @@ class InvoiceGUI:
 			return False
 		# only visible columns that can be edited
 		columns = [c for c in treeview.get_columns() 
-					if c.get_visible() and c.get_cells()[0].get_property('editable')]
+					if c.get_visible() and self.column_is_editable (c)]
 		if col in columns and columns.index(col) + 1 < len(columns):
 			next_column = columns[columns.index(col) + 1]
 		else: # last column, move to the first column of the next row
