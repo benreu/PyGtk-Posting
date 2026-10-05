@@ -867,17 +867,15 @@ class InvoiceGUI:
 							"SET invoice_item_id = NULL "
 							"WHERE invoice_item_id = %s",
 							(invoice_line_id,))
-		cursor.execute("SELECT products.name, ext_name, tax_letter, "
-							"invoice_serial_numbers, tax_rates.id "
-							"FROM products JOIN tax_rates "
-							"ON tax_rates.id = products.tax_rate_id "
-							"WHERE products.id = %s", (product_id,))
+		cursor.execute("SELECT name, ext_name, invoice_serial_numbers "
+							"FROM products WHERE id = %s", (product_id,))
+		# the exemption id (or 0); the database trigger swaps in the new 
+		# product's own tax rate when no exemption applies to it
 		tax_rate_id = self.builder.get_object('comboboxtext1').get_active_id()
 		for row in cursor.fetchall ():
 			product_name = row[0]
 			ext_name = row[1]
-			tax_letter = row[2]
-			serial_number = row[3]
+			serial_number = row[2]
 			iter_ = self.invoice_store.get_iter(path)
 			if serial_number == True:
 				self.builder.get_object('treeviewcolumn13').set_visible(True)
@@ -888,15 +886,19 @@ class InvoiceGUI:
 			self.invoice_store[iter_][3] = product_name
 			self.invoice_store[iter_][4] = ext_name
 			self.invoice_store[iter_][10] = False
-			self.invoice_store[iter_][11] = tax_letter
 			self.invoice_store[iter_][12] = serial_number
 			self.set_product_price (iter_)
 			line_id = self.invoice_store[iter_][0]
 			cursor.execute("UPDATE invoice_items "
 								"SET (product_id, tax_rate_id) = "
 								"(%s, %s) WHERE id = %s;"
-								"SELECT price::text, tax::text, ext_price::text "
-								"FROM invoice_items WHERE id = %s",
+								"SELECT ili.price::text, ili.tax::text, "
+									"ili.ext_price::text, ili.tax_rate_id, "
+									"COALESCE(tax_rates.tax_letter, '') "
+								"FROM invoice_items AS ili "
+								"LEFT JOIN tax_rates "
+									"ON tax_rates.id = ili.tax_rate_id "
+								"WHERE ili.id = %s",
 								(product_id, tax_rate_id, line_id, line_id))
 			for row in cursor.fetchall():
 				price = row[0]
@@ -905,8 +907,15 @@ class InvoiceGUI:
 				self.invoice_store[iter_][6] = price
 				self.invoice_store[iter_][7] = tax
 				self.invoice_store[iter_][8] = ext_price
+				self.invoice_store[iter_][9] = str(row[3]) # trigger may change it
+				self.invoice_store[iter_][11] = row[4]
 			DB.commit()
 			self.set_serial_number_box_state(serial_number)
+			break
+		else: # product not found, leave the line as it was
+			cursor.close()
+			DB.rollback()
+			return
 		cursor.close()
 		self.check_serial_numbers ()
 		self.populate_serial_numbers ()
