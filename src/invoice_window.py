@@ -801,7 +801,8 @@ class InvoiceGUI:
 			DB.rollback()
 			return
 		cursor.execute("SELECT id, comments, doc_type FROM invoices "
-							"WHERE (customer_id, posted) = (%s, False) ",
+							"WHERE (customer_id, posted, canceled) = "
+							"(%s, False, False) ",
 							(name_id,))
 		tupl = cursor.fetchall()
 		if len(tupl) > 1:
