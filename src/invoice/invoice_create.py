@@ -206,6 +206,7 @@ class Setup:
             cursor.execute("UPDATE invoices SET date_printed = CURRENT_DATE "
                            "WHERE id = %s", (self.invoice_id,))
         cursor.close()
+        return result
 
     def email(self, email, total):
         cursor = DB.cursor()

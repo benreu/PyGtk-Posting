@@ -16,7 +16,7 @@
 
 
 from gi.repository import Gtk, Gdk, GLib
-import subprocess, psycopg2, re
+import subprocess, psycopg2, re, traceback
 from datetime import datetime
 from decimal import Decimal
 from invoice import invoice_create
@@ -634,30 +634,47 @@ class InvoiceGUI:
 	def post_invoice(self, widget):
 		if not self.invoice_has_items ():
 			return
+		location_id = self.builder.get_object('combobox2').get_active_id()
+		if location_id is None:
+			self.show_error_dialog ("Select a location to take the stock from first.")
+			return
 		self.flush_comment ()
 		self.calculate_totals () # posting copies the saved total to amount due
 		invoice = self.create_invoice_document ()
+		# the print dialog is where the user can choose not to post, so it comes first
 		if self.builder.get_object('menuitem1').get_active() == True:
-			invoice.print_directly(self.window)
+			result = invoice.print_directly(self.window)
 		else:
-			invoice.print_dialog(self.window)
-		invoice.post()
+			result = invoice.print_dialog(self.window)
+		if result == "user canceled":
+			DB.rollback()
+			return # "Cancel printing and posting" was checked
+		try:
+			invoice.post()
+			from inventory import inventorying
+			inventorying.sell(self.invoice_store, location_id, 
+								self.customer_id, self.datetime)
+			DB.commit()
+		except Exception as e:
+			DB.rollback()
+			traceback.print_exc()
+			self.show_error_dialog ("The invoice was not posted:\n%s" % 
+									GLib.markup_escape_text(str(e)))
+			return
 		if self.builder.get_object('menuitem4').get_active() == True:
-			cursor = DB.cursor()
-			cursor.execute("SELECT * FROM contacts WHERE id = %s",
-														(self.customer_id, ))
-			for row in cursor.fetchall():
-				name = row[1]
-				email = row[9]
-				if email != "":
-					email = "%s < %s >" % (name, email)
-					invoice.email(email, invoice.total)
-			cursor.close()
-		location_id = self.builder.get_object('combobox2').get_active_id()
-		from inventory import inventorying
-		inventorying.sell(self.invoice_store, location_id, self.customer_id, self.datetime)
-		DB.commit()
+			self.email_posted_invoice (invoice) # only after it is saved
 		self.window.destroy()
+
+	def email_posted_invoice (self, invoice):
+		email = self.builder.get_object('entry_email').get_text().strip()
+		if email == "":
+			return
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
+		name = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		invoice.email("%s < %s >" % (name, email), invoice.total)
 
 	def populate_invoice_items (self, save_totals = True):
 		self.invoice_store.clear()
