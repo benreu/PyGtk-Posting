@@ -462,7 +462,7 @@
                             <property name="hexpand">True</property>
                             <property name="editable">False</property>
                             <property name="primary-icon-stock">gtk-find</property>
-                            <signal name="icon-release" handler="calendar" swapped="no"/>
+                            <signal name="icon-release" handler="calendar_icon_released" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">5</property>

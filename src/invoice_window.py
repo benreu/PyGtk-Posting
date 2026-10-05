@@ -1382,7 +1382,7 @@ class InvoiceGUI:
 		day_text = calendar.get_text()
 		self.builder.get_object('entry1').set_text(day_text)
 
-	def calendar(self, widget, icon, event):
+	def calendar_icon_released (self, widget, icon, event):
 		self.calendar.show()
 
 	def load_invoice_header (self, invoice_id):
