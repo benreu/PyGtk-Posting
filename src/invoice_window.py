@@ -84,6 +84,8 @@ class InvoiceGUI:
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.customer_id = 0
+		self.exemption_customer_id = None # customer the exemption combo was filled for
+		self.tax_rate_id = '0'
 		
 		textview = self.builder.get_object('comment_textview')
 		spell_check.add_checker_to_widget (textview)
@@ -122,7 +124,7 @@ class InvoiceGUI:
 				self.datetime = row[1] # load separately from calendar, in case date has a problem
 				self.builder.get_object('entry1').set_text(row[2])
 				comments = row[3]
-				self.document_type = row[4]
+				self.document_type = row[4] or "Invoice"
 			# an already posted invoice keeps the location it took its stock from
 			cursor.execute("SELECT it.location_id FROM inventory_transactions AS it "
 								"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
@@ -732,12 +734,15 @@ class InvoiceGUI:
 			self.calculate_totals ()
 
 	def populate_tax_exemption_combo (self):
+		'''a new customer gets their own exemption, the same customer keeps the 
+		selection. Existing lines are not touched, only new lines use the choice'''
 		self.populating = True
 		exemption_combo = self.builder.get_object('comboboxtext1')
 		active = exemption_combo.get_active_id()
 		exemption_combo.remove_all()
 		exemption_combo.append('0', "No exemption")
 		final_id = '0'
+		ids = ['0']
 		cursor = DB.cursor()
 		cursor.execute("SELECT tax_rates.id, tax_rates.name FROM "
 							"customer_tax_exemptions "
@@ -748,15 +753,18 @@ class InvoiceGUI:
 							(self.customer_id,))
 		for row in cursor.fetchall():
 			exemption_combo.append(str(row[0]), row[1])
+			ids.append(str(row[0]))
 			final_id = str(row[0])
 		cursor.close()
-		if active == None:
-			self.populating = False
-			exemption_combo.set_active_id(final_id)
-			return
-		exemption_combo.set_active_id(active)
-		self.populating = False
 		DB.rollback()
+		if self.exemption_customer_id == self.customer_id and active in ids:
+			choice = active
+		else:
+			choice = final_id
+		self.exemption_customer_id = self.customer_id
+		exemption_combo.set_active_id(choice)
+		self.tax_rate_id = choice
+		self.populating = False
 
 	def customer_selected(self, name_id):
 		cursor = DB.cursor()
@@ -804,7 +812,7 @@ class InvoiceGUI:
 		elif len(tupl) == 1:
 			self.invoice_id = tupl[0][0]
 			comments = tupl[0][1]
-			self.document_type = tupl[0][2]
+			self.document_type = tupl[0][2] or "Invoice"
 			self.builder.get_object("comment_buffer").set_text(comments or '')
 		else:
 			self.invoice_id = 0
