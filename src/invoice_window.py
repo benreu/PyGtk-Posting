@@ -28,8 +28,12 @@ from constants import ui_directory, help_dir
 
 UI_FILE = ui_directory + "/invoice_window.ui"
 
+def make_invoice_name (document_prefix, invoice_id, contact_name, date):
+	'''eg. Inv_1234_joesmi_2026-10-05, 3 letters of each word in the name'''
+	abbreviation = "".join(word[0:3] for word in contact_name.split(' ')).lower()
+	return "%s_%s_%s_%s" % (document_prefix[0:3], invoice_id, abbreviation, str(date)[0:10])
+
 def create_new_invoice (date, customer_id):
-	from datetime import datetime
 	cursor = DB.cursor()
 	cursor.execute ("INSERT INTO invoices "
 					"(customer_id, date_created, paid, canceled, "
@@ -39,13 +43,7 @@ def create_new_invoice (date, customer_id):
 	invoice_id = cursor.fetchone()[0]
 	cursor.execute("SELECT name FROM contacts WHERE id = %s", (customer_id,))
 	name = cursor.fetchone()[0]
-	split_name = name.split(' ')
-	name_str = ""
-	for i in split_name:
-		name_str += i[0:3]
-	name = name_str.lower()
-	invoice_date = str(datetime.today())[0:10]
-	doc_name = "Inv_" + str(invoice_id) + "_"  + name + "_" + invoice_date
+	doc_name = make_invoice_name ("Inv", invoice_id, name, datetime.today())
 	cursor.execute("UPDATE invoices SET name = %s WHERE id = %s", (doc_name, invoice_id))
 	cursor.close()
 	return invoice_id
@@ -486,14 +484,7 @@ class InvoiceGUI:
 		cursor = DB.cursor()
 		cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
 		name = cursor.fetchone()[0]
-		split_name = name.split(' ')
-		name_str = ""
-		for i in split_name:
-			name_str += i[0:3]
-		name = name_str.lower()
-		invoice_date = str(self.datetime)[0:10]
-		doc_prefix = document_prefix[0:3]
-		doc_name = doc_prefix + "_" + str(self.invoice_id) + "_"  + name + "_" + invoice_date
+		doc_name = make_invoice_name (document_prefix, self.invoice_id, name, self.datetime)
 		cursor.execute("UPDATE invoices SET name = %s WHERE id = %s", (doc_name, self.invoice_id))
 		cursor.close()
 		DB.commit()
