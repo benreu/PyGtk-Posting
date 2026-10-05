@@ -506,13 +506,36 @@ class InvoiceGUI:
 		contacts_overview.ContactsOverviewGUI()
 
 	def delete_invoice_clicked (self, button):
+		selection = self.builder.get_object('treeview-selection4')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return # no document selected
+		invoice_id = model[path][0]
+		cursor = DB.cursor()
+		cursor.execute("SELECT posted FROM invoices WHERE id = %s", (invoice_id,))
+		posted = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		if posted:
+			self.show_error_dialog ("A posted invoice can not be deleted here.")
+			return
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.QUESTION,
+									buttons = Gtk.ButtonsType.YES_NO)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup ("Delete the selected document?")
+		result = dialog.run()
+		dialog.destroy()
+		if result != Gtk.ResponseType.YES:
+			return
 		cursor = DB.cursor()
 		cursor.execute("UPDATE invoices SET canceled = True "
-							"WHERE id = %s", (self.invoice_id,))
+							"WHERE id = %s", (invoice_id,))
 		cursor.close()
 		DB.commit()
-		self.populate_document_list ()
-		self.invoice_store.clear()
+		if invoice_id == self.invoice_id:
+			self.clear_invoice () # also refreshes the document list
+		else:
+			self.populate_document_list ()
 
 	def new_invoice_clicked (self, button):
 		self.clear_invoice ()
