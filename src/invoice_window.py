@@ -527,7 +527,15 @@ class InvoiceGUI:
 		DB.commit()
 		self.invoice = None  #comments changed, recreate odt file
 
+	def invoice_has_items (self):
+		if self.invoice_id == 0 or len(self.invoice_store) == 0:
+			self.show_error_dialog ("Add at least one item to the invoice first.")
+			return False
+		return True
+
 	def view_invoice(self, widget):
+		if not self.invoice_has_items ():
+			return
 		buf = self.builder.get_object('comment_buffer')
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
@@ -543,6 +551,8 @@ class InvoiceGUI:
 		self.invoice.view()
 
 	def post_invoice(self, widget):
+		if not self.invoice_has_items ():
+			return
 		buf = self.builder.get_object('comment_buffer')
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
