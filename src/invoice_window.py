@@ -1236,7 +1236,7 @@ class InvoiceGUI:
 		elif keyname == 'F2':
 			self.new_item_clicked (None)
 		elif keyname == 'F3':
-			self.delete_entry(None)
+			self.delete_line_item_activated (None)
 
 	def calendar_day_selected (self, calendar):
 		self.datetime = calendar.get_date()
