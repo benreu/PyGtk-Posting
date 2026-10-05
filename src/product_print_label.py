@@ -210,7 +210,8 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		try:
 			template = zebra.fetch_template(template_id)
 			zebra.print_label(host, port, template,
-								(barcode, product_name), label_qty)
+								zebra.PRODUCT, {'barcode': barcode,
+								'name': product_name}, label_qty)
 		except zebra.ZebraError as e:
 			self.show_message(str(e))
 

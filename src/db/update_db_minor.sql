@@ -630,3 +630,33 @@ UPDATE settings.zebra_templates SET
 	template = replace(template, '^XA', E'^XA\n^PW255\n^LL215')
 	WHERE label_type = 'serial' AND template LIKE '%^FXid:serial_number%'
 	AND template NOT LIKE '%^PW%' AND template NOT LIKE '%^LL%';
+--0.7.15
+/* Product label templates take the same step as the serial ones above: the
+   first %s becomes the element with the ID 'barcode' and the second, with its
+   \& line break, the one with the ID 'name'. Only rows that still hold exactly
+   two %s and no IDs are touched. Label also writes a size out, so a template
+   with no ^PW or no ^LL gets the 300 dpi ZT410's usable area instead of the
+   4x6 inch default. */
+UPDATE settings.zebra_templates SET
+	template = regexp_replace(regexp_replace(template,
+		'\^FD%s', '^FXid:barcode^FD000000'),
+		'\^FD%s(\\&)?', '^FXid:name^FDProduct name')
+	WHERE label_type = 'product'
+	AND template NOT LIKE '%^FXid:%'
+	AND length(template) - length(replace(template, '%s', '')) = 4;
+
+UPDATE settings.zebra_templates SET
+	template = replace(template, '^XA', E'^XA\n^PW255')
+	WHERE label_type IN ('product', 'serial') AND template LIKE '%^FXid:%'
+	AND template NOT LIKE '%^PW%';
+
+UPDATE settings.zebra_templates SET
+	template = replace(template, '^XA', E'^XA\n^LL215')
+	WHERE label_type IN ('product', 'serial') AND template LIKE '%^FXid:%'
+	AND template NOT LIKE '%^LL%';
+
+/* Serial templates saved from the designer while the ID was still called
+   'barcode'. */
+UPDATE settings.zebra_templates SET
+	template = replace(template, '^FXid:barcode', '^FXid:serial_number')
+	WHERE label_type = 'serial' AND template LIKE '%^FXid:barcode%';

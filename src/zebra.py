@@ -39,13 +39,13 @@ from zplcore import Label
 PRODUCT = 'product'
 SERIAL = 'serial'
 
-# How many %s a product template is printed with: (barcode, name). A serial
-# template has none: its serial number goes into the element whose ^FX ID is
-# SERIAL_ID, filled through LinuxZPL's Label. Listing both kinds in one combo
-# is what used to raise TypeError out of a signal handler the moment a serial
-# template was picked in the product window.
-PLACEHOLDER_COUNT = {PRODUCT: 2}
-SERIAL_ID = 'serial_number'
+# The ^FX IDs a template of each type must carry. LinuxZPL's Label fills the
+# element holding an ID, so a template is a plain label the designer can draw
+# and render, with no %s to substitute. A product label is given a barcode and
+# a name; a serial label a number. Listing both kinds in one combo is what
+# used to raise TypeError out of a signal handler the moment a serial template
+# was picked in the product window.
+LABEL_IDS = {PRODUCT: ('barcode', 'name'), SERIAL: ('serial_number',)}
 
 
 class ZebraError (Exception):
@@ -155,58 +155,40 @@ def delete_template (template_id):
 def validate_template (text, label_type):
 	'''Check a template can actually be printed, before it is stored.
 
-	Trial formatting catches all three mistakes at once: the wrong number of
-	placeholders, a literal % typed into a text element, and %d where %s was
-	meant. Without this the error surfaces at print time, in somebody else's
-	window, days later.
+	Trial filling catches a missing ID before it surfaces at print time, in
+	somebody else's window, days later.
 	'''
-	if label_type == SERIAL:
-		format_serial_template(text, 'X')
-		return
-	count = PLACEHOLDER_COUNT.get(label_type)
-	if count == None:
+	ids = LABEL_IDS.get(label_type)
+	if ids == None:
 		raise ZebraError("'%s' is not a label type." % label_type)
-	format_template(text, tuple(['X'] * count))
+	fill_template(text, label_type, dict.fromkeys(ids, 'X'))
 
 
 def describe_label_type (label_type):
 	"What a label type's template has to contain, for the Save as dialog."
-	if label_type == SERIAL:
-		return "element with ID '%s'" % SERIAL_ID
-	count = PLACEHOLDER_COUNT[label_type]
-	return "%s placeholder%s" % (count, '' if count == 1 else 's')
+	ids = LABEL_IDS[label_type]
+	return "element%s with ID %s" % ('' if len(ids) == 1 else 's',
+									' and '.join("'%s'" % i for i in ids))
 
 
-def format_serial_template (text, serial_number):
-	'''Fill a serial template's barcode element, returning the ZPL to print.
+def fill_template (text, label_type, values):
+	'''Fill a template's elements by ID, returning the ZPL to print.
 
-	The element is found by its ^FX ID rather than a %s, so the template is a
-	plain label the designer can draw and render without a substitution.
+	values maps each ID of the label type to its data.
 	'''
 	try:
 		label = Label.from_zpl(text)
-		if SERIAL_ID not in label.ids:
-			raise ZebraError("This serial template has no element with the "
-								"ID '%s'. Double-click the serial number element in the "
-								"designer and fill in its ID row."
-								% SERIAL_ID)
-		label[SERIAL_ID] = serial_number
+		missing = [i for i in LABEL_IDS[label_type] if i not in label.ids]
+		if missing:
+			raise ZebraError("This %s template has no element with the ID %s. "
+								"Double-click the element in the designer and "
+								"fill in its ID row."
+								% (label_type,
+									' or '.join("'%s'" % i for i in missing)))
+		label.fill(values)
 		return label.to_zpl()
 	except (ValueError, KeyError) as e:
 		raise ZebraError("This template could not be filled in: %s" % e)
-
-
-def format_template (text, args):
-	"Substitute the label data into a template."
-	try:
-		return text % args
-	except TypeError:
-		raise ZebraError("This template does not take %s value(s). Check that "
-							"its placeholder count matches its label type."
-							% len(args))
-	except ValueError as e:
-		raise ZebraError("This template has a bad placeholder (%s). A literal "
-							"percent sign has to be written as two." % e)
 
 
 def populate_template_store (store, label_type):
@@ -284,8 +266,8 @@ def test_label (name, host, port):
 			"^XZ" % (name, host, port))
 
 
-def print_label (host, port, template, args, copies = 1, label_type = PRODUCT):
-	'''Print a template's ZPL text, substituting args, copies times.
+def print_label (host, port, template, label_type, values, copies = 1):
+	'''Print a template's ZPL text, filling it in by ID from values, copies times.
 
 	The caller reads the text with fetch_template, at a moment of its own
 	choosing: that read ends whatever transaction it finds open, so nothing in
@@ -296,8 +278,5 @@ def print_label (host, port, template, args, copies = 1, label_type = PRODUCT):
 	cannot be formatted fails with nothing left half open, and the copies go
 	out down one connection.
 	'''
-	if label_type == SERIAL:
-		label = format_serial_template(template, args)
-	else:
-		label = format_template(template, args)
+	label = fill_template(template, label_type, values)
 	send_to_printer(host, port, label * copies)
