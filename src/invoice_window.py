@@ -293,6 +293,9 @@ class InvoiceGUI:
 		treeview.set_cursor(path, c, True)
 		self.product_selected (product_id, path)
 
+	def cancel_activated (self, menuitem):
+		self.window.destroy()
+
 	def destroy(self, window):
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)

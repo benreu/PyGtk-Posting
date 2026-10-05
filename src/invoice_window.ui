@@ -142,7 +142,7 @@
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Cancel</property>
         <property name="use-underline">True</property>
-        <signal name="activate" handler="destroy" swapped="no"/>
+        <signal name="activate" handler="cancel_activated" swapped="no"/>
       </object>
     </child>
     <child>
