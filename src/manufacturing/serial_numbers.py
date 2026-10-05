@@ -203,7 +203,8 @@ class SerialNumbersGUI(Gtk.Builder):
 		port = model[printer_iter][3]
 		try:
 			template = zebra.fetch_template(template_id)
-			zebra.print_label(host, port, template, barcode, label_qty)
+			zebra.print_label(host, port, template, barcode, label_qty,
+									zebra.SERIAL)
 		except zebra.ZebraError as e:
 			self.show_message(str(e))
 

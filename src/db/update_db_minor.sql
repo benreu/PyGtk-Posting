@@ -614,3 +614,19 @@ INSERT INTO settings.zebra_templates (name, label_type, template) VALUES
 ^XZ
 ')
 ON CONFLICT (name) DO NOTHING;
+--0.7.14
+/* Serial label templates are filled through LinuxZPL's element IDs now, not
+   by formatting a %s: the serial number is the element with the ID 'serial_number'. Only
+   rows still holding a %s are touched, because this file re-runs from the top.
+   LinuxZPL writes the label size out with the label, so a template that never
+   stated one gets the 300 dpi ZT410's usable area rather than the 4x6 inch
+   default. */
+UPDATE settings.zebra_templates SET
+	template = replace(template, '^FD%s^FS', '^FXid:serial_number^FD000000^FS')
+	WHERE label_type = 'serial' AND template LIKE '%^FD%s^FS%'
+	AND template NOT LIKE '%^FXid:serial_number%';
+
+UPDATE settings.zebra_templates SET
+	template = replace(template, '^XA', E'^XA\n^PW255\n^LL215')
+	WHERE label_type = 'serial' AND template LIKE '%^FXid:serial_number%'
+	AND template NOT LIKE '%^PW%' AND template NOT LIKE '%^LL%';

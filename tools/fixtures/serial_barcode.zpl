@@ -1,5 +1,6 @@
 ^XA
 ^FO45,50^BY3
+^FXid:serial_number
 ^A0N,70,70^BCN,100,Y,N,N,A
-^FD%s^FS
+^FD000000^FS
 ^XZ

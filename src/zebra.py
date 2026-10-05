@@ -24,19 +24,28 @@ live in settings.zebra_templates, so one edit reaches the whole shop and
 pg_dump backs them up with everything else.
 '''
 
-import os, glob, socket
+import os, sys, glob, socket
 import psycopg2
 from db_connection import DB
 from constants import template_dir
 
+# Label is the LinuxZPL engine's public entry point; the submodule is an
+# application, so its directory goes on the path the way zebra_designer does.
+_ENGINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'linuxzpl')
+if _ENGINE not in sys.path:
+	sys.path.append(_ENGINE)
+from zplcore import Label
+
 PRODUCT = 'product'
 SERIAL = 'serial'
 
-# How many %s a template of each type is printed with. The product label is
-# sent (barcode, name); a serial label just the number. Listing both kinds in
-# one combo is what used to raise TypeError out of a signal handler the moment
-# a serial template was picked in the product window.
-PLACEHOLDER_COUNT = {PRODUCT: 2, SERIAL: 1}
+# How many %s a product template is printed with: (barcode, name). A serial
+# template has none: its serial number goes into the element whose ^FX ID is
+# SERIAL_ID, filled through LinuxZPL's Label. Listing both kinds in one combo
+# is what used to raise TypeError out of a signal handler the moment a serial
+# template was picked in the product window.
+PLACEHOLDER_COUNT = {PRODUCT: 2}
+SERIAL_ID = 'serial_number'
 
 
 class ZebraError (Exception):
@@ -151,10 +160,40 @@ def validate_template (text, label_type):
 	meant. Without this the error surfaces at print time, in somebody else's
 	window, days later.
 	'''
+	if label_type == SERIAL:
+		format_serial_template(text, 'X')
+		return
 	count = PLACEHOLDER_COUNT.get(label_type)
 	if count == None:
 		raise ZebraError("'%s' is not a label type." % label_type)
 	format_template(text, tuple(['X'] * count))
+
+
+def describe_label_type (label_type):
+	"What a label type's template has to contain, for the Save as dialog."
+	if label_type == SERIAL:
+		return "element with ID '%s'" % SERIAL_ID
+	count = PLACEHOLDER_COUNT[label_type]
+	return "%s placeholder%s" % (count, '' if count == 1 else 's')
+
+
+def format_serial_template (text, serial_number):
+	'''Fill a serial template's barcode element, returning the ZPL to print.
+
+	The element is found by its ^FX ID rather than a %s, so the template is a
+	plain label the designer can draw and render without a substitution.
+	'''
+	try:
+		label = Label.from_zpl(text)
+		if SERIAL_ID not in label.ids:
+			raise ZebraError("This serial template has no element with the "
+								"ID '%s'. Double-click the serial number element in the "
+								"designer and fill in its ID row."
+								% SERIAL_ID)
+		label[SERIAL_ID] = serial_number
+		return label.to_zpl()
+	except (ValueError, KeyError) as e:
+		raise ZebraError("This template could not be filled in: %s" % e)
 
 
 def format_template (text, args):
@@ -245,7 +284,7 @@ def test_label (name, host, port):
 			"^XZ" % (name, host, port))
 
 
-def print_label (host, port, template, args, copies = 1):
+def print_label (host, port, template, args, copies = 1, label_type = PRODUCT):
 	'''Print a template's ZPL text, substituting args, copies times.
 
 	The caller reads the text with fetch_template, at a moment of its own
@@ -257,5 +296,8 @@ def print_label (host, port, template, args, copies = 1):
 	cannot be formatted fails with nothing left half open, and the copies go
 	out down one connection.
 	'''
-	label = format_template(template, args)
+	if label_type == SERIAL:
+		label = format_serial_template(template, args)
+	else:
+		label = format_template(template, args)
 	send_to_printer(host, port, label * copies)

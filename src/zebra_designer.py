@@ -553,9 +553,8 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 			entry.set_text(prefill)
 		combo = Gtk.ComboBoxText()
 		for label_type in (zebra.PRODUCT, zebra.SERIAL):
-			combo.append(label_type, "%s (%s placeholder%s)"
-				% (label_type, zebra.PLACEHOLDER_COUNT[label_type],
-					'' if zebra.PLACEHOLDER_COUNT[label_type] == 1 else 's'))
+			combo.append(label_type, "%s (%s)"
+				% (label_type, zebra.describe_label_type(label_type)))
 		combo.set_active_id(self.label_type)
 		grid = Gtk.Grid(row_spacing = 4, column_spacing = 6, border_width = 6)
 		grid.attach(Gtk.Label(label = "Name", halign = Gtk.Align.END), 0, 0, 1, 1)
