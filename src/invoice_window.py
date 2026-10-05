@@ -64,7 +64,6 @@ class InvoiceGUI:
 		self.window = self.builder.get_object('window')
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
-		self.invoice = None
 
 		self.populating = False
 		self.invoice_store = self.builder.get_object('invoice_store')
@@ -569,7 +568,6 @@ class InvoiceGUI:
 		self.datetime = datetime.today()
 		self.calendar.set_today()
 		self.invoice_store.clear()
-		self.invoice = None
 		self.calculate_totals ()
 		self.populate_document_list ()
 
@@ -584,7 +582,6 @@ class InvoiceGUI:
 													(comment, self.invoice_id))
 		cursor.close()
 		DB.commit()
-		self.invoice = None  #comments changed, recreate odt file
 
 	def invoice_has_items (self):
 		if self.invoice_id == 0 or len(self.invoice_store) == 0:
@@ -592,43 +589,34 @@ class InvoiceGUI:
 			return False
 		return True
 
-	def view_invoice(self, widget):
-		if not self.invoice_has_items ():
-			return
+	def create_invoice_document (self):
+		'''a fresh pdf of what is on screen, so nothing printed can be stale'''
 		buf = self.builder.get_object('comment_buffer')
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
-		if not self.invoice:
-			self.invoice = invoice_create.Setup(self.invoice_store, 
-												self.customer_id, 
-												comment, 
-												self.datetime, 
-												self.invoice_id, 
-												self, 
-												self.document_type)
-		self.invoice.view()
+		return invoice_create.Setup(self.invoice_store, 
+									self.customer_id, 
+									comment, 
+									self.datetime, 
+									self.invoice_id, 
+									self, 
+									self.document_type)
+
+	def view_invoice(self, widget):
+		if not self.invoice_has_items ():
+			return
+		self.create_invoice_document ().view()
 
 	def post_invoice(self, widget):
 		if not self.invoice_has_items ():
 			return
-		buf = self.builder.get_object('comment_buffer')
-		start = buf.get_start_iter()
-		end = buf.get_end_iter()
-		comment = buf.get_text(start, end, True)
-		if not self.invoice:
-			self.invoice = invoice_create.Setup(self.invoice_store, 
-												self.customer_id, 
-												comment, 
-												self.datetime, 
-												self.invoice_id,
-												self,
-												self.document_type)
+		invoice = self.create_invoice_document ()
 		if self.builder.get_object('menuitem1').get_active() == True:
-			self.invoice.print_directly(self.window)
+			invoice.print_directly(self.window)
 		else:
-			self.invoice.print_dialog(self.window)
-		self.invoice.post()
+			invoice.print_dialog(self.window)
+		invoice.post()
 		if self.builder.get_object('menuitem4').get_active() == True:
 			cursor = DB.cursor()
 			cursor.execute("SELECT * FROM contacts WHERE id = %s",
@@ -638,7 +626,7 @@ class InvoiceGUI:
 				email = row[9]
 				if email != "":
 					email = "%s < %s >" % (name, email)
-					self.invoice.email(email, self.invoice.total)
+					invoice.email(email, invoice.total)
 			cursor.close()
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		from inventory import inventorying
@@ -889,7 +877,6 @@ class InvoiceGUI:
 							"WHERE id = %s", (text, line_id))
 		cursor.close()
 		DB.commit()
-		self.invoice = None
 
 	################## start price
 		
@@ -1222,7 +1209,6 @@ class InvoiceGUI:
 		self.builder.get_object('entry3').set_text(subtotal)
 		self.builder.get_object('entry4').set_text(tax)
 		self.builder.get_object('entry5').set_text(total)
-		self.invoice = None
 
 	def check_invoice_item_id (self, iter_):
 		id = self.invoice_store[iter_][0]
@@ -1246,7 +1232,6 @@ class InvoiceGUI:
 			self.invoice_store[iter_][0] = cursor.fetchone()[0]
 			cursor.close()
 			DB.commit()
-		self.invoice = None #the generated .odt is no longer valid
 
 	def check_invoice_id (self):
 		if self.invoice_id == 0:
