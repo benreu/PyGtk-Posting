@@ -83,7 +83,7 @@ class InvoiceGUI:
 						   ("invoices_changed", self.show_reload_infobar )):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
-		self.customer_id = 0
+		self.customer_id = None # the combo ids are text, so it is text once picked
 		self.exemption_customer_id = None # customer the exemption combo was filled for
 		self.tax_rate_id = '0'
 		
@@ -289,7 +289,7 @@ class InvoiceGUI:
 		if len(list_) != 2:
 			raise Exception("invalid drag data received")
 			return
-		if self.customer_id == 0:
+		if self.customer_id is None:
 			return
 		qty, product_id = list_[0], list_[1]
 		self.check_invoice_id()
@@ -361,7 +361,7 @@ class InvoiceGUI:
 		menu.prepend(contact_hub_menu)
 
 	def contact_hub_clicked (self, menuitem):
-		if self.customer_id != 0:
+		if self.customer_id is not None:
 			import contact_hub
 			contact_hub.ContactHubGUI(self.customer_id)
 
