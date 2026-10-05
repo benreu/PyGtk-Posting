@@ -110,16 +110,20 @@ class InvoiceGUI:
 			cursor = DB.cursor()
 			cursor.execute("SELECT customer_id, "
 									"COALESCE(dated_for, CURRENT_DATE), "
-									"format_date(COALESCE(dated_for, CURRENT_DATE)) "
+									"format_date(COALESCE(dated_for, CURRENT_DATE)), "
+									"comments "
 								"FROM invoices "
 								"WHERE id = %s", (invoice_id,))
 			for row in cursor.fetchall():
 				customer_id = row[0]
 				self.datetime = row[1] # load separately from calendar, in case date has a problem
 				self.builder.get_object('entry1').set_text(row[2])
+				comments = row[3]
 			cursor.close()
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
 			self.invoice_id = invoice_id
+			# customer_selected only looks at unposted invoices, so load this invoice's comments here
+			self.builder.get_object('comment_buffer').set_text(comments or '')
 			self.set_widgets_sensitive ()
 			self.populate_invoice_items()
 			
