@@ -75,7 +75,7 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
-      <object class="GtkMenuItem" id="menuitem14">
+      <object class="GtkMenuItem" id="delete_item_menuitem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Delete item</property>
@@ -123,7 +123,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem13">
+      <object class="GtkMenuItem" id="cancel_time_clock_import_menuitem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="no-show-all">True</property>
@@ -146,7 +146,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem8">
+      <object class="GtkMenuItem" id="document_list_menuitem">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
         <property name="can-focus">False</property>
@@ -156,7 +156,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkCheckMenuItem" id="menuitem4">
+      <object class="GtkCheckMenuItem" id="email_invoice_menuitem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Email invoice</property>
@@ -173,7 +173,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem6">
+      <object class="GtkMenuItem" id="import_time_clock_menuitem">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
         <property name="can-focus">False</property>
@@ -183,7 +183,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkCheckMenuItem" id="menuitem1">
+      <object class="GtkCheckMenuItem" id="print_directly_menuitem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Print without confirming</property>
@@ -200,7 +200,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem7">
+      <object class="GtkMenuItem" id="refresh_all_prices_menuitem">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
         <property name="can-focus">False</property>
@@ -219,7 +219,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem2">
+      <object class="GtkMenuItem" id="view_invoice_menuitem">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
         <property name="can-focus">False</property>
@@ -344,7 +344,7 @@
                         <property name="can-focus">False</property>
                         <property name="resize-mode">immediate</property>
                         <child>
-                          <object class="GtkComboBox" id="combobox1">
+                          <object class="GtkComboBox" id="customer_combo">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="model">customer_store</property>
@@ -399,7 +399,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkEntry" id="entry8">
+                          <object class="GtkEntry" id="phone_entry">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="editable">False</property>
@@ -425,7 +425,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkComboBox" id="combobox2">
+                          <object class="GtkComboBox" id="location_combo">
                             <property name="width-request">175</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -456,7 +456,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkEntry" id="entry1">
+                          <object class="GtkEntry" id="date_entry">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="hexpand">True</property>
@@ -494,7 +494,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkComboBoxText" id="comboboxtext1">
+                          <object class="GtkComboBoxText" id="tax_exemption_combo">
                             <property name="width-request">175</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -506,7 +506,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="button1">
+                          <object class="GtkButton" id="tax_exemption_button">
                             <property name="label" translatable="yes">Tax exemption</property>
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
@@ -596,7 +596,7 @@
                     <property name="margin-top">10</property>
                     <property name="shadow-type">in</property>
                     <child>
-                      <object class="GtkTreeView" id="treeview2">
+                      <object class="GtkTreeView" id="invoice_treeview">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="model">invoice_store</property>
@@ -606,7 +606,7 @@
                         <signal name="key-press-event" handler="key_tree_tab" swapped="no"/>
                         <signal name="row-activated" handler="invoice_item_row_activated" swapped="no"/>
                         <child internal-child="selection">
-                          <object class="GtkTreeSelection" id="treeview-selection"/>
+                          <object class="GtkTreeSelection" id="invoice_selection"/>
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn1">
@@ -732,7 +732,7 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkTreeViewColumn" id="treeviewcolumn13">
+                          <object class="GtkTreeViewColumn" id="serial_column">
                             <property name="visible">False</property>
                             <property name="resizable">True</property>
                             <property name="title" translatable="yes">Serial</property>
@@ -851,7 +851,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="entry9">
+                  <object class="GtkEntry" id="barcode_entry">
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
@@ -868,7 +868,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="button3">
+                  <object class="GtkButton" id="new_item_button">
                     <property name="label" translatable="yes">New Item</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
@@ -884,7 +884,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="button2">
+                  <object class="GtkButton" id="post_button">
                     <property name="label" translatable="yes">Post Invoice</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
@@ -949,7 +949,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry3">
+                      <object class="GtkEntry" id="subtotal_entry">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="editable">False</property>
@@ -973,7 +973,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry4">
+                      <object class="GtkEntry" id="tax_entry">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="editable">False</property>
@@ -997,7 +997,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry5">
+                      <object class="GtkEntry" id="total_entry">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="editable">False</property>
@@ -1040,7 +1040,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkBox" id="box4">
+          <object class="GtkBox" id="serial_number_box">
             <property name="sensitive">False</property>
             <property name="can-focus">False</property>
             <property name="no-show-all">True</property>
@@ -1063,7 +1063,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="entry11">
+                  <object class="GtkEntry" id="serial_number_entry">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <signal name="activate" handler="serial_number_entry_activated" swapped="no"/>
@@ -1095,7 +1095,7 @@
                     <property name="activate-on-single-click">True</property>
                     <signal name="row-activated" handler="serial_number_treeview_row_activated" swapped="no"/>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="treeview-selection5"/>
+                      <object class="GtkTreeSelection" id="serial_number_selection"/>
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn14">
@@ -1216,7 +1216,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <child>
-                  <object class="GtkEntry" id="entry10">
+                  <object class="GtkEntry" id="barcode_error_entry">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="placeholder-text" translatable="yes">Scan barcode</property>
@@ -1342,7 +1342,7 @@
                 <property name="activate-on-single-click">True</property>
                 <signal name="row-activated" handler="document_list_row_activated" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection4"/>
+                  <object class="GtkTreeSelection" id="document_list_selection"/>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn11">
@@ -1522,7 +1522,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBox" id="combobox3">
+              <object class="GtkComboBox" id="transfer_customer_combo">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="model">customer_store</property>
