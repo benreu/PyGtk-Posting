@@ -59,6 +59,7 @@ class InvoiceGUI:
 		self.invoice_id = 0
 		self.comment_timeout = None
 		self.pending_comment = None
+		self.posted = False # whether the invoice was posted when it was loaded
 		self.loading = False # True while the window is being filled with an existing invoice
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -112,21 +113,9 @@ class InvoiceGUI:
 		self.datetime = datetime.today()
 
 		if invoice_id != None:  # edit an existing invoice; put all the existing items in the liststore
-			cursor = DB.cursor()
-			cursor.execute("SELECT customer_id, "
-									"COALESCE(dated_for, CURRENT_DATE), "
-									"format_date(COALESCE(dated_for, CURRENT_DATE)), "
-									"comments, "
-									"doc_type "
-								"FROM invoices "
-								"WHERE id = %s", (invoice_id,))
-			for row in cursor.fetchall():
-				customer_id = row[0]
-				self.datetime = row[1] # load separately from calendar, in case date has a problem
-				self.builder.get_object('entry1').set_text(row[2])
-				comments = row[3]
-				self.document_type = row[4] or "Invoice"
+			header = self.load_invoice_header (invoice_id)
 			# an already posted invoice keeps the location it took its stock from
+			cursor = DB.cursor()
 			cursor.execute("SELECT it.location_id FROM inventory_transactions AS it "
 								"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
 								"WHERE ii.invoice_id = %s LIMIT 1", (invoice_id,))
@@ -134,11 +123,8 @@ class InvoiceGUI:
 				self.builder.get_object('combobox2').set_active_id(str(row[0]))
 			cursor.close()
 			DB.rollback()
-			self.loading = True # customer_selected must not swap in another invoice
 			self.invoice_id = invoice_id
-			self.builder.get_object('combobox1').set_active_id(str(customer_id))
-			self.builder.get_object('comment_buffer').set_text(comments or '')
-			self.loading = False
+			self.apply_invoice_header (header)
 			self.set_widgets_sensitive ()
 			self.populate_invoice_items(save_totals = False)
 			
@@ -1399,29 +1385,57 @@ class InvoiceGUI:
 	def calendar(self, widget, icon, event):
 		self.calendar.show()
 
+	def load_invoice_header (self, invoice_id):
+		'''the saved fields of an invoice that are not line items, None if it is gone'''
+		cursor = DB.cursor()
+		cursor.execute("SELECT customer_id, "
+							"COALESCE(dated_for, CURRENT_DATE), "
+							"format_date(COALESCE(dated_for, CURRENT_DATE)), "
+							"comments, doc_type, posted, canceled "
+						"FROM invoices WHERE id = %s", (invoice_id,))
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		if row is None:
+			return None
+		return {'customer_id': row[0], 'date': row[1], 'date_text': row[2],
+				'comments': row[3] or '', 'doc_type': row[4] or "Invoice",
+				'posted': row[5], 'canceled': row[6]}
+
+	def apply_invoice_header (self, header):
+		'''show a loaded header without any of it being saved or another invoice picked'''
+		self.loading = True # customer_selected must not swap in another invoice
+		self.datetime = header['date'] # load separately from calendar, in case date has a problem
+		self.builder.get_object('entry1').set_text(header['date_text'])
+		self.builder.get_object('combobox1').set_active_id(str(header['customer_id']))
+		self.builder.get_object('comment_buffer').set_text(header['comments'])
+		self.document_type = header['doc_type']
+		self.posted = header['posted']
+		self.loading = False
+
 	def show_reload_infobar (self, broadcaster, invoice_id, is_remote):
 		if invoice_id != self.invoice_id or not is_remote:
 			return
-		cursor = DB.cursor()
-		cursor.execute("SELECT posted FROM invoices WHERE id = %s", (self.invoice_id,))
-		posted = cursor.fetchone()[0]
-		cursor.close()
-		DB.rollback()
-		if posted:
-			self.invoice_posted_elsewhere()
+		header = self.load_invoice_header (self.invoice_id)
+		if header is None or header['canceled']:
+			self.close_invoice_window ("This invoice has been deleted elsewhere.")
+			return
+		# a posted invoice can be edited, only someone else posting it is a problem
+		if header['posted'] and not self.posted:
+			self.close_invoice_window ("This invoice has already been posted elsewhere.")
 			return
 		infobar = self.builder.get_object('invoice_changed_infobar')
 		infobar.set_revealed(True)
 
-	def invoice_posted_elsewhere (self):
+	def close_invoice_window (self, message):
 		self.builder.get_object('button2').set_sensitive(False)
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.WARNING,
 										buttons = Gtk.ButtonsType.CLOSE)
 		dialog.set_transient_for(self.window)
-		dialog.set_markup("This invoice has already been posted elsewhere.\n"
-							"This window will now close.")
+		dialog.set_markup(message + "\nThis window will now close.")
 		dialog.run()
 		dialog.destroy()
+		self.pending_comment = None # it belongs to an invoice that is not ours to write to
 		self.window.destroy()
 
 	def info_bar_close (self, infobar):
@@ -1429,8 +1443,20 @@ class InvoiceGUI:
 
 	def info_bar_response (self, infobar, response):
 		if response == Gtk.ResponseType.APPLY:
-			self.populate_invoice_items ()
+			self.reload_invoice ()
 		infobar.set_revealed(False)
 
-
+	def reload_invoice (self):
+		'''show what is saved now, the other change wins over a comment still being typed'''
+		if self.comment_timeout is not None:
+			GLib.source_remove(self.comment_timeout)
+			self.comment_timeout = None
+		self.pending_comment = None
+		header = self.load_invoice_header (self.invoice_id)
+		if header is None or header['canceled']:
+			self.close_invoice_window ("This invoice has been deleted elsewhere.")
+			return
+		self.apply_invoice_header (header)
+		self.calendar.set_datetime(self.datetime)
+		self.populate_invoice_items (save_totals = False)
 
