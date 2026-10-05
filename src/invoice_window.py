@@ -57,6 +57,8 @@ class InvoiceGUI:
 	def __init__(self, invoice_id = None, date_editable = True):
 
 		self.invoice_id = 0
+		self.comment_timeout = None
+		self.pending_comment = None
 		self.loading = False # True while the window is being filled with an existing invoice
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -321,6 +323,7 @@ class InvoiceGUI:
 		self.window.destroy()
 
 	def destroy(self, window):
+		self.flush_comment ()
 		for handler in self.handler_ids:
 			broadcaster.disconnect(handler)
 
@@ -475,6 +478,7 @@ class InvoiceGUI:
 		return True
 
 	def document_list_row_activated (self, treeview, path, column):
+		self.flush_comment ()
 		self.invoice_id = self.document_list_store[path][0]
 		cursor = DB.cursor()
 		cursor.execute("SELECT "
@@ -559,6 +563,7 @@ class InvoiceGUI:
 
 	def clear_invoice (self):
 		'''leave the current invoice and show a blank one for the same customer'''
+		self.flush_comment ()
 		self.loading = True # don't write the cleared comments to the old invoice
 		self.builder.get_object('comment_buffer').set_text('')
 		self.loading = False
@@ -576,11 +581,30 @@ class InvoiceGUI:
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
 		comment = buf.get_text(start, end, True)
-		cursor = DB.cursor()
-		cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s",
-													(comment, self.invoice_id))
-		cursor.close()
-		DB.commit()
+		# remember which invoice it was typed for, the window may move on first
+		self.pending_comment = (self.invoice_id, comment)
+		if self.comment_timeout is not None:
+			GLib.source_remove(self.comment_timeout)
+		self.comment_timeout = GLib.timeout_add(500, self.save_pending_comment)
+
+	def save_pending_comment (self):
+		self.comment_timeout = None
+		if self.pending_comment is not None:
+			invoice_id, comment = self.pending_comment
+			self.pending_comment = None
+			if invoice_id != 0: # check_invoice_id saves comments typed before the invoice existed
+				cursor = DB.cursor()
+				cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s",
+															(comment, invoice_id))
+				cursor.close()
+				DB.commit()
+		return False
+
+	def flush_comment (self):
+		'''save a comment still waiting for its typing pause'''
+		if self.comment_timeout is not None:
+			GLib.source_remove(self.comment_timeout)
+		self.save_pending_comment ()
 
 	def invoice_has_items (self):
 		if self.invoice_id == 0 or len(self.invoice_store) == 0:
@@ -610,6 +634,7 @@ class InvoiceGUI:
 	def post_invoice(self, widget):
 		if not self.invoice_has_items ():
 			return
+		self.flush_comment ()
 		self.calculate_totals () # posting copies the saved total to amount due
 		invoice = self.create_invoice_document ()
 		if self.builder.get_object('menuitem1').get_active() == True:
@@ -754,6 +779,7 @@ class InvoiceGUI:
 		self.populating = False
 
 	def customer_selected(self, name_id):
+		self.flush_comment ()
 		cursor = DB.cursor()
 		cursor.execute("SELECT address, phone, city, state, zip, email "
 							"FROM contacts WHERE id = (%s)",(name_id,))
@@ -1240,6 +1266,14 @@ class InvoiceGUI:
 	def check_invoice_id (self):
 		if self.invoice_id == 0:
 			self.invoice_id = create_new_invoice(self.datetime, self.customer_id)
+			self.flush_comment () # drop the pending write, it was typed for no invoice
+			buf = self.builder.get_object('comment_buffer')
+			comment = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), True)
+			if comment != '':
+				cursor = DB.cursor()
+				cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s",
+								(comment, self.invoice_id))
+				cursor.close()
 			DB.commit()
 			self.populate_document_list()
 
