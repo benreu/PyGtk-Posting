@@ -18,6 +18,7 @@
 from gi.repository import Gtk, Gdk, GLib
 import subprocess, psycopg2, re
 from datetime import datetime
+from decimal import Decimal
 from invoice import invoice_create
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
@@ -218,7 +219,8 @@ class InvoiceGUI:
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
 			for row in self.invoice_store:
 				if row[2] == product_id:
-					row[1] -= 1
+					qty = str(Decimal(row[1]) - 1)
+					self.qty_edited (None, row.path, qty) # saves to the database
 					break
 			entry.select_region(0,-1)
 		elif event.get_state() & Gdk.ModifierType.CONTROL_MASK: #ctrl held down
