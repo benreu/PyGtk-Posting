@@ -138,13 +138,13 @@ class InvoiceGUI:
 			self.builder.get_object('comment_buffer').set_text(comments or '')
 			self.loading = False
 			self.set_widgets_sensitive ()
-			self.populate_invoice_items()
+			self.populate_invoice_items(save_totals = False)
 			
 		self.calendar.set_datetime(self.datetime)
 
 		self.tax = 0
 		self.window.show_all()
-		self.calculate_totals ()
+		self.calculate_totals (save = False)
 		
 		GLib.idle_add(self.load_settings)
 
@@ -489,8 +489,7 @@ class InvoiceGUI:
 			self.calendar.set_date(date)
 		cursor.close()
 		self.document_type = self.document_list_store[path][2]
-		self.populate_invoice_items()
-		self.calculate_totals()
+		self.populate_invoice_items(save_totals = False)
 		DB.rollback()
 
 	def update_invoice_name (self, document_prefix):
@@ -611,6 +610,7 @@ class InvoiceGUI:
 	def post_invoice(self, widget):
 		if not self.invoice_has_items ():
 			return
+		self.calculate_totals () # posting copies the saved total to amount due
 		invoice = self.create_invoice_document ()
 		if self.builder.get_object('menuitem1').get_active() == True:
 			invoice.print_directly(self.window)
@@ -634,7 +634,7 @@ class InvoiceGUI:
 		DB.commit()
 		self.window.destroy()
 
-	def populate_invoice_items (self):
+	def populate_invoice_items (self, save_totals = True):
 		self.invoice_store.clear()
 		cursor = DB.cursor()
 		cursor.execute("SELECT ili.id, qty, product_id, products.name, "
@@ -669,7 +669,7 @@ class InvoiceGUI:
 										tax_letter, serial_number])
 		cursor.close()
 		self.check_serial_numbers()
-		self.calculate_totals()
+		self.calculate_totals(save = save_totals)
 		DB.rollback()
 
 	def tax_exemption_combo_changed(self, combo):
@@ -719,7 +719,6 @@ class InvoiceGUI:
 		if customer_id != None:
 			self.customer_id = customer_id
 			self.customer_selected (self.customer_id)
-			self.calculate_totals ()
 
 	def populate_tax_exemption_combo (self):
 		'''a new customer gets their own exemption, the same customer keeps the 
@@ -807,7 +806,7 @@ class InvoiceGUI:
 			self.invoice_id = 0
 			self.document_type = "Invoice"
 			self.builder.get_object("comment_buffer").set_text('')
-		self.populate_invoice_items()
+		self.populate_invoice_items(save_totals = False)
 		cursor.execute("SELECT dated_for FROM invoices WHERE id = %s "
 							"AND dated_for IS NOT NULL", (self.invoice_id,))
 		for row in cursor.fetchall():
@@ -1179,7 +1178,8 @@ class InvoiceGUI:
 		for row in self.invoice_store:
 			self.set_product_price (row.path)
 	
-	def calculate_totals (self, widget = None):
+	def calculate_totals (self, widget = None, save = True):
+		'''show the totals; save them to the invoice unless it is only being opened'''
 		c = DB.cursor()
 		c.execute("WITH totals AS "
 					"(SELECT COALESCE(SUM(ext_price), 0.00) AS subtotal, "
@@ -1193,10 +1193,14 @@ class InvoiceGUI:
 						"((SELECT subtotal FROM totals), "
 						"(SELECT tax FROM totals), "
 						"(SELECT total FROM totals)) "
-					"WHERE id = %s"
+					"WHERE id = %s AND %s AND "
+						"(subtotal, tax, total) IS DISTINCT FROM "
+						"((SELECT subtotal FROM totals), "
+						"(SELECT tax FROM totals), "
+						"(SELECT total FROM totals))"
 					")"
 					"SELECT * FROM totals",
-					(self.invoice_id, self.invoice_id))
+					(self.invoice_id, self.invoice_id, save))
 		for row in c.fetchall():
 			self.subtotal = row[0]
 			self.tax = row[1]
