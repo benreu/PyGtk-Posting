@@ -170,12 +170,17 @@ class InvoiceGUI:
 		DB.rollback()
 
 	def transfer_invoice_activated (self, menuitem):
+		if self.invoice_id == 0:
+			self.show_error_dialog ("There is no invoice to transfer yet.")
+			return
 		dialog = self.builder.get_object('transfer_invoice_dialog')
 		result = dialog.run()
 		dialog.hide()
 		if result == Gtk.ResponseType.ACCEPT:
 			combo = self.builder.get_object('combobox3')
 			transfer_customer_id = combo.get_active_id()
+			if transfer_customer_id is None:
+				return # no customer chosen
 			cursor = DB.cursor()
 			cursor.execute("UPDATE invoices SET customer_id = %s "
 								"WHERE id = %s",
@@ -183,8 +188,11 @@ class InvoiceGUI:
 			cursor.close()
 			DB.commit()
 			combo = self.builder.get_object('combobox1')
+			self.loading = True # stay on this invoice, don't look for the new customer's draft
 			combo.set_active_id(transfer_customer_id)
+			self.loading = False
 			self.update_invoice_name ("Inv")
+			self.populate_document_list ()
 
 	def invoice_transfer_match_selected (self, completion, model, iter):
 		transfer_customer_id = model[iter][0]
