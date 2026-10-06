@@ -19,6 +19,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+from inventory import inventorying
 
 UI_FILE = ui_directory + "/manufacturing/projects.ui"
 
@@ -107,6 +108,7 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 						"UPDATE manufacturing_projects "
 						"SET active = False WHERE id = %s",
 						(project_id, project_id))
+		inventorying.manufacture(project_id)
 		DB.commit()
 		cursor.close()
 		self.populate_projects()

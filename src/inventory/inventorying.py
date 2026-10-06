@@ -96,6 +96,8 @@ def receive (po_id, location_id):
 						"WHERE (poli.purchase_order_id, p.inventory_enabled, "
 						"poli.canceled) = (%s, True, False) "
 						"AND poli.qty > 0 "
+						"AND NOT EXISTS (SELECT 1 FROM inventory_transactions AS it "
+							"WHERE it.purchase_order_item_id = poli.id) "
 						") "
 					"INSERT INTO inventory_transactions "
 					"(purchase_order_item_id, qty_in, product_id, "
@@ -109,9 +111,33 @@ def transfer (transfer_store):
 	cursor = DB.cursor()
 	cursor.close()
 
-def manufacture (manufacturing_id):
+def manufacture (manufacturing_id, location_id = None):
+	'''consume the project's components and add the finished product. Rerunning
+	replaces the project's earlier rows. Without a location the first one is used'''
 	cursor = DB.cursor()
-	
+	if location_id == None:
+		cursor.execute("SELECT id FROM locations ORDER BY id LIMIT 1")
+		location_id = cursor.fetchone()[0]
+	cursor.execute("DELETE FROM inventory_transactions "
+					"WHERE manufacturing_id = %s", (manufacturing_id,))
+	cursor.execute("INSERT INTO inventory_transactions "
+					"(manufacturing_id, product_id, qty_out, price, "
+					"location_id, date_inserted) "
+					"SELECT mi.manufacturing_project_id, mi.product_id, mi.qty, "
+						"mi.cost, %s, CURRENT_DATE "
+					"FROM manufacturing_items AS mi "
+					"JOIN products AS p ON p.id = mi.product_id "
+					"WHERE mi.manufacturing_project_id = %s "
+					"AND p.inventory_enabled AND mi.qty > 0",
+					(location_id, manufacturing_id))
+	cursor.execute("INSERT INTO inventory_transactions "
+					"(manufacturing_id, product_id, qty_in, price, "
+					"location_id, date_inserted) "
+					"SELECT mp.id, mp.product_id, mp.qty, p.cost, %s, CURRENT_DATE "
+					"FROM manufacturing_projects AS mp "
+					"JOIN products AS p ON p.id = mp.product_id "
+					"WHERE mp.id = %s AND p.inventory_enabled AND mp.qty > 0",
+					(location_id, manufacturing_id))
 	cursor.close()
 
 

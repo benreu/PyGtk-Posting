@@ -50,5 +50,11 @@ class ReceiveTest(DBTestCase):
 		self.receive()
 		self.assertEqual([r[0] for r in self.received_rows()], [19])
 
+	def test_receiving_twice_does_not_double_count(self):
+		self.add_line(19, 5, 1)
+		self.receive()
+		self.receive()
+		self.assertEqual(len(self.received_rows()), 1)
+
 if __name__ == '__main__':
 	unittest.main()
