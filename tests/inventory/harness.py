@@ -57,9 +57,18 @@ def connect():
 	cursor.close()
 	return conn
 
+class FakeBroadcaster:
+	'''start_broadcaster () is never called in the tests, and the real Broadcast
+	puts an IO watch on the database socket. Windows only connect and disconnect'''
+	def connect(self, *args):
+		return 1
+	def disconnect(self, *args):
+		pass
+
 # db_connection.DB is imported by value everywhere, so it has to be replaced
 # before any application module is imported
 import db_connection
+db_connection.broadcaster = FakeBroadcaster()
 _conn = None
 try:
 	_conn = connect()

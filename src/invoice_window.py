@@ -58,6 +58,7 @@ class InvoiceGUI:
 		self.comment_timeout = None
 		self.pending_comment = None
 		self.posted = False # whether the invoice was posted when it was loaded
+		self.negative_stock_message = None # the shortage the user was told about
 		self.loading = False # True while the window is being filled with an existing invoice
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -67,6 +68,7 @@ class InvoiceGUI:
 		self.qty_renderer_value = 1
 
 		self.populating = False
+		self.setting_location = False # True while the location combo is refilled
 		self.invoice_store = self.builder.get_object('invoice_store')
 		self.location_store = self.builder.get_object('location_store')
 		self.document_list_store = self.builder.get_object('document_list_store')
@@ -121,6 +123,8 @@ class InvoiceGUI:
 				self.builder.get_object('location_combo').set_active_id(str(row[0]))
 			cursor.close()
 			DB.rollback()
+			# the combo is set while there is still no invoice id, so restoring the
+			# location cannot make the window rewrite the ledger it just read
 			self.invoice_id = invoice_id
 			self.apply_invoice_header (header)
 			self.set_widgets_sensitive ()
@@ -154,6 +158,7 @@ class InvoiceGUI:
 	def populate_location_store (self):
 		location_combo = self.builder.get_object('location_combo')
 		active_location = location_combo.get_active_id()
+		self.setting_location = True # emptying the combo is not a move of the stock
 		self.location_store.clear()
 		cursor = DB.cursor()
 		cursor.execute("SELECT id, name FROM locations ORDER BY name")
@@ -163,7 +168,14 @@ class InvoiceGUI:
 			self.location_store.append([str(location_id), location_name])
 		cursor.close()
 		location_combo.set_active_id(active_location)
+		self.setting_location = False
 		DB.rollback()
+
+	def location_combo_changed (self, combo):
+		'''moving a posted invoice to another location moves the stock it took'''
+		if self.setting_location == True:
+			return # the store is only being refilled, nothing was moved
+		self.resync_posted_inventory ()
 
 	def transfer_invoice_activated (self, menuitem):
 		if self.invoice_id == 0:
@@ -278,6 +290,7 @@ class InvoiceGUI:
 				c = treeview.get_column(0)
 				treeview.set_cursor(row.path, c, False)
 				break
+		self.resync_posted_inventory ()
 
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
@@ -350,6 +363,7 @@ class InvoiceGUI:
 			return
 		self.set_product_price (path)
 		self.calculate_totals ()
+		self.resync_posted_inventory ()
 
 	def customer_combo_populate_popup (self, entry, menu):
 		separator = Gtk.SeparatorMenuItem ()
@@ -545,6 +559,7 @@ class InvoiceGUI:
 		self.builder.get_object('comment_buffer').set_text('')
 		self.loading = False
 		self.invoice_id = 0
+		self.negative_stock_message = None
 		self.document_type = "Invoice"
 		self.datetime = datetime.today()
 		self.calendar.set_today()
@@ -662,6 +677,44 @@ class InvoiceGUI:
 		cursor.close()
 		DB.rollback()
 		invoice.email("%s < %s >" % (name, email), invoice.total)
+
+	def resync_posted_inventory (self):
+		'''a posted invoice can still be edited and every change is saved as it is
+		typed, so each handler that changes stock has to follow its change into the
+		inventory ledger. The invoice is read back from the database, so a draft is
+		left alone no matter which invoice this window thinks it is holding'''
+		if self.invoice_id == 0:
+			return # nothing is saved yet, there is nothing to follow
+		location_id = self.builder.get_object('location_combo').get_active_id()
+		from inventory import inventorying
+		try:
+			inventorying.resync_invoice_inventory (self.invoice_id, location_id)
+			DB.commit()
+		except Exception as e:
+			DB.rollback() # an aborted transaction would poison every later query
+			traceback.print_exc()
+			self.show_error_dialog ("The inventory was not updated:\n%s" %
+									GLib.markup_escape_text(str(e)))
+			return
+		# only now that the ledger is rewritten does every row this invoice owns
+		# belong to a line that is still on screen, which is what the check assumes
+		message = inventorying.negative_stock_message (self.invoice_store,
+														location_id)
+		DB.rollback()
+		if message != None and message != self.negative_stock_message:
+			self.show_negative_stock_warning (message) # a new shortage, not the same one
+		self.negative_stock_message = message
+
+	def show_negative_stock_warning (self, message):
+		'''the edit is already saved, so this only tells the user'''
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.WARNING,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup ("This change takes stock below zero:\n\n%s\n\n"
+							"The stock count may be off." %
+							GLib.markup_escape_text(message))
+		dialog.run()
+		dialog.destroy()
 
 	def populate_invoice_items (self, save_totals = True):
 		self.invoice_store.clear()
@@ -856,13 +909,42 @@ class InvoiceGUI:
 
 	################## start qty
 
-	def qty_edited(self, widget, path, text):
+	def whole_quantity_required (self, path):
+		'''inventory is counted in whole units, so a fraction of a tracked product
+		would be truncated into the ledger. Serial numbered products are counted one
+		by one whether they are tracked or not'''
 		if self.invoice_store[path][12] == True:
-			try:
-				text = int(text) # only allow whole numbers for inventory
-			except Exception as e:
-				self.show_error_dialog (str(e))
+			return True
+		cursor = DB.cursor()
+		cursor.execute("SELECT inventory_enabled FROM products WHERE id = %s",
+						(self.invoice_store[path][2],))
+		inventory_enabled = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		return inventory_enabled
+
+	def whole_quantity_message (self, path, text):
+		'''returns a message when the typed quantity cannot be used, or None. A
+		fraction gets its own wording, the user is not reading a cast error'''
+		try:
+			number = Decimal(text)
+			whole = number == int(number)
+		except Exception:
+			return "'%s' is not a quantity" % text # not a number at all, or nan
+		if not whole:
+			return ("'%s' is counted in whole units, so its quantity cannot be %s"
+					% (self.invoice_store[path][3], text))
+		return None
+
+	def qty_edited(self, widget, path, text):
+		# read before check_invoice_item_id, the lookup ends in a rollback
+		whole_only = self.whole_quantity_required (path)
+		if whole_only:
+			message = self.whole_quantity_message (path, text)
+			if message != None:
+				self.show_error_dialog (message)
 				return False
+			text = int(Decimal(text)) # only whole numbers for inventory
 		iter_ = self.invoice_store.get_iter (path)
 		self.check_invoice_item_id (iter_)
 		line_id = self.invoice_store[iter_][0]
@@ -885,7 +967,7 @@ class InvoiceGUI:
 			price = row[1]
 			ext_price = row[2]
 			tax = row[3]
-			if self.invoice_store[iter_][12] == True:
+			if whole_only:
 				qty = qty.split('.')[0] # only whole numbers for inventory
 			self.invoice_store[iter_][1] = qty
 			self.invoice_store[iter_][6] = price
@@ -894,6 +976,7 @@ class InvoiceGUI:
 		cursor.close()
 		self.check_serial_numbers ()
 		self.calculate_totals ()
+		self.resync_posted_inventory ()
 
 	################## start remark
 
@@ -934,6 +1017,7 @@ class InvoiceGUI:
 			self.invoice_store[iter_][8] = ext_price
 		cursor.close()
 		self.calculate_totals()
+		self.resync_posted_inventory ()
 
 	################## end price
 	
@@ -1024,6 +1108,7 @@ class InvoiceGUI:
 		treeview = self.builder.get_object('invoice_treeview')
 		c = treeview.get_column(3)
 		treeview.set_cursor(path, c, True)
+		self.resync_posted_inventory ()
 
 	def populate_serial_numbers (self):
 		serial_number_store = self.builder.get_object('serial_number_store')
@@ -1218,6 +1303,7 @@ class InvoiceGUI:
 	def refresh_all_prices_clicked (self, menuitem):
 		for row in self.invoice_store:
 			self.set_product_price (row.path)
+		self.resync_posted_inventory ()
 	
 	def calculate_totals (self, widget = None, save = True):
 		'''show the totals; save them to the invoice unless it is only being opened'''
@@ -1277,6 +1363,7 @@ class InvoiceGUI:
 			self.invoice_store[iter_][0] = cursor.fetchone()[0]
 			cursor.close()
 			DB.commit()
+			self.resync_posted_inventory () # a line added to a posted invoice
 
 	def check_invoice_id (self):
 		if self.invoice_id == 0:
@@ -1333,6 +1420,7 @@ class InvoiceGUI:
 		c.close()
 		DB.commit()
 		self.populate_invoice_items ()
+		self.resync_posted_inventory ()
 
 	def column_is_editable (self, column):
 		for cell in column.get_cells():

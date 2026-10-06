@@ -83,8 +83,7 @@ def sell (invoice_store, location_id, contact_id, date):
 			cursor.execute("UPDATE inventory_transactions "
 							"SET (qty_out, product_id, location_id, "
 							"date_inserted, price) = (%s, %s, %s, %s, %s) "
-							"WHERE id = (SELECT id FROM inventory_transactions "
-							"WHERE invoice_line_id = %s) RETURNING id", 
+							"WHERE invoice_line_id = %s RETURNING id", 
 							(qty, product_id, location_id, 
 							date, price, invoice_line_id))
 			for row in cursor.fetchall():
@@ -100,6 +99,67 @@ def sell (invoice_store, location_id, contact_id, date):
 			cursor.execute("DELETE FROM inventory_transactions "
 							"WHERE invoice_line_id = %s", 
 							(invoice_line_id,))
+	cursor.close()
+
+def resync_invoice_inventory (invoice_id, location_id = None, date = None):
+	'''follow an edit of a posted invoice into the ledger. A posted invoice can
+	still be changed and every change is saved as it is typed, so the sale rows are
+	rebuilt from invoice_items rather than from what is on screen: a line canceled
+	after posting keeps its invoice_items row, and a product whose tracking was
+	turned off has to lose its sale row altogether. A draft invoice is left alone,
+	sell () takes its stock when it is posted. A location_id of None leaves every
+	row where it is, and a date of None keeps the date the sale was recorded under,
+	so correcting a quantity cannot move a posted sale into another month'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT posted FROM invoices WHERE id = %s", (invoice_id,))
+	row = cursor.fetchone()
+	if row == None or row[0] == False: # sell () takes the stock at posting time
+		cursor.close()
+		return
+	# a canceled line and a product no longer tracked both keep their invoice_items
+	# row, so the sale row has to be dropped instead of updated
+	cursor.execute("DELETE FROM inventory_transactions "
+					"WHERE invoice_line_id IN "
+						"(SELECT ii.id FROM invoice_items AS ii "
+						"JOIN products AS p ON p.id = ii.product_id "
+						"WHERE ii.invoice_id = %s "
+						"AND (ii.canceled OR NOT p.inventory_enabled))",
+					(invoice_id,))
+	# TRUNC like sell () does; a plain cast rounds, which would change a quantity
+	# the user never touched
+	cursor.execute("UPDATE inventory_transactions AS it SET "
+						"(qty_out, product_id, location_id, date_inserted, price) = "
+						"(TRUNC(ii.qty)::int, ii.product_id, "
+						"COALESCE(%s::int, it.location_id), "
+						"COALESCE(%s::date, it.date_inserted), ii.price) "
+					"FROM invoice_items AS ii "
+					"JOIN products AS p ON p.id = ii.product_id "
+					"WHERE it.invoice_line_id = ii.id "
+					"AND (ii.invoice_id, ii.canceled, p.inventory_enabled) = "
+						"(%s, False, True)",
+					(location_id, date, invoice_id))
+	# lines added after the invoice was posted still have to take their stock
+	cursor.execute("INSERT INTO inventory_transactions "
+						"(invoice_line_id, qty_out, product_id, price, "
+						"location_id, date_inserted) "
+					"SELECT ii.id, TRUNC(ii.qty)::int, ii.product_id, ii.price, "
+						"COALESCE(%s::int, "
+							"(SELECT it.location_id "
+								"FROM inventory_transactions AS it "
+								"JOIN invoice_items AS sibling "
+									"ON sibling.id = it.invoice_line_id "
+								"WHERE sibling.invoice_id = i.id "
+								"ORDER BY it.id LIMIT 1), "
+							"(SELECT id FROM locations ORDER BY id LIMIT 1)), "
+						"COALESCE(%s::date, i.dated_for, CURRENT_DATE) "
+					"FROM invoice_items AS ii "
+					"JOIN invoices AS i ON i.id = ii.invoice_id "
+					"JOIN products AS p ON p.id = ii.product_id "
+					"WHERE (ii.invoice_id, ii.canceled, p.inventory_enabled) = "
+						"(%s, False, True) "
+					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
+						"WHERE invoice_line_id = ii.id)",
+					(location_id, date, invoice_id))
 	cursor.close()
 
 def unsell (invoice_id):

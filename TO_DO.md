@@ -12,3 +12,5 @@ add more window keybindings in keybindings.py and the com.github.benreu.pygtk-po
 organize window keybindings window names in alphabetical order (except for the first one) <basic>
 pdf attachment output window no longer scrolls after it is finished optimizing a pdf <unknown>
 add feature for split entries in double entry accounting <intermediate>
+re-sync gl entries when a posted invoice's quantity or price is edited, the way inventory now is <advanced>
+process_invoice_barcode adds qty to a canceled invoice line, so a scan can land on a line the window does not show <intermediate>
