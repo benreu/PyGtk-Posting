@@ -27,6 +27,7 @@ class LocationsGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.location_id = 0
 
 		self.location_store = self.builder.get_object('location_store')
 		self.location_treeview_populate ()
@@ -65,8 +66,8 @@ class LocationsGUI:
 		location_name = self.builder.get_object('entry1').get_text()
 		cursor = DB.cursor()
 		if self.location_id == 0:
-			cursor.execute("INSERT INTO locations name "
-								"VALUES %s RETURNING id", (location_name,))
+			cursor.execute("INSERT INTO locations (name) "
+								"VALUES (%s) RETURNING id", (location_name,))
 			self.location_id = cursor.fetchone()[0]
 		else:
 			cursor.execute("UPDATE locations SET name = %s "
@@ -81,8 +82,20 @@ class LocationsGUI:
 		if path != []:
 			location_id = model[path][0]
 			cursor = DB.cursor()
-			cursor.execute("UPDATE locations SET deleted = True "
-								"WHERE id = %s", (location_id,))
+			try: # locations has no deleted column; fails if the location is in use
+				cursor.execute("DELETE FROM locations "
+									"WHERE id = %s", (location_id,))
+			except Exception as e:
+				DB.rollback()
+				dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+											buttons = Gtk.ButtonsType.CLOSE)
+				dialog.set_transient_for(self.builder.get_object('window1'))
+				dialog.set_markup("Location is in use and can not be deleted")
+				dialog.format_secondary_text(str(e))
+				dialog.run()
+				dialog.destroy()
+				cursor.close()
+				return
 			cursor.close()
 			DB.commit()
 			self.location_treeview_populate ()
