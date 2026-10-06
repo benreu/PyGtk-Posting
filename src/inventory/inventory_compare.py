@@ -66,7 +66,13 @@ class InventoryCompareGUI(Gtk.Builder):
 		previous_store.clear()
 		c.execute("SELECT cs.id, cs.name "
 					"FROM inventory.count_summaries AS cs "
-					"WHERE cs.id = %s-1", (summary_id,))
+					"WHERE cs.id = "
+						"(SELECT p.id FROM inventory.count_summaries AS p, "
+						"inventory.count_summaries AS this "
+						"WHERE this.id = %s::bigint "
+						"AND (p.date_created, p.id) < (this.date_created, this.id) "
+						"ORDER BY p.date_created DESC, p.id DESC LIMIT 1)",
+					(summary_id,))
 		for row in c.fetchall():
 			previous_id, previous_name = row[0], row[1]
 			self.get_object('previous_summary_label').set_label(previous_name)
