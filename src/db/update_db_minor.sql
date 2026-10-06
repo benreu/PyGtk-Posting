@@ -670,3 +670,36 @@ ALTER TABLE manufacturing_items
 ALTER TABLE manufacturing_projects
 	ADD COLUMN IF NOT EXISTS destination_location_id integer
 		REFERENCES locations(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+--0.7.17 CREATE FUNCTION public.process_invoice_barcode
+/* A deleted invoice line is only flagged canceled, and the invoice window does
+   not show it, so scanning that product again found the hidden line and added a
+   quantity to it where nobody could see it. A live line still takes the extra
+   quantity; otherwise the scan brings the deleted line back with a quantity of
+   one, so the line returns where it was instead of a second one appearing below
+   it. The window sets the price afterwards, as it does for a new line. */
+CREATE OR REPLACE FUNCTION public.process_invoice_barcode(_barcode character varying, _invoice_id bigint, OUT invoice_item_id bigint) RETURNS bigint
+    LANGUAGE plpgsql
+    AS 
+$BODY$ 
+    DECLARE _product_id BIGINT; _tax_rate_id BIGINT; 
+    BEGIN 
+    SELECT id, tax_rate_id INTO _product_id, _tax_rate_id FROM products WHERE (barcode, deleted) = (_barcode, FALSE); 
+        IF FOUND THEN 
+            UPDATE invoice_items SET qty = qty + 1 
+            WHERE (invoice_id, product_id, canceled) = (_invoice_id, _product_id, FALSE) RETURNING id INTO invoice_item_id; 
+            IF invoice_item_id IS NULL THEN 
+                UPDATE invoice_items SET (qty, canceled) = (1, FALSE) 
+                WHERE id = (SELECT id FROM invoice_items 
+                    WHERE (invoice_id, product_id, canceled) = (_invoice_id, _product_id, TRUE) 
+                    ORDER BY id LIMIT 1) RETURNING id INTO invoice_item_id; 
+            END IF; 
+            IF invoice_item_id IS NULL THEN 
+                INSERT INTO invoice_items (invoice_id, product_id, tax_rate_id) 
+                VALUES (_invoice_id, _product_id, _tax_rate_id) RETURNING id INTO invoice_item_id; 
+            END IF; 
+        ELSE invoice_item_id = 0; 
+        END IF; 
+    RETURN; 
+    END ;
+$BODY$ 
