@@ -82,12 +82,17 @@ class InventoryCountGUI(Gtk.Builder):
 	def qty_edited (self, cellrenderertext, path, qty):
 		store = self.get_object('inventory_rows_store')
 		product_id = store[path][1]
+		try: # the store column is an integer, so reject anything else up front
+			qty = int(qty)
+		except ValueError:
+			return
 		c = DB.cursor()
 		c.execute("UPDATE inventory.count_rows SET qty = %s "
 					"WHERE (product_id, count_summary_id) = (%s, %s) ",
 					(qty, product_id, self.summary_id))
+		c.close()
 		DB.commit()
-		store[path][0] = int(qty)
+		store[path][0] = qty
 		self.populate_inventory_count ()
 
 	def treeview_button_release_event (self, widget, event):
