@@ -78,7 +78,7 @@ class InventoryHistoryGUI:
 	def product_match_selected(self, completion, model, iter_):
 		self.product_id = model[iter_][0]
 		product_name = model[iter_][1]
-		self.builder.get_object('comboboxtext-entry').set_text(product_name)
+		self.builder.get_object('combobox-entry').set_text(product_name)
 		self.populate_history_treeview ()
 
 	def product_match_string(self, completion, key, iter):

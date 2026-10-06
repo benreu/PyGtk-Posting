@@ -92,7 +92,7 @@ class MainReportsGUI:
 		customer_statements.StatementsGUI ()
 
 	def count_inventory_clicked (self, button):
-		from reports import inventory_count
+		from inventory import inventory_count
 		inventory_count.InventoryCountGUI()
 
 	def invoice_amounts_clicked (self, button):
