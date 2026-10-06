@@ -2,7 +2,6 @@ add paid, posted, and canceled ToggleButtons to top treeview in invoice history 
 load canceled invoices in invoice history window <basic>
 add paid, posted, and canceled ToggleButtons to invoices tab in contact history window <basic>
 load canceled invoices in contact history window <basic>
-finish inventory calculations/entries for manufacturing <advanced>
 under administration, admin login/logout does not clearly reflect current state in certain tests <intermediate>
 admin login/logout should use the Postgres database password/username <unknown>
 add icon to contact history window <basic> to <intermediate>

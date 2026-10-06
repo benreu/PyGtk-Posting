@@ -18,6 +18,7 @@
 from datetime import datetime
 from decimal import Decimal
 from db_connection import DB
+from db import transactor
 
 def fractional_quantity_message (invoice_store):
 	'''inventory is counted in whole units, so a fractional quantity of a tracked
@@ -268,6 +269,21 @@ def manufacture (manufacturing_id, destination_location_id = None):
 						"FROM manufacturing_projects WHERE id = %s",
 						(manufacturing_id,))
 		destination_location_id = cursor.fetchone()[0] or first_location
+	# zero the entries of an earlier post before the rows pointing at them go.
+	# Dropping a row only breaks the link, the entry would stay in the ledger and
+	# the new post would count the build twice
+	cursor.execute("UPDATE gl_entries SET amount = 0.00 WHERE id IN "
+					"(SELECT gl_entries_id FROM inventory_transactions "
+					"WHERE manufacturing_id = %s AND gl_entries_id IS NOT NULL)",
+					(manufacturing_id,))
+	cursor.execute("UPDATE gl_entries SET amount = 0.00 "
+					"WHERE transaction_description = 'Manufacturing variance' "
+					"AND gl_transaction_id = (SELECT ge.gl_transaction_id "
+						"FROM gl_entries AS ge WHERE ge.id = "
+							"(SELECT gl_entries_id FROM inventory_transactions "
+							"WHERE manufacturing_id = %s "
+							"AND gl_entries_id IS NOT NULL ORDER BY id LIMIT 1))",
+					(manufacturing_id,))
 	cursor.execute("DELETE FROM inventory_transactions "
 					"WHERE manufacturing_id = %s", (manufacturing_id,))
 	cursor.execute("INSERT INTO inventory_transactions "
@@ -288,6 +304,7 @@ def manufacture (manufacturing_id, destination_location_id = None):
 					"JOIN products AS p ON p.id = mp.product_id "
 					"WHERE mp.id = %s AND p.inventory_enabled AND mp.qty > 0",
 					(destination_location_id, manufacturing_id))
+	transactor.post_manufacturing_value (cursor, manufacturing_id)
 	cursor.close()
 
 

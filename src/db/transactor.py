@@ -17,6 +17,7 @@
 
 
 from datetime import datetime
+from decimal import Decimal
 import re
 from db_connection import DB
 
@@ -525,6 +526,73 @@ def post_credit_memo_cogs (cursor, credit_memo_id, transaction_id):
 						"UPDATE inventory_transactions SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s",
 						(row[1], row[2], row[3], transaction_id, row[0]))
+
+def post_manufacturing_value (cursor, manufacturing_id):
+	'''move the value of a build between inventory accounts: each component row
+	credits the account its product is carried on, the finished row debits the
+	account the built product is carried on. No cost reaches the profit and loss,
+	a build only changes what form the stock is held in.
+
+	The two sides are valued independently, components at the cost frozen on the
+	line and the finished product at its own cost, so they rarely agree. The
+	difference is a production variance and is posted to the built product's
+	expense account as a period cost, rather than being hidden by forcing one
+	side to match the other, which would leave the inventory accounts holding a
+	value the stock rows do not support.
+
+	Rerunning a project zeroes the entries of the previous post, so the rows this
+	writes are the only live ones'''
+	cursor.execute("SELECT gl_transaction_id FROM gl_entries WHERE id = "
+						"(SELECT gl_entries_id FROM inventory_transactions "
+						"WHERE manufacturing_id = %s AND gl_entries_id IS NOT NULL "
+						"ORDER BY id LIMIT 1)", (manufacturing_id,))
+	row = cursor.fetchone()
+	if row == None:
+		cursor.execute("INSERT INTO gl_transactions (date_inserted) "
+						"VALUES (CURRENT_DATE) RETURNING id")
+		transaction_id = cursor.fetchone()[0]
+	else:
+		transaction_id = row[0]
+	cursor.execute("SELECT it.id, it.qty_in, ROUND(it.qty_out * it.price, 2), "
+						"ROUND(it.qty_in * it.price, 2), p.inventory_account "
+					"FROM inventory_transactions AS it "
+					"JOIN products AS p ON p.id = it.product_id "
+					"WHERE it.manufacturing_id = %s AND it.gl_entries_id IS NULL "
+					"ORDER BY it.id", (manufacturing_id,))
+	credits = Decimal()
+	debits = Decimal()
+	expense_account = None
+	for row in cursor.fetchall():
+		row_id, qty_in, out_amount, in_amount, account = row
+		if qty_in > 0: # the finished product
+			debits += in_amount
+			amount, debit, credit = in_amount, account, None
+		else:
+			credits += out_amount
+			amount, debit, credit = out_amount, None, account
+		cursor.execute("WITH new_row AS (INSERT INTO gl_entries "
+							"(amount, debit_account, credit_account, "
+							"gl_transaction_id, date_inserted) "
+							"VALUES (%s, %s, %s, %s, CURRENT_DATE) RETURNING id) "
+						"UPDATE inventory_transactions SET gl_entries_id = "
+							"((SELECT id FROM new_row)) WHERE id = %s",
+						(amount, debit, credit, transaction_id, row_id))
+	if debits == credits:
+		return
+	cursor.execute("SELECT p.default_expense_account "
+					"FROM manufacturing_projects AS mp "
+					"JOIN products AS p ON p.id = mp.product_id "
+					"WHERE mp.id = %s", (manufacturing_id,))
+	expense_account = cursor.fetchone()[0]
+	variance = credits - debits
+	cursor.execute("INSERT INTO gl_entries (amount, debit_account, "
+						"credit_account, gl_transaction_id, date_inserted, "
+						"transaction_description) "
+					"VALUES (%s, %s, %s, %s, CURRENT_DATE, %s)",
+					(abs(variance),
+					expense_account if variance > 0 else None,
+					None if variance > 0 else expense_account,
+					transaction_id, 'Manufacturing variance'))
 
 def post_invoice_receivables ():
 	pass
