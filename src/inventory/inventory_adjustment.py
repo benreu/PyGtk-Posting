@@ -133,16 +133,23 @@ class InventoryAdjustmentGUI:
 		cursor = DB.cursor()
 		if adjustment_amount != 0:
 			gl_entries_id = None
-			if adjustment_amount > 0:
-				amount = self.cost * Decimal(str(adjustment_amount))
+			qty = abs(int(adjustment_amount))
+			amount = self.cost * qty
+			if adjustment_amount > 0: # debit inventory, credit expense
 				gl_entries_id = transactor.post_inventory_adjustment(
 									datetime.today(), adjustment_reason, amount,
 									self.inventory_account, self.default_expense_account)
+				qty_in, qty_out = qty, 0
+			else: # write-off: debit expense, credit inventory
+				gl_entries_id = transactor.post_inventory_adjustment(
+									datetime.today(), adjustment_reason, amount,
+									self.default_expense_account, self.inventory_account)
+				qty_in, qty_out = 0, qty
 			cursor.execute("INSERT INTO inventory_transactions "
-								"(product_id, qty_in, date_inserted, "
+								"(product_id, qty_in, qty_out, date_inserted, "
 								"location_id, price, reason, gl_entries_id) "
-								"VALUES (%s, %s, %s, %s, %s, %s, %s)",
-								(self.product_id, adjustment_amount,
+								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+								(self.product_id, qty_in, qty_out,
 								datetime.today(), location_id, self.cost,
 								adjustment_reason, gl_entries_id))
 		cursor.execute("UPDATE products SET inventory_enabled = True "
