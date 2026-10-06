@@ -703,3 +703,13 @@ $BODY$
     RETURN; 
     END ;
 $BODY$ 
+
+--0.7.18
+/* Sale rows recorded the selling price where every other writer records cost,
+   and cost of goods sold is valued from this column. Rows already carrying an
+   entry are left alone so a later run cannot move the cost out from under one. */
+UPDATE inventory_transactions AS it SET price = p.cost
+FROM products AS p
+WHERE p.id = it.product_id
+AND it.invoice_line_id IS NOT NULL
+AND it.gl_entries_id IS NULL;

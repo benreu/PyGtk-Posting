@@ -76,10 +76,12 @@ def sell (invoice_store, location_id, contact_id, date):
 		invoice_line_id = row[0]
 		qty = int(Decimal(row[1])) # the store holds text like '1.00', qty_out is an integer
 		product_id = row[2]
-		price = row[6]
-		cursor.execute("SELECT inventory_enabled "
+		#price carries the cost here, not the selling price; it is the basis the
+		#cost of goods sold entry is posted from, the same as every other writer
+		cursor.execute("SELECT inventory_enabled, cost "
 						"FROM products WHERE id = %s", (product_id,))
-		if cursor.fetchone()[0] == True:
+		enabled, price = cursor.fetchone()
+		if enabled == True:
 			cursor.execute("UPDATE inventory_transactions "
 							"SET (qty_out, product_id, location_id, "
 							"date_inserted, price) = (%s, %s, %s, %s, %s) "
@@ -131,7 +133,7 @@ def resync_invoice_inventory (invoice_id, location_id = None, date = None):
 						"(qty_out, product_id, location_id, date_inserted, price) = "
 						"(TRUNC(ii.qty)::int, ii.product_id, "
 						"COALESCE(%s::int, it.location_id), "
-						"COALESCE(%s::date, it.date_inserted), ii.price) "
+						"COALESCE(%s::date, it.date_inserted), p.cost) "
 					"FROM invoice_items AS ii "
 					"JOIN products AS p ON p.id = ii.product_id "
 					"WHERE it.invoice_line_id = ii.id "
@@ -142,7 +144,7 @@ def resync_invoice_inventory (invoice_id, location_id = None, date = None):
 	cursor.execute("INSERT INTO inventory_transactions "
 						"(invoice_line_id, qty_out, product_id, price, "
 						"location_id, date_inserted) "
-					"SELECT ii.id, TRUNC(ii.qty)::int, ii.product_id, ii.price, "
+					"SELECT ii.id, TRUNC(ii.qty)::int, ii.product_id, p.cost, "
 						"COALESCE(%s::int, "
 							"(SELECT it.location_id "
 								"FROM inventory_transactions AS it "

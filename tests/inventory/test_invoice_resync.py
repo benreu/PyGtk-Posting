@@ -85,7 +85,7 @@ class InvoiceResyncTest(DBTestCase):
 		self.resync()
 		self.assertEqual(self.ledger_rows(),
 						[(self.line_id, self.product_id, 4,
-							self.location_id, Decimal('5.000000'),
+							self.location_id, Decimal('3.000000'),
 							self.date('2026-01-01'))])
 
 	def test_an_invoice_that_does_not_exist_is_a_no_op(self):
@@ -105,9 +105,17 @@ class InvoiceResyncTest(DBTestCase):
 		self.assertEqual(rows[0][2], 6)
 		self.assertEqual(self.on_hand(self.product_id), 4)
 
-	def test_price_change_follows_into_the_ledger(self):
+	def test_a_selling_price_change_leaves_the_cost_basis_alone(self):
+		# the ledger price is the cost the sale is relieved at, not what the
+		# customer was charged, so repricing an invoice must not touch it
 		self.cursor.execute("UPDATE invoice_items SET price = 7.25 "
 							"WHERE id = %s", (self.line_id,))
+		self.resync()
+		self.assertEqual(self.ledger_rows()[0][4], Decimal('3.000000'))
+
+	def test_a_cost_change_follows_into_the_ledger(self):
+		self.cursor.execute("UPDATE products SET cost = 7.25 "
+							"WHERE id = %s", (self.product_id,))
 		self.resync()
 		self.assertEqual(self.ledger_rows()[0][4], Decimal('7.250000'))
 
@@ -226,7 +234,7 @@ class InvoiceResyncTest(DBTestCase):
 		self.resync()
 		self.assertEqual(self.ledger_rows(other_invoice_id),
 						[(other_line_id, self.product_id, 2,
-							self.other_location_id, Decimal('5.000000'),
+							self.other_location_id, Decimal('3.000000'),
 							self.date('2026-01-01'))])
 
 

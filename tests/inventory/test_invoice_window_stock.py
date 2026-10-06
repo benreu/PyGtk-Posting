@@ -11,7 +11,7 @@ class InvoiceWindowStockTest(DBTestCase):
 		self.product_id = 19
 		self.untracked_id = 962 # neither product is serial numbered
 		self.cursor.execute("UPDATE products SET inventory_account = 1710, "
-							"inventory_enabled = True WHERE id = %s",
+							"inventory_enabled = True, cost = 3 WHERE id = %s",
 							(self.product_id,))
 		self.cursor.execute("UPDATE products SET inventory_enabled = False "
 							"WHERE id = %s", (self.untracked_id,))
@@ -99,12 +99,14 @@ class InvoiceWindowStockTest(DBTestCase):
 		self.assertEqual(self.ledger(), [(self.line_id, 7, self.location_id)])
 		self.assertEqual(self.on_hand(self.product_id), 13)
 
-	def test_a_price_edit_follows_into_the_ledger(self):
+	def test_a_price_edit_leaves_the_cost_basis_alone(self):
+		# the ledger price is the cost the sale is relieved at, not what the
+		# customer was charged, so repricing a line must not touch it
 		gui = self.window()
 		gui.price_edited(None, self.path_of(gui, self.product_id), '9')
 		self.assertEqual(self.one("SELECT price FROM inventory_transactions "
 									"WHERE invoice_line_id = %s",
-									(self.line_id,)), Decimal('9.000000'))
+									(self.line_id,)), Decimal('3.000000'))
 
 	def test_deleting_a_line_releases_its_stock(self):
 		gui = self.window()
