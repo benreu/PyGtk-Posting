@@ -111,7 +111,7 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 		cursor.close()
 		self.populate_projects()
 
-	def show_message (message):
+	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
 									buttons = Gtk.ButtonsType.CLOSE)
 		dialog.set_transient_for(self.window)
