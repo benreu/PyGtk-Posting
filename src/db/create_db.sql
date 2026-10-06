@@ -791,6 +791,7 @@ CREATE TABLE public.settings (
     email_when_possible boolean NOT NULL,
     version character varying NOT NULL,
     accrual_based boolean DEFAULT false NOT NULL,
+    inventory_capitalized boolean DEFAULT false NOT NULL,
     statement_finish_date date NOT NULL,
     cost_decrease_alert numeric(5,2) NOT NULL,
     last_backup date NOT NULL,

@@ -113,13 +113,27 @@ def resync_invoice_inventory (invoice_id, location_id = None, date = None):
 	row where it is, and a date of None keeps the date the sale was recorded under,
 	so correcting a quantity cannot move a posted sale into another month'''
 	cursor = DB.cursor()
-	cursor.execute("SELECT posted FROM invoices WHERE id = %s", (invoice_id,))
+	cursor.execute("SELECT posted AND NOT canceled FROM invoices "
+					"WHERE id = %s", (invoice_id,))
 	row = cursor.fetchone()
-	if row == None or row[0] == False: # sell () takes the stock at posting time
+	# sell () takes the stock at posting time, and unsell () has already put the
+	# stock of a canceled invoice back
+	if row == None or row[0] == False:
 		cursor.close()
 		return
 	# a canceled line and a product no longer tracked both keep their invoice_items
-	# row, so the sale row has to be dropped instead of updated
+	# row, so the sale row has to be dropped instead of updated. The cost of goods
+	# sold entry the row carries is zeroed first: dropping the row only breaks the
+	# link, the entry itself would stay in the ledger, and nothing here deletes
+	# from gl_entries
+	cursor.execute("UPDATE gl_entries SET amount = 0.00 WHERE id IN "
+					"(SELECT it.gl_entries_id FROM inventory_transactions AS it "
+						"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
+						"JOIN products AS p ON p.id = ii.product_id "
+						"WHERE ii.invoice_id = %s "
+						"AND (ii.canceled OR NOT p.inventory_enabled) "
+						"AND it.gl_entries_id IS NOT NULL)",
+					(invoice_id,))
 	cursor.execute("DELETE FROM inventory_transactions "
 					"WHERE invoice_line_id IN "
 						"(SELECT ii.id FROM invoice_items AS ii "
@@ -162,12 +176,23 @@ def resync_invoice_inventory (invoice_id, location_id = None, date = None):
 					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
 						"WHERE invoice_line_id = ii.id)",
 					(location_id, date, invoice_id))
+	# keep the cost of goods sold entry in step with the row it values, so an
+	# edited quantity does not leave the ledger holding the original cost until
+	# the invoice happens to be posted again
+	cursor.execute("UPDATE gl_entries AS ge SET amount = "
+						"ROUND(it.qty_out * it.price, 2) "
+					"FROM inventory_transactions AS it "
+					"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
+					"WHERE ge.id = it.gl_entries_id AND ii.invoice_id = %s",
+					(invoice_id,))
 	cursor.close()
 
 def unsell (invoice_id):
-	'''put the stock of a canceled invoice back by dropping its sale rows'''
+	'''put the stock of a canceled invoice back by zeroing its sale rows. The rows
+	stay so that the cost of goods sold entry hanging off gl_entries_id keeps its
+	link, and so restock() can still find the location the item was sold from'''
 	cursor = DB.cursor()
-	cursor.execute("DELETE FROM inventory_transactions "
+	cursor.execute("UPDATE inventory_transactions SET qty_out = 0 "
 					"WHERE invoice_line_id IN "
 					"(SELECT id FROM invoice_items WHERE invoice_id = %s)",
 					(invoice_id,))

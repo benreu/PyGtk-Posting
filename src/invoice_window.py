@@ -652,10 +652,13 @@ class InvoiceGUI:
 			DB.rollback()
 			return # "Cancel printing and posting" was checked
 		try:
-			invoice.post()
+			# the stock moves before the ledger does, so that the sale rows exist
+			# for post_invoice_cogs to relieve inventory from. The cash based and
+			# back posted paths already satisfy this, their rows were written here
 			from inventory import inventorying
 			inventorying.sell(self.invoice_store, location_id, 
 								self.customer_id, self.datetime)
+			invoice.post()
 			DB.commit()
 		except Exception as e:
 			DB.rollback()

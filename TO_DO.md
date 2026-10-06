@@ -2,7 +2,6 @@ add paid, posted, and canceled ToggleButtons to top treeview in invoice history 
 load canceled invoices in invoice history window <basic>
 add paid, posted, and canceled ToggleButtons to invoices tab in contact history window <basic>
 load canceled invoices in contact history window <basic>
-finish inventory calculations/entries for invoices <advanced>
 finish inventory calculations/entries for manufacturing <advanced>
 under administration, admin login/logout does not clearly reflect current state in certain tests <intermediate>
 admin login/logout should use the Postgres database password/username <unknown>
@@ -11,4 +10,4 @@ add more window keybindings in keybindings.py and the com.github.benreu.pygtk-po
 organize window keybindings window names in alphabetical order (except for the first one) <basic>
 pdf attachment output window no longer scrolls after it is finished optimizing a pdf <unknown>
 add feature for split entries in double entry accounting <intermediate>
-re-sync gl entries when a posted invoice's quantity or price is edited, the way inventory now is <advanced>
+re-sync the revenue gl entry when a posted invoice's quantity or price is edited, the way inventory and cost of goods sold now are <advanced>

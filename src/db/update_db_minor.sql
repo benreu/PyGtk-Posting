@@ -744,3 +744,41 @@ WHERE p.id = poli.product_id AND po.id = poli.purchase_order_id
 AND p.inventory_enabled AND p.inventory_account IS NOT NULL
 AND poli.gl_entries_id IS NULL AND po.invoiced = False
 AND poli.expense_account = p.default_expense_account;
+
+--0.7.20
+/* Posting an invoice now relieves inventory as cost of goods sold, so the cost
+   of a sale reaches the profit and loss alongside its revenue. */
+ALTER TABLE public.settings
+	ADD COLUMN IF NOT EXISTS inventory_capitalized boolean NOT NULL DEFAULT False;
+
+/* Stock on hand was expensed when it was bought. Without this it would be
+   charged a second time as it sells, so its value moves out of the expense
+   account and onto the inventory asset account once, the first time this
+   upgrade runs. The settings flag is the guard, because this file re-runs from
+   the top on every upgrade and this statement moves real money. */
+DO $$
+DECLARE
+	_transaction_id bigint;
+BEGIN
+	IF (SELECT inventory_capitalized FROM settings) THEN
+		RETURN;
+	END IF;
+	INSERT INTO gl_transactions (date_inserted) VALUES (CURRENT_DATE)
+		RETURNING id INTO _transaction_id;
+	INSERT INTO gl_entries (amount, debit_account, credit_account,
+		gl_transaction_id, date_inserted, transaction_description)
+	SELECT ROUND(SUM(it.qty_in - it.qty_out) * p.cost, 2),
+		p.inventory_account, p.default_expense_account,
+		_transaction_id, CURRENT_DATE, 'Opening inventory value'
+	FROM inventory_transactions AS it
+	JOIN products AS p ON p.id = it.product_id
+	WHERE p.inventory_enabled AND p.cost > 0
+	GROUP BY p.id, p.inventory_account, p.default_expense_account, p.cost
+	HAVING SUM(it.qty_in - it.qty_out) > 0;
+	IF NOT EXISTS (SELECT 1 FROM gl_entries
+					WHERE gl_transaction_id = _transaction_id) THEN
+		DELETE FROM gl_transactions WHERE id = _transaction_id;
+	END IF;
+	UPDATE settings SET inventory_capitalized = True;
+END
+$$;

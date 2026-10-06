@@ -516,6 +516,52 @@ def post_inventory_adjustment (date, description, amount, debit_account, credit_
 	cursor.close()
 	return gl_entries_id
 
+def post_invoice_cogs (cursor, invoice_id, transaction_id, date):
+	'''relieve inventory for the stock this invoice took. One two sided entry per
+	sale row, debiting the product's cost of goods sold account and crediting its
+	inventory account, valued at the cost the sale row recorded rather than at the
+	cost the product carries now, so a re-post or a cash based payment months later
+	cannot restate it. The entries go in the invoice's own transaction, which is
+	what lets cancel_invoice reverse them along with everything else. A product
+	that is not tracked has no sale row and so posts nothing'''
+	# date_inserted is passed rather than left to its default, see cancel_invoice
+	cursor.execute("SELECT it.id, ROUND(it.qty_out * it.price, 2), "
+						"p.default_expense_account, p.inventory_account "
+					"FROM inventory_transactions AS it "
+					"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
+					"JOIN products AS p ON p.id = it.product_id "
+					"WHERE ii.invoice_id = %s AND NOT ii.canceled "
+					"AND it.gl_entries_id IS NULL", (invoice_id,))
+	for row in cursor.fetchall():
+		row_id = row[0]
+		amount = row[1]
+		cogs_account = row[2]
+		inventory_account = row[3]
+		cursor.execute("WITH new_row AS (INSERT INTO gl_entries "
+							"(amount, debit_account, credit_account, "
+							"gl_transaction_id, date_inserted) "
+							"VALUES (%s, %s, %s, %s, %s) RETURNING id) "
+						"UPDATE inventory_transactions SET gl_entries_id = "
+							"((SELECT id FROM new_row)) WHERE id = %s",
+						(amount, cogs_account, inventory_account,
+						transaction_id, date, row_id))
+	# a re-post zeroed every entry of the transaction, so the rows that already
+	# carry one have to be written back. A line canceled after posting keeps its
+	# sale row until the next resync, so it is zeroed here rather than skipped
+	cursor.execute("SELECT CASE WHEN ii.canceled THEN 0.00 "
+							"ELSE ROUND(it.qty_out * it.price, 2) END, "
+						"it.gl_entries_id, p.default_expense_account, "
+						"p.inventory_account "
+					"FROM inventory_transactions AS it "
+					"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
+					"JOIN products AS p ON p.id = it.product_id "
+					"WHERE ii.invoice_id = %s "
+					"AND it.gl_entries_id IS NOT NULL", (invoice_id,))
+	for row in cursor.fetchall():
+		cursor.execute("UPDATE gl_entries SET "
+						"(amount, debit_account, credit_account) = (%s, %s, %s) "
+						"WHERE id = %s", (row[0], row[2], row[3], row[1]))
+
 def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 	cursor = DB.cursor()
 	if gl_entries_id != None: # used for updates
@@ -596,6 +642,7 @@ def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 		gl_entries_id = row[1]
 		cursor.execute("UPDATE gl_entries SET amount = %s WHERE id = %s", 
 						(revenue, gl_entries_id))
+	post_invoice_cogs (cursor, invoice_id, transaction_id, date)
 	cursor.close()
 	
 def post_purchase_order (amount, po_id):

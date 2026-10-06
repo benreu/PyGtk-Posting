@@ -79,12 +79,29 @@ except unittest.SkipTest:
 Gtk.Widget.show_all = lambda self: None # no windows on the user's display
 Gtk.Window.present = lambda self: None
 
+PENDING_SCHEMA = """
+ALTER TABLE public.settings
+	ADD COLUMN IF NOT EXISTS inventory_capitalized boolean NOT NULL DEFAULT False;
+"""
+# the update also widens purchase_order_items.expense_account to bigint, which is
+# left out here: it rewrites the table, and no test uses an account number big
+# enough to need it
+
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
 			self.skipTest('POSTING_TEST_DB_PASSWORD not set')
 		self.DB = db_connection.DB
 		self.cursor = self.DB.cursor()
+		self.apply_pending_schema()
+
+	def apply_pending_schema(self):
+		'''bring the schema up to the version the code expects, inside the test
+		transaction so it is rolled back with everything else. Postgres keeps DDL
+		transactional, so this leaves the database alone while letting the suite
+		run against a copy that has not had the update applied yet. Every
+		statement is a no-op once it has'''
+		self.cursor.execute(PENDING_SCHEMA)
 
 	def tearDown(self):
 		if _conn is not None:
