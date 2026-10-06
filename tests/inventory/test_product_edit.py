@@ -23,5 +23,21 @@ class SaveFailureTest(DBTestCase):
 		self.assertEqual(self.one("SELECT cost FROM products WHERE id = 19"),
 						cost_before)
 
+class CurrentInventoryLabelTest(DBTestCase):
+	def test_label_shows_on_hand(self):
+		self.cursor.execute("DELETE FROM inventory_transactions WHERE product_id = 19")
+		self.cursor.execute("INSERT INTO inventory_transactions "
+							"(product_id, qty_in, qty_out, price, location_id, "
+							"date_inserted, reason) VALUES "
+							"(19, 9, 0, 1, (SELECT id FROM locations LIMIT 1), "
+							"CURRENT_DATE, 'test'), "
+							"(19, 0, 4, 1, (SELECT id FROM locations LIMIT 1), "
+							"CURRENT_DATE, 'test')")
+		self.DB.commit()
+		import product_edit_main
+		gui = product_edit_main.ProductEditMainGUI()
+		gui.select_product(19)
+		self.assertEqual(gui.get_object('label24').get_label(), '5')
+
 if __name__ == '__main__':
 	unittest.main()

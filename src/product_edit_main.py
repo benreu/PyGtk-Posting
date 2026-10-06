@@ -373,6 +373,10 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.get_object('checkbutton6').set_active(row[22])
 			self.get_object('checkbutton7').set_active(row[23])
 			self.get_object('stock_checkbutton').set_active(row[24])
+		c.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+					"FROM inventory_transactions WHERE product_id = %s",
+					(self.product_id,))
+		self.get_object('label24').set_label(str(c.fetchone()[0]))
 		c.close()
 		DB.rollback()
 		self.load_product_terms_prices ()
