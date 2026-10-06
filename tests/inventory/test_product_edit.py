@@ -39,5 +39,41 @@ class CurrentInventoryLabelTest(DBTestCase):
 		gui.select_product(19)
 		self.assertEqual(gui.get_object('label24').get_label(), '5')
 
+class TrackInventoryCheckboxTest(DBTestCase):
+	def setUp(self):
+		super().setUp()
+		self.cursor.execute("UPDATE products SET inventory_account = 1710, "
+							"inventory_enabled = False WHERE id = 19")
+		self.DB.commit()
+		import product_edit_main
+		self.gui = product_edit_main.ProductEditMainGUI()
+		self.gui.select_product(19)
+		self.box = self.gui.get_object('inventory_enabled_checkbutton')
+
+	def save(self):
+		with mock.patch.object(self.gui, 'save_product_terms_prices'), \
+				mock.patch.object(self.gui.window, 'destroy'):
+			self.gui.save_clicked()
+
+	def enabled(self):
+		return self.one("SELECT inventory_enabled FROM products WHERE id = 19")
+
+	def test_checkbox_reflects_and_saves_the_flag(self):
+		self.assertFalse(self.box.get_active())
+		self.box.set_active(True)
+		self.save()
+		self.assertTrue(self.enabled())
+		self.box.set_active(False)
+		self.save()
+		self.assertFalse(self.enabled())
+
+	def test_enabling_without_an_account_is_refused(self):
+		self.gui.inventory_account = None
+		self.box.set_active(True)
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.save()
+		show_message.assert_called_once()
+		self.assertFalse(self.enabled())
+
 if __name__ == '__main__':
 	unittest.main()

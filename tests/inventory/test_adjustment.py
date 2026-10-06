@@ -49,5 +49,21 @@ class AdjustmentTest(DBTestCase):
 						(0, 3, EXPENSE_ACCOUNT, INVENTORY_ACCOUNT, Decimal('7.50')))
 		self.assertEqual(self.on_hand(self.product_id), 7)
 
+	def test_adjustment_of_zero_does_not_enable_inventory(self):
+		self.cursor.execute("UPDATE products SET inventory_enabled = False "
+							"WHERE id = %s", (self.product_id,))
+		self.DB.commit()
+		self.adjust(0)
+		self.assertFalse(self.one("SELECT inventory_enabled FROM products "
+								"WHERE id = %s", (self.product_id,)))
+
+	def test_first_adjustment_enables_inventory(self):
+		self.cursor.execute("UPDATE products SET inventory_enabled = False "
+							"WHERE id = %s", (self.product_id,))
+		self.DB.commit()
+		self.adjust(2)
+		self.assertTrue(self.one("SELECT inventory_enabled FROM products "
+								"WHERE id = %s", (self.product_id,)))
+
 if __name__ == '__main__':
 	unittest.main()

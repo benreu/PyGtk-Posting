@@ -152,8 +152,8 @@ class InventoryAdjustmentGUI:
 								(self.product_id, qty_in, qty_out,
 								datetime.today(), location_id, self.cost,
 								adjustment_reason, gl_entries_id))
-		cursor.execute("UPDATE products SET inventory_enabled = True "
-							"WHERE id = %s", (self.product_id,))
+			cursor.execute("UPDATE products SET inventory_enabled = True "
+								"WHERE id = %s", (self.product_id,))
 		cursor.close()
 		DB.commit()
 		self.builder.get_object('spinbutton12').set_value(0)

@@ -342,7 +342,8 @@ class ProductEditMainGUI (Gtk.Builder):
 						"COALESCE ((SELECT name FROM gl_accounts "
 						"WHERE number = p.inventory_account), ''), "
 					"p.inventory_account, "
-					"manufacturer_sku, job, invoice_serial_numbers, stock "
+					"manufacturer_sku, job, invoice_serial_numbers, stock, "
+					"inventory_enabled "
 					"FROM products AS p "
 					"WHERE id = %s", (self.product_id,))
 		for row in c.fetchall():
@@ -373,6 +374,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.get_object('checkbutton6').set_active(row[22])
 			self.get_object('checkbutton7').set_active(row[23])
 			self.get_object('stock_checkbutton').set_active(row[24])
+			self.get_object('inventory_enabled_checkbutton').set_active(row[25])
 		c.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
 					"FROM inventory_transactions WHERE product_id = %s",
 					(self.product_id,))
@@ -437,6 +439,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		tare = self.get_object('spinbutton14').get_text()
 		manufacturer_number = self.get_object('entry13').get_text()
 		stock = self.get_object('stock_checkbutton').get_active()
+		inventory_enabled = self.get_object('inventory_enabled_checkbutton').get_active()
 		c = DB.cursor()
 		if self.product_id == 0:  #new product
 			try:
@@ -448,10 +451,10 @@ class ProductEditMainGUI (Gtk.Builder):
 							"default_expense_account, "
 							"inventory_account, revenue_account, "
 							"manufacturer_sku, job, "
-							"invoice_serial_numbers) "
+							"invoice_serial_numbers, inventory_enabled) "
 							"VALUES "
 							"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-							"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+							"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
 							"RETURNING id",
 							(name, description, unit, cost, tax, 
 							False, sellable, purchasable, min_stock, 
@@ -461,7 +464,7 @@ class ProductEditMainGUI (Gtk.Builder):
 							self.inventory_account,
 							self.revenue_account,
 							manufacturer_number, job, 
-							invoice_serial))
+							invoice_serial, inventory_enabled))
 				self.product_id = c.fetchone()[0]
 				if barcode != '':
 					c.execute("UPDATE products SET barcode = %s WHERE id = %s",
@@ -486,10 +489,10 @@ class ProductEditMainGUI (Gtk.Builder):
 							"ext_name, stock, manufacturer_sku, job, "
 							"default_expense_account, "
 							"inventory_account, revenue_account, "
-							"invoice_serial_numbers) = "
+							"invoice_serial_numbers, inventory_enabled) = "
 							"( %s, %s, %s, %s, %s, "
 							"%s, %s, %s, %s, %s, %s, %s, %s, "
-							"%s, %s, %s, %s, %s, %s, %s, %s, %s) "
+							"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
 							"WHERE id = %s",
 							(name, description, barcode, unit, cost, tax, 
 							sellable, purchasable, min_stock, reorder_qty, 
@@ -498,7 +501,7 @@ class ProductEditMainGUI (Gtk.Builder):
 							self.expense_account, 
 							self.inventory_account,
 							self.revenue_account,
-							invoice_serial, self.product_id))
+							invoice_serial, inventory_enabled, self.product_id))
 			except Exception as e:
 				DB.rollback()
 				self.show_message(str(e))
