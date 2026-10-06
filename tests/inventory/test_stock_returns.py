@@ -90,5 +90,24 @@ class StockReturnTest(DBTestCase):
 		self.inventorying.restock(self.credit_memo_id)
 		self.assertEqual(self.on_hand(self.product_id), 10)
 
+class WholeQuantityTest(StockReturnTest):
+	def row(self, qty):
+		return [[self.line_id, qty, self.product_id, '', '', '', '5.00']]
+
+	def test_fractional_qty_of_a_tracked_product_is_refused(self):
+		message = self.inventorying.fractional_quantity_message(self.row('1.50'))
+		self.assertIn('whole number', message)
+		with self.assertRaises(ValueError):
+			self.inventorying.sell(self.row('1.50'), self.location_id, 1, '2026-01-01')
+		self.assertEqual(self.on_hand(self.product_id), 6) # unchanged
+
+	def test_whole_quantities_with_decimals_are_fine(self):
+		self.assertIsNone(self.inventorying.fractional_quantity_message(self.row('2.00')))
+
+	def test_untracked_product_may_be_fractional(self):
+		self.cursor.execute("UPDATE products SET inventory_enabled = False "
+							"WHERE id = %s", (self.product_id,))
+		self.assertIsNone(self.inventorying.fractional_quantity_message(self.row('1.50')))
+
 if __name__ == '__main__':
 	unittest.main()

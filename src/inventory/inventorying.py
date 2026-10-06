@@ -19,8 +19,28 @@ from datetime import datetime
 from decimal import Decimal
 from db_connection import DB
 
+def fractional_quantity_message (invoice_store):
+	'''inventory is counted in whole units, so a fractional quantity of a tracked
+	product would be silently truncated. Returns a message, or None if all is fine'''
+	cursor = DB.cursor()
+	message = None
+	for row in invoice_store:
+		if Decimal(row[1]) != int(Decimal(row[1])):
+			cursor.execute("SELECT name, inventory_enabled FROM products "
+							"WHERE id = %s", (row[2],))
+			name, inventory_enabled = cursor.fetchone()
+			if inventory_enabled:
+				message = ("'%s' is tracked in inventory, so its quantity "
+							"must be a whole number (%s)" % (name, row[1]))
+				break
+	cursor.close()
+	return message
+
 def sell (invoice_store, location_id, contact_id, date):
 	'''adjust inventory taking in consideration that invoices can be edited afterwards'''
+	message = fractional_quantity_message (invoice_store)
+	if message != None:
+		raise ValueError(message)
 	cursor = DB.cursor()
 	for row in invoice_store:
 		invoice_line_id = row[0]

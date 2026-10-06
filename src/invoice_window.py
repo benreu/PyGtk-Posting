@@ -615,6 +615,12 @@ class InvoiceGUI:
 		if location_id is None:
 			self.show_error_dialog ("Select a location to take the stock from first.")
 			return
+		from inventory import inventorying
+		message = inventorying.fractional_quantity_message (self.invoice_store)
+		DB.rollback()
+		if message != None:
+			self.show_error_dialog (message)
+			return
 		self.flush_comment ()
 		self.calculate_totals () # posting copies the saved total to amount due
 		invoice = self.create_invoice_document ()
