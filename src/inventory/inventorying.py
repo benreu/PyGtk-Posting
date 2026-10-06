@@ -199,22 +199,29 @@ def unsell (invoice_id):
 	cursor.close()
 
 def restock (credit_memo_id):
-	'''return credit memo items to the location they were sold from. Items whose
-	sale never reached the ledger (invoiced before inventory was enabled) are
-	skipped, because they were never deducted'''
+	'''return credit memo items to the location they were sold from, valued at the
+	cost they left at rather than at the cost the product carries now, so the entry
+	that reverses the cost of the sale cancels it exactly. Items whose sale never
+	reached the ledger (invoiced before inventory was enabled) are skipped, because
+	they were never deducted. Posting the same memo twice restocks once'''
 	cursor = DB.cursor()
 	cursor.execute("INSERT INTO inventory_transactions "
-					"(product_id, qty_in, price, location_id, date_inserted, reason) "
-					"SELECT ii.product_id, TRUNC(cmi.qty)::int, p.cost, "
-						"sale.location_id, CURRENT_DATE, 'Credit memo returned' "
+					"(product_id, qty_in, price, location_id, date_inserted, "
+					"reason, credit_memo_item_id) "
+					"SELECT ii.product_id, TRUNC(cmi.qty)::int, sale.price, "
+						"sale.location_id, CURRENT_DATE, 'Credit memo returned', "
+						"cmi.id "
 					"FROM credit_memo_items AS cmi "
 					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
 					"JOIN products AS p ON p.id = ii.product_id "
-					"JOIN LATERAL (SELECT location_id FROM inventory_transactions "
+					"JOIN LATERAL (SELECT location_id, price "
+						"FROM inventory_transactions "
 						"WHERE invoice_line_id = ii.id "
 						"ORDER BY id LIMIT 1) AS sale ON True "
 					"WHERE cmi.credit_memo_id = %s AND NOT cmi.deleted "
-					"AND p.inventory_enabled AND TRUNC(cmi.qty) > 0",
+					"AND p.inventory_enabled AND TRUNC(cmi.qty) > 0 "
+					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
+						"WHERE credit_memo_item_id = cmi.id)",
 					(credit_memo_id,))
 	cursor.close()
 

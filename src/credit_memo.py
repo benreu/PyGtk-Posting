@@ -565,8 +565,11 @@ class CreditMemoGUI:
 												self.credit_memo_id,
 												self.customer_id)
 		self.credit_memo_template.print_pdf(self.window)
-		self.credit_memo_template.post()
+		# the stock comes back before the ledger posts, so that the restock rows
+		# exist for post_credit_memo_cogs to put their cost back, the same order
+		# invoice_window posts a sale in
 		inventorying.restock(self.credit_memo_id)
+		self.credit_memo_template.post()
 		DB.commit()
 		self.window.destroy()
 

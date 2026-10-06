@@ -757,6 +757,7 @@ CREATE TABLE public.inventory_transactions (
     invoice_line_id bigint REFERENCES public.invoice_items(id) ON UPDATE RESTRICT ON DELETE CASCADE,
     purchase_order_item_id bigint REFERENCES public.purchase_order_items(id) ON UPDATE RESTRICT ON DELETE CASCADE,
     manufacturing_id bigint REFERENCES public.manufacturing_projects(id) ON UPDATE RESTRICT ON DELETE CASCADE,
+    credit_memo_item_id bigint REFERENCES public.credit_memo_items(id) ON UPDATE RESTRICT ON DELETE CASCADE,
     price numeric(12,6) NOT NULL,
     gl_entries_id bigint REFERENCES public.gl_entries(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     reason character varying,

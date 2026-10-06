@@ -472,7 +472,7 @@ def post_credit_memo(credit_memo_id):
 					"SET (gl_entries_id, gl_entries_tax_id) = "
 					"((SELECT id FROM gl_entry), (SELECT id FROM gl_tax_entry))"
 					"WHERE id = %s)"
-				"SELECT default_expense_account, cmi.ext_price, cmi.id, "
+				"SELECT revenue_account, cmi.ext_price, cmi.id, "
 					"(SELECT id FROM gl_transaction) "
 					"FROM products AS p "
 					"JOIN invoice_items AS ii ON ii.product_id = p.id "
@@ -495,8 +495,36 @@ def post_credit_memo(credit_memo_id):
 					"(SELECT id FROM cte) "
 					"WHERE id = %s", 
 					(account, amount, transaction_id, cmi_id))
-		
+	# read the transaction back rather than reusing the loop variable, which is
+	# never set when every line of the memo is deleted
+	c.execute("SELECT ge.gl_transaction_id FROM gl_entries AS ge "
+				"JOIN credit_memos AS cm ON cm.gl_entries_id = ge.id "
+				"WHERE cm.id = %s", (credit_memo_id,))
+	post_credit_memo_cogs (c, credit_memo_id, c.fetchone()[0])
 	c.close()
+
+def post_credit_memo_cogs (cursor, credit_memo_id, transaction_id):
+	'''put back the cost the sale took out, one two sided entry per restocked row,
+	debiting the product's inventory account and crediting its cost of goods sold
+	account: the mirror of post_invoice_cogs. The restock rows are valued at the
+	cost the sale left at, so this cancels the original entry exactly. Nothing is
+	posted for a product that is not tracked, it has no restock row'''
+	cursor.execute("SELECT it.id, ROUND(it.qty_in * it.price, 2), "
+						"p.inventory_account, p.default_expense_account "
+					"FROM inventory_transactions AS it "
+					"JOIN credit_memo_items AS cmi "
+						"ON cmi.id = it.credit_memo_item_id "
+					"JOIN products AS p ON p.id = it.product_id "
+					"WHERE cmi.credit_memo_id = %s AND NOT cmi.deleted "
+					"AND it.gl_entries_id IS NULL", (credit_memo_id,))
+	for row in cursor.fetchall():
+		cursor.execute("WITH new_row AS (INSERT INTO gl_entries "
+							"(amount, debit_account, credit_account, "
+							"gl_transaction_id, date_inserted) "
+							"VALUES (%s, %s, %s, %s, CURRENT_DATE) RETURNING id) "
+						"UPDATE inventory_transactions SET gl_entries_id = "
+							"((SELECT id FROM new_row)) WHERE id = %s",
+						(row[1], row[2], row[3], transaction_id, row[0]))
 
 def post_invoice_receivables ():
 	pass

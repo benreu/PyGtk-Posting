@@ -782,3 +782,13 @@ BEGIN
 	UPDATE settings SET inventory_capitalized = True;
 END
 $$;
+
+--0.7.21
+/* Credit memo restock rows carried nothing but a reason string, so there was no
+   way to tell which memo returned them, to stop a second post restocking twice,
+   or to hang the entry that reverses the cost of the sale on. reason stays set,
+   it is what satisfies check_transaction_not_null. */
+ALTER TABLE public.inventory_transactions
+	ADD COLUMN IF NOT EXISTS credit_memo_item_id bigint
+		REFERENCES public.credit_memo_items(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE;

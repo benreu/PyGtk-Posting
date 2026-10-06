@@ -82,6 +82,10 @@ Gtk.Window.present = lambda self: None
 PENDING_SCHEMA = """
 ALTER TABLE public.settings
 	ADD COLUMN IF NOT EXISTS inventory_capitalized boolean NOT NULL DEFAULT False;
+ALTER TABLE public.inventory_transactions
+	ADD COLUMN IF NOT EXISTS credit_memo_item_id bigint
+		REFERENCES public.credit_memo_items(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE;
 """
 # the update also widens purchase_order_items.expense_account to bigint, which is
 # left out here: it rewrites the table, and no test uses an account number big
