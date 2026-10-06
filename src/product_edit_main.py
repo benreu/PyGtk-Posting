@@ -498,6 +498,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			except Exception as e:
 				DB.rollback()
 				self.show_message(str(e))
+				return
 		self.save_product_terms_prices()
 		DB.commit()
 		if self.product_lock_acquired:
