@@ -742,7 +742,8 @@ CREATE TABLE public.manufacturing_projects (
     qty integer NOT NULL,
     active boolean NOT NULL DEFAULT True,
     batch_notes varchar NOT NULL DEFAULT '',
-    date_created date DEFAULT now() NOT NULL
+    date_created date DEFAULT now() NOT NULL,
+    destination_location_id integer REFERENCES public.locations(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 
 --CREATE TABLE public.inventory_transactions

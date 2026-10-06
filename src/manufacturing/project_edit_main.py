@@ -49,6 +49,8 @@ class ProjectEditGUI(Gtk.Builder):
 		self.parent_class = parent_class
 		self.project_id = project_id
 		self.populate_stores ()
+		self.location_store = self.get_object('location_store')
+		self.populate_location_store ()
 		self.product_id = None
 		self.version_id = None
 		self.window = self.get_object('window')
@@ -68,6 +70,19 @@ class ProjectEditGUI(Gtk.Builder):
 		for row in cursor.fetchall():
 			self.product_store.append(row)
 		cursor.close()
+
+	def populate_location_store (self):
+		location_store = self.get_object('location_store')
+		location_store.clear()
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM locations ORDER BY name")
+		for row in cursor.fetchall():
+			location_store.append(row)
+		cursor.execute("SELECT name FROM locations ORDER BY id LIMIT 1")
+		self.default_source_name = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		self.get_object('destination_combo').set_active(0)
 
 	def product_match_func(self, completion, key, iter_):
 		split_search_text = key.split()
@@ -149,7 +164,8 @@ class ProjectEditGUI(Gtk.Builder):
 						"qty, "
 						"name, "
 						"batch_notes, "
-						"version_id::text "
+						"version_id::text, "
+						"destination_location_id::text "
 						"FROM manufacturing_projects WHERE id = %s",
 						(self.project_id, ))
 		for row in cursor.fetchall():
@@ -159,6 +175,8 @@ class ProjectEditGUI(Gtk.Builder):
 			self.get_object('description_entry').set_text(row[2])
 			self.get_object('batch_notes_buffer').set_text(row[3])
 			self.get_object('version_combo').set_active_id(row[4])
+			if row[5] != None:
+				self.get_object('destination_combo').set_active_id(row[5])
 		self.get_object('product_combo').set_sensitive(False)
 		self.get_object('create_project_button').set_label("Update project")
 		cursor.close()
@@ -179,26 +197,32 @@ class ProjectEditGUI(Gtk.Builder):
 	def focus_in_event (self, widget, event):
 		self.window.set_urgency_hint(False)
 
+	def get_destination_id (self):
+		return self.get_object('destination_combo').get_active_id()
+
 	def insert_project_row (self, product_id, name, qty, notes):
 		c = DB.cursor()
 		time_clock_id = self.get_time_clock_id (name)
 		c.execute("INSERT INTO manufacturing_projects "
 					"(product_id, name, qty, time_clock_projects_id, "
-					"batch_notes, active, version_id) VALUES "
-					"(%s, %s, %s, %s, %s, True, %s) "
+					"batch_notes, active, version_id, "
+					"destination_location_id) VALUES "
+					"(%s, %s, %s, %s, %s, True, %s, %s) "
 					"RETURNING id",
 					(product_id, name, qty, time_clock_id,
-					notes, self.version_id))
+					notes, self.version_id, self.get_destination_id()))
 		self.project_id = c.fetchone()[0]
 		c.close()
 
 	def update_project_row (self, name, qty, notes):
 		c = DB.cursor()
 		c.execute("UPDATE manufacturing_projects SET "
-					"(name, qty, batch_notes, version_id) = "
-					"(%s, %s, %s, %s) WHERE id = %s "
+					"(name, qty, batch_notes, version_id, "
+					"destination_location_id) = "
+					"(%s, %s, %s, %s, %s) WHERE id = %s "
 					"RETURNING time_clock_projects_id",
-					(name, qty, notes, self.version_id, self.project_id))
+					(name, qty, notes, self.version_id,
+					self.get_destination_id(), self.project_id))
 		active = self.get_object('time_clock_checkbutton').get_active()
 		for row in c.fetchall():
 			time_clock_projects_id = row[0]
@@ -221,6 +245,9 @@ class ProjectEditGUI(Gtk.Builder):
 
 	def create_or_update_project_clicked (self, button):
 		product_id, name, qty, notes = self.get_project_fields()
+		if self.get_destination_id() == None:
+			self.show_message("Select a stock destination.")
+			return
 		if self.project_id == None:
 			if not self.product_id or not self.version_id:
 				self.show_message("Select a product and version first.")
@@ -242,6 +269,9 @@ class ProjectEditGUI(Gtk.Builder):
 
 	def save_clicked (self, button):
 		product_id, name, qty, notes = self.get_project_fields()
+		if self.get_destination_id() == None:
+			self.show_message("Select a stock destination.")
+			return
 		if self.project_id == None:
 			self.insert_project_row(product_id, name, qty, notes)
 			self.sync_manufacturing_items(self.project_id, self.version_id, qty)
@@ -402,22 +432,25 @@ class ProjectEditGUI(Gtk.Builder):
 					"COALESCE(mi.vendor_id, 0), "
 					"COALESCE(v.name, 'Select a vendor'), "
 					"mi.purchase_order_item_id IS NOT NULL, "
-					"COALESCE(vpn.vendor_sku, '') "
+					"COALESCE(vpn.vendor_sku, ''), "
+					"COALESCE(sl.name, %s) "
 					"FROM manufacturing_items AS mi "
 					"JOIN products AS p ON p.id = mi.product_id "
+					"LEFT JOIN locations AS sl ON sl.id = mi.source_location_id "
 					"LEFT JOIN contacts AS v ON v.id = mi.vendor_id "
 					"LEFT JOIN vendor_product_numbers AS vpn "
 					"ON (vpn.vendor_id, vpn.product_id) = "
 					"(mi.vendor_id, mi.product_id) AND vpn.deleted = False "
 					"WHERE mi.manufacturing_project_id = %s "
-					"ORDER BY mi.id", (self.project_id,))
+					"ORDER BY mi.id",
+					(self.default_source_name, self.project_id))
 		for row in c.fetchall():
 			needed, on_hand = row[1], row[5]
 			order_qty = max(needed - on_hand, 0)
 			status = "Added" if row[8] else ""
 			self.parts_needed_store.append([row[0], row[1], row[2], row[3],
 							row[4], on_hand, row[6], row[7],
-							order_qty, status, row[9]])
+							order_qty, status, row[9], row[10]])
 		c.close()
 		DB.rollback()
 
@@ -522,6 +555,20 @@ class ProjectEditGUI(Gtk.Builder):
 		tree_iter = self.parts_needed_store.get_iter(paths[0])
 		self.apply_vendor_selection(tree_iter, vendor_id, vendor_name)
 		return True
+
+	def source_combo_changed (self, combo_renderer, path, combo_iter):
+		location_id = self.location_store[combo_iter][0]
+		location_name = self.location_store[combo_iter][1]
+		item_id = self.parts_needed_store[path][0]
+		if item_id == 0:
+			self.show_message("Select a product for this line first.")
+			return
+		self.parts_needed_store[path][11] = location_name
+		c = DB.cursor()
+		c.execute("UPDATE manufacturing_items SET source_location_id = %s "
+					"WHERE id = %s", (location_id, item_id))
+		DB.commit()
+		c.close()
 
 	def order_qty_edited (self, widget, path, text):
 		try:
@@ -689,7 +736,8 @@ class ProjectEditGUI(Gtk.Builder):
 		treeview = self.get_object('parts_needed_treeview')
 		column = treeview.get_column(0)
 		row = self.parts_needed_store.append([0, 1, 0, "Select a product", 0,
-							0, 0, "Select a vendor", 1, "", ""])
+							0, 0, "Select a vendor", 1, "", "",
+							self.default_source_name])
 		path = self.parts_needed_store.get_path(row)
 		treeview.set_cursor(path, column, True)
 
@@ -726,7 +774,8 @@ class ProjectEditGUI(Gtk.Builder):
 				return
 		tree_row = self.parts_needed_store.append([0, 1, 0,
 							"Select a product", 0, 0, 0,
-							"Select a vendor", 1, "", ""])
+							"Select a vendor", 1, "", "",
+							self.default_source_name])
 		self.apply_part_selection(tree_row, product_id, product_name)
 
 	def set_needed_qty (self, tree_iter, qty):

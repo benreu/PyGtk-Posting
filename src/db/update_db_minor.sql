@@ -660,3 +660,13 @@ UPDATE settings.zebra_templates SET
 UPDATE settings.zebra_templates SET
 	template = replace(template, '^FXid:barcode', '^FXid:serial_number')
 	WHERE label_type = 'serial' AND template LIKE '%^FXid:barcode%';
+--0.7.16
+/* Each manufacturing_items line takes its stock from its own source location
+   and the finished product goes to the project's destination location. NULL
+   means the first location (lowest id). */
+ALTER TABLE manufacturing_items
+	ADD COLUMN IF NOT EXISTS source_location_id integer
+		REFERENCES locations(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+ALTER TABLE manufacturing_projects
+	ADD COLUMN IF NOT EXISTS destination_location_id integer
+		REFERENCES locations(id) ON UPDATE RESTRICT ON DELETE RESTRICT;

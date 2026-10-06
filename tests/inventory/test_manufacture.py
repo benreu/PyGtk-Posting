@@ -49,5 +49,23 @@ class ManufactureTest(DBTestCase):
 								"WHERE manufacturing_id = %s AND product_id = %s",
 								(self.project_id, product_id)), 0)
 
+	def test_each_line_leaves_its_source_and_product_enters_the_destination(self):
+		first_id = self.one("SELECT id FROM locations ORDER BY id LIMIT 1")
+		second_id = self.new_location('Test source')
+		third_id = self.new_location('Test destination')
+		(line_product, q1), (other_product, q2) = self.components[:2]
+		self.cursor.execute("UPDATE manufacturing_items SET source_location_id = %s "
+							"WHERE manufacturing_project_id = %s AND product_id = %s",
+							(second_id, self.project_id, line_product))
+		self.cursor.execute("UPDATE manufacturing_projects "
+							"SET destination_location_id = %s WHERE id = %s",
+							(third_id, self.project_id))
+		self.inventorying.manufacture(self.project_id)
+		location = ("SELECT location_id FROM inventory_transactions "
+					"WHERE manufacturing_id = %s AND product_id = %s")
+		self.assertEqual(self.one(location, (self.project_id, line_product)), second_id)
+		self.assertEqual(self.one(location, (self.project_id, other_product)), first_id)
+		self.assertEqual(self.one(location, (self.project_id, self.product_id)), third_id)
+
 if __name__ == '__main__':
 	unittest.main()

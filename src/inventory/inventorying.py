@@ -131,25 +131,31 @@ def transfer (transfer_store):
 	cursor = DB.cursor()
 	cursor.close()
 
-def manufacture (manufacturing_id, location_id = None):
-	'''consume the project's components and add the finished product. Rerunning
-	replaces the project's earlier rows. Without a location the first one is used'''
+def manufacture (manufacturing_id, destination_location_id = None):
+	'''consume each component from its line's source location and add the
+	finished product to the destination. Rerunning replaces the project's earlier
+	rows. A source not set on the line, or a destination neither given nor saved
+	on the project, falls back to the first location'''
 	cursor = DB.cursor()
-	if location_id == None:
-		cursor.execute("SELECT id FROM locations ORDER BY id LIMIT 1")
-		location_id = cursor.fetchone()[0]
+	cursor.execute("SELECT id FROM locations ORDER BY id LIMIT 1")
+	first_location = cursor.fetchone()[0]
+	if destination_location_id == None:
+		cursor.execute("SELECT destination_location_id "
+						"FROM manufacturing_projects WHERE id = %s",
+						(manufacturing_id,))
+		destination_location_id = cursor.fetchone()[0] or first_location
 	cursor.execute("DELETE FROM inventory_transactions "
 					"WHERE manufacturing_id = %s", (manufacturing_id,))
 	cursor.execute("INSERT INTO inventory_transactions "
 					"(manufacturing_id, product_id, qty_out, price, "
 					"location_id, date_inserted) "
 					"SELECT mi.manufacturing_project_id, mi.product_id, mi.qty, "
-						"mi.cost, %s, CURRENT_DATE "
+						"mi.cost, COALESCE(mi.source_location_id, %s), CURRENT_DATE "
 					"FROM manufacturing_items AS mi "
 					"JOIN products AS p ON p.id = mi.product_id "
 					"WHERE mi.manufacturing_project_id = %s "
 					"AND p.inventory_enabled AND mi.qty > 0",
-					(location_id, manufacturing_id))
+					(first_location, manufacturing_id))
 	cursor.execute("INSERT INTO inventory_transactions "
 					"(manufacturing_id, product_id, qty_in, price, "
 					"location_id, date_inserted) "
@@ -157,7 +163,7 @@ def manufacture (manufacturing_id, location_id = None):
 					"FROM manufacturing_projects AS mp "
 					"JOIN products AS p ON p.id = mp.product_id "
 					"WHERE mp.id = %s AND p.inventory_enabled AND mp.qty > 0",
-					(location_id, manufacturing_id))
+					(destination_location_id, manufacturing_id))
 	cursor.close()
 
 

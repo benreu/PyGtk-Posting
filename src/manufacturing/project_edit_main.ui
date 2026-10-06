@@ -16,6 +16,14 @@
       </object>
     </child>
   </object>
+  <object class="GtkListStore" id="location_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="part_product_store">
     <columns>
       <!-- column-name product_id -->
@@ -88,6 +96,8 @@
       <!-- column-name status -->
       <column type="gchararray"/>
       <!-- column-name order_number -->
+      <column type="gchararray"/>
+      <!-- column-name source_location_name -->
       <column type="gchararray"/>
     </columns>
   </object>
@@ -170,7 +180,7 @@
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
-          <!-- n-columns=6 n-rows=2 -->
+          <!-- n-columns=6 n-rows=3 -->
           <object class="GtkGrid" id="grid1">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -339,6 +349,36 @@
                 <property name="top-attach">1</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Stock destination</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="destination_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="model">location_store</property>
+                <property name="id-column">0</property>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -468,6 +508,26 @@
                               <object class="GtkCellRendererText" id="on_hand_renderer"/>
                               <attributes>
                                 <attribute name="text">5</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="source_column">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Source</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort-column-id">11</property>
+                            <child>
+                              <object class="GtkCellRendererCombo" id="source_combo_renderer">
+                                <property name="editable">True</property>
+                                <property name="has-entry">False</property>
+                                <property name="model">location_store</property>
+                                <property name="text-column">1</property>
+                                <signal name="changed" handler="source_combo_changed" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">11</attribute>
                               </attributes>
                             </child>
                           </object>
