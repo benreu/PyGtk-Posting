@@ -109,5 +109,46 @@ class WholeQuantityTest(StockReturnTest):
 							"WHERE id = %s", (self.product_id,))
 		self.assertIsNone(self.inventorying.fractional_quantity_message(self.row('1.50')))
 
+class NegativeStockTest(WholeQuantityTest):
+	# setUp leaves 10 in other_location and -4 at location_id (the sale)
+	def row(self, qty):
+		return [[self.line_id, qty, self.product_id, '', '', '', '5.00']]
+
+	def test_selling_more_than_on_hand_warns_but_still_sells(self):
+		new_line = self.invoice_line(11)
+		store = [[new_line, '11.00', self.product_id, '', '', '', '5.00']]
+		message = self.inventorying.negative_stock_message(store, self.other_location_id)
+		self.assertIn('10 on hand, selling 11 (would be -1)', message)
+		self.inventorying.sell(store, self.other_location_id, 1, '2026-01-01')
+		self.assertEqual(self.on_hand(self.product_id), -5)
+
+	def test_selling_up_to_on_hand_is_fine(self):
+		new_line = self.invoice_line(10)
+		store = [[new_line, '10.00', self.product_id, '', '', '', '5.00']]
+		self.assertIsNone(self.inventorying.negative_stock_message(
+							store, self.other_location_id))
+
+	def test_lines_of_the_same_product_add_up(self):
+		lines = [[self.invoice_line(6), '6.00', self.product_id, '', '', '', '5.00'],
+				[self.invoice_line(6), '6.00', self.product_id, '', '', '', '5.00']]
+		self.assertIsNotNone(self.inventorying.negative_stock_message(
+								lines, self.other_location_id))
+
+	def test_untracked_product_never_warns(self):
+		self.cursor.execute("UPDATE products SET inventory_enabled = False "
+							"WHERE id = %s", (self.product_id,))
+		self.assertIsNone(self.inventorying.negative_stock_message(
+							self.row('99.00'), self.other_location_id))
+
+	def test_other_locations_stock_is_not_counted(self):
+		self.assertIsNotNone(self.inventorying.negative_stock_message(
+								self.row('1.00'), self.location_id))
+
+	def test_already_posted_lines_are_not_counted_twice(self):
+		self.inventorying.unsell(self.invoice_id)
+		self.inventorying.sell(self.row('4.00'), self.other_location_id, 1, '2026-01-01')
+		self.assertIsNone(self.inventorying.negative_stock_message(
+							self.row('10.00'), self.other_location_id))
+
 if __name__ == '__main__':
 	unittest.main()

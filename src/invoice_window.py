@@ -621,6 +621,10 @@ class InvoiceGUI:
 		if message != None:
 			self.show_error_dialog (message)
 			return
+		message = inventorying.negative_stock_message (self.invoice_store, location_id)
+		DB.rollback()
+		if message != None and not self.confirm_negative_stock (message):
+			return
 		self.flush_comment ()
 		self.calculate_totals () # posting copies the saved total to amount due
 		invoice = self.create_invoice_document ()
@@ -1135,6 +1139,17 @@ class InvoiceGUI:
 		self.populate_serial_numbers ()
 		entry.select_region(0, -1)
 		entry.grab_focus()
+
+	def confirm_negative_stock (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.WARNING,
+									buttons = Gtk.ButtonsType.YES_NO)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup ("This sale takes stock below zero:\n\n%s\n\n"
+							"The stock count may be off. Post anyway?" %
+							GLib.markup_escape_text(message))
+		result = dialog.run()
+		dialog.destroy()
+		return result == Gtk.ResponseType.YES
 
 	def show_error_dialog (self, error):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

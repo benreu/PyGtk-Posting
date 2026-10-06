@@ -36,6 +36,36 @@ def fractional_quantity_message (invoice_store):
 	cursor.close()
 	return message
 
+def negative_stock_message (invoice_store, location_id):
+	'''a sale is allowed to take stock below zero (the count may be off), but the
+	user should be told. Returns a message, or None if no product goes negative'''
+	selling = {} # product id: quantity over all of its lines
+	for row in invoice_store:
+		selling[row[2]] = selling.get(row[2], 0) + int(Decimal(row[1]))
+	line_ids = [row[0] for row in invoice_store]
+	cursor = DB.cursor()
+	lines = []
+	for product_id, qty in selling.items():
+		cursor.execute("SELECT name, inventory_enabled FROM products "
+						"WHERE id = %s", (product_id,))
+		name, inventory_enabled = cursor.fetchone()
+		if not inventory_enabled:
+			continue
+		# lines already posted are rewritten by sell (), so they are not stock taken yet
+		cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+						"FROM inventory_transactions "
+						"WHERE product_id = %s AND location_id = %s "
+						"AND (invoice_line_id IS NULL "
+						"OR NOT invoice_line_id = ANY(%s))",
+						(product_id, location_id, line_ids))
+		on_hand = cursor.fetchone()[0]
+		if on_hand - qty < 0:
+			lines.append("'%s': %s on hand, selling %s (would be %s)" %
+							(name, on_hand, qty, on_hand - qty))
+	cursor.close()
+	if lines:
+		return "\n".join(lines)
+
 def sell (invoice_store, location_id, contact_id, date):
 	'''adjust inventory taking in consideration that invoices can be edited afterwards'''
 	message = fractional_quantity_message (invoice_store)
