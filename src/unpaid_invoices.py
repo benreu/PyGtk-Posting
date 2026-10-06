@@ -15,6 +15,7 @@
 
 from gi.repository import Gtk, GLib
 from db import transactor
+from inventory import inventorying
 from dateutils import DateTimeCalendar
 import subprocess, decimal, tempfile, os, shutil, psycopg2
 
@@ -352,6 +353,7 @@ class GUI (Gtk.Builder):
 
 		def on_yes_clicked(_):
 			transactor.cancel_invoice(self.date, self.invoice_id)
+			inventorying.unsell(self.invoice_id)
 			cursor = DB.cursor()
 			cursor.execute("UPDATE invoices SET canceled = True "
 								"WHERE id = %s"

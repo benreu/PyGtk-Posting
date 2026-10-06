@@ -52,6 +52,35 @@ def sell (invoice_store, location_id, contact_id, date):
 							(invoice_line_id,))
 	cursor.close()
 
+def unsell (invoice_id):
+	'''put the stock of a canceled invoice back by dropping its sale rows'''
+	cursor = DB.cursor()
+	cursor.execute("DELETE FROM inventory_transactions "
+					"WHERE invoice_line_id IN "
+					"(SELECT id FROM invoice_items WHERE invoice_id = %s)",
+					(invoice_id,))
+	cursor.close()
+
+def restock (credit_memo_id):
+	'''return credit memo items to the location they were sold from. Items whose
+	sale never reached the ledger (invoiced before inventory was enabled) are
+	skipped, because they were never deducted'''
+	cursor = DB.cursor()
+	cursor.execute("INSERT INTO inventory_transactions "
+					"(product_id, qty_in, price, location_id, date_inserted, reason) "
+					"SELECT ii.product_id, TRUNC(cmi.qty)::int, p.cost, "
+						"sale.location_id, CURRENT_DATE, 'Credit memo returned' "
+					"FROM credit_memo_items AS cmi "
+					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
+					"JOIN products AS p ON p.id = ii.product_id "
+					"JOIN LATERAL (SELECT location_id FROM inventory_transactions "
+						"WHERE invoice_line_id = ii.id "
+						"ORDER BY id LIMIT 1) AS sale ON True "
+					"WHERE cmi.credit_memo_id = %s AND NOT cmi.deleted "
+					"AND p.inventory_enabled AND TRUNC(cmi.qty) > 0",
+					(credit_memo_id,))
+	cursor.close()
+
 def receive (po_id, location_id):
 	cursor = DB.cursor()
 	cursor.execute("WITH cte AS "

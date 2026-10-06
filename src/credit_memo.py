@@ -20,6 +20,7 @@ import psycopg2
 from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
+from inventory import inventorying
 
 UI_FILE = ui_directory + "/credit_memo.ui"
 
@@ -565,6 +566,7 @@ class CreditMemoGUI:
 												self.customer_id)
 		self.credit_memo_template.print_pdf(self.window)
 		self.credit_memo_template.post()
+		inventorying.restock(self.credit_memo_id)
 		DB.commit()
 		self.window.destroy()
 
