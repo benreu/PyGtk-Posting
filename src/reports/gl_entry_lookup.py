@@ -76,8 +76,28 @@ class GlEntryLookupGUI :
 					"FROM payments_incoming AS p "
 					"JOIN contacts AS c ON c.id = p.customer_id "
 					"JOIN gl_entries AS ge ON p.gl_entries_id = ge.id "
-					"WHERE ge.id IN %s " % 
-					(entry_ids, entry_ids, entry_ids) )
+					"WHERE ge.id IN %s "
+
+					# every entry hanging off a stock movement resolves here:
+					# cost of goods sold on a sale, the cost put back by a credit
+					# memo, a manufacturing transfer and a hand adjustment
+					"UNION "
+					"SELECT "
+						"'Inventory', "
+						"COALESCE(ii.invoice_id, it.id), "
+						"p.name, "
+						"it.price::text, "
+						"COALESCE(it.reason, c.name, ''), "
+						"it.date_inserted::text, "
+						"format_date(it.date_inserted) "
+					"FROM inventory_transactions AS it "
+					"JOIN gl_entries AS ge ON it.gl_entries_id = ge.id "
+					"JOIN products AS p ON p.id = it.product_id "
+					"LEFT JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
+					"LEFT JOIN invoices AS i ON i.id = ii.invoice_id "
+					"LEFT JOIN contacts AS c ON c.id = i.customer_id "
+					"WHERE ge.id IN %s " %
+					(entry_ids, entry_ids, entry_ids, entry_ids) )
 		for row in c.fetchall():
 			store.append(row)
 		c.close()
