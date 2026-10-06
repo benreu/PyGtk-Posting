@@ -188,6 +188,71 @@ class CogsTest(DBTestCase):
 		self.assertEqual(self.net(INVENTORY_ACCOUNT), 0)
 		self.assertEqual(self.on_hand(self.product_id), 10)
 
+	# ---------------- editing a posted invoice ----------------
+
+	def test_a_line_added_after_posting_carries_its_own_cost(self):
+		self.post()
+		added = self.invoice_line(5)
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		rows = self.cogs_rows()
+		self.assertEqual(len(rows), 2) # the stock moved, so the cost must too
+		amount, debit, credit, transaction_id, _ = rows[1]
+		self.assertEqual(amount, Decimal('15.00')) # 5 at a cost of 3
+		self.assertEqual(debit, COGS_ACCOUNT)
+		self.assertEqual(credit, INVENTORY_ACCOUNT)
+		self.assertEqual(transaction_id, self.transaction_id())
+		self.assertEqual(self.net(COGS_ACCOUNT), Decimal('27.00'))
+		self.assertBalances()
+
+	def test_tracking_turned_off_and_back_on_keeps_one_entry(self):
+		self.post()
+		self.cursor.execute("UPDATE products SET inventory_enabled = False "
+							"WHERE id = %s", (self.product_id,))
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		self.assertEqual(self.net(COGS_ACCOUNT), 0) # nothing tracked, no cost
+		self.cursor.execute("UPDATE products SET inventory_enabled = True "
+							"WHERE id = %s", (self.product_id,))
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		# the row was dropped and remade, so its entry had to be remade with it
+		self.assertEqual(len(self.cogs_rows()), 1)
+		self.assertEqual(self.net(COGS_ACCOUNT), Decimal('12.00'))
+		self.assertBalances()
+
+	def test_an_edit_does_not_restate_the_cost_of_another_line(self):
+		other = self.invoice_line(2)
+		self.post(rows = [[self.line_id, '4.00', self.product_id,
+							'', '', '', '5.00'],
+							[other, '2.00', self.product_id,
+							'', '', '', '5.00']])
+		self.assertEqual(self.net(COGS_ACCOUNT), Decimal('18.00')) # 6 at 3
+		self.cursor.execute("UPDATE products SET cost = 99 WHERE id = %s",
+							(self.product_id,))
+		self.cursor.execute("UPDATE invoice_items SET qty = 3 WHERE id = %s",
+							(other,))
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		# only the quantity changed; neither line may be revalued at 99
+		self.assertEqual(self.cogs_rows()[0][0], Decimal('12.00'))
+		self.assertEqual(self.cogs_rows()[1][0], Decimal('9.00')) # 3 at 3
+		self.assertBalances()
+
+	def test_a_product_change_takes_the_new_product_cost(self):
+		self.cursor.execute("UPDATE products SET cost = 8, "
+							"inventory_account = %s, default_expense_account = %s, "
+							"inventory_enabled = True WHERE id = %s",
+							(INVENTORY_ACCOUNT, COGS_ACCOUNT, self.untracked_id))
+		self.post()
+		self.cursor.execute("UPDATE invoice_items SET product_id = %s "
+							"WHERE id = %s", (self.untracked_id, self.line_id))
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		# a different good was never relieved at the old cost
+		self.assertEqual(self.cogs_rows()[0][0], Decimal('32.00')) # 4 at 8
+		self.assertBalances()
+
 class CashBasisCogsTest(CogsTest):
 	'''under cash basis nothing reaches the ledger until the invoice is paid, and
 	the cost has to follow the revenue rather than the stock'''
@@ -198,6 +263,19 @@ class CashBasisCogsTest(CogsTest):
 							(self.invoice_id,))
 		self.assertEqual(self.cogs_rows(), [])
 		self.assertEqual(self.on_hand(self.product_id), 6) # the stock still moved
+
+	def test_editing_an_unpaid_invoice_moves_stock_and_writes_no_cost(self):
+		self.inventorying.sell(self.store(), self.location_id,
+								self.customer_id, '2026-01-01')
+		self.cursor.execute("UPDATE invoices SET posted = True WHERE id = %s",
+							(self.invoice_id,))
+		self.cursor.execute("UPDATE invoice_items SET qty = 6 WHERE id = %s",
+							(self.line_id,))
+		# there is no transaction to hang a cost entry on until it is paid
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		self.assertEqual(self.cogs_rows(), [])
+		self.assertEqual(self.on_hand(self.product_id), 4)
 
 	def test_paying_writes_the_cost(self):
 		self.inventorying.sell(self.store(), self.location_id,

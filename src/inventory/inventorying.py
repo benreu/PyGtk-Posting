@@ -143,12 +143,18 @@ def resync_invoice_inventory (invoice_id, location_id = None, date = None):
 						"AND (ii.canceled OR NOT p.inventory_enabled))",
 					(invoice_id,))
 	# TRUNC like sell () does; a plain cast rounds, which would change a quantity
-	# the user never touched
+	# the user never touched. The price is the cost the sale was relieved at and
+	# stays put, the same promise post_invoice_cogs and restock () make: a cost
+	# change must not restate a sale that is already posted. A line whose product
+	# changed is a different good that was never relieved, so it takes the new
+	# product's cost
 	cursor.execute("UPDATE inventory_transactions AS it SET "
 						"(qty_out, product_id, location_id, date_inserted, price) = "
 						"(TRUNC(ii.qty)::int, ii.product_id, "
 						"COALESCE(%s::int, it.location_id), "
-						"COALESCE(%s::date, it.date_inserted), p.cost) "
+						"COALESCE(%s::date, it.date_inserted), "
+						"CASE WHEN it.product_id = ii.product_id "
+							"THEN it.price ELSE p.cost END) "
 					"FROM invoice_items AS ii "
 					"JOIN products AS p ON p.id = ii.product_id "
 					"WHERE it.invoice_line_id = ii.id "
@@ -177,15 +183,20 @@ def resync_invoice_inventory (invoice_id, location_id = None, date = None):
 					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
 						"WHERE invoice_line_id = ii.id)",
 					(location_id, date, invoice_id))
-	# keep the cost of goods sold entry in step with the row it values, so an
-	# edited quantity does not leave the ledger holding the original cost until
-	# the invoice happens to be posted again
-	cursor.execute("UPDATE gl_entries AS ge SET amount = "
-						"ROUND(it.qty_out * it.price, 2) "
-					"FROM inventory_transactions AS it "
-					"JOIN invoice_items AS ii ON ii.id = it.invoice_line_id "
-					"WHERE ge.id = it.gl_entries_id AND ii.invoice_id = %s",
-					(invoice_id,))
+	# the cost of goods sold entries belong to the invoice's own transaction, the
+	# one post_invoice_cogs writes them to at posting time. Under cash basis the
+	# invoice has none until it is paid, and no cost is due yet either, so the
+	# stock work above stands on its own
+	cursor.execute("SELECT ge.gl_transaction_id, "
+						"COALESCE(%s::date, i.dated_for, CURRENT_DATE) "
+					"FROM invoices AS i "
+					"JOIN gl_entries AS ge ON ge.id = i.gl_entries_id "
+					"WHERE i.id = %s", (date, invoice_id))
+	row = cursor.fetchone()
+	if row != None:
+		# it books the rows added above, which carry no entry yet, and writes the
+		# amounts of the ones that do back, so it covers both halves of an edit
+		transactor.post_invoice_cogs (cursor, invoice_id, row[0], row[1])
 	cursor.close()
 
 def unsell (invoice_id):

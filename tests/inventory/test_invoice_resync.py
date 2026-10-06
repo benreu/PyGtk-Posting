@@ -113,11 +113,31 @@ class InvoiceResyncTest(DBTestCase):
 		self.resync()
 		self.assertEqual(self.ledger_rows()[0][4], Decimal('3.000000'))
 
-	def test_a_cost_change_follows_into_the_ledger(self):
+	def test_a_cost_change_leaves_a_posted_sale_alone(self):
+		# the row holds the cost the sale was relieved at; post_invoice_cogs and
+		# restock () both value a sale from it, so a later cost change must not
+		# restate what is already posted
 		self.cursor.execute("UPDATE products SET cost = 7.25 "
 							"WHERE id = %s", (self.product_id,))
 		self.resync()
-		self.assertEqual(self.ledger_rows()[0][4], Decimal('7.250000'))
+		self.assertEqual(self.ledger_rows()[0][4], Decimal('3.000000'))
+
+	def test_a_new_line_takes_the_cost_of_the_day_it_is_added(self):
+		self.cursor.execute("UPDATE products SET cost = 7.25 "
+							"WHERE id = %s", (self.product_id,))
+		self.invoice_line(2) # never relieved, so nothing to preserve
+		self.resync()
+		self.assertEqual(self.ledger_rows()[1][4], Decimal('7.250000'))
+
+	def test_an_edit_leaves_another_line_cost_alone(self):
+		other = self.invoice_line(2)
+		self.resync() # both lines now sit in the ledger at a cost of 3
+		self.cursor.execute("UPDATE products SET cost = 7.25 "
+							"WHERE id = %s", (self.product_id,))
+		self.set_qty(3, other)
+		self.resync()
+		costs = [row[4] for row in self.ledger_rows()]
+		self.assertEqual(costs, [Decimal('3.000000'), Decimal('3.000000')])
 
 	def test_product_change_follows_into_the_ledger(self):
 		self.cursor.execute("UPDATE invoice_items SET product_id = %s "
@@ -127,6 +147,16 @@ class InvoiceResyncTest(DBTestCase):
 		self.assertEqual(len(self.ledger_rows()), 1)
 		self.assertEqual(self.on_hand(self.product_id), 10)
 		self.assertEqual(self.on_hand(self.other_product_id), 6)
+
+	def test_a_product_change_takes_the_new_product_cost(self):
+		self.cursor.execute("UPDATE products SET cost = 8 WHERE id = %s",
+							(self.other_product_id,))
+		self.cursor.execute("UPDATE invoice_items SET product_id = %s "
+							"WHERE id = %s",
+							(self.other_product_id, self.line_id))
+		self.resync()
+		# a different good was never relieved at the old product's cost
+		self.assertEqual(self.ledger_rows()[0][4], Decimal('8.000000'))
 
 	def test_a_canceled_line_releases_its_stock(self):
 		# delete_line_item_activated soft deletes, so CASCADE never fires
