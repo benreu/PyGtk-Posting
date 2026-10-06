@@ -56,5 +56,29 @@ class ReceiveTest(DBTestCase):
 		self.receive()
 		self.assertEqual(len(self.received_rows()), 1)
 
+class ResyncTest(ReceiveTest):
+	def resync(self):
+		from db import transactor
+		transactor.resync_purchase_order_inventory(self.po_id)
+
+	def test_price_removed_after_receipt_does_not_break_resync(self):
+		line_id = self.add_line(19, 5, Decimal('1.25'))
+		self.cursor.execute("UPDATE purchase_orders SET received = True WHERE id = %s",
+							(self.po_id,))
+		self.receive()
+		self.cursor.execute("UPDATE purchase_order_items SET price = NULL, qty = 7 "
+							"WHERE id = %s", (line_id,))
+		self.resync()
+		self.assertEqual(self.received_rows(), [(19, 7, Decimal('0'))])
+
+	def test_unpriced_line_added_after_receipt_is_received(self):
+		self.add_line(19, 5, 1)
+		self.cursor.execute("UPDATE purchase_orders SET received = True WHERE id = %s",
+							(self.po_id,))
+		self.receive()
+		self.add_line(962, 2, None)
+		self.resync()
+		self.assertEqual([r[0] for r in self.received_rows()], [19, 962])
+
 if __name__ == '__main__':
 	unittest.main()

@@ -842,7 +842,7 @@ def resync_purchase_order_inventory (po_id):
 		return
 	cursor.execute("UPDATE inventory_transactions AS it SET (qty_in, price) = "
 						"(CASE WHEN poli.canceled THEN 0 "
-							"ELSE poli.qty::int END, poli.price) "
+							"ELSE poli.qty::int END, COALESCE(poli.price, 0)) "
 					"FROM purchase_order_items AS poli "
 					"WHERE it.purchase_order_item_id = poli.id "
 					"AND poli.purchase_order_id = %s", (po_id,))
@@ -850,7 +850,8 @@ def resync_purchase_order_inventory (po_id):
 	cursor.execute("INSERT INTO inventory_transactions "
 						"(purchase_order_item_id, qty_in, product_id, price, "
 						"location_id, date_inserted) "
-					"SELECT poli.id, poli.qty::int, poli.product_id, poli.price, "
+					"SELECT poli.id, poli.qty::int, poli.product_id, "
+						"COALESCE(poli.price, 0), "
 						"COALESCE((SELECT it.location_id "
 							"FROM inventory_transactions AS it "
 							"JOIN purchase_order_items AS sibling "
