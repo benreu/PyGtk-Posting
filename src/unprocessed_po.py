@@ -462,8 +462,12 @@ class GUI(Gtk.Builder):
 	def populate_expense_account_store (self):
 		self.expense_account_store.clear()
 		cursor = DB.cursor()
+		# inventory accounts belong here too: a line for a tracked product posts
+		# to the inventory asset, and leaving them out would hide the account the
+		# line already carries
 		cursor.execute("SELECT number::text, name FROM gl_accounts "
-							"WHERE expense_account = True")
+							"WHERE expense_account = True "
+							"OR inventory_account = True")
 		for row in cursor.fetchall():
 			self.expense_account_store.append(row)
 		cursor.close()

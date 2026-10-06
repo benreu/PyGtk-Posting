@@ -559,7 +559,7 @@ CREATE TABLE public.purchase_order_items (
     canceled boolean NOT NULL DEFAULT false,
     received smallint,
     product_id integer NOT NULL REFERENCES public.products (id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT,
-    expense_account smallint REFERENCES public.gl_accounts ("number") MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT,
+    expense_account bigint REFERENCES public.gl_accounts ("number") MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT,
     gl_entries_id bigint REFERENCES public.gl_entries (id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT,
     order_number character varying NOT NULL DEFAULT ''::character varying,
     hold boolean NOT NULL DEFAULT false,

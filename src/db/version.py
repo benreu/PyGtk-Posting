@@ -22,7 +22,7 @@ from constants import ui_directory
 UI_FILE = ui_directory + "/db/version.ui"
 
 VERSION_MAJOR = 7
-VERSION_MINOR = 18
+VERSION_MINOR = 19
 
 class CheckVersion :
 	def __init__ (self, main):

@@ -62,7 +62,9 @@ def add_expense_to_po (po_id, product_id, expense_amount ):
 					"(purchase_order_id, product_id, qty, remark, price, "
 					"ext_price, canceled, expense_account) "
 					"VALUES (%s, %s, 1, '', %s, %s, False, "
-						"(SELECT default_expense_account "
+						"(SELECT CASE WHEN inventory_enabled "
+							"THEN inventory_account "
+							"ELSE default_expense_account END "
 						"FROM products WHERE id = %s))",
 					(po_id, product_id, expense_amount, expense_amount,
 					product_id))
@@ -96,7 +98,9 @@ def add_manufacturing_item_to_po (po_id, product_id, qty):
 					"(purchase_order_id, qty, product_id, remark, price, "
 					"ext_price, canceled, expense_account, order_number) "
 					"VALUES (%s, %s, %s, '', %s, %s, False, "
-						"(SELECT default_expense_account "
+						"(SELECT CASE WHEN inventory_enabled "
+							"THEN inventory_account "
+							"ELSE default_expense_account END "
 						"FROM products WHERE id = %s), %s) "
 					"RETURNING id",
 					(po_id, qty, product_id, price, price * qty, product_id,
@@ -945,8 +949,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.expense_account_store.clear()
 		self.revenue_account_store.clear()
 		cursor = DB.cursor()
+		# inventory accounts belong here too, see populate_expense_account_store
+		# in unprocessed_po.py
 		cursor.execute("SELECT number::text, name FROM gl_accounts "
-							"WHERE expense_account = True ORDER BY name")
+							"WHERE expense_account = True "
+							"OR inventory_account = True ORDER BY name")
 		for row in cursor.fetchall():
 			self.expense_account_store.append(row)
 		cursor.execute("SELECT number::text, name FROM gl_accounts "
@@ -1061,7 +1068,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"(SELECT cost FROM p_info), "
 							"qty * (SELECT cost FROM p_info), "
 							"(SELECT vendor_sku FROM p_info), "
-							"(SELECT default_expense_account "
+							"(SELECT CASE WHEN inventory_enabled "
+								"THEN inventory_account "
+								"ELSE default_expense_account END "
 								"FROM products WHERE id = %s)"
 							") "
 						"WHERE id = %s RETURNING ext_price"
@@ -1189,7 +1198,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 							"%s, "
 							"%s, "
 							"%s, "
-							"(SELECT default_expense_account "
+							"(SELECT CASE WHEN inventory_enabled "
+								"THEN inventory_account "
+								"ELSE default_expense_account END "
 								"FROM products WHERE id = %s), "
 							"%s) "
 						"RETURNING id", 

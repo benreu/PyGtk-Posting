@@ -713,3 +713,34 @@ FROM products AS p
 WHERE p.id = it.product_id
 AND it.invoice_line_id IS NOT NULL
 AND it.gl_entries_id IS NULL;
+
+--0.7.19
+/* A purchase of a tracked product capitalizes to the product's inventory asset
+   account instead of being expensed, so the cost reaches the profit and loss
+   when the goods sell rather than when they were bought. */
+
+/* gl_accounts.number is bigint, so an account above 32767 never fitted here.
+   Guarded because an unguarded ALTER TYPE rewrites the table on every upgrade,
+   and this file runs from the top every time. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns
+				WHERE table_schema = 'public'
+					AND table_name = 'purchase_order_items'
+					AND column_name = 'expense_account'
+					AND data_type = 'smallint') THEN
+		EXECUTE 'ALTER TABLE public.purchase_order_items
+					ALTER COLUMN expense_account TYPE bigint';
+	END IF;
+END
+$$;
+
+/* Lines on a purchase order that has not been invoiced yet have not reached the
+   ledger, so they can still be pointed at the inventory account they will post
+   to. A line the user has already overridden by hand is left alone. */
+UPDATE purchase_order_items AS poli SET expense_account = p.inventory_account
+FROM products AS p, purchase_orders AS po
+WHERE p.id = poli.product_id AND po.id = poli.purchase_order_id
+AND p.inventory_enabled AND p.inventory_account IS NOT NULL
+AND poli.gl_entries_id IS NULL AND po.invoiced = False
+AND poli.expense_account = p.default_expense_account;
