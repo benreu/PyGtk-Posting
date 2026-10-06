@@ -405,23 +405,31 @@ def cancel_invoice (datetime, invoice_id):
 		c.close()
 		return
 	t_id = row[0]
+	# date_inserted is passed rather than left to its default: the column is NOT
+	# NULL DEFAULT now (), so after_gl_entries_inserted never fires and a reversal
+	# would otherwise be dated today instead of the date the user canceled on,
+	# which lands it in the wrong fiscal year on every report
+	# a row carrying both accounts, as a cost of goods sold entry does, matches
+	# both arms and so has each of its sides reversed exactly once
 	c.execute("WITH credits AS "
-				"(SELECT amount, credit_account, gl_transaction_id FROM gl_entries "
+				"(SELECT amount, credit_account, gl_transaction_id, %s::date "
+				"FROM gl_entries "
 				"WHERE gl_transaction_id = %s AND credit_account IS NOT NULL"
 					"), "
 				"debits AS "
-				"(SELECT amount, debit_account, gl_transaction_id FROM gl_entries "
+				"(SELECT amount, debit_account, gl_transaction_id, %s::date "
+				"FROM gl_entries "
 				"WHERE gl_transaction_id = %s AND debit_account IS NOT NULL"
 					"),"
 				"insert_debits AS "
 				"(INSERT INTO gl_entries "
-					"(amount, debit_account, gl_transaction_id) "
+					"(amount, debit_account, gl_transaction_id, date_inserted) "
 					"SELECT * FROM credits"
 				") "
 				"INSERT INTO gl_entries "
-					"(amount, credit_account, gl_transaction_id) "
+					"(amount, credit_account, gl_transaction_id, date_inserted) "
 					"SELECT * FROM debits"
-				, (t_id, t_id))
+				, (datetime, t_id, datetime, t_id))
 	c.close()
 
 def post_credit_memo(credit_memo_id):
@@ -545,8 +553,11 @@ def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 	for row in cursor.fetchall():
 		tax = row[0]
 		account = row[1]
+		# debit_account IS NULL picks out the tax entry proper; a cost of goods
+		# sold row carries a credit_account too and must not be clobbered here
 		cursor.execute("UPDATE gl_entries SET amount = %s "
 						"WHERE (gl_transaction_id, credit_account) = (%s, %s) "
+						"AND debit_account IS NULL "
 						"RETURNING amount", (tax, transaction_id, account))
 		for row in cursor.fetchall(): # check for update
 			break
