@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk, GObject
 from db_connection import DB
+import product_name_rules
 from constants import ui_directory
 
 UI_FILE = ui_directory + "/expense_products.ui"
@@ -80,7 +81,8 @@ class GUI(Gtk.Builder):
 	def save_expense_product (self, path):
 		c = DB.cursor()
 		product_id = self.expense_products_store[path][0]
-		product_name = self.expense_products_store[path][1]
+		product_name = product_name_rules.normalize(
+							self.expense_products_store[path][1])
 		product_cost = self.expense_products_store[path][2]
 		expense_account = self.expense_products_store[path][3]
 		if expense_account == 0:

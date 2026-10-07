@@ -21,6 +21,7 @@ from xlrd.biffh import XLRDError
 from psycopg2 import IntegrityError
 from db_connection import DB
 from constants import ui_directory
+import product_name_rules
 
 UI_FILE = ui_directory + "/admin/product_import.ui"
 
@@ -171,7 +172,8 @@ class ProductsImportGUI(Gtk.Builder):
 												"unit)"
 						"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
 						"1)",
-						(row[0],row[1],row[2],row[4],row[5],row[6],
+						(product_name_rules.normalize(row[0]),
+						row[1],row[2],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],
 						revenue_account, expense_account, tax_rate_id))
 			progressbar.set_fraction(float(row_count)/total)
@@ -209,7 +211,8 @@ class ProductsImportGUI(Gtk.Builder):
 												"unit)"
 						"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
 						"1)",
-						(row[0],row[1],row[2],row[3],row[4],row[5],row[6],
+						(product_name_rules.normalize(row[0]),
+						row[1],row[2],row[3],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],
 						revenue_account, expense_account, tax_rate_id))
 				progressbar.set_fraction(float(row_count)/total)

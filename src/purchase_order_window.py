@@ -27,12 +27,15 @@ from constants import ui_directory, help_dir
 
 items = list()
 
+import product_name_rules
+
 UI_FILE = ui_directory + "/purchase_order_window.ui"
 
 def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 							expense_account, revenue_account):
 	
 	cursor = DB.cursor()
+	product_name = product_name_rules.normalize(product_name)
 	cursor.execute("SELECT id FROM tax_rates WHERE standard = True")
 	default_tax_rate = cursor.fetchone()[0]
 	cursor.execute("INSERT INTO products (name, description, unit, cost, "
