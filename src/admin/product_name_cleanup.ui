@@ -54,6 +54,8 @@
       <row><col id="0">pin_count</col></row>
       <row><col id="0">pin_count_exclude</col></row>
       <row><col id="0">brand</col></row>
+      <row><col id="0">token_order</col></row>
+      <row><col id="0">qualifier</col></row>
     </data>
   </object>
   <object class="GtkListStore" id="kind_store">

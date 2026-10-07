@@ -68,9 +68,28 @@ class ProductNameCleanupGUI ():
 			return
 		infobar.hide()
 		self.set_tabs_sensitive(True)
+		self.sync_rules()
 		self.ruleset = product_name_rules.load_rules()
 		self.populate_rule_store()
 		self.scan()
+
+	def sync_rules (self):
+		'''Re-run the install script on a database that has opted in already.
+
+		This feature sits outside the version upgrade mechanism on purpose, so
+		opening this window is the only moment a later release has to hand a
+		database rules that did not exist when it opted in. The script is
+		idempotent and inserts nothing over an existing row, so this neither
+		revives a rule somebody deactivated nor undoes an edit made in the
+		rules tab. A database whose user cannot alter the table still works
+		with the rules it has, which is why this reports and carries on.'''
+		try:
+			product_name_rules.install()
+		except Exception as e:
+			DB.rollback()
+			self.show_message("The rules table could not be brought up to "
+								"date, so rules added by a later release may "
+								"be missing:\n\n%s" % e)
 
 	def set_tabs_sensitive (self, sensitive):
 		self.builder.get_object('notebook').set_sensitive(sensitive)
