@@ -107,7 +107,7 @@ class SeedParityTest(RulesTestCase):
 		self.products = self.cursor.fetchall()
 
 	def test_seed_loads_every_rule(self):
-		self.assertEqual(len(self.rules.rules), 17)
+		self.assertEqual(len(self.rules.rules), 27)
 
 	def test_seed_contents(self):
 		'''Counting findings across the live catalog was tried first and is no
@@ -116,11 +116,17 @@ class SeedParityTest(RulesTestCase):
 		seeded = dict((r.name, r) for r in self.rules.rules)
 		self.assertEqual(sorted(seeded), sorted([
 				'trim', 'double_space', 'volts', 'volts_ac_dc', 'volts_ac',
-				'volts_dc', 'amps', 'milliamps', 'microfarads', 'watts',
+				'volts_dc', 'amps', 'milliamps', 'microfarads', 'picofarads',
+				'microhenries', 'millihenries', 'watts',
 				'ohms', 'wire_gauge', 'gauge', 'receptacle', 'pin_count',
-				'pin_count_exclude', 'brands']))
+				'pin_count_exclude', 'brands',
+				'order_cfg_part', 'order_amps_count', 'order_gauge_size',
+				'order_cfg_amps', 'order_cfg_volts', 'order_volts_amps',
+				'qualifiers']))
 		for name, canonical in [('volts', 'V'), ('amps', 'A'),
-				('milliamps', 'mA'), ('microfarads', 'uF'), ('watts', 'W'),
+				('milliamps', 'mA'), ('microfarads', 'uF'),
+				('picofarads', 'pF'), ('microhenries', 'uH'),
+				('millihenries', 'mH'), ('watts', 'W'),
 				('ohms', 'OHM'), ('wire_gauge', 'AWG'), ('gauge', 'GA'),
 				('volts_ac', 'VAC'), ('volts_dc', 'VDC'),
 				('volts_ac_dc', 'VAC/DC'), ('receptacle', 'Recep'),
@@ -150,6 +156,124 @@ class SeedParityTest(RulesTestCase):
 				('Recep Deutsch DT04-2P', 'Recep Deutsch DT04-2P'),
 				]:
 			self.assertEqual(self.rules.normalize(before), after, before)
+
+	def test_seeded_token_order_pairs(self):
+		'''One row is one precedence pair, so the seed is six pairs and not an
+		order over the roles. The pair a part number takes against a voltage is
+		deliberately absent: the catalog agrees with itself about it only 66%
+		of the time, so it is added by hand or not at all.'''
+		pairs = dict((r.name, r.variants) for r in self.rules.rules
+						if r.rule_type == 'token_order')
+		self.assertEqual(pairs, {
+				'order_cfg_part': 'CFG,PART',
+				'order_amps_count': 'A,COUNT',
+				'order_gauge_size': 'GAUGE,SIZE',
+				'order_cfg_amps': 'CFG,A',
+				'order_cfg_volts': 'CFG,V',
+				'order_volts_amps': 'V,A'})
+		for name in pairs:
+			rule = [r for r in self.rules.rules if r.name == name][0]
+			self.assertEqual(rule.kind, 'review', name)
+			self.assertEqual(rule.label, 'Token order', name)
+			self.assertEqual(rule.canonical, '', name)
+
+	def test_the_qualifier_row_puts_the_screenshot_right(self):
+		'''The name that prompted this: three PTC fuses read voltage then
+		current and the fourth had THT wedged into the middle.'''
+		self.assertEqual(
+			self.rules.apply('PTC fuse .75A THT 72V',
+				self.rules.auto_rule_names() + ['order_volts_amps',
+												'qualifiers']),
+			'PTC fuse 72V .75A THT')
+
+	def test_a_token_order_row_must_name_two_known_roles(self):
+		'''The check constraint, so a role misspelled in the rules tab is
+		refused there rather than quietly doing nothing.'''
+		for variants in ('CFG', 'CFG,NOPE', 'CFG,V,A', '', 'cfg,part'):
+			self.cursor.execute("SAVEPOINT bad_pair")
+			self.assertRaises(psycopg2.errors.CheckViolation,
+				self.cursor.execute,
+				"INSERT INTO product_name_rules (name, rule_type, variants) "
+				"VALUES ('bad_pair', 'token_order', %s)", (variants,))
+			self.cursor.execute("ROLLBACK TO SAVEPOINT bad_pair")
+
+	def test_the_seeded_qualifiers(self):
+		'''A qualifier is last against everything or it is not a qualifier, so
+		the row is a word list and not a pair. The words are named rather than
+		guessed at: taking every unrecognised section after the first spec as
+		a note was measured against this catalog and reaches 31 names, much of
+		it wrong, to put one THT in its place.'''
+		row = [r for r in self.rules.rules if r.rule_type == 'qualifier']
+		self.assertEqual(len(row), 1)
+		self.assertEqual(sorted(product_name_rules.split_variants(
+							row[0].variants)), ['SMD', 'SMT', 'TH', 'THT'])
+		self.assertEqual(row[0].kind, 'review')
+		self.assertEqual(row[0].label, 'Token order')
+		self.assertTrue(row[0].sort_order > max(r.sort_order
+					for r in self.rules.rules if r.rule_type == 'token_order'),
+					'a note is placed after the pairs have had their say')
+
+	def test_a_qualifier_never_moves_an_undeclared_word(self):
+		declared = set()
+		for rule in self.rules.rules:
+			if rule.rule_type == 'qualifier':
+				declared.update(v.lower() for v in
+								product_name_rules.split_variants(rule.variants))
+		def without (text):
+			return [word for word in text.split()
+					if word.lower() not in declared]
+		for i, name in self.products:
+			#take the declared words out of both and what is left has to be
+			#the same sequence: a qualifier row moves its own words and
+			#nothing else, wherever they happen to sit
+			self.assertEqual(without(self.rules.apply(name, ['qualifiers'])),
+								without(name), name)
+
+	def _order_findings(self, name):
+		'''A grouped finding names every rule that went into it, comma
+		separated, so it is recognised by what it expands to.'''
+		order = set(r.name for r in self.rules.rules
+					if r.rule_type in ('token_order', 'qualifier'))
+		return [f for f in self.rules.findings(name)
+				if f.rule and set(f.rule.split(',')) <= order]
+
+	def test_token_order_findings_only_ever_permute_the_catalog(self):
+		'''No section added and none lost anywhere in the catalog, which is
+		what makes every suggestion reversible, and nothing to apply twice.'''
+		auto = self.rules.auto_rule_names()
+		for i, name in self.products:
+			for finding in self._order_findings(name):
+				self.assertEqual(sorted(finding.before.split()),
+									sorted(finding.after.split()), name)
+				self.assertEqual(
+					self.rules.apply(finding.after, auto + [finding.rule]),
+					finding.after, name)
+
+	def test_a_grouped_suggestion_is_what_accepting_it_produces(self):
+		'''The fix list shows apply(name, auto + [finding.rule]) rather than
+		the finding's own result, so over the whole catalog those two have to
+		agree or the window offers one name and writes another.'''
+		auto = self.rules.auto_rule_names()
+		for i, name in self.products:
+			for finding in self._order_findings(name):
+				self.assertEqual(self.rules.apply(name, auto + [finding.rule]),
+									finding.after, name)
+
+	def test_at_most_one_reordering_is_offered_per_name(self):
+		'''Two pairs on one name read as contradictions separately, so the
+		pairs that fire are offered together, carrying the finished order.'''
+		for i, name in self.products:
+			self.assertLessEqual(len(self._order_findings(name)), 1, name)
+
+	def test_token_order_leaves_the_mechanical_hardware_alone(self):
+		'''Not by excluding it: those names carry none of the six pairs. A
+		declared order over all the roles instead turns
+		'Bolt 18-8SS 1/4 - 20 x 12"' into 'Bolt 12" 1/4 - 20 x 18-8SS'.'''
+		for i, name in self.products:
+			if name.split()[0].lower() not in ('bolt', 'tubing', 'screw',
+									'nut', 'washer', 'valve', 'magnet'):
+				continue
+			self.assertEqual(self._order_findings(name), [], name)
 
 	def test_normalize_is_idempotent_over_the_whole_catalog(self):
 		for i, name in self.products:
@@ -518,6 +642,87 @@ class CleanupWindowTest(RulesTestCase):
 		for renderer in ['fix_suggested_renderer', 'fix_kind_renderer']:
 			self.assertFalse(gui.builder.get_object(renderer).get_property(
 							'editable'), renderer)
+
+	def test_a_token_order_row_is_offered_unticked_and_applies(self):
+		gui = self._ready()
+		#already right in every other respect, so this row stands alone and
+		#the reordering is the only thing being accepted or declined
+		product_id = self._rename(2, 'Relay widget 240VAC 3PDT')
+		gui.refresh_clicked(None)
+		row = self._row_for(gui, product_id, 'order_cfg_volts')
+		self.assertIsNotNone(row)
+		self.assertEqual(row[2], 'Relay widget 3PDT 240VAC')
+		self.assertEqual(row[3], 'Token order')
+		self.assertEqual(row[5], False, 'a reordering is never pre-ticked')
+		row[5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+									(product_id,)),
+							'Relay widget 3PDT 240VAC')
+
+	def test_two_pairs_on_one_name_are_offered_as_one_row(self):
+		'''Taken or left whole: accepting the row applies both pairs, because
+		either on its own produces an order nobody asked for.'''
+		gui = self._ready()
+		product_id = self._rename(3, 'Relay widget PCB 12V 30A SPST')
+		gui.refresh_clicked(None)
+		rows = [row for row in gui.fix_store
+				if row[0] == product_id and row[3] == 'Token order']
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0][4], 'order_cfg_amps,order_cfg_volts')
+		self.assertEqual(rows[0][2], 'Relay widget PCB SPST 12V 30A')
+		rows[0][5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+									(product_id,)),
+							'Relay widget PCB SPST 12V 30A')
+
+	def test_a_declined_reordering_leaves_the_name_alone(self):
+		'''The whole reason ordering is review rather than auto: the catalog
+		is several naming systems at once and a suggestion can simply be
+		wrong for one of them.'''
+		gui = self._ready()
+		#already right in every other respect, so this row stands alone and
+		#the reordering is the only thing being accepted or declined
+		product_id = self._rename(2, 'Relay widget 240VAC 3PDT')
+		gui.refresh_clicked(None)
+		row = self._row_for(gui, product_id, 'order_cfg_volts')
+		row[5] = False
+		self._row_for(gui, self.auto_id, '')[5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+									(product_id,)),
+							'Relay widget 240VAC 3PDT')
+
+	def test_opening_the_window_brings_an_older_table_up_to_date(self):
+		'''This feature sits outside the version upgrade mechanism, so opening
+		the window is the only moment a later release has to hand a database
+		rules that did not exist when it opted in.'''
+		gui = self._ready()
+		self.cursor.execute("ALTER TABLE product_name_rules "
+							"DROP CONSTRAINT product_name_rules_token_order_ck")
+		self.cursor.execute("DELETE FROM product_name_rules "
+							"WHERE rule_type = 'token_order'")
+		self.DB.commit()
+		self.assertEqual([r for r in product_name_rules.load_rules().rules
+							if r.rule_type == 'token_order'], [])
+		gui.load()
+		self.assertEqual(len([r for r in gui.ruleset.rules
+							if r.rule_type == 'token_order']), 6)
+
+	def test_bringing_the_table_up_to_date_keeps_an_edited_rule(self):
+		'''Idempotent means idempotent: the script inserts nothing over an
+		existing row, so neither an edit made in the rules tab nor a rule
+		somebody deactivated is undone by opening the window again.'''
+		gui = self._ready()
+		self.cursor.execute("UPDATE product_name_rules "
+							"SET variants = 'CFG,A', active = False "
+							"WHERE name = 'order_cfg_volts'")
+		self.DB.commit()
+		gui.load()
+		self.cursor.execute("SELECT variants, active FROM product_name_rules "
+							"WHERE name = 'order_cfg_volts'")
+		self.assertEqual(self.cursor.fetchone(), ('CFG,A', False))
 
 	def test_a_bad_rule_type_is_refused_not_crashed(self):
 		gui = self._ready()
