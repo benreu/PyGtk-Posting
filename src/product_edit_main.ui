@@ -624,6 +624,8 @@
                                         <property name="placeholder_text" translatable="yes">Product name</property>
                                         <property name="completion">product_completion</property>
                                         <signal name="changed" handler="product_name_changed" swapped="no"/>
+                                        <signal name="focus-out-event" handler="name_entry_focus_out_event" swapped="no"/>
+                                        <signal name="icon-release" handler="name_entry_icon_release" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
@@ -1152,6 +1154,95 @@
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkListStore" id="name_pattern_store">
+    <columns>
+      <!-- column-name problem -->
+      <column type="gchararray"/>
+      <!-- column-name suggestion -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkPopover" id="name_pattern_popover">
+    <property name="can-focus">False</property>
+    <property name="relative-to">entry1</property>
+    <child>
+      <object class="GtkBox" id="name_pattern_box">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="border-width">6</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkLabel" id="name_pattern_heading">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">This name does not follow the usual pattern</property>
+            <attributes>
+              <attribute name="weight" value="bold"/>
+            </attributes>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkTreeView" id="name_pattern_treeview">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="model">name_pattern_store</property>
+            <property name="headers-visible">True</property>
+            <property name="enable-search">False</property>
+            <child internal-child="selection">
+              <object class="GtkTreeSelection" id="name_pattern_selection"/>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn" id="name_pattern_problem_column">
+                <property name="title" translatable="yes">Problem</property>
+                <child>
+                  <object class="GtkCellRendererText" id="name_pattern_problem_renderer"/>
+                  <attributes>
+                    <attribute name="text">0</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn" id="name_pattern_suggestion_column">
+                <property name="title" translatable="yes">Suggested</property>
+                <child>
+                  <object class="GtkCellRendererText" id="name_pattern_suggestion_renderer"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="name_fix_button">
+            <property name="label" translatable="yes">Use suggested name</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <signal name="clicked" handler="name_fix_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
