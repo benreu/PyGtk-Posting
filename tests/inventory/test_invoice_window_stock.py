@@ -165,5 +165,174 @@ class InvoiceWindowStockTest(DBTestCase):
 		self.assertEqual(self.qty_of(untracked_line), Decimal('1.50'))
 
 
+class PostedInvoiceLedgerTest(InvoiceWindowStockTest):
+	'''the same window edits, followed into the general ledger. The base class
+	leaves the invoice without a gl transaction, so its own tests go on exercising
+	the stock half by itself'''
+	def setUp(self):
+		super().setUp()
+		from db import transactor
+		self.transactor = transactor
+		# the base class points inventory at 1710, which is receivables; netting a
+		# whole transaction needs them kept apart
+		self.cursor.execute("UPDATE products SET inventory_account = 1761, "
+							"default_expense_account = 3876 WHERE id = %s",
+							(self.product_id,))
+		# the window only recognizes a contact flagged as a customer, and the base
+		# class takes the first contact there is, which need not be one. Without this
+		# the customer combo selects nothing, gui.customer_id stays None and every
+		# price lookup off it fails
+		self.customer_id = self.one("SELECT c.id FROM contacts AS c "
+									"JOIN customer_markup_percent AS m "
+										"ON m.id = c.markup_percent_id "
+									"WHERE (c.deleted, c.customer) = (False, True) "
+									"ORDER BY c.id LIMIT 1")
+		self.cursor.execute("UPDATE invoices SET customer_id = %s WHERE id = %s",
+							(self.customer_id, self.invoice_id))
+		self.receivable = self.one("SELECT account FROM gl_account_flow "
+									"WHERE function = 'post_invoice'")
+		self.revenue_account = self.one("SELECT revenue_account FROM products "
+										"WHERE id = %s", (self.product_id,))
+		# what calculate_totals and invoice_create.post write before the ledger
+		self.cursor.execute("UPDATE invoices AS i SET (subtotal, tax, total) = "
+								"(t.subtotal, t.tax, t.total) "
+							"FROM (SELECT COALESCE(SUM(ext_price), 0.00) AS subtotal, "
+									"COALESCE(SUM(tax), 0.00) AS tax, "
+									"COALESCE(SUM(ext_price) + SUM(tax), 0.00) AS total "
+									"FROM invoice_items WHERE invoice_id = %s) AS t "
+							"WHERE i.id = %s",
+							(self.invoice_id, self.invoice_id))
+		self.cursor.execute("UPDATE invoices "
+							"SET (amount_due, dated_for) = (total, '2026-01-01') "
+							"WHERE id = %s RETURNING total", (self.invoice_id,))
+		transactor.post_invoice_accounts('2026-01-01', self.invoice_id,
+											self.cursor.fetchone()[0])
+		self.DB.commit()
+
+	def invoice_total(self):
+		return self.one("SELECT total FROM invoices WHERE id = %s",
+						(self.invoice_id,))
+
+	def transaction_id(self):
+		return self.one("SELECT ge.gl_transaction_id FROM gl_entries AS ge "
+						"JOIN invoices AS i ON i.gl_entries_id = ge.id "
+						"WHERE i.id = %s", (self.invoice_id,))
+
+	def receivable_amount(self):
+		return self.one("SELECT ge.amount FROM gl_entries AS ge "
+						"JOIN invoices AS i ON i.gl_entries_id = ge.id "
+						"WHERE i.id = %s", (self.invoice_id,))
+
+	def revenue_of(self, line_id):
+		return self.one("SELECT ge.amount FROM gl_entries AS ge "
+						"JOIN invoice_items AS ii ON ii.gl_entries_id = ge.id "
+						"WHERE ii.id = %s", (line_id,))
+
+	def tax_on(self, account):
+		return self.one("SELECT COALESCE(SUM(amount), 0) FROM gl_entries "
+						"WHERE (gl_transaction_id, credit_account) = (%s, %s) "
+						"AND debit_account IS NULL",
+						(self.transaction_id(), account))
+
+	def assertBalances(self):
+		debits = self.one("SELECT COALESCE(SUM(amount), 0) FROM gl_entries "
+							"WHERE gl_transaction_id = %s "
+							"AND debit_account IS NOT NULL",
+							(self.transaction_id(),))
+		credits = self.one("SELECT COALESCE(SUM(amount), 0) FROM gl_entries "
+							"WHERE gl_transaction_id = %s "
+							"AND credit_account IS NOT NULL",
+							(self.transaction_id(),))
+		self.assertEqual(debits, credits)
+
+	def assertReceivableCarriesTheInvoice(self):
+		self.assertEqual(self.receivable_amount(), self.invoice_total())
+		self.assertBalances()
+
+	def test_a_quantity_edit_follows_into_the_revenue(self):
+		gui = self.window()
+		gui.qty_edited(None, self.path_of(gui, self.product_id), '7')
+		self.errored.assert_not_called()
+		self.assertEqual(self.revenue_of(self.line_id), Decimal('35.00'))
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_a_price_edit_follows_into_the_revenue(self):
+		gui = self.window()
+		gui.price_edited(None, self.path_of(gui, self.product_id), '9')
+		self.errored.assert_not_called()
+		self.assertEqual(self.revenue_of(self.line_id), Decimal('36.00'))
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_deleting_a_line_zeroes_its_revenue_and_the_receivable(self):
+		gui = self.window()
+		path = self.path_of(gui, self.product_id)
+		gui.builder.get_object('invoice_selection').select_path(path)
+		gui.delete_line_item_activated (None)
+		self.assertEqual(self.revenue_of(self.line_id), Decimal('0.00'))
+		self.assertEqual(self.invoice_total(), Decimal('0.00'))
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_a_tax_exemption_change_follows_into_the_ledger(self):
+		# the one edit that can take the tax to another tax_received_account, which
+		# only the blanket zeroing of the old entry can retire
+		other_rate = self.one("INSERT INTO tax_rates (name, rate, standard, "
+								"tax_letter, tax_received_account) "
+								"VALUES ('test rate', 8.00, False, 'T', 5200) "
+								"RETURNING id")
+		self.DB.commit()
+		gui = self.window()
+		old_account = self.one("SELECT tax_received_account FROM tax_rates "
+								"WHERE id = %s", (self.tax_rate_id,))
+		combo = gui.builder.get_object('tax_exemption_combo')
+		combo.append(str(other_rate), 'test rate')
+		combo.set_active_id(str(other_rate))
+		self.assertEqual(self.tax_on(5200), Decimal('1.60')) # 8% of 20.00
+		if old_account != 5200:
+			self.assertEqual(self.tax_on(old_account), Decimal('0.00'))
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_refreshing_all_prices_follows_into_the_ledger(self):
+		# set_product_price writes the line price and never calls calculate_totals,
+		# so the ledger can only be right if the re-sync recomputes the totals
+		gui = self.window()
+		gui.refresh_all_prices_clicked (None)
+		self.errored.assert_not_called()
+		ext_price = self.one("SELECT ext_price FROM invoice_items WHERE id = %s",
+							(self.line_id,))
+		self.assertEqual(self.revenue_of(self.line_id), ext_price)
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_a_new_line_gets_a_revenue_entry(self):
+		gui = self.window()
+		gui.new_item_clicked (None)
+		added = self.one("SELECT id FROM invoice_items "
+						"WHERE invoice_id = %s ORDER BY id DESC LIMIT 1",
+						(self.invoice_id,))
+		self.assertNotEqual(added, self.line_id)
+		self.assertEqual(self.revenue_of(added), Decimal('1.00')) # 1 at 1.00
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_a_barcode_scan_follows_into_the_ledger(self):
+		gui = self.window()
+		barcode = self.one("SELECT barcode FROM products WHERE id = %s",
+							(self.product_id,))
+		if barcode in (None, ''):
+			self.skipTest('product %s carries no barcode' % self.product_id)
+		gui.builder.get_object('barcode_entry').set_text(barcode)
+		gui.barcode_entry_activate (gui.builder.get_object('barcode_entry'))
+		self.assertReceivableCarriesTheInvoice()
+
+	def test_a_failure_rolls_the_stock_back_with_the_ledger(self):
+		# the two halves share one commit, so neither may land without the other
+		gui = self.window()
+		before = self.ledger()
+		with mock.patch.object(self.transactor, 'resync_invoice_accounts',
+								side_effect = Exception('no')):
+			gui.qty_edited(None, self.path_of(gui, self.product_id), '7')
+		self.errored.assert_called_once()
+		self.assertIn('not updated', self.errored.call_args[0][0])
+		self.assertEqual(self.ledger(), before)
+		self.assertEqual(self.revenue_of(self.line_id), Decimal('20.00'))
+
 if __name__ == '__main__':
 	unittest.main()

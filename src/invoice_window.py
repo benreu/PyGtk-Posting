@@ -20,6 +20,7 @@ import subprocess, psycopg2, re, traceback
 from datetime import datetime
 from decimal import Decimal
 from invoice import invoice_create
+from db import transactor
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
@@ -175,7 +176,7 @@ class InvoiceGUI:
 		'''moving a posted invoice to another location moves the stock it took'''
 		if self.setting_location == True:
 			return # the store is only being refilled, nothing was moved
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	def transfer_invoice_activated (self, menuitem):
 		if self.invoice_id == 0:
@@ -290,7 +291,7 @@ class InvoiceGUI:
 				c = treeview.get_column(0)
 				treeview.set_cursor(row.path, c, False)
 				break
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
@@ -363,7 +364,7 @@ class InvoiceGUI:
 			return
 		self.set_product_price (path)
 		self.calculate_totals ()
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	def customer_combo_populate_popup (self, entry, menu):
 		separator = Gtk.SeparatorMenuItem ()
@@ -681,22 +682,28 @@ class InvoiceGUI:
 		DB.rollback()
 		invoice.email("%s < %s >" % (name, email), invoice.total)
 
-	def resync_posted_inventory (self):
+	def resync_posted_invoice (self):
 		'''a posted invoice can still be edited and every change is saved as it is
-		typed, so each handler that changes stock has to follow its change into the
-		inventory ledger. The invoice is read back from the database, so a draft is
-		left alone no matter which invoice this window thinks it is holding'''
+		typed, so each handler that changes a line has to follow its change into the
+		inventory ledger and into the general ledger both. The invoice is read back
+		from the database, so a draft is left alone no matter which invoice this
+		window thinks it is holding'''
 		if self.invoice_id == 0:
 			return # nothing is saved yet, there is nothing to follow
 		location_id = self.builder.get_object('location_combo').get_active_id()
 		from inventory import inventorying
 		try:
+			# the stock moves before the ledger does, the order post_invoice uses: the
+			# sale rows have to be final before the cost entries are rewritten from
+			# them. The two share the one commit below, a transaction published between
+			# them would carry a receivable with no revenue under it
 			inventorying.resync_invoice_inventory (self.invoice_id, location_id)
+			transactor.resync_invoice_accounts (self.invoice_id)
 			DB.commit()
 		except Exception as e:
 			DB.rollback() # an aborted transaction would poison every later query
 			traceback.print_exc()
-			self.show_error_dialog ("The inventory was not updated:\n%s" %
+			self.show_error_dialog ("The invoice was not updated:\n%s" %
 									GLib.markup_escape_text(str(e)))
 			return
 		# only now that the ledger is rewritten does every row this invoice owns
@@ -770,6 +777,7 @@ class InvoiceGUI:
 		DB.commit()
 		self.populate_invoice_items ()
 		self.calculate_totals ()
+		self.resync_posted_invoice ()
 
 	################## start customer
 
@@ -979,7 +987,7 @@ class InvoiceGUI:
 		cursor.close()
 		self.check_serial_numbers ()
 		self.calculate_totals ()
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	################## start remark
 
@@ -1020,7 +1028,7 @@ class InvoiceGUI:
 			self.invoice_store[iter_][8] = ext_price
 		cursor.close()
 		self.calculate_totals()
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	################## end price
 	
@@ -1111,7 +1119,7 @@ class InvoiceGUI:
 		treeview = self.builder.get_object('invoice_treeview')
 		c = treeview.get_column(3)
 		treeview.set_cursor(path, c, True)
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	def populate_serial_numbers (self):
 		serial_number_store = self.builder.get_object('serial_number_store')
@@ -1306,7 +1314,8 @@ class InvoiceGUI:
 	def refresh_all_prices_clicked (self, menuitem):
 		for row in self.invoice_store:
 			self.set_product_price (row.path)
-		self.resync_posted_inventory ()
+		self.populate_invoice_items ()
+		self.resync_posted_invoice ()
 	
 	def calculate_totals (self, widget = None, save = True):
 		'''show the totals; save them to the invoice unless it is only being opened'''
@@ -1366,7 +1375,7 @@ class InvoiceGUI:
 			self.invoice_store[iter_][0] = cursor.fetchone()[0]
 			cursor.close()
 			DB.commit()
-			self.resync_posted_inventory () # a line added to a posted invoice
+			self.resync_posted_invoice () # a line added to a posted invoice
 
 	def check_invoice_id (self):
 		if self.invoice_id == 0:
@@ -1423,7 +1432,7 @@ class InvoiceGUI:
 		c.close()
 		DB.commit()
 		self.populate_invoice_items ()
-		self.resync_posted_inventory ()
+		self.resync_posted_invoice ()
 
 	def column_is_editable (self, column):
 		for cell in column.get_cells():

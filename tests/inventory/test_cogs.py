@@ -253,6 +253,44 @@ class CogsTest(DBTestCase):
 		self.assertEqual(self.cogs_rows()[0][0], Decimal('32.00')) # 4 at 8
 		self.assertBalances()
 
+	# ---------------- the revenue re-sync must not lose the cost ----------------
+
+	def test_a_revenue_resync_writes_the_cost_back(self):
+		# post_invoice_accounts zeroes every entry of the transaction before it
+		# rewrites, and the post_invoice_cogs call it ends with is the only thing
+		# that puts the cost back. Without it an edit would wipe cost of goods sold
+		self.post()
+		self.cursor.execute("UPDATE invoice_items SET qty = 6 WHERE id = %s",
+							(self.line_id,))
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		self.transactor.resync_invoice_accounts(self.invoice_id)
+		rows = self.cogs_rows()
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0][0], Decimal('18.00')) # 6 at a cost of 3
+		self.assertEqual(self.net(COGS_ACCOUNT), Decimal('18.00'))
+		self.assertBalances()
+
+	def test_a_revenue_resync_leaves_the_cost_at_the_sale_basis(self):
+		self.post()
+		self.cursor.execute("UPDATE products SET cost = 99 WHERE id = %s",
+							(self.product_id,))
+		self.cursor.execute("UPDATE invoice_items SET price = 9 WHERE id = %s",
+							(self.line_id,))
+		self.transactor.resync_invoice_accounts(self.invoice_id)
+		# repricing a line changes what the customer owes, never what it cost
+		self.assertEqual(self.cogs_rows()[0][0], Decimal('12.00'))
+		self.assertBalances()
+
+	def test_a_revenue_resync_leaves_the_cost_entry_date_alone(self):
+		self.post()
+		self.cursor.execute("UPDATE invoice_items SET qty = 6 WHERE id = %s",
+							(self.line_id,))
+		self.inventorying.resync_invoice_inventory(self.invoice_id,
+													self.location_id)
+		self.transactor.resync_invoice_accounts(self.invoice_id)
+		self.assertEqual(str(self.cogs_rows()[0][4]), '2026-01-01')
+
 class CashBasisCogsTest(CogsTest):
 	'''under cash basis nothing reaches the ledger until the invoice is paid, and
 	the cost has to follow the revenue rather than the stock'''
@@ -288,6 +326,19 @@ class CashBasisCogsTest(CogsTest):
 		self.assertEqual(len(rows), 1)
 		self.assertEqual(rows[0][0], Decimal('12.00'))
 		self.assertBalances()
+
+	def test_an_unpaid_invoice_resyncs_no_accounts(self):
+		self.inventorying.sell(self.store(), self.location_id,
+								self.customer_id, '2026-01-01')
+		self.cursor.execute("UPDATE invoices SET posted = True WHERE id = %s",
+							(self.invoice_id,))
+		self.cursor.execute("UPDATE invoice_items SET qty = 6 WHERE id = %s",
+							(self.line_id,))
+		# there is no transaction to re-sync until it is paid, and no revenue or
+		# cost is recognized yet either
+		self.assertEqual(
+			self.transactor.resync_invoice_accounts(self.invoice_id), None)
+		self.assertEqual(self.cogs_rows(), [])
 
 if __name__ == '__main__':
 	unittest.main()

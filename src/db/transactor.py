@@ -741,6 +741,63 @@ def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 	post_invoice_cogs (cursor, invoice_id, transaction_id, date)
 	cursor.close()
 	
+def resync_invoice_accounts (invoice_id):
+	'''re-sync the ledger entries of an already posted invoice to its current line
+	items, the revenue half of resync_invoice_inventory. The totals are recomputed
+	here rather than trusted, not every handler that changes an amount refreshes
+	them first'''
+	cursor = DB.cursor()
+	# the guard reads before anything is written. A finance charge carries no
+	# invoice_items at all, so recomputing its total would zero the single two
+	# sided entry post_finance_charge gave it, the same document customer_payment
+	# refuses to post this way. A canceled invoice still holds the mirror entries
+	# cancel_invoice wrote, and restating the originals under them would unbalance
+	# the transaction. A paid invoice is settled, its receivable is already offset
+	# in the payment's own transaction. A null gl_entries_id is cash basis before
+	# payment, where no revenue is due yet, which is why settings.accrual_based
+	# never has to be read here the way repost_purchase_order_accounts reads it
+	cursor.execute("SELECT gl_entries_id FROM invoices "
+					"WHERE (id, posted, canceled, paid) = (%s, True, False, False) "
+					"AND COALESCE(finance_charge, False) = False "
+					"AND gl_entries_id IS NOT NULL", (invoice_id,))
+	row = cursor.fetchone()
+	if row == None:
+		cursor.close()
+		return
+	gl_entries_id = row[0]
+	# the expression calculate_totals uses, canceled lines included: canceling a
+	# line zeroes its amounts, so the two agree, and a filter here would only be a
+	# second source of truth fighting it once per keystroke
+	cursor.execute("UPDATE invoices AS i SET (subtotal, tax, total, amount_due) = "
+						"(t.subtotal, t.tax, t.total, t.total) "
+					"FROM (SELECT COALESCE(SUM(ext_price), 0.00) AS subtotal, "
+							"COALESCE(SUM(tax), 0.00) AS tax, "
+							"COALESCE(SUM(ext_price) + SUM(tax), 0.00) AS total "
+							"FROM invoice_items WHERE invoice_id = %s) AS t "
+					"WHERE i.id = %s "
+					"RETURNING i.total", (invoice_id, invoice_id))
+	total = cursor.fetchone()[0]
+	# the transaction's date: it is the one the tax and revenue entries were
+	# written under, so an entry born in this edit lands in the same period as its
+	# siblings. Not dated_for, which invoice_create.post rewrites on every post, a
+	# re-post included, while the entries keep the date they were written under.
+	# And not the receivable's own date_inserted the way
+	# repost_purchase_order_accounts reads it: post_purchase_order dates its header
+	# entry explicitly, post_invoice_accounts does not, so an invoice receivable
+	# carries the day it was written rather than the day it was posted for
+	cursor.execute("SELECT gt.date_inserted FROM gl_transactions AS gt "
+					"JOIN gl_entries AS ge ON ge.gl_transaction_id = gt.id "
+					"WHERE ge.id = %s", (gl_entries_id,))
+	date = cursor.fetchone()[0]
+	cursor.close()
+	# the update branch zeroes every entry of the transaction before it rewrites,
+	# which is the only thing that retires an entry its per rate and per line loops
+	# never visit: a tax account that has left the invoice, a line canceled after
+	# posting, an orphaned cost row. The post_invoice_cogs call it ends with is
+	# what writes the cost amounts back after that zeroing
+	post_invoice_accounts (date, invoice_id, total, gl_entries_id)
+	return total
+
 def post_purchase_order (amount, po_id):
 	cursor = DB.cursor()
 	cursor.execute ("INSERT INTO gl_transactions (date_inserted) "
