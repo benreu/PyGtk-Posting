@@ -546,7 +546,7 @@ def post_credit_memo_cogs (cursor, credit_memo_id, transaction_id, date):
 							"((SELECT id FROM new_row)) WHERE id = %s",
 						(row[1], row[2], row[3], transaction_id, date, row[0]))
 
-def post_manufacturing_value (cursor, manufacturing_id):
+def post_manufacturing_value (cursor, manufacturing_id, transaction_id = None):
 	'''move the value of a build between inventory accounts: each component row
 	credits the account its product is carried on, the finished row debits the
 	account the built product is carried on. No cost reaches the profit and loss,
@@ -559,19 +559,20 @@ def post_manufacturing_value (cursor, manufacturing_id):
 	side to match the other, which would leave the inventory accounts holding a
 	value the stock rows do not support.
 
-	Rerunning a project zeroes the entries of the previous post, so the rows this
-	writes are the only live ones'''
-	cursor.execute("SELECT gl_transaction_id FROM gl_entries WHERE id = "
-						"(SELECT gl_entries_id FROM inventory_transactions "
-						"WHERE manufacturing_id = %s AND gl_entries_id IS NOT NULL "
-						"ORDER BY id LIMIT 1)", (manufacturing_id,))
-	row = cursor.fetchone()
-	if row == None:
+	Rerunning a project zeroes the entries of the previous post and writes the new
+	ones into the same transaction, which manufacture () finds before it drops the
+	rows that point at it, so a project holds one transaction however often it is
+	built rather than a zeroed one per rebuild'''
+	if transaction_id == None:
 		cursor.execute("INSERT INTO gl_transactions (date_inserted) "
 						"VALUES (CURRENT_DATE) RETURNING id")
 		transaction_id = cursor.fetchone()[0]
 	else:
-		transaction_id = row[0]
+		# the rebuild re-dated the stock rows, so the document follows them: the
+		# alternative is new entries dated today inside a transaction still dated
+		# the first build, which is the split post_invoice_accounts was fixed for
+		cursor.execute("UPDATE gl_transactions SET date_inserted = CURRENT_DATE "
+						"WHERE id = %s", (transaction_id,))
 	cursor.execute("SELECT it.id, it.qty_in, ROUND(it.qty_out * it.price, 2), "
 						"ROUND(it.qty_in * it.price, 2), p.inventory_account "
 					"FROM inventory_transactions AS it "

@@ -110,6 +110,65 @@ class ManufactureGlTest(DBTestCase):
 		debits, credits = self.sides()
 		self.assertEqual(debits, credits)
 
+	# ---------------- one transaction per project ----------------
+
+	def test_a_rebuild_keeps_the_one_transaction(self):
+		# the earlier transaction cannot be found once the stock rows that point
+		# at it are dropped, so a rebuild used to start a fresh one and leave the
+		# old one behind zeroed, with nothing reaching it ever again
+		high_water = self.one("SELECT COALESCE(MAX(id), 0) FROM gl_transactions")
+		self.inventorying.manufacture(self.project_id)
+		first = self.transaction_id()
+		self.inventorying.manufacture(self.project_id)
+		self.assertEqual(self.transaction_id(), first)
+		self.assertEqual(self.one("SELECT COUNT(*) FROM gl_transactions "
+									"WHERE id > %s", (high_water,)), 1)
+
+	def test_a_rebuild_writes_no_entry_outside_that_transaction(self):
+		high_water = self.one("SELECT COALESCE(MAX(id), 0) FROM gl_entries")
+		self.inventorying.manufacture(self.project_id)
+		self.inventorying.manufacture(self.project_id)
+		self.inventorying.manufacture(self.project_id)
+		self.assertEqual(self.one("SELECT COUNT(*) FROM gl_entries "
+									"WHERE id > %s AND gl_transaction_id <> %s",
+									(high_water, self.transaction_id())), 0)
+		debits, credits = self.sides()
+		self.assertEqual(debits, credits)
+
+	def test_a_rebuild_moves_the_transaction_to_the_new_build(self):
+		self.inventorying.manufacture(self.project_id)
+		transaction_id = self.transaction_id()
+		# as though the first build had been posted in another period
+		self.cursor.execute("UPDATE gl_transactions SET date_inserted = "
+							"'2026-01-05' WHERE id = %s", (transaction_id,))
+		self.cursor.execute("UPDATE gl_entries SET date_inserted = '2026-01-05' "
+							"WHERE gl_transaction_id = %s", (transaction_id,))
+		self.inventorying.manufacture(self.project_id)
+		# the rebuild re-dates the stock rows, so the ledger follows them rather
+		# than leaving new entries inside a transaction dated the first build
+		self.assertEqual(self.one("SELECT date_inserted FROM gl_transactions "
+									"WHERE id = %s", (transaction_id,)),
+						self.one("SELECT CURRENT_DATE"))
+		self.assertEqual(self.one("SELECT COUNT(*) FROM gl_entries "
+									"WHERE gl_transaction_id = %s "
+									"AND date_inserted <> CURRENT_DATE",
+									(transaction_id,)), 0)
+		self.assertEqual(self.one("SELECT COUNT(*) FROM inventory_transactions "
+									"WHERE manufacturing_id = %s "
+									"AND date_inserted <> CURRENT_DATE",
+									(self.project_id,)), 0)
+
+	def test_a_rebuild_zeroes_the_variance_of_the_one_before(self):
+		self.inventorying.manufacture(self.project_id)
+		first = self.net(EXPENSE_ACCOUNT)
+		self.inventorying.manufacture(self.project_id)
+		# the whole transaction is zeroed now, so the variance goes with it
+		# rather than being singled out by its description. Left live inside the
+		# transaction the build is now rewriting, it would be counted twice
+		self.assertEqual(self.net(EXPENSE_ACCOUNT), first)
+		debits, credits = self.sides()
+		self.assertEqual(debits, credits)
+
 	def test_an_untracked_component_posts_no_value(self):
 		product_id = self.one("SELECT product_id FROM manufacturing_items "
 								"WHERE manufacturing_project_id = %s AND qty > 0 "
