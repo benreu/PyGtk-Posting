@@ -51,6 +51,9 @@
 
   .footer { margin-top: 0.25in; }
   .footer p { line-height: 1.7; }
+
+  .ship-to { margin-top: 0.2in; font-size: 10pt; }
+  .ship-to p { margin-bottom: 2pt; }
 </style>
 </head>
 <body>
@@ -121,6 +124,13 @@
     </tr>
   </tfoot>
 </table>
+</div>
+
+<div class="ship-to">
+  <p><strong>Ship To</strong></p>
+  <p>{{ shipping.name }}</p>
+  <p>{{ shipping.street }}</p>
+  <p>{{ shipping.city }}, {{ shipping.state }} {{ shipping.zip }}</p>
 </div>
 
 {% if serial_numbers %}
