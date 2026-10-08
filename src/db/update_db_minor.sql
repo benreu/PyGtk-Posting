@@ -660,3 +660,33 @@ UPDATE settings.zebra_templates SET
 UPDATE settings.zebra_templates SET
 	template = replace(template, '^FXid:barcode', '^FXid:serial_number')
 	WHERE label_type = 'serial' AND template LIKE '%^FXid:barcode%';
+
+/* Shipping addresses ship under 0.7.15 rather than claiming a number of their
+   own: the inventory branch owns 0.7.16 through 0.7.21, and this file re-runs
+   from the top, so a database below 7.15 creates these on its next upgrade. */
+CREATE TABLE IF NOT EXISTS public.shipping_carriers (
+	id bigserial primary key,
+	name character varying NOT NULL,
+	standard boolean DEFAULT false NOT NULL,
+	deleted boolean DEFAULT false NOT NULL,
+	date_created date DEFAULT now() NOT NULL,
+	date_edited date DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.contact_shipping_addresses (
+	id bigserial primary key,
+	contact_id bigint NOT NULL REFERENCES public.contacts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	description character varying DEFAULT '' NOT NULL,
+	address character varying DEFAULT '' NOT NULL,
+	city character varying DEFAULT '' NOT NULL,
+	state character varying DEFAULT '' NOT NULL,
+	zip character varying DEFAULT '' NOT NULL,
+	shipping_carrier_id bigint REFERENCES public.shipping_carriers(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+	standard boolean DEFAULT false NOT NULL,
+	deleted boolean DEFAULT false NOT NULL,
+	date_created date DEFAULT now() NOT NULL,
+	date_edited date DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS shipping_address_id
+	bigint REFERENCES public.contact_shipping_addresses(id) ON UPDATE RESTRICT ON DELETE RESTRICT;

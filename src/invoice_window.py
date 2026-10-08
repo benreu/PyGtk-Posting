@@ -772,6 +772,51 @@ class InvoiceGUI:
 		self.tax_rate_id = choice
 		self.populating = False
 
+	def populate_shipping_address_combo (self):
+		self.populating = True
+		combo = self.builder.get_object('comboboxtext_shipping')
+		combo.remove_all()
+		combo.append('0', "Billing address")
+		selected_id = None
+		cursor = DB.cursor()
+		if self.invoice_id != 0:
+			cursor.execute("SELECT shipping_address_id FROM invoices "
+								"WHERE id = %s", (self.invoice_id,))
+			row = cursor.fetchone()
+			if row and row[0] != None:
+				selected_id = str(row[0])
+		cursor.execute("SELECT id, description "
+							"FROM contact_shipping_addresses "
+							"WHERE (contact_id, deleted) = (%s, False) "
+							"ORDER BY standard DESC, description",
+							(self.customer_id,))
+		default_id = '0'
+		first = True
+		for row in cursor.fetchall():
+			combo.append(str(row[0]), row[1])
+			if first:
+				default_id = str(row[0])
+				first = False
+		cursor.close()
+		combo.set_active_id(selected_id if selected_id != None else default_id)
+		self.populating = False
+		DB.rollback()
+
+	def shipping_address_combo_changed (self, combo):
+		if self.populating == True:
+			return
+		shipping_address_id = combo.get_active_id()
+		if shipping_address_id == '0':
+			shipping_address_id = None
+		if self.invoice_id == 0:
+			return #nothing to persist yet; applied when the invoice row is created
+		cursor = DB.cursor()
+		cursor.execute("UPDATE invoices SET shipping_address_id = %s "
+							"WHERE id = %s",
+							(shipping_address_id, self.invoice_id))
+		cursor.close()
+		DB.commit()
+
 	def customer_selected(self, name_id):
 		self.flush_comment ()
 		cursor = DB.cursor()
@@ -826,6 +871,7 @@ class InvoiceGUI:
 			self.invoice_id = 0
 			self.document_type = "Invoice"
 			self.builder.get_object("comment_buffer").set_text('')
+		self.populate_shipping_address_combo ()
 		self.populate_invoice_items(save_totals = False)
 		cursor.execute("SELECT dated_for FROM invoices WHERE id = %s "
 							"AND dated_for IS NOT NULL", (self.invoice_id,))
@@ -1263,10 +1309,18 @@ class InvoiceGUI:
 			self.flush_comment () # drop the pending write, it was typed for no invoice
 			buf = self.builder.get_object('comment_buffer')
 			comment = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), True)
-			if comment != '':
+			shipping_address_id = self.builder.get_object('comboboxtext_shipping').get_active_id()
+			if shipping_address_id == '0':
+				shipping_address_id = None
+			if comment != '' or shipping_address_id != None:
 				cursor = DB.cursor()
-				cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s",
-								(comment, self.invoice_id))
+				if comment != '':
+					cursor.execute("UPDATE invoices SET comments = %s WHERE id = %s",
+									(comment, self.invoice_id))
+				if shipping_address_id != None:
+					cursor.execute("UPDATE invoices SET shipping_address_id = %s "
+										"WHERE id = %s",
+										(shipping_address_id, self.invoice_id))
 				cursor.close()
 			DB.commit()
 			self.populate_document_list()
