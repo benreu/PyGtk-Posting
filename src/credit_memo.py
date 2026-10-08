@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
-import psycopg2
+import psycopg2, traceback
 from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
@@ -564,13 +564,30 @@ class CreditMemoGUI:
 												self.credit_items_store,
 												self.credit_memo_id,
 												self.customer_id)
-		self.credit_memo_template.print_pdf(self.window)
-		# the stock comes back before the ledger posts, so that the restock rows
-		# exist for post_credit_memo_cogs to put their cost back, the same order
-		# invoice_window posts a sale in
-		inventorying.restock(self.credit_memo_id)
-		self.credit_memo_template.post()
-		DB.commit()
+		# the print dialog runs a main loop of its own, so the button goes
+		# insensitive first or a second click re-enters here and prints again
+		button.set_sensitive(False)
+		result = self.credit_memo_template.print_pdf(self.window)
+		if result == "user canceled":
+			# the print dialog is where the memo can still be called off, the
+			# same place invoice_window gives up on posting a sale
+			DB.rollback()
+			button.set_sensitive(True)
+			return
+		try:
+			# the stock comes back before the ledger posts, so that the restock
+			# rows exist for post_credit_memo_cogs to put their cost back, the
+			# same order invoice_window posts a sale in
+			inventorying.restock(self.credit_memo_id)
+			self.credit_memo_template.post()
+			DB.commit()
+		except Exception as e:
+			DB.rollback() # the stock may not come back without the ledger
+			traceback.print_exc()
+			button.set_sensitive(True)
+			self.show_message ("The credit memo was not posted:\n%s" %
+								GLib.markup_escape_text(str(e)))
+			return
 		self.window.destroy()
 
 	def view_document_activated (self, button):
