@@ -672,18 +672,24 @@ def post_invoice_accounts (date, invoice_id, amount, gl_entries_id = None):
 						"UPDATE gl_entries SET amount = %s WHERE id = %s", 
 						(transaction_id, amount, gl_entries_id))
 	else:
+		# date_inserted is passed rather than left to its default, see
+		# cancel_invoice: the column is NOT NULL DEFAULT now (), so a back dated
+		# post dated the receivable the day it was written while the tax and
+		# revenue entries below took the posting date, splitting one document
+		# across two periods on every report that reads the entry date
 		cursor.execute("WITH new_row AS "
 								"(INSERT INTO gl_transactions (date_inserted) "
 								"VALUES (%s) RETURNING id), "
 							"entry_row AS (INSERT INTO gl_entries "
-								"(debit_account, amount, gl_transaction_id) "
+								"(debit_account, amount, gl_transaction_id, "
+								"date_inserted) "
 								"VALUES ((SELECT account FROM gl_account_flow "
 								"WHERE function = 'post_invoice'), %s, "
-								"(SELECT id FROM new_row)) RETURNING id), "
+								"(SELECT id FROM new_row), %s) RETURNING id), "
 							"update AS (UPDATE invoices SET (gl_entries_id) = "
 								"((SELECT id FROM entry_row)) WHERE id = %s) "
 						"SELECT id FROM new_row",
-						(date, amount, invoice_id))
+						(date, amount, date, invoice_id))
 		transaction_id = cursor.fetchone()[0]
 	# update or insert tax
 	cursor.execute("SELECT SUM(tax) AS tax, tax_received_account "

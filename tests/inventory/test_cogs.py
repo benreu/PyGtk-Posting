@@ -122,6 +122,18 @@ class CogsTest(DBTestCase):
 		self.post()
 		self.assertEqual(str(self.cogs_rows()[0][4]), '2026-01-01')
 
+	def test_the_receivable_is_dated_with_the_invoice(self):
+		# the receivable was the one entry left to its default, so a back dated
+		# post filed it the day it was written while its own tax and revenue
+		# credits took the posting date, splitting the document across two periods
+		self.post()
+		self.assertEqual(str(self.one("SELECT ge.date_inserted "
+										"FROM gl_entries AS ge "
+										"JOIN invoices AS i "
+											"ON i.gl_entries_id = ge.id "
+										"WHERE i.id = %s", (self.invoice_id,))),
+						'2026-01-01')
+
 	def test_an_untracked_product_posts_no_cost(self):
 		line_id = self.invoice_line(2, self.untracked_id)
 		self.post(rows = [[self.line_id, '4.00', self.product_id,
