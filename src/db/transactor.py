@@ -438,9 +438,19 @@ def post_credit_memo(credit_memo_id):
 	# the date the memo prints with, the column credit_memo_template reads, so
 	# the books cannot disagree with the document the customer is holding.
 	# date_inserted is passed rather than left to its default, see cancel_invoice
-	c.execute("SELECT COALESCE(dated_for, date_created) FROM credit_memos "
-				"WHERE id = %s", (credit_memo_id,))
-	date = c.fetchone()[0]
+	c.execute("SELECT COALESCE(dated_for, date_created), gl_entries_id "
+				"FROM credit_memos WHERE id = %s", (credit_memo_id,))
+	date, gl_entries_id = c.fetchone()
+	# nothing re-posts a memo, the window can only ever load one that is not
+	# posted yet, so a second call here is the print dialog's own main loop
+	# letting a second click through. Posting again would insert a second
+	# receivable credit, a second returned tax debit and a second debit per line,
+	# then overwrite the links to the first set, leaving those live in the ledger
+	# with nothing pointing at them: the customer credited twice and the revenue
+	# reversed twice. restock and post_credit_memo_cogs already refuse to repeat
+	if gl_entries_id != None:
+		c.close()
+		return
 	c.execute ("WITH gl_transaction AS "
 					"(INSERT INTO gl_transactions (date_inserted) "
 					"VALUES (%s) RETURNING id), "

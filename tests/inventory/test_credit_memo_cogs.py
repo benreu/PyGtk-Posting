@@ -168,6 +168,49 @@ class CreditMemoCogsTest(DBTestCase):
 											"WHERE credit_memo_id = %s)",
 										(self.credit_memo_id,))), '2026-03-20')
 
+	# ---------------- posting once ----------------
+
+	def owed_account(self):
+		return self.one("SELECT account FROM gl_account_flow "
+						"WHERE function = 'post_credit_memo'")
+
+	def test_posting_twice_writes_nothing_the_second_time(self):
+		# the print dialog runs its own main loop with the post button still
+		# live, so a second click re-enters the handler before the first call
+		# has marked the memo posted
+		self.credit_item(2)
+		self.credit_item(1)
+		self.post()
+		high_water = self.one("SELECT MAX(id) FROM gl_entries")
+		memo_entry = self.one("SELECT gl_entries_id FROM credit_memos "
+								"WHERE id = %s", (self.credit_memo_id,))
+		self.transactor.post_credit_memo(self.credit_memo_id)
+		self.assertEqual(self.one("SELECT COUNT(*) FROM gl_entries "
+									"WHERE id > %s", (high_water,)), 0)
+		self.assertEqual(self.one("SELECT gl_entries_id FROM credit_memos "
+									"WHERE id = %s", (self.credit_memo_id,)),
+						memo_entry)
+
+	def test_posting_twice_credits_the_customer_once(self):
+		self.credit_item(2)
+		high_water = self.one("SELECT COALESCE(MAX(id), 0) FROM gl_entries")
+		self.post()
+		self.transactor.post_credit_memo(self.credit_memo_id)
+		# summed over every entry this test wrote rather than over the memo's
+		# transaction: a second post orphans the first set instead of removing
+		# it, so anything scoped to what the memo can still reach sees one of
+		# each and misses the double entirely
+		self.assertEqual(self.one("SELECT COALESCE(SUM(amount), 0) "
+									"FROM gl_entries "
+									"WHERE credit_account = %s AND id > %s",
+									(self.owed_account(), high_water)),
+						Decimal('10.00'))
+		self.assertEqual(self.one("SELECT COALESCE(SUM(amount), 0) "
+									"FROM gl_entries "
+									"WHERE debit_account = %s AND id > %s",
+									(self.revenue_account, high_water)),
+						Decimal('10.00'))
+
 	# ---------------- reversing the sale ----------------
 
 	def test_the_return_debits_revenue_not_the_cost_account(self):
