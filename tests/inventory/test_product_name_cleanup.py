@@ -1,0 +1,736 @@
+# test_product_name_cleanup.py
+#
+# The opt in install, the seed it lays down, and the cleanup window's apply
+# path. Everything runs inside the harness transaction, so a table created
+# here is discarded with the rollback and silrep_restore keeps no trace of it.
+#
+# These tests make their own preconditions rather than assuming anything about
+# the catalog, in both directions. A database that has already opted in still
+# has to exercise the not-installed path, which is why _uninstall drops the
+# table inside the transaction; and a catalog whose names have already been
+# cleaned up still has to exercise the fix list, which is why _rename puts a
+# messy name back. An earlier version of this file asserted counts taken from
+# the live catalog and went red the first time somebody pressed Apply.
+
+import os
+import unittest
+from unittest import mock
+import psycopg2
+from harness import DBTestCase, HOST, TEST_DB
+
+import product_name_rules
+
+class RulesTestCase(DBTestCase):
+	def setUp(self):
+		super(RulesTestCase, self).setUp()
+		#the compiled ruleset is a module global, so one test must not
+		#inherit another's
+		product_name_rules._ruleset = None
+		self.cursor.execute("SELECT id FROM products WHERE deleted = False "
+							"ORDER BY id LIMIT 6")
+		self.spare = [row[0] for row in self.cursor.fetchall()]
+
+	def _uninstall(self):
+		'''the not opted in state, inside the transaction'''
+		self.cursor.execute("DROP TABLE IF EXISTS public.product_name_rules")
+		self.DB.commit()
+		product_name_rules._ruleset = None
+
+	def _rename(self, index, name):
+		'''give a product a name that breaks the convention, so the fix list
+		has something in it whatever shape the catalog is in'''
+		product_id = self.spare[index]
+		self.cursor.execute("UPDATE products SET name = %s WHERE id = %s",
+							(name, product_id))
+		self.DB.commit()
+		return product_id
+
+class InstallTest(RulesTestCase):
+	def setUp(self):
+		super(InstallTest, self).setUp()
+		self._uninstall()
+
+	def test_not_installed_until_asked(self):
+		self.assertFalse(product_name_rules.installed())
+
+	def test_no_rules_means_no_normalization(self):
+		'''a database that has not opted in stays completely inert'''
+		rules = product_name_rules.load_rules()
+		self.assertEqual(rules.rules, [])
+		self.assertEqual(product_name_rules.normalize('  Relay 12v  '),
+						'  Relay 12v  ')
+		self.assertEqual(product_name_rules.findings('  Relay 12v  '), [])
+
+	def test_install_creates_and_seeds(self):
+		product_name_rules.install()
+		self.assertTrue(product_name_rules.installed())
+		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules"), 17)
+
+	def test_install_is_idempotent(self):
+		product_name_rules.install()
+		product_name_rules.install()
+		product_name_rules.install()
+		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules"), 17)
+
+	def test_install_does_not_revive_a_removed_rule(self):
+		'''the seed is ON CONFLICT DO NOTHING on name, so a hard delete would
+		come back; soft deleting is what makes a removal stick'''
+		product_name_rules.install()
+		self.cursor.execute("UPDATE product_name_rules SET "
+							"(active, deleted) = (False, True) "
+							"WHERE name = 'gauge'")
+		self.DB.commit()
+		product_name_rules.install()
+		self.assertTrue(self.one("SELECT deleted FROM product_name_rules "
+								"WHERE name = 'gauge'"))
+
+	def test_an_inactive_rule_is_not_compiled(self):
+		product_name_rules.install()
+		self.cursor.execute("UPDATE product_name_rules SET active = False "
+							"WHERE name = 'microfarads'")
+		self.DB.commit()
+		rules = product_name_rules.load_rules()
+		self.assertNotIn('microfarads', [r.name for r in rules.rules])
+		self.assertEqual(rules.normalize('Capacitor 50V 100uf'),
+						'Capacitor 50V 100uf')
+
+class SeedParityTest(RulesTestCase):
+	'''Pins what db/product_name_rules.sql installs.
+	test_product_name_rules.py pins the engine against literal rows; this pins
+	the seed, so a drift between the two shows up here.'''
+
+	def setUp(self):
+		super(SeedParityTest, self).setUp()
+		self.rules = product_name_rules.install()
+		self.cursor.execute("SELECT id, name FROM products "
+							"WHERE deleted = False")
+		self.products = self.cursor.fetchall()
+
+	def test_seed_loads_every_rule(self):
+		self.assertEqual(len(self.rules.rules), 27)
+
+	def test_seed_contents(self):
+		'''Counting findings across the live catalog was tried first and is no
+		use: the moment somebody applies the fixes the catalog is clean and the
+		numbers all go to zero, so the seed is pinned by its contents.'''
+		seeded = dict((r.name, r) for r in self.rules.rules)
+		self.assertEqual(sorted(seeded), sorted([
+				'trim', 'double_space', 'volts', 'volts_ac_dc', 'volts_ac',
+				'volts_dc', 'amps', 'milliamps', 'microfarads', 'picofarads',
+				'microhenries', 'millihenries', 'watts',
+				'ohms', 'wire_gauge', 'gauge', 'receptacle', 'pin_count',
+				'pin_count_exclude', 'brands',
+				'order_cfg_part', 'order_amps_count', 'order_gauge_size',
+				'order_cfg_amps', 'order_cfg_volts', 'order_volts_amps',
+				'qualifiers']))
+		for name, canonical in [('volts', 'V'), ('amps', 'A'),
+				('milliamps', 'mA'), ('microfarads', 'uF'),
+				('picofarads', 'pF'), ('microhenries', 'uH'),
+				('millihenries', 'mH'), ('watts', 'W'),
+				('ohms', 'OHM'), ('wire_gauge', 'AWG'), ('gauge', 'GA'),
+				('volts_ac', 'VAC'), ('volts_dc', 'VDC'),
+				('volts_ac_dc', 'VAC/DC'), ('receptacle', 'Recep'),
+				('pin_count', 'pos')]:
+			self.assertEqual(seeded[name].canonical, canonical, name)
+		self.assertEqual(seeded['receptacle'].kind, 'review')
+		self.assertEqual(seeded['pin_count'].kind, 'review')
+		self.assertEqual(seeded['brands'].kind, 'report')
+		self.assertEqual(seeded['pin_count_exclude'].kind, 'guard')
+		self.assertTrue(seeded['volts_ac_dc'].sort_order
+						< seeded['volts_ac'].sort_order,
+						'the combined token has to be applied first')
+
+	def test_the_seeded_rules_do_the_right_thing(self):
+		for before, after in [
+				('Capacitor electrolytic 6.3v 100uf',
+					'Capacitor electrolytic 6.3V 100uF'),
+				('Indicator green 10mm 24vac/dc',
+					'Indicator green 10mm 24VAC/DC'),
+				('Potentiometer ', 'Potentiometer'),
+				('Relay  SPDT', 'Relay SPDT'),
+				('Wire stranded 8awg THHN', 'Wire stranded 8AWG THHN'),
+				('Resistor 150W 100Ohm', 'Resistor 150W 100OHM'),
+				('Breaker 15A 2P', 'Breaker 15A 2P'),
+				('Potentiometer Bourns 3006P 10K',
+					'Potentiometer Bourns 3006P 10K'),
+				('Recep Deutsch DT04-2P', 'Recep Deutsch DT04-2P'),
+				]:
+			self.assertEqual(self.rules.normalize(before), after, before)
+
+	def test_seeded_token_order_pairs(self):
+		'''One row is one precedence pair, so the seed is six pairs and not an
+		order over the roles. The pair a part number takes against a voltage is
+		deliberately absent: the catalog agrees with itself about it only 66%
+		of the time, so it is added by hand or not at all.'''
+		pairs = dict((r.name, r.variants) for r in self.rules.rules
+						if r.rule_type == 'token_order')
+		self.assertEqual(pairs, {
+				'order_cfg_part': 'CFG,PART',
+				'order_amps_count': 'A,COUNT',
+				'order_gauge_size': 'GAUGE,SIZE',
+				'order_cfg_amps': 'CFG,A',
+				'order_cfg_volts': 'CFG,V',
+				'order_volts_amps': 'V,A'})
+		for name in pairs:
+			rule = [r for r in self.rules.rules if r.name == name][0]
+			self.assertEqual(rule.kind, 'review', name)
+			self.assertEqual(rule.label, 'Token order', name)
+			self.assertEqual(rule.canonical, '', name)
+
+	def test_the_qualifier_row_puts_the_screenshot_right(self):
+		'''The name that prompted this: three PTC fuses read voltage then
+		current and the fourth had THT wedged into the middle.'''
+		self.assertEqual(
+			self.rules.apply('PTC fuse .75A THT 72V',
+				self.rules.auto_rule_names() + ['order_volts_amps',
+												'qualifiers']),
+			'PTC fuse 72V .75A THT')
+
+	def test_a_token_order_row_must_name_two_known_roles(self):
+		'''The check constraint, so a role misspelled in the rules tab is
+		refused there rather than quietly doing nothing.'''
+		for variants in ('CFG', 'CFG,NOPE', 'CFG,V,A', '', 'cfg,part'):
+			self.cursor.execute("SAVEPOINT bad_pair")
+			self.assertRaises(psycopg2.errors.CheckViolation,
+				self.cursor.execute,
+				"INSERT INTO product_name_rules (name, rule_type, variants) "
+				"VALUES ('bad_pair', 'token_order', %s)", (variants,))
+			self.cursor.execute("ROLLBACK TO SAVEPOINT bad_pair")
+
+	def test_the_seeded_qualifiers(self):
+		'''A qualifier is last against everything or it is not a qualifier, so
+		the row is a word list and not a pair. The words are named rather than
+		guessed at: taking every unrecognised section after the first spec as
+		a note was measured against this catalog and reaches 31 names, much of
+		it wrong, to put one THT in its place.'''
+		row = [r for r in self.rules.rules if r.rule_type == 'qualifier']
+		self.assertEqual(len(row), 1)
+		self.assertEqual(sorted(product_name_rules.split_variants(
+							row[0].variants)), ['SMD', 'SMT', 'TH', 'THT'])
+		self.assertEqual(row[0].kind, 'review')
+		self.assertEqual(row[0].label, 'Token order')
+		self.assertTrue(row[0].sort_order > max(r.sort_order
+					for r in self.rules.rules if r.rule_type == 'token_order'),
+					'a note is placed after the pairs have had their say')
+
+	def test_a_qualifier_never_moves_an_undeclared_word(self):
+		declared = set()
+		for rule in self.rules.rules:
+			if rule.rule_type == 'qualifier':
+				declared.update(v.lower() for v in
+								product_name_rules.split_variants(rule.variants))
+		def without (text):
+			return [word for word in text.split()
+					if word.lower() not in declared]
+		for i, name in self.products:
+			#take the declared words out of both and what is left has to be
+			#the same sequence: a qualifier row moves its own words and
+			#nothing else, wherever they happen to sit
+			self.assertEqual(without(self.rules.apply(name, ['qualifiers'])),
+								without(name), name)
+
+	def _order_findings(self, name):
+		'''A grouped finding names every rule that went into it, comma
+		separated, so it is recognised by what it expands to.'''
+		order = set(r.name for r in self.rules.rules
+					if r.rule_type in ('token_order', 'qualifier'))
+		return [f for f in self.rules.findings(name)
+				if f.rule and set(f.rule.split(',')) <= order]
+
+	def test_token_order_findings_only_ever_permute_the_catalog(self):
+		'''No section added and none lost anywhere in the catalog, which is
+		what makes every suggestion reversible, and nothing to apply twice.'''
+		auto = self.rules.auto_rule_names()
+		for i, name in self.products:
+			for finding in self._order_findings(name):
+				self.assertEqual(sorted(finding.before.split()),
+									sorted(finding.after.split()), name)
+				self.assertEqual(
+					self.rules.apply(finding.after, auto + [finding.rule]),
+					finding.after, name)
+
+	def test_a_grouped_suggestion_is_what_accepting_it_produces(self):
+		'''The fix list shows apply(name, auto + [finding.rule]) rather than
+		the finding's own result, so over the whole catalog those two have to
+		agree or the window offers one name and writes another.'''
+		auto = self.rules.auto_rule_names()
+		for i, name in self.products:
+			for finding in self._order_findings(name):
+				self.assertEqual(self.rules.apply(name, auto + [finding.rule]),
+									finding.after, name)
+
+	def test_at_most_one_reordering_is_offered_per_name(self):
+		'''Two pairs on one name read as contradictions separately, so the
+		pairs that fire are offered together, carrying the finished order.'''
+		for i, name in self.products:
+			self.assertLessEqual(len(self._order_findings(name)), 1, name)
+
+	def test_token_order_leaves_the_mechanical_hardware_alone(self):
+		'''Not by excluding it: those names carry none of the six pairs. A
+		declared order over all the roles instead turns
+		'Bolt 18-8SS 1/4 - 20 x 12"' into 'Bolt 12" 1/4 - 20 x 18-8SS'.'''
+		for i, name in self.products:
+			if name.split()[0].lower() not in ('bolt', 'tubing', 'screw',
+									'nut', 'washer', 'valve', 'magnet'):
+				continue
+			self.assertEqual(self._order_findings(name), [], name)
+
+	def test_normalize_is_idempotent_over_the_whole_catalog(self):
+		for i, name in self.products:
+			once = self.rules.normalize(name)
+			self.assertEqual(self.rules.normalize(once), once, name)
+
+	def test_every_rewrite_is_backed_by_a_finding(self):
+		'''whatever the catalog holds, a name normalize would change must say
+		why, and a name it leaves alone must not claim an auto safe fix'''
+		for i, name in self.products:
+			auto = [f for f in self.rules.findings(name)
+					if f.kind == product_name_rules.AUTO_SAFE]
+			if self.rules.normalize(name) != name:
+				self.assertTrue(auto, name)
+			else:
+				self.assertEqual(auto, [], name)
+
+	def test_no_part_number_is_ever_rewritten(self):
+		for i, name in self.products:
+			if 'ATMEGA' in name or '3386P' in name or 'DCP0' in name:
+				self.assertEqual(self.rules.normalize(name), name, name)
+
+	def test_no_pin_count_rewrites_inside_a_part_number(self):
+		for i, name in self.products:
+			for finding in self.rules.findings(name):
+				if finding.rule != 'pin_count':
+					continue
+				for word in finding.after.split():
+					if word in name.split():
+						continue
+					self.assertNotIn('-', word,
+						'%r would rewrite inside a part number' % name)
+
+class CleanupWindowTest(RulesTestCase):
+	def setUp(self):
+		super(CleanupWindowTest, self).setUp()
+		from admin import product_name_cleanup
+		self.module = product_name_cleanup
+
+	def _window(self):
+		return self.module.ProductNameCleanupGUI()
+
+	def _ready(self):
+		'''an installed window, with a product needing a mechanical fix and
+		another needing a reviewed one'''
+		self.auto_id = self._rename(0, 'Relay widget 12v 5a ')
+		self.pin_id = self._rename(1, 'Connector widget 4P friction')
+		gui = self._window()
+		if product_name_rules.installed():
+			gui.load()
+		else:
+			gui.setup_clicked(None)
+		return gui
+
+	def _row_for(self, gui, product_id, rule_name):
+		for row in gui.fix_store:
+			if row[0] == product_id and row[4] == rule_name:
+				return row
+		return None
+
+	def test_offers_setup_when_not_installed(self):
+		self._uninstall()
+		gui = self._window()
+		self.assertFalse(gui.builder.get_object('notebook').get_sensitive())
+
+	def test_setup_button_installs_and_scans(self):
+		self._uninstall()
+		self._rename(0, 'Relay widget 12v 5a ')
+		gui = self._window()
+		gui.setup_clicked(None)
+		self.assertTrue(gui.builder.get_object('notebook').get_sensitive())
+		self.assertTrue(len(gui.fix_store) > 0)
+		self.assertEqual(len(gui.rule_store), 17)
+
+	def test_auto_rows_ticked_review_rows_not(self):
+		gui = self._ready()
+		auto = [r for r in gui.fix_store if r[4] == '']
+		review = [r for r in gui.fix_store if r[4] != '']
+		self.assertTrue(len(auto) > 0)
+		self.assertTrue(len(review) > 0)
+		self.assertTrue(all(r[5] == True for r in auto))
+		self.assertTrue(all(r[5] == False for r in review),
+						'a review suggestion must never be ticked by default')
+
+	def test_one_row_per_product_for_the_auto_subset(self):
+		'''the mechanical fixes are not individually choosable, so a product
+		gets a single auto row no matter how many auto rules it trips'''
+		gui = self._ready()
+		auto_ids = [r[0] for r in gui.fix_store if r[4] == '']
+		self.assertEqual(len(auto_ids), len(set(auto_ids)))
+		row = self._row_for(gui, self.auto_id, '')
+		self.assertIsNotNone(row)
+		self.assertEqual(row[2], 'Relay widget 12V 5A')
+		self.assertIn('Whitespace', row[3])
+		self.assertIn('Unit case', row[3])
+
+	def test_apply_rewrites_only_the_ticked_rows(self):
+		gui = self._ready()
+		gui.unselect_all_clicked(None)
+		self._row_for(gui, self.auto_id, '')[5] = True
+		untouched = self.one("SELECT name FROM products WHERE id = %s",
+							(self.pin_id,))
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+								(self.auto_id,)), 'Relay widget 12V 5A')
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+								(self.pin_id,)), untouched)
+
+	def test_apply_writes_an_audit_row(self):
+		gui = self._ready()
+		gui.unselect_all_clicked(None)
+		self._row_for(gui, self.auto_id, '')[5] = True
+		before = self.one("SELECT count(*) FROM log.products WHERE id = %s",
+						(self.auto_id,))
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT count(*) FROM log.products "
+								"WHERE id = %s", (self.auto_id,)), before + 1)
+
+	def test_accepting_a_review_row_applies_just_that_rule(self):
+		gui = self._ready()
+		gui.unselect_all_clicked(None)
+		row = self._row_for(gui, self.pin_id, 'pin_count')
+		self.assertIsNotNone(row, 'expected a pin count suggestion')
+		row[5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+								(self.pin_id,)),
+						'Connector widget 4pos friction')
+
+	def test_select_all_skips_rows_that_are_not_activatable(self):
+		gui = self._ready()
+		gui.unselect_all_clicked(None)
+		gui.fix_store[0][6] = False
+		gui.select_all_clicked(None)
+		self.assertFalse(gui.fix_store[0][5],
+						'select all must not tick a row it cannot activate')
+		self.assertTrue(gui.fix_store[1][5])
+
+	def test_a_product_locked_by_somebody_else_is_skipped(self):
+		gui = self._ready()
+		gui.unselect_all_clicked(None)
+		self._row_for(gui, self.auto_id, '')[5] = True
+		before = self.one("SELECT name FROM products WHERE id = %s",
+						(self.auto_id,))
+		#a second session holds the same advisory lock product_edit_main takes
+		other = psycopg2.connect(host = HOST, database = TEST_DB,
+								user = 'postgres',
+								password = os.environ['POSTING_TEST_DB_PASSWORD'])
+		other_cursor = other.cursor()
+		other_cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
+							(1, self.auto_id))
+		self.assertTrue(other_cursor.fetchone()[0])
+		try:
+			with mock.patch.object(gui, 'show_message') as show_message:
+				gui.apply_clicked(None)
+			show_message.assert_called_once()
+			self.assertEqual(self.one("SELECT name FROM products "
+									"WHERE id = %s", (self.auto_id,)), before)
+		finally:
+			other_cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
+								(1, self.auto_id))
+			other_cursor.close()
+			other.close()
+
+	def test_duplicates_are_reported(self):
+		self._rename(2, 'Widget collision test')
+		self._rename(3, 'widget collision test ')
+		gui = self._ready()
+		keys = [row[2] for row in gui.duplicate_store]
+		self.assertEqual(keys.count('widget collision test'), 2)
+
+	def _duplicates(self):
+		'''a colliding pair, plus the window showing them'''
+		self.keep_id = self._rename(2, 'Widget collision test')
+		self.other_id = self._rename(3, 'widget collision test ')
+		gui = self._ready()
+		rows = [r for r in gui.duplicate_store
+				if r[2] == 'widget collision test']
+		self.assertEqual(len(rows), 2)
+		return gui, rows
+
+	def test_right_click_pops_the_duplicate_menu(self):
+		gui, rows = self._duplicates()
+		menu = gui.builder.get_object('duplicate_menu')
+		with mock.patch.object(menu, 'popup_at_pointer') as popup:
+			gui.duplicate_treeview_button_release_event(
+						gui.builder.get_object('duplicate_treeview'),
+						mock.Mock(button = 3))
+		popup.assert_called_once()
+
+	def test_left_click_does_not_pop_the_menu(self):
+		gui, rows = self._duplicates()
+		menu = gui.builder.get_object('duplicate_menu')
+		with mock.patch.object(menu, 'popup_at_pointer') as popup:
+			gui.duplicate_treeview_button_release_event(
+						gui.builder.get_object('duplicate_treeview'),
+						mock.Mock(button = 1))
+		popup.assert_not_called()
+
+	def test_product_hub_opens_on_the_selected_duplicate(self):
+		gui, rows = self._duplicates()
+		gui.builder.get_object('duplicate_selection').select_path(rows[1].path)
+		import product_hub
+		with mock.patch.object(product_hub, 'ProductHubGUI') as hub:
+			gui.duplicate_product_hub_activated(None)
+		hub.assert_called_once_with(rows[1][0])
+
+	def test_product_hub_does_nothing_without_a_selection(self):
+		gui, rows = self._duplicates()
+		gui.builder.get_object('duplicate_selection').unselect_all()
+		import product_hub
+		with mock.patch.object(product_hub, 'ProductHubGUI') as hub:
+			gui.duplicate_product_hub_activated(None)
+		hub.assert_not_called()
+
+	def test_word_order_is_reported_without_a_suggestion(self):
+		brand_id = self._rename(2, 'O-ring 26x1.5mm Visotron solenoid')
+		gui = self._ready()
+		self.assertIn(brand_id, [row[0] for row in gui.word_order_store])
+		#and a report never turns up as something to fix
+		self.assertEqual([r for r in gui.fix_store if r[3] == 'Word order'], [])
+
+	def _word_order(self):
+		'''a brand sitting mid name, plus the window reporting it'''
+		self.brand_id = self._rename(2, 'O-ring 26x1.5mm Visotron solenoid')
+		gui = self._ready()
+		rows = [r for r in gui.word_order_store if r[0] == self.brand_id]
+		self.assertEqual(len(rows), 1)
+		return gui, rows[0]
+
+	def test_right_click_pops_the_word_order_menu(self):
+		gui, row = self._word_order()
+		menu = gui.builder.get_object('word_order_menu')
+		with mock.patch.object(menu, 'popup_at_pointer') as popup:
+			gui.word_order_treeview_button_release_event(
+						gui.builder.get_object('word_order_treeview'),
+						mock.Mock(button = 3))
+		popup.assert_called_once()
+
+	def test_left_click_does_not_pop_the_word_order_menu(self):
+		gui, row = self._word_order()
+		menu = gui.builder.get_object('word_order_menu')
+		with mock.patch.object(menu, 'popup_at_pointer') as popup:
+			gui.word_order_treeview_button_release_event(
+						gui.builder.get_object('word_order_treeview'),
+						mock.Mock(button = 1))
+		popup.assert_not_called()
+
+	def test_product_hub_opens_on_the_selected_word_order_row(self):
+		gui, row = self._word_order()
+		gui.builder.get_object('word_order_selection').select_path(row.path)
+		import product_hub
+		with mock.patch.object(product_hub, 'ProductHubGUI') as hub:
+			gui.word_order_product_hub_activated(None)
+		hub.assert_called_once_with(self.brand_id)
+
+	def test_word_order_product_hub_does_nothing_without_a_selection(self):
+		gui, row = self._word_order()
+		gui.builder.get_object('word_order_selection').unselect_all()
+		import product_hub
+		with mock.patch.object(product_hub, 'ProductHubGUI') as hub:
+			gui.word_order_product_hub_activated(None)
+		hub.assert_not_called()
+
+	def test_both_report_tabs_use_their_own_menu(self):
+		'''the two tabs share the helper but not the menu, so a right click in
+		one list cannot act on the other list's selection'''
+		gui = self._ready()
+		self.assertIsNot(gui.builder.get_object('duplicate_menu'),
+						gui.builder.get_object('word_order_menu'))
+		self.assertIsNot(gui.builder.get_object('duplicate_selection'),
+						gui.builder.get_object('word_order_selection'))
+
+	def test_deactivating_a_rule_drops_its_findings(self):
+		uf_id = self._rename(2, 'Capacitor widget 50V 100uf')
+		gui = self._ready()
+		self.assertIsNotNone(self._row_for(gui, uf_id, ''))
+		for row in gui.rule_store:
+			if row[1] == 'microfarads':
+				path = row.path
+				break
+		renderer = self.module.Gtk.CellRendererToggle()
+		renderer.set_active(True)
+		gui.rule_active_toggled(renderer, path)
+		self.assertIsNone(self._row_for(gui, uf_id, ''),
+						'turning off a rule must drop what it suggested')
+		self.assertFalse(self.one("SELECT active FROM product_name_rules "
+								"WHERE name = 'microfarads'"))
+
+	def test_refresh_sees_a_rule_changed_from_outside(self):
+		'''the Rules tab rescans its own edits, but a rule can change in
+		another session or straight from SQL, which is what Refresh is for'''
+		uf_id = self._rename(2, 'Capacitor widget 50V 100uf')
+		gui = self._ready()
+		self.assertIsNotNone(self._row_for(gui, uf_id, ''))
+		self.cursor.execute("UPDATE product_name_rules SET active = False "
+							"WHERE name = 'microfarads'")
+		self.DB.commit()
+		gui.refresh_clicked(None)
+		self.assertIsNone(self._row_for(gui, uf_id, ''),
+						'Refresh must re-read the rules, not just the products')
+
+	def test_refresh_sees_a_product_changed_from_outside(self):
+		gui = self._ready()
+		late_id = self._rename(2, 'Sensor widget 24v 2a ')
+		self.assertIsNone(self._row_for(gui, late_id, ''))
+		gui.refresh_clicked(None)
+		row = self._row_for(gui, late_id, '')
+		self.assertIsNotNone(row)
+		self.assertEqual(row[2], 'Sensor widget 24V 2A')
+
+	def test_refresh_picks_up_a_setup_done_elsewhere(self):
+		self._uninstall()
+		gui = self._window()
+		self.assertFalse(gui.builder.get_object('notebook').get_sensitive())
+		product_name_rules.install()
+		gui.refresh_clicked(None)
+		self.assertTrue(gui.builder.get_object('notebook').get_sensitive())
+
+	def test_refresh_resets_what_was_ticked(self):
+		'''documented in the button's tooltip: a rescan rebuilds the list, so
+		the defaults come back'''
+		gui = self._ready()
+		gui.unselect_all_clicked(None)
+		self.assertFalse(any(row[5] for row in gui.fix_store))
+		gui.refresh_clicked(None)
+		self.assertTrue(all(row[5] == True
+							for row in gui.fix_store if row[4] == ''))
+
+	def test_a_new_rule_is_picked_up(self):
+		gui = self._ready()
+		gui.new_rule_clicked(None)
+		path = gui.rule_store[-1].path
+		gui.rule_store[-1][1] = 'kilohms'
+		gui.rule_store[-1][5] = 'k'
+		gui.rule_store[-1][6] = 'K'
+		gui.rule_changed(path)
+		self.assertEqual(gui.ruleset.normalize('Resistor 10k 1%'),
+						'Resistor 10K 1%')
+		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules "
+								"WHERE name = 'kilohms'"), 1)
+
+	def test_nothing_listens_for_an_edit_to_the_current_name(self):
+		'''The column is editable for viewing only. No "edited" handler is
+		connected, so Gtk drops whatever is typed and the cell redraws from
+		the store: the column has no way to rename anything. Connecting a
+		handler here would give the window a second, unreviewed rename path.'''
+		gui = self._window()
+		self.assertFalse(hasattr(gui, 'current_name_edited'))
+		with open(self.module.UI_FILE) as ui_file:
+			ui = ui_file.read()
+		renderer = ui.split('id="fix_current_renderer"')[1].split('</object>')[0]
+		self.assertNotIn('signal', renderer)
+		self.assertIn('editable', renderer)
+
+	def test_current_name_cell_can_be_clicked_into(self):
+		'''editable only so a text cursor shows where the name really ends,
+		which is the only way to see a trailing or doubled space'''
+		gui = self._window()
+		self.assertTrue(gui.builder.get_object(
+						'fix_current_renderer').get_property('editable'))
+
+	def test_the_other_fix_columns_stay_read_only(self):
+		'''the editable cell is a deliberate single exception, not a pattern'''
+		gui = self._window()
+		for renderer in ['fix_suggested_renderer', 'fix_kind_renderer']:
+			self.assertFalse(gui.builder.get_object(renderer).get_property(
+							'editable'), renderer)
+
+	def test_a_token_order_row_is_offered_unticked_and_applies(self):
+		gui = self._ready()
+		#already right in every other respect, so this row stands alone and
+		#the reordering is the only thing being accepted or declined
+		product_id = self._rename(2, 'Relay widget 240VAC 3PDT')
+		gui.refresh_clicked(None)
+		row = self._row_for(gui, product_id, 'order_cfg_volts')
+		self.assertIsNotNone(row)
+		self.assertEqual(row[2], 'Relay widget 3PDT 240VAC')
+		self.assertEqual(row[3], 'Token order')
+		self.assertEqual(row[5], False, 'a reordering is never pre-ticked')
+		row[5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+									(product_id,)),
+							'Relay widget 3PDT 240VAC')
+
+	def test_two_pairs_on_one_name_are_offered_as_one_row(self):
+		'''Taken or left whole: accepting the row applies both pairs, because
+		either on its own produces an order nobody asked for.'''
+		gui = self._ready()
+		product_id = self._rename(3, 'Relay widget PCB 12V 30A SPST')
+		gui.refresh_clicked(None)
+		rows = [row for row in gui.fix_store
+				if row[0] == product_id and row[3] == 'Token order']
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0][4], 'order_cfg_amps,order_cfg_volts')
+		self.assertEqual(rows[0][2], 'Relay widget PCB SPST 12V 30A')
+		rows[0][5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+									(product_id,)),
+							'Relay widget PCB SPST 12V 30A')
+
+	def test_a_declined_reordering_leaves_the_name_alone(self):
+		'''The whole reason ordering is review rather than auto: the catalog
+		is several naming systems at once and a suggestion can simply be
+		wrong for one of them.'''
+		gui = self._ready()
+		#already right in every other respect, so this row stands alone and
+		#the reordering is the only thing being accepted or declined
+		product_id = self._rename(2, 'Relay widget 240VAC 3PDT')
+		gui.refresh_clicked(None)
+		row = self._row_for(gui, product_id, 'order_cfg_volts')
+		row[5] = False
+		self._row_for(gui, self.auto_id, '')[5] = True
+		gui.apply_clicked(None)
+		self.assertEqual(self.one("SELECT name FROM products WHERE id = %s",
+									(product_id,)),
+							'Relay widget 240VAC 3PDT')
+
+	def test_opening_the_window_brings_an_older_table_up_to_date(self):
+		'''This feature sits outside the version upgrade mechanism, so opening
+		the window is the only moment a later release has to hand a database
+		rules that did not exist when it opted in.'''
+		gui = self._ready()
+		self.cursor.execute("ALTER TABLE product_name_rules "
+							"DROP CONSTRAINT product_name_rules_token_order_ck")
+		self.cursor.execute("DELETE FROM product_name_rules "
+							"WHERE rule_type = 'token_order'")
+		self.DB.commit()
+		self.assertEqual([r for r in product_name_rules.load_rules().rules
+							if r.rule_type == 'token_order'], [])
+		gui.load()
+		self.assertEqual(len([r for r in gui.ruleset.rules
+							if r.rule_type == 'token_order']), 6)
+
+	def test_bringing_the_table_up_to_date_keeps_an_edited_rule(self):
+		'''Idempotent means idempotent: the script inserts nothing over an
+		existing row, so neither an edit made in the rules tab nor a rule
+		somebody deactivated is undone by opening the window again.'''
+		gui = self._ready()
+		self.cursor.execute("UPDATE product_name_rules "
+							"SET variants = 'CFG,A', active = False "
+							"WHERE name = 'order_cfg_volts'")
+		self.DB.commit()
+		gui.load()
+		self.cursor.execute("SELECT variants, active FROM product_name_rules "
+							"WHERE name = 'order_cfg_volts'")
+		self.assertEqual(self.cursor.fetchone(), ('CFG,A', False))
+
+	def test_a_bad_rule_type_is_refused_not_crashed(self):
+		gui = self._ready()
+		path = gui.rule_store[0].path
+		gui.rule_store[0][2] = 'nonsense'
+		with mock.patch.object(gui, 'show_message') as show_message:
+			gui.rule_changed(path)
+		show_message.assert_called_once()
+
+if __name__ == '__main__':
+	unittest.main()

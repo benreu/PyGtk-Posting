@@ -19,6 +19,7 @@ from datetime import datetime
 import subprocess
 from db_connection import broadcaster, DB
 from constants import ui_directory, is_admin, help_dir, template_dir, PRODUCT_LOCK_CLASSID
+import product_name_rules
 from accounts import 	product_revenue_tree, \
 						product_expense_tree, \
 						product_inventory_tree, \
@@ -96,7 +97,16 @@ class ProductEditMainGUI (Gtk.Builder):
 		comp.set_model(product_revenue_list)
 		comp.set_match_func(self.account_match_func, product_revenue_list)
 
+	def product_name_match_func (self, completion, key, tree_iter):
+		store = completion.get_model()
+		for text in key.split():
+			if text not in store[tree_iter][0].lower():
+				return False
+		return True
+
 	def populate_product_names (self):
+		completion = self.get_object('product_completion')
+		completion.set_match_func(self.product_name_match_func)
 		store = self.get_object('product_completion_store_placeholder')
 		c = DB.cursor()
 		c.execute("SELECT name FROM products "
@@ -315,6 +325,45 @@ class ProductEditMainGUI (Gtk.Builder):
 	def product_name_changed (self, editable):
 		self.window.set_title(editable.get_text())
 
+	def name_entry_focus_out_event (self, entry, event):
+		'''Flag a name that breaks the convention, on focus out rather than on
+		every keystroke, so a half typed name is not marked up as you go. The
+		icon is a warning, not an error: a name that does not follow the
+		pattern is still savable.'''
+		name = entry.get_text()
+		store = self.get_object('name_pattern_store')
+		store.clear()
+		suggestion = product_name_rules.normalize(name)
+		auto_labels = list()
+		for finding in product_name_rules.findings(name):
+			if finding.kind == product_name_rules.AUTO_SAFE:
+				#the mechanical fixes are shown as one line holding the
+				#finished name, not a step per rule
+				if finding.label not in auto_labels:
+					auto_labels.append(finding.label)
+			else:
+				store.append([finding.label, finding.after])
+		if auto_labels:
+			store.insert(0, [', '.join(auto_labels), suggestion])
+		if len(store) > 0:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY,
+											'dialog-warning')
+		else:
+			entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY,
+											None)
+		#only the mechanical fixes are offered by the button; the rest need a
+		#decision, so they are listed but not applied in one click
+		self.get_object('name_fix_button').set_sensitive(suggestion != name)
+
+	def name_entry_icon_release (self, entry, pos, event):
+		self.get_object('name_pattern_popover').show_all()
+
+	def name_fix_clicked (self, button):
+		entry = self.get_object('entry1')
+		entry.set_text(product_name_rules.normalize(entry.get_text()))
+		entry.set_icon_from_icon_name (Gtk.EntryIconPosition.SECONDARY, None)
+		self.get_object('name_pattern_popover').hide()
+
 	def select_product (self, product_id):
 		self.product_id = product_id
 		c = DB.cursor()
@@ -411,7 +460,10 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.window.set_urgency_hint(False)
 
 	def save_clicked (self, button = None):
-		name = self.get_object('entry1').get_text()
+		#trim and unit casing only, the fixes that cannot change what a name
+		#means. A database that has not set up name rules gets the name back
+		#unchanged, so this is inert until it is opted in to.
+		name = product_name_rules.normalize(self.get_object('entry1').get_text())
 		ext_name = self.get_object('entry10').get_text()
 		barcode = self.get_object('entry2').get_text()
 		unit = self.get_object('comboboxtext1').get_active_id()

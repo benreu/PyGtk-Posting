@@ -1,0 +1,783 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.20"/>
+  <object class="GtkListStore" id="fix_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name current_name -->
+      <column type="gchararray"/>
+      <!-- column-name suggested_name -->
+      <column type="gchararray"/>
+      <!-- column-name rule_label -->
+      <column type="gchararray"/>
+      <!-- column-name rule_name -->
+      <column type="gchararray"/>
+      <!-- column-name apply -->
+      <column type="gboolean"/>
+      <!-- column-name apply_sensitive -->
+      <column type="gboolean"/>
+      <!-- column-name foreground -->
+      <column type="GdkRGBA"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="rule_store">
+    <columns>
+      <!-- column-name rule_id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name rule_type -->
+      <column type="gchararray"/>
+      <!-- column-name kind -->
+      <column type="gchararray"/>
+      <!-- column-name label -->
+      <column type="gchararray"/>
+      <!-- column-name variants -->
+      <column type="gchararray"/>
+      <!-- column-name canonical -->
+      <column type="gchararray"/>
+      <!-- column-name sort_order -->
+      <column type="gint"/>
+      <!-- column-name active -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="rule_type_store">
+    <columns>
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row><col id="0">whitespace</col></row>
+      <row><col id="0">unit</col></row>
+      <row><col id="0">vocabulary</col></row>
+      <row><col id="0">pin_count</col></row>
+      <row><col id="0">pin_count_exclude</col></row>
+      <row><col id="0">brand</col></row>
+      <row><col id="0">token_order</col></row>
+      <row><col id="0">qualifier</col></row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="kind_store">
+    <columns>
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row><col id="0">auto</col></row>
+      <row><col id="0">review</col></row>
+      <row><col id="0">report</col></row>
+      <row><col id="0">guard</col></row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="word_order_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="duplicate_store">
+    <columns>
+      <!-- column-name product_id -->
+      <column type="gint"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name collision_key -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkMenu" id="word_order_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="word_order_product_hub_menuitem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="word_order_product_hub_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="duplicate_menu">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="duplicate_product_hub_menuitem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Product hub</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="duplicate_product_hub_activated" swapped="no"/>
+      </object>
+    </child>
+  </object>
+  <object class="GtkWindow" id="window">
+    <property name="can_focus">False</property>
+    <property name="border_width">10</property>
+    <property name="title" translatable="yes">Product name cleanup</property>
+    <property name="window_position">center</property>
+    <property name="destroy_with_parent">True</property>
+    <property name="default_width">900</property>
+    <property name="default_height">600</property>
+    <property name="icon_name">pygtk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
+    <child>
+      <object class="GtkBox" id="main_box">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkInfoBar" id="setup_infobar">
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+            <property name="message_type">other</property>
+            <child internal-child="action_area">
+              <object class="GtkBox" id="setup_action_area">
+                <property name="can_focus">False</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkButton" id="setup_button">
+                    <property name="label" translatable="yes">Set up name rules</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="setup_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+            <child internal-child="content_area">
+              <object class="GtkBox" id="setup_content_area">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="spacing">16</property>
+                <child>
+                  <object class="GtkLabel" id="setup_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="wrap">True</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">This database has no product name rules yet. Setting them up adds a rules table seeded with a starting convention, which you can then edit in the Rules tab. Nothing is changed in your product names until you apply a fix.</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkNotebook" id="notebook">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <signal name="switch-page" handler="page_switched" swapped="no"/>
+            <child>
+              <object class="GtkBox" id="fix_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkScrolledWindow" id="fix_scroll">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="fix_treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">fix_store</property>
+                        <property name="enable_search">False</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="fix_selection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="fix_apply_column">
+                            <property name="title" translatable="yes">Fix</property>
+                            <child>
+                              <object class="GtkCellRendererToggle" id="apply_renderer">
+                                <signal name="toggled" handler="apply_renderer_toggled" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="active">5</attribute>
+                                <attribute name="activatable">6</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="fix_kind_column">
+                            <property name="title" translatable="yes">Problem</property>
+                            <property name="sort_column_id">3</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="fix_kind_renderer"/>
+                              <attributes>
+                                <attribute name="text">3</attribute>
+                                <attribute name="foreground-rgba">7</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="fix_current_column">
+                            <property name="title" translatable="yes">Current name</property>
+                            <property name="resizable">True</property>
+                            <property name="expand">True</property>
+                            <property name="sort_column_id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="fix_current_renderer">
+                                <property name="editable">True</property>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                                <attribute name="foreground-rgba">7</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="fix_suggested_column">
+                            <property name="title" translatable="yes">Suggested name</property>
+                            <property name="resizable">True</property>
+                            <property name="expand">True</property>
+                            <property name="sort_column_id">2</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="fix_suggested_renderer"/>
+                              <attributes>
+                                <attribute name="text">2</attribute>
+                                <attribute name="foreground-rgba">7</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox" id="fix_button_box">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel" id="fix_summary_label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="xalign">0</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="refresh_button">
+                        <property name="label" translatable="yes">Refresh</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip-text" translatable="yes">Re-read the rules and scan the catalog again. Anything ticked here is reset.</property>
+                        <signal name="clicked" handler="refresh_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="unselect_all_button">
+                        <property name="label" translatable="yes">Unselect all</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="unselect_all_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="select_all_button">
+                        <property name="label" translatable="yes">Select all</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="select_all_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="apply_button">
+                        <property name="label" translatable="yes">Apply selected fixes</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="apply_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="fix_tab_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Fixes</property>
+              </object>
+              <packing>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="word_order_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkLabel" id="word_order_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="wrap">True</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">These names carry a brand somewhere other than the front, while the rest of the catalog leads with it. Reordering a name is a judgement call, so these are listed for you to fix by hand rather than suggested automatically.</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="word_order_scroll">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="word_order_treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">word_order_store</property>
+                        <signal name="button-release-event" handler="word_order_treeview_button_release_event" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="word_order_selection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="word_order_id_column">
+                            <property name="title" translatable="yes">Id</property>
+                            <property name="sort_column_id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="word_order_id_renderer"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="word_order_name_column">
+                            <property name="title" translatable="yes">Product name</property>
+                            <property name="expand">True</property>
+                            <property name="sort_column_id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="word_order_name_renderer"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="word_order_tab_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Word order</property>
+              </object>
+              <packing>
+                <property name="position">1</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="duplicate_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkLabel" id="duplicate_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="wrap">True</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">These names collide once capitals and spacing are ignored, so they are probably the same part entered twice. Merging them is not offered here because invoices and orders point at a particular product, so the right fix depends on which one has the history.</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="duplicate_scroll">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="duplicate_treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">duplicate_store</property>
+                        <signal name="button-release-event" handler="duplicate_treeview_button_release_event" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="duplicate_selection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="duplicate_id_column">
+                            <property name="title" translatable="yes">Id</property>
+                            <property name="sort_column_id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="duplicate_id_renderer"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="duplicate_name_column">
+                            <property name="title" translatable="yes">Product name</property>
+                            <property name="expand">True</property>
+                            <property name="sort_column_id">2</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="duplicate_name_renderer"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="duplicate_tab_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Duplicates</property>
+              </object>
+              <packing>
+                <property name="position">2</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="rule_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkLabel" id="rule_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="wrap">True</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">Variants are the spellings to replace, separated by commas; canonical is what they become. Editing a rule rescans the Fixes tab, so you can see what it would do before applying anything. Rules are deactivated rather than deleted, so a rule you turn off stays off.</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="rule_scroll">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="rule_treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">rule_store</property>
+                        <property name="enable_search">False</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="rule_selection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_active_column">
+                            <property name="title" translatable="yes">On</property>
+                            <child>
+                              <object class="GtkCellRendererToggle" id="rule_active_renderer">
+                                <signal name="toggled" handler="rule_active_toggled" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="active">8</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_order_column">
+                            <property name="title" translatable="yes">Order</property>
+                            <property name="sort_column_id">7</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="rule_order_renderer">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="rule_sort_order_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">7</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_name_column">
+                            <property name="title" translatable="yes">Name</property>
+                            <property name="resizable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="rule_name_renderer">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="rule_name_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_type_column">
+                            <property name="title" translatable="yes">Type</property>
+                            <child>
+                              <object class="GtkCellRendererCombo" id="rule_type_renderer">
+                                <property name="editable">True</property>
+                                <property name="model">rule_type_store</property>
+                                <property name="text_column">0</property>
+                                <property name="has_entry">False</property>
+                                <signal name="edited" handler="rule_type_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">2</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_kind_column">
+                            <property name="title" translatable="yes">Applied</property>
+                            <child>
+                              <object class="GtkCellRendererCombo" id="rule_kind_renderer">
+                                <property name="editable">True</property>
+                                <property name="model">kind_store</property>
+                                <property name="text_column">0</property>
+                                <property name="has_entry">False</property>
+                                <signal name="edited" handler="rule_kind_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">3</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_label_column">
+                            <property name="title" translatable="yes">Problem shown as</property>
+                            <property name="resizable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="rule_label_renderer">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="rule_label_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">4</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_variants_column">
+                            <property name="title" translatable="yes">Variants</property>
+                            <property name="resizable">True</property>
+                            <property name="expand">True</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="rule_variants_renderer">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="rule_variants_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">5</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="rule_canonical_column">
+                            <property name="title" translatable="yes">Canonical</property>
+                            <property name="resizable">True</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="rule_canonical_renderer">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="rule_canonical_edited" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">6</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox" id="rule_button_box">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel" id="rule_summary_label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="xalign">0</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="delete_rule_button">
+                        <property name="label" translatable="yes">Remove rule</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="delete_rule_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="new_rule_button">
+                        <property name="label" translatable="yes">New rule</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="new_rule_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="rule_tab_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Rules</property>
+              </object>
+              <packing>
+                <property name="position">3</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
