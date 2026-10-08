@@ -435,9 +435,15 @@ def cancel_invoice (datetime, invoice_id):
 
 def post_credit_memo(credit_memo_id):
 	c = DB.cursor()
+	# the date the memo prints with, the column credit_memo_template reads, so
+	# the books cannot disagree with the document the customer is holding.
+	# date_inserted is passed rather than left to its default, see cancel_invoice
+	c.execute("SELECT COALESCE(dated_for, date_created) FROM credit_memos "
+				"WHERE id = %s", (credit_memo_id,))
+	date = c.fetchone()[0]
 	c.execute ("WITH gl_transaction AS "
 					"(INSERT INTO gl_transactions (date_inserted) "
-					"VALUES (CURRENT_DATE) RETURNING id), "
+					"VALUES (%s) RETURNING id), "
 				"gl_entry AS "
 				"(INSERT INTO gl_entries "
 					"(credit_account,"
@@ -450,7 +456,7 @@ def post_credit_memo(credit_memo_id):
 						"WHERE function = 'post_credit_memo'), "
 					"(SELECT amount_owed FROM credit_memos WHERE id = %s), "
 					"(SELECT id FROM gl_transaction), "
-					"CURRENT_DATE"
+					"%s"
 					")RETURNING id "
 				"), "
 				"gl_tax_entry AS "
@@ -465,7 +471,7 @@ def post_credit_memo(credit_memo_id):
 						"WHERE function = 'credit_memo_returned_taxes'), "
 					"(SELECT tax FROM credit_memos WHERE id = %s), "
 					"(SELECT id FROM gl_transaction), "
-					"CURRENT_DATE"
+					"%s"
 					")RETURNING id "
 				"), "
 				"update_credit_memos_entry_ids AS "
@@ -481,7 +487,8 @@ def post_credit_memo(credit_memo_id):
 						"ON cmi.invoice_item_id = ii.id "
 					"WHERE (cmi.credit_memo_id, cmi.deleted) = (%s, False) "
 					"ORDER BY cmi.id", 
-				(credit_memo_id, credit_memo_id, credit_memo_id, credit_memo_id)) 
+				(date, credit_memo_id, date, credit_memo_id, date,
+				credit_memo_id, credit_memo_id)) 
 	for row in c.fetchall():
 		account = row[0]
 		amount = row[1]
@@ -489,27 +496,29 @@ def post_credit_memo(credit_memo_id):
 		transaction_id = row[3]
 		c.execute(	"WITH cte AS "
 						"(INSERT INTO gl_entries AS ge "
-						"(debit_account, amount, gl_transaction_id) VALUES "
-						"(%s, %s, %s) RETURNING id "
+						"(debit_account, amount, gl_transaction_id, "
+						"date_inserted) VALUES "
+						"(%s, %s, %s, %s) RETURNING id "
 						") "
 					"UPDATE credit_memo_items SET gl_entry_id = "
 					"(SELECT id FROM cte) "
 					"WHERE id = %s", 
-					(account, amount, transaction_id, cmi_id))
+					(account, amount, transaction_id, date, cmi_id))
 	# read the transaction back rather than reusing the loop variable, which is
 	# never set when every line of the memo is deleted
 	c.execute("SELECT ge.gl_transaction_id FROM gl_entries AS ge "
 				"JOIN credit_memos AS cm ON cm.gl_entries_id = ge.id "
 				"WHERE cm.id = %s", (credit_memo_id,))
-	post_credit_memo_cogs (c, credit_memo_id, c.fetchone()[0])
+	post_credit_memo_cogs (c, credit_memo_id, c.fetchone()[0], date)
 	c.close()
 
-def post_credit_memo_cogs (cursor, credit_memo_id, transaction_id):
+def post_credit_memo_cogs (cursor, credit_memo_id, transaction_id, date):
 	'''put back the cost the sale took out, one two sided entry per restocked row,
 	debiting the product's inventory account and crediting its cost of goods sold
 	account: the mirror of post_invoice_cogs. The restock rows are valued at the
 	cost the sale left at, so this cancels the original entry exactly. Nothing is
 	posted for a product that is not tracked, it has no restock row'''
+	# date_inserted is passed rather than left to its default, see cancel_invoice
 	cursor.execute("SELECT it.id, ROUND(it.qty_in * it.price, 2), "
 						"p.inventory_account, p.default_expense_account "
 					"FROM inventory_transactions AS it "
@@ -522,10 +531,10 @@ def post_credit_memo_cogs (cursor, credit_memo_id, transaction_id):
 		cursor.execute("WITH new_row AS (INSERT INTO gl_entries "
 							"(amount, debit_account, credit_account, "
 							"gl_transaction_id, date_inserted) "
-							"VALUES (%s, %s, %s, %s, CURRENT_DATE) RETURNING id) "
+							"VALUES (%s, %s, %s, %s, %s) RETURNING id) "
 						"UPDATE inventory_transactions SET gl_entries_id = "
 							"((SELECT id FROM new_row)) WHERE id = %s",
-						(row[1], row[2], row[3], transaction_id, row[0]))
+						(row[1], row[2], row[3], transaction_id, date, row[0]))
 
 def post_manufacturing_value (cursor, manufacturing_id):
 	'''move the value of a build between inventory accounts: each component row

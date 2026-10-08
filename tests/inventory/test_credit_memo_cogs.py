@@ -8,6 +8,8 @@ COGS_ACCOUNT = 3876
 class CreditMemoCogsTest(DBTestCase):
 	'''a return is the sale run backwards: it reverses revenue and puts the cost
 	of the goods back on the inventory account'''
+	MEMO_DATE = '2026-02-15' # not today, and after the sale it returns
+
 	def setUp(self):
 		super().setUp()
 		from inventory import inventorying
@@ -43,9 +45,11 @@ class CreditMemoCogsTest(DBTestCase):
 		self.cursor.execute("UPDATE invoices SET posted = True WHERE id = %s",
 							(self.invoice_id,))
 		self.credit_memo_id = self.one("INSERT INTO credit_memos "
-										"(customer_id, date_created, amount_owed, tax) "
-										"VALUES (%s, CURRENT_DATE, 10, 0) RETURNING id",
-										(self.customer_id,))
+										"(customer_id, date_created, dated_for, "
+										"amount_owed, tax) "
+										"VALUES (%s, CURRENT_DATE, %s, 10, 0) "
+										"RETURNING id",
+										(self.customer_id, self.MEMO_DATE))
 		self.DB.commit()
 
 	def credit_item(self, qty, deleted = False):
@@ -74,6 +78,97 @@ class CreditMemoCogsTest(DBTestCase):
 								"THEN amount ELSE 0 END), 0) "
 						"FROM gl_entries WHERE gl_transaction_id = %s",
 						(account, account, self.transaction_id()))
+
+	def entries(self):
+		self.cursor.execute("SELECT amount, debit_account, credit_account, "
+								"date_inserted FROM gl_entries "
+							"WHERE gl_transaction_id = %s ORDER BY id",
+							(self.transaction_id(),))
+		return self.cursor.fetchall()
+
+	def assertBalances(self):
+		debits = self.one("SELECT COALESCE(SUM(amount), 0) FROM gl_entries "
+							"WHERE gl_transaction_id = %s "
+							"AND debit_account IS NOT NULL",
+							(self.transaction_id(),))
+		credits = self.one("SELECT COALESCE(SUM(amount), 0) FROM gl_entries "
+							"WHERE gl_transaction_id = %s "
+							"AND credit_account IS NOT NULL",
+							(self.transaction_id(),))
+		self.assertEqual(debits, credits)
+
+	# ---------------- the memo's own date ----------------
+
+	def test_the_whole_transaction_is_dated_with_the_memo(self):
+		# the memo prints dated_for, so the books have to carry the same date or
+		# a back dated return is booked in the month it was keyed in
+		self.credit_item(2)
+		self.post()
+		self.assertEqual(str(self.one("SELECT date_inserted "
+										"FROM gl_transactions WHERE id = %s",
+										(self.transaction_id(),))),
+						self.MEMO_DATE)
+		rows = self.entries()
+		self.assertEqual(len(rows), 4) # owed, returned tax, revenue, cost
+		for amount, debit, credit, date in rows:
+			self.assertEqual(str(date), self.MEMO_DATE)
+		self.assertBalances()
+
+	def test_the_revenue_debit_is_dated_with_the_rest(self):
+		# the one insert that carried no date at all and fell through to now ()
+		self.credit_item(2)
+		self.post()
+		self.assertEqual(str(self.one("SELECT ge.date_inserted "
+										"FROM gl_entries AS ge "
+										"JOIN credit_memo_items AS cmi "
+											"ON cmi.gl_entry_id = ge.id "
+										"WHERE cmi.credit_memo_id = %s",
+										(self.credit_memo_id,))),
+						self.MEMO_DATE)
+
+	def test_the_cost_entry_is_dated_with_the_rest(self):
+		self.credit_item(2)
+		self.post()
+		self.assertEqual(str(self.one("SELECT ge.date_inserted "
+										"FROM gl_entries AS ge "
+										"JOIN inventory_transactions AS it "
+											"ON it.gl_entries_id = ge.id "
+										"WHERE it.credit_memo_item_id "
+											"IN (SELECT id FROM credit_memo_items "
+												"WHERE credit_memo_id = %s)",
+										(self.credit_memo_id,))),
+						self.MEMO_DATE)
+
+	def test_the_restock_row_is_dated_with_the_memo(self):
+		self.credit_item(2)
+		self.post()
+		self.assertEqual(str(self.one("SELECT date_inserted "
+										"FROM inventory_transactions "
+										"WHERE credit_memo_item_id IN "
+											"(SELECT id FROM credit_memo_items "
+											"WHERE credit_memo_id = %s)",
+										(self.credit_memo_id,))),
+						self.MEMO_DATE)
+
+	def test_a_memo_with_no_dated_for_falls_back_to_date_created(self):
+		# dated_for is nullable, and a memo raised before it was written here has
+		# only date_created, which is NOT NULL
+		self.cursor.execute("UPDATE credit_memos SET (dated_for, date_created) = "
+							"(NULL, '2026-03-20') WHERE id = %s",
+							(self.credit_memo_id,))
+		self.credit_item(2)
+		self.post()
+		self.assertEqual(str(self.one("SELECT date_inserted "
+										"FROM gl_transactions WHERE id = %s",
+										(self.transaction_id(),))), '2026-03-20')
+		self.assertEqual(str(self.one("SELECT date_inserted "
+										"FROM inventory_transactions "
+										"WHERE credit_memo_item_id IN "
+											"(SELECT id FROM credit_memo_items "
+											"WHERE credit_memo_id = %s)",
+										(self.credit_memo_id,))), '2026-03-20')
+
+	# ---------------- reversing the sale ----------------
 
 	def test_the_return_debits_revenue_not_the_cost_account(self):
 		# a return reverses the sale, so the retail amount comes off revenue;

@@ -215,15 +215,19 @@ def restock (credit_memo_id):
 	cost they left at rather than at the cost the product carries now, so the entry
 	that reverses the cost of the sale cancels it exactly. Items whose sale never
 	reached the ledger (invoiced before inventory was enabled) are skipped, because
-	they were never deducted. Posting the same memo twice restocks once'''
+	they were never deducted. Posting the same memo twice restocks once. The row
+	is dated with the memo, the date it prints with and the date its ledger
+	entries take, the way sell () dates a sale with its invoice'''
 	cursor = DB.cursor()
 	cursor.execute("INSERT INTO inventory_transactions "
 					"(product_id, qty_in, price, location_id, date_inserted, "
 					"reason, credit_memo_item_id) "
 					"SELECT ii.product_id, TRUNC(cmi.qty)::int, sale.price, "
-						"sale.location_id, CURRENT_DATE, 'Credit memo returned', "
-						"cmi.id "
+						"sale.location_id, "
+						"COALESCE(cm.dated_for, cm.date_created), "
+						"'Credit memo returned', cmi.id "
 					"FROM credit_memo_items AS cmi "
+					"JOIN credit_memos AS cm ON cm.id = cmi.credit_memo_id "
 					"JOIN invoice_items AS ii ON ii.id = cmi.invoice_item_id "
 					"JOIN products AS p ON p.id = ii.product_id "
 					"JOIN LATERAL (SELECT location_id, price "
