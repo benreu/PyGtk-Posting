@@ -447,7 +447,6 @@ class ContactsOverviewGUI(Gtk.Builder):
 	def populate_contact_shipping_addresses (self):
 		store = self.get_object('contact_shipping_addresses_store')
 		store.clear()
-		button = self.get_object('contact_shipping_addresses_button')
 		c = DB.cursor()
 		c.execute("SELECT "
 						"sa.id, "
@@ -465,10 +464,6 @@ class ContactsOverviewGUI(Gtk.Builder):
 					"ORDER BY sa.standard DESC, sa.description",
 					(self.contact_id,))
 		tupl = c.fetchall()
-		if tupl == []: # only show the shipping addresses button when addresses exist
-			button.hide()
-		else:
-			button.show()
 		for row in tupl:
 			store.append(row)
 		c.close()
