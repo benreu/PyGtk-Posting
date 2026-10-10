@@ -26,7 +26,7 @@ AUTO_COLOR = Gdk.RGBA(0, 0, 0, 1)
 REVIEW_COLOR = Gdk.RGBA(0.6, 0.35, 0, 1)   #amber: a real finding, but check it
 
 class ProductNameCleanupGUI ():
-	def __init__ (self, parent_window = None):
+	def __init__ (self):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -39,8 +39,6 @@ class ProductNameCleanupGUI ():
 		self.populating = False
 
 		self.window = self.builder.get_object('window')
-		if parent_window != None:
-			self.window.set_transient_for(parent_window)
 		self.window.show_all()
 		self.load()
 

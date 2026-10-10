@@ -134,6 +134,21 @@
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="copy_billing_address_button">
+                <property name="label" translatable="yes">Copy billing address</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Fill the address, city, state and zip from the contact's billing address</property>
+                <signal name="clicked" handler="copy_billing_address_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">3</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel" id="label11">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>

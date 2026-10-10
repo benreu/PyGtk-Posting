@@ -308,7 +308,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="no_show_all">True</property>
                     <signal name="clicked" handler="contact_shipping_addresses_clicked" swapped="no"/>
                   </object>
                   <packing>

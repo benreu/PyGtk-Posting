@@ -76,6 +76,23 @@ class ContactEditShippingAddressGUI:
 		c.close()
 		DB.rollback()
 
+	def copy_billing_address_clicked (self, button):
+		contact_id = self.contact_id
+		if contact_id == None: # a new address gets its contact_id after __init__
+			contact_id = self.overview_class.contact_id
+		if not contact_id:
+			return
+		c = DB.cursor()
+		c.execute("SELECT address, city, state, zip FROM contacts "
+					"WHERE id = %s", (contact_id,))
+		for row in c.fetchall():
+			self.builder.get_object('entry2').set_text(row[0])
+			self.builder.get_object('entry4').set_text(row[1])
+			self.builder.get_object('entry5').set_text(row[2])
+			self.builder.get_object('entry3').set_text(row[3])
+		c.close()
+		DB.rollback()
+
 	def cancel_clicked (self, button):
 		self.window.destroy()
 
