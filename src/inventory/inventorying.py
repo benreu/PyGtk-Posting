@@ -35,6 +35,25 @@ def first_location_id (cursor = None):
 		cursor.close()
 	return row[0] if row != None else None
 
+def on_hand (product_id, location_id = None, cursor = None):
+	'''what a product holds: at one location, or over all of them when
+	location_id is None. A list that spans every location shows the company wide
+	figure and has to say so; anything that acts on stock at one place -- a sale,
+	a build, an adjustment, a count -- has to name the location, or it measures
+	against stock it cannot touch. A caller already inside a transaction hands in
+	its own cursor, the same as first_location_id'''
+	own_cursor = cursor == None
+	if own_cursor:
+		cursor = DB.cursor()
+	cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
+					"FROM inventory_transactions WHERE product_id = %s "
+					"AND (%s::int IS NULL OR location_id = %s)",
+					(product_id, location_id, location_id))
+	qty = cursor.fetchone()[0]
+	if own_cursor:
+		cursor.close()
+	return qty
+
 def fractional_quantity_message (invoice_store):
 	'''inventory is counted in whole units, so a fractional quantity of a tracked
 	product would be silently truncated. Returns a message, or None if all is fine'''

@@ -1103,17 +1103,21 @@ def purchase_order_inventory_blocked (po_id):
 	inventory, or None. This reads the corrections already written in the open
 	transaction, so it must not commit or roll back; the caller decides'''
 	cursor = DB.cursor()
-	cursor.execute("SELECT p.name FROM inventory_transactions AS it "
+	# per location, the way every writer takes its stock: stock the company
+	# holds somewhere else is not stock this order can give back. Grouped on
+	# p.id as well, or two products sharing a name are weighed as one
+	cursor.execute("SELECT p.name, l.name FROM inventory_transactions AS it "
 					"JOIN products AS p ON p.id = it.product_id "
+					"JOIN locations AS l ON l.id = it.location_id "
 					"WHERE it.product_id IN (SELECT product_id "
 						"FROM purchase_order_items "
 						"WHERE purchase_order_id = %s) "
-					"GROUP BY p.name "
+					"GROUP BY p.id, p.name, l.id, l.name "
 					"HAVING SUM(it.qty_in) - SUM(it.qty_out) < 0", (po_id,))
 	row = cursor.fetchone()
 	if row != None:
 		cursor.close()
-		return "'%s' would go negative in inventory" % row[0]
+		return "'%s' would go negative in inventory at %s" % (row[0], row[1])
 	cursor.execute("SELECT poli.id FROM purchase_order_items AS poli "
 					"JOIN serial_numbers AS sn "
 						"ON sn.purchase_order_item_id = poli.id "

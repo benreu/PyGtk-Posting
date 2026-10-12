@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from db_connection import DB
+from inventory import inventorying
 from constants import ui_directory
 
 UI_FILE = ui_directory + "/product_hub.ui"
@@ -33,14 +34,11 @@ class ProductHubGUI:
 		cursor.execute ("SELECT name FROM products WHERE id = %s",
 														(product_id,))
 		self.name = cursor.fetchone()[0]
-		cursor.execute ("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-							"FROM inventory_transactions WHERE product_id = %s",
-														(product_id,))
-		on_hand = cursor.fetchone()[0]
+		on_hand = inventorying.on_hand (product_id, cursor = cursor)
 		cursor.close()
 		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
-		self.builder.get_object('label_on_hand').set_label("On hand: %s" % on_hand)
+		self.builder.get_object('label_on_hand').set_label("On hand (all locations): %s" % on_hand)
 		self.window = self.builder.get_object('window1')
 		self.window.show_all()
 

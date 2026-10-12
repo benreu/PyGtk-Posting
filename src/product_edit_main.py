@@ -20,6 +20,7 @@ import subprocess
 from db_connection import broadcaster, DB
 from constants import ui_directory, is_admin, help_dir, template_dir, PRODUCT_LOCK_CLASSID
 import product_name_rules
+from inventory import inventorying
 from accounts import 	product_revenue_tree, \
 						product_expense_tree, \
 						product_inventory_tree, \
@@ -424,10 +425,8 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.get_object('checkbutton7').set_active(row[23])
 			self.get_object('stock_checkbutton').set_active(row[24])
 			self.get_object('inventory_enabled_checkbutton').set_active(row[25])
-		c.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-					"FROM inventory_transactions WHERE product_id = %s",
-					(self.product_id,))
-		self.get_object('label24').set_label(str(c.fetchone()[0]))
+		self.get_object('label24').set_label(
+					str(inventorying.on_hand (self.product_id, cursor = c)))
 		c.close()
 		DB.rollback()
 		self.load_product_terms_prices ()

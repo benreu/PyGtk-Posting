@@ -352,13 +352,7 @@ class ProjectEditGUI(Gtk.Builder):
 		'''the stock at one location, or the company's whole stock when
 		location_id is None. A line is only short against the location the post
 		will take the part from, so the company wide figure is for display'''
-		c = DB.cursor()
-		c.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-					"FROM inventory_transactions WHERE product_id = %s "
-					"AND (%s::int IS NULL OR location_id = %s)",
-					(product_id, location_id, location_id))
-		on_hand = c.fetchone()[0]
-		c.close()
+		on_hand = inventorying.on_hand (product_id, location_id)
 		DB.rollback()
 		return on_hand
 

@@ -121,6 +121,7 @@
                 <property name="can_focus">False</property>
                 <property name="model">location_store</property>
                 <property name="id_column">0</property>
+                <signal name="changed" handler="location_combo_changed" swapped="no"/>
                 <child>
                   <object class="GtkCellRendererText" id="cellrenderertext2"/>
                   <attributes>

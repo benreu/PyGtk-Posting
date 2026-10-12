@@ -514,7 +514,7 @@
                                             <property name="can_focus">False</property>
                                             <property name="halign">end</property>
                                             <property name="hexpand">True</property>
-                                            <property name="label" translatable="yes">Current inventory</property>
+                                            <property name="label" translatable="yes">Current inventory (all locations)</property>
                                           </object>
                                           <packing>
                                             <property name="expand">True</property>

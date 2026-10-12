@@ -453,7 +453,7 @@
                 <child>
                   <object class="GtkTreeViewColumn" id="on_hand_column">
                     <property name="resizable">True</property>
-                    <property name="title" translatable="yes">On hand</property>
+                    <property name="title" translatable="yes">On hand (all locations)</property>
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">12</property>
                     <child>

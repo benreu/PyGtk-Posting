@@ -20,6 +20,7 @@ from decimal import Decimal
 from db_connection import DB
 from constants import ui_directory
 from db import transactor
+from inventory import inventorying
 
 UI_FILE = ui_directory + "/inventory/inventory_adjustment.ui"
 
@@ -29,6 +30,7 @@ class InventoryAdjustmentGUI:
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
+		self.product_id = None # no product is picked until the combo changes
 
 		self.product_store = self.builder.get_object('product_store')
 		self.location_store = self.builder.get_object('location_store')
@@ -88,13 +90,8 @@ class InventoryAdjustmentGUI:
 			combo = self.builder.get_object('comboboxtext3')
 			combo.remove_all()
 			combo.append("1","Starting inventory")
-		inventory = 0
-		cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-							"FROM inventory_transactions "
-							"WHERE product_id = %s "
-							"GROUP BY product_id", (product_id,))
-		for row in cursor.fetchall():
-			inventory = row[0]
+		location_id = self.builder.get_object('combobox3').get_active_id()
+		inventory = inventorying.on_hand (product_id, location_id, cursor)
 		cursor.close()
 		self.builder.get_object('label24').set_text(str(inventory))
 		self.builder.get_object('label_no_inventory_account').set_visible(
@@ -108,17 +105,26 @@ class InventoryAdjustmentGUI:
 
 	def inventory_adjustment_spinbutton_changed(self, spinbutton):
 		adjustment_amount = spinbutton.get_value()
-		inventory = 0
-		cursor = DB.cursor()
-		cursor.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-							"FROM inventory_transactions "
-							"WHERE product_id = %s", (self.product_id,))
-		for row in cursor.fetchall():
-			inventory = row[0]
-		cursor.close()
+		if self.product_id == None:
+			return
+		location_id = self.builder.get_object('combobox3').get_active_id()
+		inventory = inventorying.on_hand (self.product_id, location_id)
 		current_inventory = str(inventory + adjustment_amount)
 		self.builder.get_object('label23').set_text(current_inventory)
 		DB.rollback()
+
+	def location_combo_changed (self, combo):
+		'''both figures are the stock at the location the adjustment will be
+		written to, so they have to follow this combo. It is set active while
+		the window is still being built, before any product is picked'''
+		if self.product_id == None:
+			return
+		inventory = inventorying.on_hand (self.product_id,
+							combo.get_active_id())
+		self.builder.get_object('label24').set_text(str(inventory))
+		DB.rollback()
+		self.inventory_adjustment_spinbutton_changed(
+							self.builder.get_object('spinbutton12'))
 
 	def inventory_adjustment_combobox_changed(self, widget):
 		if self.product_id != 0 and self.inventory_account != None:
