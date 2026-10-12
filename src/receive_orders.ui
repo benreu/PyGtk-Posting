@@ -48,6 +48,16 @@
       <column type="gfloat"/>
       <!-- column-name sell_price -->
       <column type="gfloat"/>
+      <!-- column-name serial_numbers -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="serial_number_store">
+    <columns>
+      <!-- column-name serial_number -->
+      <column type="gchararray"/>
+      <!-- column-name serial_number_id -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkMenu" id="receive_order_item_menu">
@@ -350,6 +360,120 @@
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox" id="serial_number_box">
+            <property name="sensitive">False</property>
+            <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
+            <property name="margin_top">10</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkLabel" id="serial_number_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Serial numbers </property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="serial_number_entry">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">18</property>
+                <property name="placeholder_text" translatable="yes">Scan or type a serial number</property>
+                <signal name="activate" handler="serial_number_entry_activated" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="serial_scrolledwindow">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="height_request">90</property>
+                <property name="shadow_type">in</property>
+                <child>
+                  <object class="GtkTreeView" id="serial_number_treeview">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="model">serial_number_store</property>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection" id="serial_number_selection"/>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="serial_number_column">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Entered on this line</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="cellrenderertext9"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="serial_button_box">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkLabel" id="serial_count_label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">0 of 0</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="remove_serial_number_button">
+                    <property name="label" translatable="yes">Remove</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <signal name="clicked" handler="remove_serial_number_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
