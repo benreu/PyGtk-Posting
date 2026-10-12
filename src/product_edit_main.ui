@@ -77,7 +77,7 @@
     </child>
   </object>
   <object class="GtkAdjustment" id="min_stock_adjustment">
-    <property name="upper">500</property>
+    <property name="upper">32767</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -100,7 +100,7 @@
     </child>
   </object>
   <object class="GtkAdjustment" id="reorder_qty_adjustment">
-    <property name="upper">100</property>
+    <property name="upper">32767</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -460,7 +460,7 @@
                                       <object class="GtkLabel" id="label62">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">Mininum stock</property>
+                                        <property name="label" translatable="yes">Minimum stock</property>
                                       </object>
                                       <packing>
                                         <property name="left_attach">0</property>

@@ -265,6 +265,10 @@ class MainGUI :
 		from reports import product_markup
 		product_markup.ProductMarkupGUI()
 
+	def products_to_reorder_activated (self, widget):
+		from reports import products_to_reorder
+		products_to_reorder.ProductsToReorderGUI()
+
 	def document_history_window (self, widget):
 		from reports import document_history
 		document_history.DocumentHistoryGUI()

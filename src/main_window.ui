@@ -584,6 +584,15 @@
                                 <signal name="activate" handler="product_account_relationship" swapped="no"/>
                               </object>
                             </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Products to reorder</property>
+                                <property name="use-underline">True</property>
+                                <signal name="activate" handler="products_to_reorder_activated" swapped="no"/>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>
