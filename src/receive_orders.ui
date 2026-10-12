@@ -187,10 +187,11 @@
                 <property name="can_focus">True</property>
                 <property name="model">receive_order_store</property>
                 <property name="activate_on_single_click">True</property>
-                <signal name="row-activated" handler="receive_treeview_activated" swapped="no"/>
                 <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection1"/>
+                  <object class="GtkTreeSelection" id="treeview-selection1">
+                    <signal name="changed" handler="receive_selection_changed" swapped="no"/>
+                  </object>
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">

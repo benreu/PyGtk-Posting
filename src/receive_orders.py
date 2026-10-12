@@ -18,6 +18,7 @@
 from gi.repository import Gtk, GLib
 import subprocess
 from inventory import inventorying
+from db.transactor import mark_purchase_order_received
 import locations, barcode_generator
 from pricing import product_retail_price
 from db_connection import DB
@@ -32,6 +33,8 @@ class ReceiveOrdersGUI:
 	def __init__(self):
 
 		self.previous_keyname = None
+		self.populating = False
+		self.receive_line = None # the line the spinbutton counts, or None
 		self.ascending = False
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -111,12 +114,25 @@ class ReceiveOrdersGUI:
 		else:
 			location_combo.set_active_id(active_id)
 
-	def receive_treeview_activated (self, treeview, path, treeview_column):
-		qty = self.receive_order_store[path][6]
-		ordered = self.receive_order_store[path][1]
-		receive_spinbutton = self.builder.get_object('spinbutton1')
-		receive_spinbutton.set_value(qty)
-		receive_spinbutton.set_range(0, ordered)
+	def receive_selection_changed (self, selection):
+		'''the spinbutton counts the line that is highlighted, so it is loaded
+		from the selection and not from an activation: a click activates a row
+		in this treeview, but arrow keys only move the selection, and the count
+		has to follow either way. The range goes in before the value, or the
+		line loaded before this one clamps its count, and the handler writes
+		that number back to a line nobody touched'''
+		model, path = selection.get_selected_rows()
+		spinbutton = self.builder.get_object('spinbutton1')
+		self.populating = True # loading a line must not count it in again
+		if path == []:
+			self.receive_line = None
+			spinbutton.set_range(0, 0)
+			spinbutton.set_value(0)
+		else:
+			self.receive_line = path
+			spinbutton.set_range(0, self.receive_order_store[path][1])
+			spinbutton.set_value(self.receive_order_store[path][6])
+		self.populating = False
 
 	def treeview_button_release_event (self, treeview, event):
 		if event.button == 3:
@@ -136,23 +152,42 @@ class ReceiveOrdersGUI:
 		locations.LocationsGUI()
 
 	def close_purchase_order_clicked (self, button):
+		'''posts what has been counted in. The order is marked received only
+		once all of it has arrived; short of that it stays on the list above, so
+		the rest of the shipment can be counted in and posted when it comes'''
 		po_combo = self.builder.get_object('combobox1')
 		po_id = po_combo.get_active_id ()
 		cursor = DB.cursor()
-		cursor.execute("UPDATE purchase_orders SET "
-							"received = True WHERE id = %s", (po_id,))
+		#a line this window listed and nobody counted has arrived in the
+		#quantity it shows, which is none. Leaving the count NULL would receive
+		#it in full, the reading receive () takes of a line it was never shown
+		cursor.execute("UPDATE purchase_order_items AS poli SET received = 0 "
+						"FROM products AS p "
+						"WHERE p.id = poli.product_id "
+						"AND poli.received IS NULL "
+						"AND (poli.purchase_order_id, p.expense) = (%s, False)",
+						(po_id,))
 		cursor.close()
 		location_id = self.builder.get_object('combobox2').get_active_id()
 		inventorying.receive(po_id, location_id)
+		mark_purchase_order_received (po_id)
 		DB.commit()
 		self.populate_purchase_order_combo()
 
 	def check_if_all_products_received (self):
+		'''the button posts whatever has been counted in, so what it is called
+		is what changes here, not whether it works. The store holds only the
+		lines this window lists, which is all the label needs: a line it does
+		not show is one nobody can count here, and mark_purchase_order_received
+		weighs those up for itself when it decides to close the order'''
+		button = self.builder.get_object('button3')
+		po_id = self.builder.get_object('combobox1').get_active_id()
+		button.set_sensitive(po_id != None)
 		for row in self.receive_order_store:
 			if row[1] != row[6]:
-				self.builder.get_object('button3').set_sensitive(False)
+				button.set_label("Post Partial Receipt")
 				return
-		self.builder.get_object('button3').set_sensitive(True)
+		button.set_label("Close Purchase Order")
 
 	def receive_all_products_clicked(self, button):
 		cursor = DB.cursor()
@@ -170,20 +205,22 @@ class ReceiveOrdersGUI:
 								(ordered, row_id))
 			DB.commit()
 		cursor.close()
-		self.builder.get_object('button3').set_sensitive(True)
+		#the count the spinbutton was loaded with has just changed under it
+		selection = self.builder.get_object('treeview-selection1')
+		self.receive_selection_changed (selection)
+		self.check_if_all_products_received()
 
 	def received_spinbutton_changed (self, spinbutton):
-		selection = self.builder.get_object('treeview-selection1')
-		model, path = selection.get_selected_rows()
-		if path == []:
-			spinbutton.set_text('0')
+		if self.populating == True:
+			return
+		path = self.receive_line
+		if path == None: # no line is highlighted, so there is none to count
 			return
 		previous_qty = self.receive_order_store[path][6]
-		qty = spinbutton.get_value()
-		difference = int(qty-previous_qty)
+		qty = spinbutton.get_value_as_int()
 		row_id = self.receive_order_store[path][0]
 		product_id = self.receive_order_store[path][2]
-		for i in range(difference):	
+		for i in range(qty - previous_qty):
 			GLib.timeout_add(10, self.print_label, product_id)
 		self.receive_order_store[path][6] = qty
 		cursor = DB.cursor()

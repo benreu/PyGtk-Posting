@@ -927,3 +927,21 @@ BEGIN
 	END IF;
 END
 $$;
+
+/* purchase_order_items.received used to be a note to the user: the receive
+   window counted what arrived into it and nothing else ever read it. It now
+   decides what reaches stock, so it has to hold whatever qty can hold at the
+   scale inventory_transactions.qty_in counts in, and the window's spinbutton
+   takes its range from the line quantity, so a line of more than 32767 units
+   was already reachable. Guarded because this file runs from the top on every
+   upgrade, and a type change rewrites the table. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns
+				WHERE (table_schema, table_name, column_name, data_type) =
+					('public', 'purchase_order_items', 'received', 'smallint'))
+		THEN ALTER TABLE public.purchase_order_items
+				ALTER COLUMN received TYPE integer;
+	END IF;
+END
+$$;

@@ -256,23 +256,51 @@ def restock (credit_memo_id):
 					(credit_memo_id,))
 	cursor.close()
 
-def receive (po_id, location_id):
+def receive (po_id, location_id = None):
+	'''posts what has arrived on an order and has not been posted yet. A line's
+	receipt is the count the receive window entered,
+	purchase_order_items.received; a line that window never counted arrives in
+	full, which is what every order did before it could be received in part, and
+	what the lines the window cannot list still need: an expense product that is
+	tracked in inventory anyway, and a line added to the order while the window
+	was open. Only the shortfall is written, as one row dated today, so a second
+	shipment is a receipt of its own on its own date and receiving again with
+	nothing new in between writes nothing. A count that has come down takes the
+	rows with it. A location of None takes the one the order's last receipt used,
+	for the resync path, which has no window to ask'''
 	cursor = DB.cursor()
+	if location_id == None:
+		cursor.execute("SELECT it.location_id FROM inventory_transactions AS it "
+						"JOIN purchase_order_items AS poli "
+							"ON poli.id = it.purchase_order_item_id "
+						"WHERE poli.purchase_order_id = %s "
+						"ORDER BY it.id DESC LIMIT 1", (po_id,))
+		row = cursor.fetchone()
+		location_id = row[0] if row != None else first_location_id (cursor)
+	transactor.trim_purchase_order_receipts (cursor, po_id)
+	#a canceled line is left out rather than counted as zero: its rows are
+	#already zeroed, by cancel_purchase_order_item and by the trim above, while
+	#the count it was received at stays on the line, and a shortfall measured
+	#against that count would post the canceled stock all over again
 	cursor.execute("WITH cte AS "
 						"(SELECT "
 							"poli.id, "
-							"poli.qty, "
+							"COALESCE(poli.received, poli.qty)::int "
+								"- COALESCE(posted.qty_in, 0), "
 							"poli.product_id, "
 							"COALESCE(poli.price, 0), "
 							"%s::int, "
 							"CURRENT_DATE "
 						"FROM purchase_order_items AS poli "
 						"JOIN products AS p ON p.id = poli.product_id "
+						"LEFT JOIN LATERAL (SELECT SUM(it.qty_in) AS qty_in "
+							"FROM inventory_transactions AS it "
+							"WHERE it.purchase_order_item_id = poli.id) "
+							"AS posted ON True "
 						"WHERE (poli.purchase_order_id, p.inventory_enabled, "
 						"poli.canceled) = (%s, True, False) "
-						"AND poli.qty > 0 "
-						"AND NOT EXISTS (SELECT 1 FROM inventory_transactions AS it "
-							"WHERE it.purchase_order_item_id = poli.id) "
+						"AND COALESCE(poli.received, poli.qty)::int "
+							"> COALESCE(posted.qty_in, 0) "
 						") "
 					"INSERT INTO inventory_transactions "
 					"(purchase_order_item_id, qty_in, product_id, "

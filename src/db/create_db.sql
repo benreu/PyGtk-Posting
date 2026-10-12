@@ -582,7 +582,7 @@ CREATE TABLE public.purchase_order_items (
     price numeric(12,5),
     ext_price numeric(12,2),
     canceled boolean NOT NULL DEFAULT false,
-    received smallint,
+    received integer,
     product_id integer NOT NULL REFERENCES public.products (id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT,
     expense_account bigint REFERENCES public.gl_accounts ("number") MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT,
     gl_entries_id bigint REFERENCES public.gl_entries (id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT,

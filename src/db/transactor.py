@@ -1126,28 +1126,123 @@ def purchase_order_inventory_blocked (po_id):
 		return "Line %s has more serial numbers than its new quantity" % row[0]
 	return None
 
+def trim_purchase_order_receipts (cursor, po_id):
+	'''brings the receipts of an order back down when less arrived than has
+	already been posted, or when the order itself was corrected downwards. A
+	line's receipt is the count the receive window entered, and a line that
+	window never counted is owed in full, the same reading receive () takes of
+	a count that is NULL. The count is allocated over the line's receipt rows
+	oldest first: each row keeps what the count still covers and the rest goes
+	to zero, so the rows an earlier shipment wrote keep their own dates. A row
+	is zeroed rather than deleted, the way unsell () and
+	cancel_purchase_order_item leave theirs in place. This only ever takes a
+	row down; what is still owed is put in by receive (), which dates a new row
+	with the day the stock arrived, or by resync_purchase_order_inventory,
+	which does not. The caller's cursor is used, the same as post_invoice_cogs ()'''
+	cursor.execute("WITH posted AS "
+						"(SELECT it.id, it.qty_in, "
+							"COALESCE(poli.received, poli.qty)::int AS received, "
+							"COALESCE(SUM(it.qty_in) OVER "
+								"(PARTITION BY it.purchase_order_item_id "
+								"ORDER BY it.id "
+								"ROWS BETWEEN UNBOUNDED PRECEDING "
+									"AND 1 PRECEDING), 0) AS earlier "
+						"FROM inventory_transactions AS it "
+						"JOIN purchase_order_items AS poli "
+							"ON poli.id = it.purchase_order_item_id "
+						"WHERE (poli.purchase_order_id, poli.canceled) = "
+							"(%s, False)), "
+					"trimmed AS "
+						"(SELECT id, "
+							"GREATEST(LEAST(qty_in, received - earlier), 0) "
+								"AS qty_in "
+						"FROM posted) "
+					"UPDATE inventory_transactions AS it SET qty_in = t.qty_in "
+					"FROM trimmed AS t "
+					"WHERE it.id = t.id AND it.qty_in != t.qty_in", (po_id,))
+
+def mark_purchase_order_received (po_id):
+	'''marks the order received once everything it ordered has arrived, and says
+	whether it did. A short shipment leaves the flag alone, so the order stays on
+	the receive window's list and the rest of it can still be counted in and
+	posted. A line nobody counted there counts as arrived, the same reading
+	receive () takes of a count that is NULL, and a canceled line is not owed at
+	all. The line items decide this rather than what the window has on screen:
+	the window lists no expense product, and those lines are owed too'''
+	cursor = DB.cursor()
+	cursor.execute("UPDATE purchase_orders SET received = True "
+					"WHERE id = %s "
+					"AND NOT EXISTS (SELECT 1 FROM purchase_order_items AS poli "
+						"WHERE poli.purchase_order_id = purchase_orders.id "
+						"AND NOT poli.canceled "
+						"AND COALESCE(poli.received, poli.qty) < poli.qty) "
+					"RETURNING id", (po_id,))
+	received = cursor.fetchone() != None
+	cursor.close()
+	return received
+
 def resync_purchase_order_inventory (po_id):
 	'''follows corrected quantities and prices into inventory. Purchase order
 	receipts carry no ledger entry, so the receipt rows are updated in place
-	rather than offset with an adjusting row'''
+	rather than offset with an adjusting row: a correction is not a shipment,
+	and only receive () writes a row dated the day stock arrived'''
 	cursor = DB.cursor()
-	cursor.execute("SELECT received FROM purchase_orders WHERE id = %s",
-					(po_id,))
-	if cursor.fetchone()[0] == False: #receive() will pick these up later
+	#an order nothing has been received on is left to receive (). One received in
+	#part carries rows while its received flag is still False, and they have to
+	#follow a correction like any other
+	cursor.execute("SELECT po.received OR EXISTS "
+						"(SELECT 1 FROM inventory_transactions AS it "
+						"JOIN purchase_order_items AS poli "
+							"ON poli.id = it.purchase_order_item_id "
+						"WHERE poli.purchase_order_id = po.id) "
+					"FROM purchase_orders AS po WHERE po.id = %s", (po_id,))
+	if cursor.fetchone()[0] == False:
 		cursor.close()
 		return
-	cursor.execute("UPDATE inventory_transactions AS it SET (qty_in, price) = "
-						"(CASE WHEN poli.canceled THEN 0 "
-							"ELSE poli.qty::int END, COALESCE(poli.price, 0)) "
+	#the price correction lands on every receipt row of the line, a partial
+	#order's second and third shipment included
+	cursor.execute("UPDATE inventory_transactions AS it "
+						"SET price = COALESCE(poli.price, 0) "
 					"FROM purchase_order_items AS poli "
 					"WHERE it.purchase_order_item_id = poli.id "
 					"AND poli.purchase_order_id = %s", (po_id,))
+	cursor.execute("UPDATE inventory_transactions AS it SET qty_in = 0 "
+					"FROM purchase_order_items AS poli "
+					"WHERE it.purchase_order_item_id = poli.id "
+					"AND (poli.purchase_order_id, poli.canceled) = (%s, True)",
+					(po_id,))
+	#an order corrected below what was counted in takes the count down with it:
+	#the receive window cannot count a line past its quantity, so a count left
+	#above it would hold stock the order no longer claims. A canceled line is
+	#corrected to nothing, so this empties its count too
+	cursor.execute("UPDATE purchase_order_items SET received = qty "
+					"WHERE purchase_order_id = %s AND received > qty", (po_id,))
+	trim_purchase_order_receipts (cursor, po_id)
+	#what the correction added goes onto the line's newest row rather than into a
+	#row of its own: no stock arrived today, the order was restated. The trim
+	#above has already taken the rows down to the count, so the difference left
+	#here can only be owed, never over
+	cursor.execute("WITH short AS "
+						"(SELECT DISTINCT ON (poli.id) it.id, "
+							"COALESCE(poli.received, poli.qty)::int "
+								"- SUM(it.qty_in) OVER (PARTITION BY poli.id) "
+								"AS difference "
+						"FROM purchase_order_items AS poli "
+						"JOIN inventory_transactions AS it "
+							"ON it.purchase_order_item_id = poli.id "
+						"WHERE (poli.purchase_order_id, poli.canceled) = "
+							"(%s, False) "
+						"ORDER BY poli.id, it.id DESC) "
+					"UPDATE inventory_transactions AS it "
+						"SET qty_in = it.qty_in + short.difference "
+					"FROM short "
+					"WHERE it.id = short.id AND short.difference > 0", (po_id,))
 	#lines added after the purchase order was received still need a receipt
 	cursor.execute("INSERT INTO inventory_transactions "
 						"(purchase_order_item_id, qty_in, product_id, price, "
 						"location_id, date_inserted) "
-					"SELECT poli.id, poli.qty::int, poli.product_id, "
-						"COALESCE(poli.price, 0), "
+					"SELECT poli.id, COALESCE(poli.received, poli.qty)::int, "
+						"poli.product_id, COALESCE(poli.price, 0), "
 						"COALESCE((SELECT it.location_id "
 							"FROM inventory_transactions AS it "
 							"JOIN purchase_order_items AS sibling "
@@ -1160,6 +1255,7 @@ def resync_purchase_order_inventory (po_id):
 					"JOIN products AS p ON p.id = poli.product_id "
 					"WHERE (poli.purchase_order_id, poli.canceled, "
 						"p.inventory_enabled) = (%s, False, True) "
+					"AND COALESCE(poli.received, poli.qty)::int > 0 "
 					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
 						"WHERE purchase_order_item_id = poli.id)",
 					(po_id, po_id))
