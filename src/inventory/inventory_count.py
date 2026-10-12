@@ -17,7 +17,7 @@
 from gi.repository import Gtk, GLib
 from decimal import Decimal
 from pricing import product_retail_price
-from db_connection import DB
+from db_connection import DB, broadcaster
 from constants import ui_directory
 
 UI_FILE = ui_directory + "/inventory/inventory_count.ui"
@@ -29,10 +29,16 @@ class InventoryCountGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.summary_id = None # no count is picked until the combo changes
 		self.product_store = self.get_object('product_store')
 		self.populate_stores()
 		product_completion = self.get_object('product_completion')
 		product_completion.set_match_func(self.product_match_func)
+		self.handler_ids = list()
+		for connection in (("inventory_counts_changed",
+							self.count_summaries_changed),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window1')
 		self.window.show_all()
@@ -59,7 +65,57 @@ class InventoryCountGUI(Gtk.Builder):
 		DB.rollback()
 	
 	def destroy (self, widget):
-		pass
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+
+	def count_summaries_changed (self, broadcaster, summary_id):
+		'''some count summary was inserted or changed, here or on another machine.
+		Only a close concerns this window, and only of the count it is holding: the
+		closing window drops its own summary id before it commits, so the notify it
+		causes itself falls through to the repopulate'''
+		if self.summary_id != None and int(self.summary_id) == summary_id:
+			c = DB.cursor()
+			c.execute("SELECT active, name FROM inventory.count_summaries "
+						"WHERE id = %s", (summary_id,))
+			active, name = c.fetchone()
+			c.close()
+			# a handler can run inside somebody else's commit, so the read
+			# transaction it opened has to be given back
+			DB.rollback()
+			if active == False:
+				self.count_closed_elsewhere (name)
+				return
+		self.populate_stores ()
+
+	def count_closed_elsewhere (self, name = None):
+		'''let go of a count that is no longer open. Reached from the broadcast and
+		from a write the database refused, which on a machine that has lost its
+		connection is the only warning there is going to be'''
+		if name == None:
+			c = DB.cursor()
+			c.execute("SELECT name FROM inventory.count_summaries WHERE id = %s",
+						(self.summary_id,))
+			name = c.fetchone()[0]
+			c.close()
+			DB.rollback()
+		self.reset_after_close ()
+		self.show_message ("'%s' is closed, so this window has let it go."
+							% GLib.markup_escape_text(name),
+							"Anything counted into it since it was closed was not "
+							"recorded. The count was closed either on another machine "
+							"or in another window.",
+							Gtk.MessageType.WARNING)
+
+	def reset_after_close (self):
+		'''a closed count leaves the combo because populate_stores filters on
+		active, but clearing the model raises no usable changed signal, so summary_id
+		would still point at it and the next scan would count into a closed count.
+		Desensitising the box is what really stops that'''
+		self.summary_id = None
+		self.populate_stores ()
+		self.get_object('widget_box').set_sensitive(False)
+		self.get_object('inventory_rows_store').clear()
+		self.get_object('missing_barcode_store').clear()
 
 	def widget_focus_in_event (self, widget, event):
 		GLib.idle_add(widget.select_region, 0, -1)
@@ -91,10 +147,18 @@ class InventoryCountGUI(Gtk.Builder):
 			return
 		c = DB.cursor()
 		c.execute("UPDATE inventory.count_rows SET qty = %s "
-					"WHERE (product_id, count_summary_id) = (%s, %s) ",
-					(qty, product_id, self.summary_id))
+					"WHERE (product_id, count_summary_id) = (%s, %s) "
+					"AND EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active)",
+					(qty, product_id, self.summary_id, self.summary_id))
+		refused = c.rowcount == 0
 		c.close()
 		DB.commit()
+		if refused:
+			# the only thing the guard can refuse is a count closed meanwhile, so
+			# say so rather than leaving the edit to fail silently
+			self.count_closed_elsewhere ()
+			return
 		store[path][0] = qty
 		self.populate_inventory_count ()
 
@@ -110,8 +174,10 @@ class InventoryCountGUI(Gtk.Builder):
 		product_id = model[path][1]
 		c = DB.cursor()
 		c.execute("DELETE FROM inventory.count_rows "
-					"WHERE (count_summary_id, product_id) = (%s, %s)",
-					(self.summary_id, product_id))
+					"WHERE (count_summary_id, product_id) = (%s, %s) "
+					"AND EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active)",
+					(self.summary_id, product_id, self.summary_id))
 		DB.commit()
 		self.populate_inventory_count ()
 
@@ -155,18 +221,25 @@ class InventoryCountGUI(Gtk.Builder):
 		c = DB.cursor()
 		c.execute("INSERT INTO inventory.count_rows AS cr "
 					"(count_summary_id, product_id, qty, cost, retail) "
-					"VALUES (%s, "
+					"SELECT %s, "
 						"%s, "
 						"1, "
-						"(SELECT cost FROM products WHERE id = %s)," 
-						"(SELECT product_retail_price(%s))"
-						") "
+						"(SELECT cost FROM products WHERE id = %s), "
+						"(SELECT product_retail_price(%s)) "
+					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active) "
 					"ON CONFLICT (count_summary_id, product_id) "
 					"DO UPDATE SET qty = cr.qty + 1 "
 					"WHERE (cr.count_summary_id, cr.product_id) = (%s, %s)",
 					(self.summary_id, product_id,  product_id, product_id,
-					self.summary_id, product_id))
+					self.summary_id, self.summary_id, product_id))
+		refused = c.rowcount == 0
 		DB.commit()
+		if refused:
+			# a closed count is the only thing that proposes no row here, and a
+			# scan that quietly counts nothing is worse than being interrupted
+			self.count_closed_elsewhere ()
+			return
 		self.populate_inventory_count ()
 
 	def populate_inventory_count (self):
@@ -260,6 +333,12 @@ class InventoryCountGUI(Gtk.Builder):
 			self.show_message ("The count was not closed",
 								GLib.markup_escape_text(str(e)))
 			return
+		# the summary id goes before the commit, not after: the commit delivers our
+		# own notify synchronously, and a window still holding this id would take it
+		# for a close by somebody else and show itself the warning meant for that.
+		# Only the id can move, the rest of the reset repopulates and so ends in a
+		# rollback, which here would throw the close away
+		self.summary_id = None
 		DB.commit()
 		self.show_message ("Closed '%s'.\n\n%s of %s counted products corrected."
 							% (GLib.markup_escape_text(name), corrected, products),
@@ -268,15 +347,7 @@ class InventoryCountGUI(Gtk.Builder):
 								+ self.shorten(skipped)),
 							Gtk.MessageType.INFO if skipped == None
 								else Gtk.MessageType.WARNING)
-		# the closed count leaves the combo because populate_stores filters on
-		# active, but clearing the model raises no usable changed signal, so
-		# summary_id would still point at it and the next scan would count into a
-		# closed count. Desensitising the box is what really stops that
-		self.populate_stores ()
-		self.get_object('widget_box').set_sensitive(False)
-		self.get_object('inventory_rows_store').clear()
-		self.get_object('missing_barcode_store').clear()
-		self.summary_id = None
+		self.reset_after_close ()
 
 	def shorten (self, message, limit = 20):
 		'''a count can hold hundreds of products with no inventory account, and

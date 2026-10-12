@@ -17,7 +17,7 @@
 from gi.repository import Gtk
 from decimal import Decimal
 from pricing import product_retail_price
-from db_connection import DB
+from db_connection import DB, broadcaster
 from constants import ui_directory
 
 UI_FILE = ui_directory + "/inventory/inventory_summaries.ui"
@@ -33,13 +33,26 @@ class InventorySummariesGUI(Gtk.Builder):
 		self.id = 0
 		self.active = True
 		self.populate_stores()
+		self.handler_ids = list()
+		for connection in (("inventory_counts_changed", self.count_summaries_changed),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 		self.window = self.get_object('window1')
 		self.window.show_all()
 		self.check_info_validity()
 	
 	def destroy (self, widget):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+		# the broadcast refreshes the parent at save time now, which is sooner, but
+		# this costs one query and keeps working if the parent ever stops listening
 		if self.parent:
 			self.parent.populate_stores()
+
+	def count_summaries_changed (self, broadcaster, summary_id):
+		'''the treeview lists closed counts too, so a close only has to show up in
+		it: check_info_validity is what refuses to save one'''
+		self.populate_stores ()
 
 	def populate_stores (self):
 		c = DB.cursor()

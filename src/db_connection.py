@@ -498,6 +498,7 @@ class Broadcast(GObject.GObject):
 		'documents_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
 		'loans_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
 		'resources_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
+		'inventory_counts_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)),
 		'admin_changed': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
 		'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
 	}
@@ -542,7 +543,8 @@ class Broadcast(GObject.GObject):
 				  "LISTEN job_sheets;"
 				  "LISTEN documents;"
 				  "LISTEN loans;"
-				  "LISTEN resources;")
+				  "LISTEN resources;"
+				  "LISTEN inventory_counts;")
 		c.close()
 		DB.commit()
 
@@ -625,6 +627,12 @@ class Broadcast(GObject.GObject):
 					resource_id = notify.payload
 					self.emit("resources_changed", int(resource_id),
 							  notify.pid != DB_PROCESS_ID)
+				elif notify.channel == "inventory_counts":
+					# no pid filter, unlike every channel above: windows in one process
+					# share one connection, so a sibling count window would be filtered
+					# out of the very close it has to hear about. Whether this concerns a
+					# window is decided by its own summary id, not by which backend wrote
+					self.emit("inventory_counts_changed", int(notify.payload))
 		except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
 			# the connection died while handling a background notification - DB has
 			# already reconnected (or is reconnecting) via the cursor that hit this;

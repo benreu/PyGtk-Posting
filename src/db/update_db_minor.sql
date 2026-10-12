@@ -882,3 +882,48 @@ ALTER TABLE public.inventory_transactions
 CREATE UNIQUE INDEX IF NOT EXISTS inventory_transactions_count_summary_product_uq
 	ON public.inventory_transactions (count_summary_id, product_id)
 	WHERE count_summary_id IS NOT NULL;
+
+--0.7.23
+/* A count summary open in one window could be closed in another, and nothing
+   said so: the stale window kept its summary id and went on writing count rows
+   into a count that was already corrected and closed. A count created or renamed
+   on one machine was invisible on every other one for the same reason, there was
+   no notification for the inventory schema at all.
+
+   One function serves both triggers because the bodies would be identical. The
+   payload is the summary id as text, which is what every other channel carries. */
+CREATE OR REPLACE FUNCTION inventory.count_summary_changed() RETURNS trigger
+    LANGUAGE plpgsql
+    AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('inventory_counts', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+
+/* Guarded, because this file runs from the top on every upgrade. total_cost,
+   total_retail and date_ended are deliberately left out of the WHEN clause: the
+   close writes them in the same statement as active, so they would add nothing,
+   and nothing else writes them at all. */
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'count_summary_insert_trigger') THEN
+		CREATE TRIGGER count_summary_insert_trigger
+		AFTER INSERT ON inventory.count_summaries
+		FOR EACH ROW EXECUTE PROCEDURE inventory.count_summary_changed();
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'count_summary_update_trigger') THEN
+		CREATE TRIGGER count_summary_update_trigger
+		AFTER UPDATE ON inventory.count_summaries
+		FOR EACH ROW WHEN (
+			NEW.name        IS DISTINCT FROM OLD.name OR
+			NEW.fiscal_id   IS DISTINCT FROM OLD.fiscal_id OR
+			NEW.location_id IS DISTINCT FROM OLD.location_id OR
+			NEW.active      IS DISTINCT FROM OLD.active)
+		EXECUTE PROCEDURE inventory.count_summary_changed();
+	END IF;
+END
+$$;

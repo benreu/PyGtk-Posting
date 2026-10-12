@@ -59,11 +59,32 @@ def connect():
 
 class FakeBroadcaster:
 	'''start_broadcaster () is never called in the tests, and the real Broadcast
-	puts an IO watch on the database socket. Windows only connect and disconnect'''
-	def connect(self, *args):
-		return 1
-	def disconnect(self, *args):
-		pass
+	puts an IO watch on the database socket. This stands in for the GObject signal
+	machinery only: connect records the handler and returns its id, disconnect
+	drops it, and emit calls the ones registered for that signal, with itself as
+	the first argument the way GObject would.
+
+	It is not a substitute for a real notification. The suite runs inside one
+	transaction that is rolled back, and Postgres holds notifications until commit,
+	so no pg_notify is ever delivered here: emit () is how a test plays the part of
+	the notification arriving'''
+	def __init__(self):
+		self.handlers = {} # handler id: (signal, callable)
+		self.next_id = 1
+	def connect(self, signal, handler):
+		handler_id = self.next_id
+		self.next_id += 1
+		self.handlers[handler_id] = (signal, handler)
+		return handler_id
+	def disconnect(self, handler_id):
+		self.handlers.pop(handler_id, None)
+	def emit(self, signal, *args):
+		for registered, handler in list(self.handlers.values()):
+			if registered == signal:
+				handler(self, *args)
+	def connected(self, signal):
+		return [handler for registered, handler in self.handlers.values()
+				if registered == signal]
 
 # db_connection.DB is imported by value everywhere, so it has to be replaced
 # before any application module is imported
@@ -96,6 +117,36 @@ ALTER TABLE public.inventory_transactions
 	ADD COLUMN IF NOT EXISTS count_summary_id bigint
 		REFERENCES inventory.count_summaries(id)
 		ON UPDATE RESTRICT ON DELETE RESTRICT;
+CREATE OR REPLACE FUNCTION inventory.count_summary_changed() RETURNS trigger
+	LANGUAGE plpgsql
+	AS
+$BODY$
+	BEGIN
+		PERFORM pg_notify('inventory_counts', NEW.id::text);
+		RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'count_summary_insert_trigger') THEN
+		CREATE TRIGGER count_summary_insert_trigger
+		AFTER INSERT ON inventory.count_summaries
+		FOR EACH ROW EXECUTE PROCEDURE inventory.count_summary_changed();
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'count_summary_update_trigger') THEN
+		CREATE TRIGGER count_summary_update_trigger
+		AFTER UPDATE ON inventory.count_summaries
+		FOR EACH ROW WHEN (
+			NEW.name        IS DISTINCT FROM OLD.name OR
+			NEW.fiscal_id   IS DISTINCT FROM OLD.fiscal_id OR
+			NEW.location_id IS DISTINCT FROM OLD.location_id OR
+			NEW.active      IS DISTINCT FROM OLD.active)
+		EXECUTE PROCEDURE inventory.count_summary_changed();
+	END IF;
+END
+$$;
 """
 # the update also widens purchase_order_items.expense_account to bigint, which is
 # left out here: it rewrites the table, and no test uses an account number big

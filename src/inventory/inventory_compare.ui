@@ -36,6 +36,7 @@
     <property name="default-width">600</property>
     <property name="default-height">600</property>
     <property name="icon-name">pytgk-posting</property>
+    <signal name="destroy" handler="destroy" swapped="no"/>
     <child>
       <object class="GtkPaned">
         <property name="visible">True</property>

@@ -19,7 +19,7 @@
 from gi.repository import Gtk, GLib
 from decimal import Decimal
 from pricing import product_retail_price
-from db_connection import DB
+from db_connection import DB, broadcaster
 from constants import ui_directory
 
 UI_FILE = ui_directory + "/inventory/inventory_compare.ui"
@@ -30,13 +30,64 @@ class InventoryCompareGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		self.summary_id = None # no count is picked until the combo changes
 		#self.product_store = self.get_object('product_store')
 		self.populate_stores()
 		#product_completion = self.get_object('product_completion')
 		#product_completion.set_match_func(self.product_match_func)
+		self.handler_ids = list()
+		for connection in (("inventory_counts_changed",
+							self.count_summaries_changed),):
+			handler = broadcaster.connect(connection[0], connection[1])
+			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window')
 		self.window.show_all()
+
+	def destroy (self, widget):
+		for handler in self.handler_ids:
+			broadcaster.disconnect(handler)
+
+	def count_summaries_changed (self, broadcaster, summary_id):
+		'''only a close of the count being compared concerns this window. The
+		previous count it is compared against is picked regardless of active, and
+		comparing against last year's closed count is the normal case'''
+		if self.summary_id != None and int(self.summary_id) == summary_id:
+			c = DB.cursor()
+			c.execute("SELECT active, name FROM inventory.count_summaries "
+						"WHERE id = %s", (summary_id,))
+			active, name = c.fetchone()
+			c.close()
+			# a handler can run inside somebody else's commit, so the read
+			# transaction it opened has to be given back
+			DB.rollback()
+			if active == False:
+				self.count_closed_elsewhere (name)
+				return
+		self.populate_stores ()
+
+	def count_closed_elsewhere (self, name):
+		self.summary_id = None
+		self.populate_stores ()
+		self.set_widgets_sensitive (False)
+		self.get_object('current_inventory_store').clear()
+		self.get_object('previous_inventory_store').clear()
+		self.get_object('previous_summary_label').set_label('does not exist')
+		self.show_message ("'%s' is closed, so this window has let it go."
+							% GLib.markup_escape_text(name),
+							"A closed count cannot be counted into any further. "
+							"It was closed either on another machine or in "
+							"another window.")
+
+	def show_message (self, message, secondary = None):
+		dialog = Gtk.MessageDialog(message_type = Gtk.MessageType.WARNING,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup(message)
+		if secondary != None:
+			dialog.format_secondary_text(secondary)
+		dialog.run()
+		dialog.destroy()
 
 	def populate_stores (self):
 		c = DB.cursor()
@@ -119,8 +170,10 @@ class InventoryCompareGUI(Gtk.Builder):
 		product_id = model[path][1]
 		c = DB.cursor()
 		c.execute("DELETE FROM inventory.count_rows "
-					"WHERE (count_summary_id, product_id) = (%s, %s)",
-					(self.summary_id, product_id))
+					"WHERE (count_summary_id, product_id) = (%s, %s) "
+					"AND EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active)",
+					(self.summary_id, product_id, self.summary_id))
 		DB.commit()
 		self.populate_current_inventory ()
 
@@ -142,14 +195,16 @@ class InventoryCompareGUI(Gtk.Builder):
 			product_id = model[row][1]
 			c.execute("INSERT INTO inventory.count_rows AS cr "
 					"(count_summary_id, product_id, qty, cost, retail) "
-					"VALUES (%s, "
+					"SELECT %s, "
 						"%s, "
 						"%s, "
-						"(SELECT cost FROM products WHERE id = %s)," 
-						"(SELECT product_retail_price(%s))"
-						") "
+						"(SELECT cost FROM products WHERE id = %s), "
+						"(SELECT product_retail_price(%s)) "
+					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active) "
 					"ON CONFLICT DO NOTHING",
-					(self.summary_id, product_id, qty, product_id, product_id))
+					(self.summary_id, product_id, qty, product_id, product_id,
+					self.summary_id))
 		DB.commit()
 		self.populate_current_inventory()
 		
@@ -162,17 +217,18 @@ class InventoryCompareGUI(Gtk.Builder):
 			product_id = model[row][1]
 			c.execute("INSERT INTO inventory.count_rows AS cr "
 					"(count_summary_id, product_id, qty, cost, retail) "
-					"VALUES (%s, "
+					"SELECT %s, "
 						"%s, "
 						"%s, "
-						"(SELECT cost FROM products WHERE id = %s)," 
-						"(SELECT product_retail_price(%s))"
-						") "
+						"(SELECT cost FROM products WHERE id = %s), "
+						"(SELECT product_retail_price(%s)) "
+					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active) "
 					"ON CONFLICT (count_summary_id, product_id) "
 					"DO UPDATE SET qty = %s "
 					"WHERE (cr.count_summary_id, cr.product_id) = (%s, %s)",
 					(self.summary_id, product_id, qty, product_id, product_id,
-					qty, self.summary_id, product_id))
+					self.summary_id, qty, self.summary_id, product_id))
 		DB.commit()
 		self.populate_current_inventory()
 		
@@ -185,14 +241,16 @@ class InventoryCompareGUI(Gtk.Builder):
 			product_id = model[row][1]
 			c.execute("INSERT INTO inventory.count_rows AS cr "
 					"(count_summary_id, product_id, qty, cost, retail) "
-					"VALUES (%s, "
+					"SELECT %s, "
 						"%s, "
 						"0, "
-						"(SELECT cost FROM products WHERE id = %s)," 
-						"(SELECT product_retail_price(%s))"
-						") "
+						"(SELECT cost FROM products WHERE id = %s), "
+						"(SELECT product_retail_price(%s)) "
+					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
+						"WHERE id = %s AND active) "
 					"ON CONFLICT DO NOTHING",
-					(self.summary_id, product_id, product_id, product_id))
+					(self.summary_id, product_id, product_id, product_id,
+					self.summary_id))
 		DB.commit()
 		self.populate_current_inventory()
 
