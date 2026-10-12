@@ -177,16 +177,19 @@ class UnitCaseTest(unittest.TestCase):
 			self.assertEqual(seeded().normalize(name), name)
 
 	def test_units_with_no_rule_keep_their_case(self):
-		'''kiloamps, volt-amps, picofarads and millihenries were never given a
-		canonical form, so only the volts in these names changes'''
+		'''kiloamps, volt-amps and nanofarads were never given a canonical
+		form, so only the volts and the ohms in these names change. A unit
+		with no rule is left exactly as it was written rather than guessed
+		at, which is why picofarads and millihenries read lowercase here
+		until they were given rules of their own.'''
 		self.assertEqual(seeded().normalize('Varistor MOV 275v 4.5ka'),
 						'Varistor MOV 275V 4.5ka')
 		self.assertEqual(seeded().normalize('Transformer Sola 120v 150va'),
 						'Transformer Sola 120V 150va')
-		self.assertEqual(seeded().normalize('Capacitor ceramic 18pf THT 100v'),
-						'Capacitor ceramic 18pf THT 100V')
-		self.assertEqual(seeded().normalize('Choke 36mh 4.5ohm 300mA'),
-						'Choke 36mh 4.5OHM 300mA')
+		self.assertEqual(seeded().normalize('Capacitor ceramic 4.7nf 100v'),
+						'Capacitor ceramic 4.7nf 100V')
+		self.assertEqual(seeded().normalize('Filter 36ka 4.5ohm 300mA'),
+						'Filter 36ka 4.5OHM 300mA')
 
 class UnitGuardTest(unittest.TestCase):
 	'''A unit is only a unit when the number it belongs to starts the section,
