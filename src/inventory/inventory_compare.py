@@ -101,6 +101,7 @@ class InventoryCompareGUI(Gtk.Builder):
 					"ORDER BY cs.name")
 		for row in c.fetchall():
 			store.append(row)
+		c.close()
 		DB.rollback()
 
 	def inventory_summaries_clicked (self, button):
@@ -129,10 +130,9 @@ class InventoryCompareGUI(Gtk.Builder):
 		for row in c.fetchall():
 			previous_id, previous_name = row[0], row[1]
 			self.get_object('previous_summary_label').set_label(previous_name)
-			c = DB.cursor()
 			c.execute("SELECT cr.qty, "
 						"p.id, "
-						"p.name "
+						"p.name || CASE WHEN p.deleted THEN ' (deleted)' ELSE '' END "
 						"FROM inventory.count_rows AS cr "
 						"JOIN products AS p ON p.id = cr.product_id "
 						"WHERE count_summary_id = %s", (previous_id,))
@@ -143,6 +143,8 @@ class InventoryCompareGUI(Gtk.Builder):
 		else:
 			self.get_object('previous_summary_label').set_label('does not exist')
 			self.set_widgets_sensitive(False)
+		c.close()
+		DB.rollback()
 
 	def populate_current_inventory(self):
 		current_store = self.get_object("current_inventory_store")
@@ -150,12 +152,14 @@ class InventoryCompareGUI(Gtk.Builder):
 		c = DB.cursor()
 		c.execute("SELECT cr.qty, "
 					"p.id, "
-					"p.name "
+					"p.name || CASE WHEN p.deleted THEN ' (deleted)' ELSE '' END "
 					"FROM inventory.count_rows AS cr "
 					"JOIN products AS p ON p.id = cr.product_id "
 					"WHERE count_summary_id = %s", (self.summary_id,))
 		for row in c.fetchall():
 			current_store.append(row)
+		c.close()
+		DB.rollback()
 
 	def treeview_button_release_event (self, widget, event):
 		if event.button == 3:
@@ -174,6 +178,7 @@ class InventoryCompareGUI(Gtk.Builder):
 					"AND EXISTS (SELECT 1 FROM inventory.count_summaries "
 						"WHERE id = %s AND active)",
 					(self.summary_id, product_id, self.summary_id))
+		c.close()
 		DB.commit()
 		self.populate_current_inventory ()
 
@@ -202,9 +207,12 @@ class InventoryCompareGUI(Gtk.Builder):
 						"(SELECT product_retail_price(%s)) "
 					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
 						"WHERE id = %s AND active) "
+					"AND EXISTS (SELECT 1 FROM products "
+						"WHERE id = %s AND NOT deleted) "
 					"ON CONFLICT DO NOTHING",
 					(self.summary_id, product_id, qty, product_id, product_id,
-					self.summary_id))
+					self.summary_id, product_id))
+		c.close()
 		DB.commit()
 		self.populate_current_inventory()
 		
@@ -224,11 +232,14 @@ class InventoryCompareGUI(Gtk.Builder):
 						"(SELECT product_retail_price(%s)) "
 					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
 						"WHERE id = %s AND active) "
+					"AND EXISTS (SELECT 1 FROM products "
+						"WHERE id = %s AND NOT deleted) "
 					"ON CONFLICT (count_summary_id, product_id) "
 					"DO UPDATE SET qty = %s "
 					"WHERE (cr.count_summary_id, cr.product_id) = (%s, %s)",
 					(self.summary_id, product_id, qty, product_id, product_id,
-					self.summary_id, qty, self.summary_id, product_id))
+					self.summary_id, product_id, qty, self.summary_id, product_id))
+		c.close()
 		DB.commit()
 		self.populate_current_inventory()
 		
@@ -248,9 +259,12 @@ class InventoryCompareGUI(Gtk.Builder):
 						"(SELECT product_retail_price(%s)) "
 					"WHERE EXISTS (SELECT 1 FROM inventory.count_summaries "
 						"WHERE id = %s AND active) "
+					"AND EXISTS (SELECT 1 FROM products "
+						"WHERE id = %s AND NOT deleted) "
 					"ON CONFLICT DO NOTHING",
 					(self.summary_id, product_id, product_id, product_id,
-					self.summary_id))
+					self.summary_id, product_id))
+		c.close()
 		DB.commit()
 		self.populate_current_inventory()
 

@@ -51,7 +51,6 @@ class InventoryCountGUI(Gtk.Builder):
 							"ORDER BY name, ext_name")
 		for row in c.fetchall():
 			self.product_store.append(row)
-		c = DB.cursor()
 		store = self.get_object('inventory_summaries_store')
 		store.clear()
 		c.execute("SELECT cs.id::text, "
@@ -62,6 +61,7 @@ class InventoryCountGUI(Gtk.Builder):
 					"ORDER BY cs.name")
 		for row in c.fetchall():
 			store.append(row)
+		c.close()
 		DB.rollback()
 	
 	def destroy (self, widget):
@@ -178,6 +178,7 @@ class InventoryCountGUI(Gtk.Builder):
 					"AND EXISTS (SELECT 1 FROM inventory.count_summaries "
 						"WHERE id = %s AND active)",
 					(self.summary_id, product_id, self.summary_id))
+		c.close()
 		DB.commit()
 		self.populate_inventory_count ()
 
@@ -196,7 +197,7 @@ class InventoryCountGUI(Gtk.Builder):
 			return
 		c = DB.cursor()
 		c.execute("SELECT id FROM products "
-					"WHERE barcode = %s", (barcode,))
+					"WHERE (barcode, deleted) = (%s, False)", (barcode,))
 		for row in c.fetchall():
 			self.process_product(row[0])
 			break
@@ -208,6 +209,7 @@ class InventoryCountGUI(Gtk.Builder):
 					break
 			else:
 				store.append([1, barcode])
+		c.close()
 		DB.rollback()
 
 	def inventory_summaries_combo_changed (self, combobox):
@@ -234,6 +236,7 @@ class InventoryCountGUI(Gtk.Builder):
 					(self.summary_id, product_id,  product_id, product_id,
 					self.summary_id, self.summary_id, product_id))
 		refused = c.rowcount == 0
+		c.close()
 		DB.commit()
 		if refused:
 			# a closed count is the only thing that proposes no row here, and a
@@ -248,7 +251,7 @@ class InventoryCountGUI(Gtk.Builder):
 		c = DB.cursor()
 		c.execute("SELECT cr.qty, "
 					"p.id, "
-					"p.name, "
+					"p.name || CASE WHEN p.deleted THEN ' (deleted)' ELSE '' END, "
 					"cr.cost, "
 					"cr.cost::text, "
 					"cr.retail, "
@@ -258,6 +261,7 @@ class InventoryCountGUI(Gtk.Builder):
 					"WHERE count_summary_id = %s", (self.summary_id,))
 		for row in c.fetchall():
 			store.append(row)
+		c.close()
 		self.calculate_totals()
 
 	def inventory_summaries_activated (self, button):
@@ -301,6 +305,7 @@ class InventoryCountGUI(Gtk.Builder):
 					"WHERE cs.id = %s GROUP BY cs.id, cs.location_id", (summary_id,))
 		counted, on_hand, products = c.fetchone()
 		skipped = inventorying.uncorrectable_count_message (summary_id)
+		c.close()
 		DB.rollback()
 		message = ("Correct the stock of every product counted in '%s' "
 					"against %s, and close the count?\n\n"
@@ -364,13 +369,12 @@ class InventoryCountGUI(Gtk.Builder):
 					"COALESCE(SUM(retail * qty), 0.00)::money "
 					"FROM inventory.count_rows "
 					"WHERE count_summary_id = %s", (self.summary_id,))
-		for row in c.fetchall():
-			product_count = row[0]
-			cost = row[1]
-			retail = row[2]
+		product_count, cost, retail = c.fetchone()
+		c.close()
 		self.get_object('label3').set_label(product_count)
 		self.get_object('label7').set_label(cost)
 		self.get_object('label5').set_label(retail)
+		DB.rollback()
 
 
 
