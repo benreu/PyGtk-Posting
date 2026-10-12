@@ -20,6 +20,10 @@ from harness import DBTestCase, HOST, TEST_DB
 
 import product_name_rules
 
+#how many rows db/product_name_rules.sql seeds. Named once: it was written
+#out at three more places than anybody remembered, and grew past all of them.
+SEEDED_RULES = 27
+
 class RulesTestCase(DBTestCase):
 	def setUp(self):
 		super(RulesTestCase, self).setUp()
@@ -64,13 +68,15 @@ class InstallTest(RulesTestCase):
 	def test_install_creates_and_seeds(self):
 		product_name_rules.install()
 		self.assertTrue(product_name_rules.installed())
-		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules"), 17)
+		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules"),
+							SEEDED_RULES)
 
 	def test_install_is_idempotent(self):
 		product_name_rules.install()
 		product_name_rules.install()
 		product_name_rules.install()
-		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules"), 17)
+		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules"),
+							SEEDED_RULES)
 
 	def test_install_does_not_revive_a_removed_rule(self):
 		'''the seed is ON CONFLICT DO NOTHING on name, so a hard delete would
@@ -101,13 +107,19 @@ class SeedParityTest(RulesTestCase):
 
 	def setUp(self):
 		super(SeedParityTest, self).setUp()
+		#onto an empty table. install() is a no operation where the table is
+		#already there, so without this these tests pin whatever rules that
+		#database happens to hold: this one runs against a catalog whose
+		#owner has added a vocabulary rule, two more precedence pairs and a
+		#handful of qualifier phrases, every one of them a legitimate edit
+		self._uninstall()
 		self.rules = product_name_rules.install()
 		self.cursor.execute("SELECT id, name FROM products "
 							"WHERE deleted = False")
 		self.products = self.cursor.fetchall()
 
 	def test_seed_loads_every_rule(self):
-		self.assertEqual(len(self.rules.rules), 27)
+		self.assertEqual(len(self.rules.rules), SEEDED_RULES)
 
 	def test_seed_contents(self):
 		'''Counting findings across the live catalog was tried first and is no
@@ -213,21 +225,86 @@ class SeedParityTest(RulesTestCase):
 					for r in self.rules.rules if r.rule_type == 'token_order'),
 					'a note is placed after the pairs have had their say')
 
-	def test_a_qualifier_never_moves_an_undeclared_word(self):
-		declared = set()
-		for rule in self.rules.rules:
+	def _without_notes (self, rules):
+		'''Strip the declared qualifiers out of a name. Longest first, by
+		section count, or a phrase would leave its tail behind and a bare
+		"mount" would look like a section the rule had moved.'''
+		notes = list()
+		for rule in rules.rules:
 			if rule.rule_type == 'qualifier':
-				declared.update(v.lower() for v in
-								product_name_rules.split_variants(rule.variants))
+				notes += product_name_rules.split_variants(rule.variants)
+		notes = sorted((note.lower().split() for note in notes),
+						key = len, reverse = True)
 		def without (text):
-			return [word for word in text.split()
-					if word.lower() not in declared]
-		for i, name in self.products:
-			#take the declared words out of both and what is left has to be
-			#the same sequence: a qualifier row moves its own words and
-			#nothing else, wherever they happen to sit
+			words = text.split()
+			kept, i = list(), 0
+			while i < len(words):
+				for note in notes:
+					if [w.lower() for w in words[i:i + len(note)]] == note:
+						i += len(note)
+						break
+				else:
+					kept.append(words[i])
+					i += 1
+			return kept
+		return without
+
+	def test_a_qualifier_leaves_the_rest_of_the_catalog_in_order(self):
+		'''Take the declared notes out of both and what is left is the same
+		sequence, over every name in the catalog.
+
+		This is a property of the seeded notes against this catalog, not a
+		guarantee the rule makes: the sections a note steps over close up
+		behind it, so a note sitting in front of two specs reorders them. The
+		seeded notes are written at or near the end of a name wherever they
+		appear here, so none of them does. It is pinned because the day that
+		stops being true is worth hearing about.'''
+		without = self._without_notes(self.rules)
+		for product_id, name in self.products:
 			self.assertEqual(without(self.rules.apply(name, ['qualifiers'])),
 								without(name), name)
+
+	def test_a_declared_phrase_is_carried_whole_to_the_back(self):
+		'''What the rule does promise, with a phrase declared, which the seed
+		does not do on its own. A phrase is the case worth holding to it: it
+		covers two sections, so getting it wrong strands one of them.
+
+		It does not promise to leave the surrounding order alone.
+		"Relay PCB mount w/tabs 20A 12V" comes back as
+		"Relay 20A w/tabs 12V PCB mount": w/tabs is not a section any rule
+		governs, so it holds its place while the specs close up around it,
+		the same not compacting that leaves "socket" where it stands.'''
+		self.cursor.execute("UPDATE product_name_rules SET variants = "
+							"variants || ',PCB mount,panel mount' "
+							"WHERE name = 'qualifiers'")
+		self.DB.commit()
+		rules = product_name_rules.load_rules()
+		moved = 0
+		for product_id, name in self.products:
+			fixed = rules.apply(name, ['qualifiers'])
+			if fixed == name:
+				continue
+			moved += 1
+			#nothing gained, nothing lost, so the suggestion is reversible
+			self.assertEqual(sorted(fixed.split()), sorted(name.split()), name)
+			for note in ('pcb mount', 'panel mount'):
+				end = self._phrase_end(fixed.split(), note.split())
+				if end is None:
+					continue
+				for word in fixed.split()[end:]:
+					self.assertEqual(product_name_rules.token_role(word), '',
+							'%r left a spec behind the note' % name)
+		self.assertTrue(moved, 'the phrase reached nothing, so this proved '
+								'nothing')
+
+	def _phrase_end (self, words, phrase):
+		'''Where a phrase ends in a name, or None if it is not there whole.
+		Finding it at all is half the test: a phrase that was split no longer
+		matches and the name is reported rather than passed over.'''
+		for i in range(len(words) - len(phrase) + 1):
+			if [w.lower() for w in words[i:i + len(phrase)]] == phrase:
+				return i + len(phrase)
+		return None
 
 	def _order_findings(self, name):
 		'''A grouped finding names every rule that went into it, comma
@@ -346,7 +423,7 @@ class CleanupWindowTest(RulesTestCase):
 		gui.setup_clicked(None)
 		self.assertTrue(gui.builder.get_object('notebook').get_sensitive())
 		self.assertTrue(len(gui.fix_store) > 0)
-		self.assertEqual(len(gui.rule_store), 17)
+		self.assertEqual(len(gui.rule_store), SEEDED_RULES)
 
 	def test_auto_rows_ticked_review_rows_not(self):
 		gui = self._ready()
