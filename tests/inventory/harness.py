@@ -100,6 +100,21 @@ except unittest.SkipTest:
 Gtk.Widget.show_all = lambda self: None # no windows on the user's display
 Gtk.Window.present = lambda self: None
 
+# The windows that remember their own size read it out of the sqlite preferences
+# file, which the application bootstraps in get_db_params -- a path these tests
+# never take, because they hand psycopg2 the connection themselves. Without it
+# local_settings is an empty file with no tables in it and any such window raises
+# 'no such table: product_edit' in its constructor. constants.installed is False
+# for a checkout, so this is the local_settings next to these tests and never the
+# user's own ~/.config/posting. Both calls are idempotent, the same as the
+# application's
+import sqlite_utils
+_sqlite = sqlite_utils.get_apsw_connection()
+_sqlite_cursor = _sqlite.cursor()
+sqlite_utils.create_apsw_tables(_sqlite_cursor)
+sqlite_utils.update_apsw_tables(_sqlite_cursor)
+_sqlite.close() # unlock the file, the way get_db_params does
+
 PENDING_SCHEMA = """
 ALTER TABLE public.settings
 	ADD COLUMN IF NOT EXISTS inventory_capitalized boolean NOT NULL DEFAULT False;
