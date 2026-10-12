@@ -961,6 +961,15 @@
                         <signal name="activate" handler="inventory_count_activated" swapped="no"/>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkMenuItem" id="inventory_transfer_menuitem">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Transfer</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="inventory_transfer_activated" swapped="no"/>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

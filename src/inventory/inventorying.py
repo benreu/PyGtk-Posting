@@ -329,9 +329,126 @@ def receive (po_id, location_id = None):
 					(location_id, po_id))
 	cursor.close()
 
-def transfer (transfer_store):
+def transfer (transfer_store, source_location_id, destination_location_id,
+				notes = None, date = None):
+	'''move stock from one location to another: one row out of the source and one
+	row into the destination for every product in the store, held together by a
+	row in inventory.transfers whose id is returned.
+
+	Nothing reaches the ledger. The inventory account is on the product rather
+	than on the location, so both sides of a move would debit and credit the one
+	account for the one amount, and stock is valued over every location anyway.
+	Both rows carry products.cost, the way manufacture () values what it builds,
+	so the value that leaves the source is the value that arrives and the move is
+	neutral however it is read.
+
+	A move of more than the source holds is refused, naming the short products,
+	rather than warned about the way a sale or a build is. A count can be wrong
+	about a shelf, and a sale the count was wrong about has still left the
+	building, so the books have to follow it. Stock that was never at the source
+	cannot have arrived at the destination: there is no event to record, only a
+	wrong number to write at two places at once.
+
+	A product the application does not track is refused for the same reason. It
+	holds no stock to move, and writing rows for it would start tracking it
+	without saying so, which only close_count is entitled to do and only because
+	a count is evidence. Skipping such a line quietly, the way sell () and
+	manufacture () skip theirs, would tell somebody standing at a shelf that the
+	move happened.
+
+	Lines are summed per product, so a product listed twice is one move of the
+	total: one row per side per product is the shape the unique index on
+	(transfer_id, product_id, location_id) holds the database to. A line of
+	nothing is skipped, the way every writer here skips qty > 0, and a store with
+	nothing left to move writes no header at all rather than leave an empty
+	transfer behind, the way post_inventory_count leaves no empty transaction.
+
+	Nothing here commits, so the header and both sides of every move are one unit
+	and a failure anywhere leaves the stock where it was; the caller decides, the
+	same as for close_count. A date of None means today, and the header and both
+	rows take it, so one move cannot straddle two days.
+
+	The shortage is measured against committed stock, so two machines emptying
+	the same shelf at once can both pass it. That is the window every writer here
+	leaves open, and the move has no earlier rows of its own to discount, which
+	is what negative_stock_message and manufacturing_shortage_message have to do'''
+	if date == None:
+		date = datetime.today()
+	if source_location_id == destination_location_id:
+		raise ValueError("The source and the destination are the same location, "
+							"so there is nothing to move")
+	# the store column is an integer fed by a spinbutton, so there is no
+	# fractional quantity to truncate here: no Decimal and no TRUNC, unlike every
+	# other writer in this module
+	moving = {} # product id: quantity over all of its lines
+	for row in transfer_store:
+		qty = int(row[1])
+		if qty <= 0:
+			continue
+		moving[row[0]] = moving.get(row[0], 0) + qty
+	if moving == {}:
+		return None
 	cursor = DB.cursor()
+	cursor.execute("SELECT name FROM locations WHERE id = %s",
+					(source_location_id,))
+	row = cursor.fetchone()
+	if row == None:
+		cursor.close()
+		raise ValueError("The source location no longer exists")
+	source_name = row[0]
+	# every refusal is collected before any is raised, so a store with two
+	# problems in it names both rather than being fixed one message at a time
+	lines = []
+	for product_id, qty in moving.items():
+		cursor.execute("SELECT name, inventory_enabled FROM products "
+						"WHERE id = %s", (product_id,))
+		name, inventory_enabled = cursor.fetchone()
+		if inventory_enabled == False:
+			lines.append("'%s' is not tracked in inventory, so it holds no "
+							"stock to move" % name)
+			continue
+		# the shared read, cursor and all. This move has no rows of its own to
+		# leave out, so there is nothing an inlined sum would buy here
+		stock = on_hand (product_id, source_location_id, cursor)
+		if stock < qty:
+			lines.append("'%s': %s on hand at %s, moving %s (would be %s)" %
+							(name, stock, source_name, qty, stock - qty))
+	if lines:
+		cursor.close()
+		raise ValueError("\n".join(lines))
+	cursor.execute("INSERT INTO inventory.transfers (date_inserted, "
+						"source_location_id, destination_location_id, notes) "
+					"VALUES (%s, %s, %s, %s) RETURNING id",
+					(date, source_location_id, destination_location_id, notes))
+	transfer_id = cursor.fetchone()[0]
+	products = list(moving.keys())
+	quantities = [moving[product_id] for product_id in products]
+	# one statement per side, the way manufacture () takes its components and
+	# adds what it built. Neither filters on inventory_enabled: every product
+	# that got this far has been checked, and a filter would turn a refusal into
+	# a line that quietly posts nothing
+	params = {'transfer_id': transfer_id, 'date': date,
+				'products': products, 'quantities': quantities,
+				'source': source_location_id,
+				'destination': destination_location_id}
+	cursor.execute("INSERT INTO inventory_transactions "
+						"(transfer_id, product_id, location_id, qty_out, "
+						"price, date_inserted, reason) "
+					"SELECT %(transfer_id)s, line.product_id, %(source)s, "
+						"line.qty, p.cost, %(date)s, 'Inventory transfer' "
+					"FROM unnest(%(products)s::bigint[], %(quantities)s::int[]) "
+						"AS line (product_id, qty) "
+					"JOIN products AS p ON p.id = line.product_id", params)
+	cursor.execute("INSERT INTO inventory_transactions "
+						"(transfer_id, product_id, location_id, qty_in, "
+						"price, date_inserted, reason) "
+					"SELECT %(transfer_id)s, line.product_id, %(destination)s, "
+						"line.qty, p.cost, %(date)s, 'Inventory transfer' "
+					"FROM unnest(%(products)s::bigint[], %(quantities)s::int[]) "
+						"AS line (product_id, qty) "
+					"JOIN products AS p ON p.id = line.product_id", params)
 	cursor.close()
+	return transfer_id
 
 def manufacturing_shortage_message (manufacturing_id):
 	'''a build is allowed to take stock below zero (the count may be off), but

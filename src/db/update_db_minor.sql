@@ -928,6 +928,7 @@ BEGIN
 END
 $$;
 
+--0.7.24
 /* purchase_order_items.received used to be a note to the user: the receive
    window counted what arrived into it and nothing else ever read it. It now
    decides what reaches stock, so it has to hold whatever qty can hold at the
@@ -945,3 +946,73 @@ BEGIN
 	END IF;
 END
 $$;
+
+--0.7.25
+/* Stock could be bought, received, built, counted, sold and adjusted at a
+   location, and never moved between two of them: transfer () has been an empty
+   stub since the first commit and nothing ever called it. Moving a pallet from
+   the shop to the warehouse took two hand adjustments, which charge the expense
+   account twice for stock that never left the company, and left nothing to say
+   the two halves were one event.
+
+   A move is two stock rows, one leaving the source and one arriving at the
+   destination, and this header is what makes them one. Without it there is no
+   telling a move from a pair of unrelated adjustments that happen to cancel
+   out, and the quantity that left cannot be tied to the quantity that arrived.
+
+   There is no account on this table, because a move posts nothing to the
+   ledger. The inventory account is on the product rather than on the location,
+   so both sides would debit and credit the one account for the one amount, and
+   stock is valued over every location anyway, by the opening valuation above
+   and by post_invoice_cogs alike. A move the company holds the same quantity
+   after is already value neutral: the entry would say nothing, and would then
+   have to be unsaid if the stock were moved back.
+
+   No fiscal_id, which a count summary needs because closing a count posts
+   entries into a period and nothing here posts. No active flag either: a count
+   is opened, counted into over days and closed, while a transfer is written by
+   the post that moves the stock and is complete the moment it exists.
+
+   date_inserted is the date both stock rows take as well, so one move cannot
+   straddle two days. */
+CREATE TABLE IF NOT EXISTS inventory.transfers (
+	id bigserial primary key,
+	date_inserted date NOT NULL DEFAULT now(),
+	source_location_id integer NOT NULL REFERENCES public.locations(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	destination_location_id integer NOT NULL REFERENCES public.locations(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	notes text,
+	CONSTRAINT transfer_locations_differ
+		CHECK (source_location_id <> destination_location_id)
+);
+
+/* The pointer back, the way a count correction has one. reason stays set, it is
+   what satisfies check_transaction_not_null: transfer_id is not one of the
+   columns that constraint names, and adding it would mean rebuilding a check
+   over the whole table for nothing.
+
+   RESTRICT on delete, like count_summary_id: a transfer that still has stock
+   rows is a move that happened, and a cascade from here would silently restate
+   stock at two locations at once. */
+ALTER TABLE public.inventory_transactions
+	ADD COLUMN IF NOT EXISTS transfer_id bigint
+		REFERENCES inventory.transfers(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+/* One row per product per side of a move. (transfer_id, product_id) is the key
+   the count index uses and it cannot be used here, because a move writes two
+   rows for the one product and they would collide with each other. location_id
+   separates them, and is exactly as strict as the pair would be, because
+   transfer_locations_differ keeps the two sides at different locations: nothing
+   can write a move from a place to itself, where this key would stop being
+   unique per side.
+
+   What it really holds is the shape of a transfer. Its rows pair up one to one,
+   so a reader, a report or a later resync can trust that the quantity out of
+   the source is the quantity into the destination. transfer () sums its lines
+   per product to keep that promise; this is the database refusing to take its
+   word for it. */
+CREATE UNIQUE INDEX IF NOT EXISTS inventory_transactions_transfer_product_uq
+	ON public.inventory_transactions (transfer_id, product_id, location_id)
+	WHERE transfer_id IS NOT NULL;

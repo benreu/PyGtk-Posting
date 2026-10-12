@@ -147,17 +147,34 @@ BEGIN
 	END IF;
 END
 $$;
+CREATE TABLE IF NOT EXISTS inventory.transfers (
+	id bigserial primary key,
+	date_inserted date NOT NULL DEFAULT now(),
+	source_location_id integer NOT NULL REFERENCES public.locations(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	destination_location_id integer NOT NULL REFERENCES public.locations(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	notes text,
+	CONSTRAINT transfer_locations_differ
+		CHECK (source_location_id <> destination_location_id)
+);
+ALTER TABLE public.inventory_transactions
+	ADD COLUMN IF NOT EXISTS transfer_id bigint
+		REFERENCES inventory.transfers(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
 """
 # the update also widens purchase_order_items.expense_account to bigint, and
 # purchase_order_items.received from smallint to integer, both left out here:
 # each rewrites the table, and that rewrite is rolled back with every test, so
 # it would be paid again in every setUp. No test uses an account number or a
 # received count big enough to need either.
-# Left out for the same reason: the unique index on
-# (count_summary_id, product_id). The statements above are no-ops once they have
-# run, but a CREATE INDEX on inventory_transactions is a real index build on a
-# large table, and this runs in every setUp. The cost is that the tests exercise
-# close_count's own idempotence guard rather than the database's backstop.
+# Left out for the same reason: the unique indexes on
+# (count_summary_id, product_id) and (transfer_id, product_id, location_id). The
+# statements above are no-ops once they have run, but a CREATE INDEX on
+# inventory_transactions is a real index build on a large table, and this runs in
+# every setUp. The cost is that the tests exercise close_count's own idempotence
+# guard, and transfer's own per product aggregation, rather than the database's
+# backstop for either. inventory.transfers keeps its CHECK, which is free.
 # count_summaries is small enough that its SET NOT NULL does not matter
 
 class DBTestCase(unittest.TestCase):

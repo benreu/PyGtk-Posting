@@ -325,6 +325,10 @@ class MainGUI :
 		from inventory import inventory_compare
 		inventory_compare.InventoryCompareGUI()
 
+	def inventory_transfer_activated (self, menuitem):
+		from inventory import inventory_transfer
+		inventory_transfer.InventoryTransferGUI()
+
 	def user_manual_help (self, widget):
 		subprocess.Popen(["yelp", help_dir + "/index.page"])
 
