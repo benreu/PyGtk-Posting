@@ -264,6 +264,30 @@ class DBTestCase(unittest.TestCase):
 		if _conn is not None:
 			self.cursor.close()
 			self.DB.real_rollback()
+		self.assert_no_windows_shown() # last: it raises, the rollback must happen
+
+	def assert_no_windows_shown(self):
+		'''Nothing here may put a window on the user's display. show_all () and
+		present () are stubbed at import, but a toplevel carrying visible=True in
+		its .ui is shown by GtkBuilder itself, while it parses, before any Python
+		in the constructor runs -- so the stubs never see it and the window is on
+		screen regardless. This is what notices.
+
+		It hides the offender rather than destroying it, because these windows
+		wire their destroy signal to a handler that works on the database:
+		product_edit_main's rolls back and drops an advisory lock,
+		invoice_window's flushes a comment, purchase_order_window's unlocks the
+		order. None of that may run from a teardown. Nothing in the project
+		connects hide or unmap, so hiding costs nothing.
+
+		Windows left behind by earlier tests are unmapped and never trip this, so
+		a leak is reported once, against the test that caused it'''
+		shown = [w for w in Gtk.Window.list_toplevels() if w.get_mapped()]
+		for window in shown:
+			window.hide()
+		if shown:
+			self.fail('put on the display: %s' % ', '.join(
+						w.get_title() or type(w).__name__ for w in shown))
 
 	def one(self, sql, args = None):
 		self.cursor.execute(sql, args)

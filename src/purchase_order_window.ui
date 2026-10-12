@@ -253,7 +253,6 @@
     </child>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">New Purchase Order</property>
     <property name="window-position">center</property>

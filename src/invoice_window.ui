@@ -308,7 +308,6 @@
   </object>
   <object class="GtkWindow" id="window">
     <property name="height-request">375</property>
-    <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="border-width">10</property>
     <property name="title" translatable="yes">New Invoice</property>
