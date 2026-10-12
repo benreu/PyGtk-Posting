@@ -41,16 +41,19 @@ class InventoryCountGUI(Gtk.Builder):
 		c = DB.cursor()
 		self.product_store.clear()
 		c.execute("SELECT id::text, name || ' {' || ext_name || '}' "
-							"FROM products ORDER BY name, ext_name")
+							"FROM products WHERE (deleted, stock) = (False, True) "
+							"ORDER BY name, ext_name")
 		for row in c.fetchall():
 			self.product_store.append(row)
 		c = DB.cursor()
 		store = self.get_object('inventory_summaries_store')
 		store.clear()
-		c.execute("SELECT id::text, name "
-					"FROM inventory.count_summaries "
-					"WHERE active = True "
-					"ORDER BY name")
+		c.execute("SELECT cs.id::text, "
+					"cs.name || ' (' || COALESCE(l.name, 'no location') || ')' "
+					"FROM inventory.count_summaries AS cs "
+					"LEFT JOIN locations AS l ON l.id = cs.location_id "
+					"WHERE cs.active = True "
+					"ORDER BY cs.name")
 		for row in c.fetchall():
 			store.append(row)
 		DB.rollback()
@@ -187,6 +190,101 @@ class InventoryCountGUI(Gtk.Builder):
 	def inventory_summaries_activated (self, button):
 		from inventory import inventory_summaries
 		inventory_summaries.InventorySummariesGUI(self)
+
+	def show_message (self, message, secondary = None,
+						message_type = Gtk.MessageType.ERROR):
+		dialog = Gtk.MessageDialog(message_type = message_type,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup(message)
+		if secondary != None:
+			# not markup, so a product name with an & in it needs no escaping
+			dialog.format_secondary_text(secondary)
+		dialog.run()
+		dialog.destroy()
+
+	def close_count_clicked (self, button):
+		from inventory import inventorying
+		# the combo hands out a string, while everything else calls a summary id
+		# a number; close_count puts it in places where that difference shows
+		summary_id = int(self.summary_id)
+		c = DB.cursor()
+		c.execute("SELECT cs.name, COALESCE(l.name, 'no location'), fy.name "
+					"FROM inventory.count_summaries AS cs "
+					"JOIN fiscal_years AS fy ON fy.id = cs.fiscal_id "
+					"LEFT JOIN locations AS l ON l.id = cs.location_id "
+					"WHERE cs.id = %s", (summary_id,))
+		name, location_name, fiscal_name = c.fetchone()
+		# counted against on hand at the same location. A count taken against the
+		# wrong location shows up here as the whole of another location's stock
+		c.execute("SELECT COALESCE(SUM(TRUNC(cr.qty)::int), 0), "
+						"COALESCE((SELECT SUM(it.qty_in - it.qty_out) "
+							"FROM inventory_transactions AS it "
+							"WHERE it.location_id = cs.location_id), 0), "
+						"COUNT(cr.product_id) "
+					"FROM inventory.count_summaries AS cs "
+					"LEFT JOIN inventory.count_rows AS cr "
+						"ON cr.count_summary_id = cs.id "
+					"WHERE cs.id = %s GROUP BY cs.id, cs.location_id", (summary_id,))
+		counted, on_hand, products = c.fetchone()
+		skipped = inventorying.uncorrectable_count_message (summary_id)
+		DB.rollback()
+		message = ("Correct the stock of every product counted in '%s' "
+					"against %s, and close the count?\n\n"
+					"Counted: %s units over %s products\n"
+					"On hand at %s: %s units\n"
+					"Fiscal year: %s\n\n"
+					"A product counted at the quantity the books already show is "
+					"left alone. A closed count cannot be reopened or counted into "
+					"again." %
+					(GLib.markup_escape_text(name),
+					GLib.markup_escape_text(location_name), counted, products,
+					GLib.markup_escape_text(location_name), on_hand,
+					GLib.markup_escape_text(fiscal_name)))
+		dialog = Gtk.MessageDialog(message_type = Gtk.MessageType.QUESTION,
+									buttons = Gtk.ButtonsType.YES_NO)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup(message)
+		if skipped != None:
+			dialog.format_secondary_text("These counted products cannot be "
+											"corrected and will be left alone:\n\n"
+											+ self.shorten(skipped))
+		result = dialog.run()
+		dialog.destroy()
+		if result != Gtk.ResponseType.YES:
+			return
+		try:
+			corrected = inventorying.close_count (summary_id)
+		except Exception as e:
+			DB.rollback()
+			self.show_message ("The count was not closed",
+								GLib.markup_escape_text(str(e)))
+			return
+		DB.commit()
+		self.show_message ("Closed '%s'.\n\n%s of %s counted products corrected."
+							% (GLib.markup_escape_text(name), corrected, products),
+							None if skipped == None else
+								("These counted products were left alone:\n\n"
+								+ self.shorten(skipped)),
+							Gtk.MessageType.INFO if skipped == None
+								else Gtk.MessageType.WARNING)
+		# the closed count leaves the combo because populate_stores filters on
+		# active, but clearing the model raises no usable changed signal, so
+		# summary_id would still point at it and the next scan would count into a
+		# closed count. Desensitising the box is what really stops that
+		self.populate_stores ()
+		self.get_object('widget_box').set_sensitive(False)
+		self.get_object('inventory_rows_store').clear()
+		self.get_object('missing_barcode_store').clear()
+		self.summary_id = None
+
+	def shorten (self, message, limit = 20):
+		'''a count can hold hundreds of products with no inventory account, and
+		naming every one of them makes a dialog nothing can be read in'''
+		lines = message.split("\n")
+		if len(lines) <= limit:
+			return message
+		return "\n".join(lines[0:limit] + ["and %s more" % (len(lines) - limit,)])
 
 	def calculate_totals(self):
 		c = DB.cursor()

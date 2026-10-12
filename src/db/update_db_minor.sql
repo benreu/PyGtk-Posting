@@ -822,3 +822,63 @@ ALTER TABLE public.inventory_transactions
 	ADD COLUMN IF NOT EXISTS credit_memo_item_id bigint
 		REFERENCES public.credit_memo_items(id)
 		ON UPDATE RESTRICT ON DELETE CASCADE;
+
+--0.7.22
+/* A count is taken in one place. The variance a close corrects is the difference
+   between what was counted and what that one location holds, so the location
+   belongs to the count's identity rather than being guessed at closing time. A
+   count taken over two sittings would otherwise be free to mean a different
+   place each sitting. */
+ALTER TABLE inventory.count_summaries
+	ADD COLUMN IF NOT EXISTS location_id integer
+		REFERENCES public.locations(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+/* Counts taken before the column existed were still taken somewhere, and the
+   first location is the only answer available. ADD COLUMN NOT NULL would fail on
+   a populated table and a default would be a lie, so the column arrives
+   nullable, is backfilled, and is promoted below. */
+UPDATE inventory.count_summaries SET location_id =
+	(SELECT id FROM locations ORDER BY id LIMIT 1)
+	WHERE location_id IS NULL;
+
+/* Guarded, because this file runs from the top on every upgrade. A database
+   whose locations have all been deleted leaves the backfill with nothing to
+   write, and the column stays nullable rather than failing the whole upgrade:
+   close_count refuses such a summary instead of inventing a location for it. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns
+				WHERE table_schema = 'inventory'
+					AND table_name = 'count_summaries'
+					AND column_name = 'location_id'
+					AND is_nullable = 'YES')
+		AND NOT EXISTS (SELECT 1 FROM inventory.count_summaries
+						WHERE location_id IS NULL) THEN
+		EXECUTE 'ALTER TABLE inventory.count_summaries
+					ALTER COLUMN location_id SET NOT NULL';
+	END IF;
+END
+$$;
+
+/* Closing a count writes a stock correction per counted product. Without a
+   pointer back to the count there is no telling a correction from a hand
+   adjustment, no stopping a second close correcting twice, and nothing to hang
+   the entry that values it on. reason stays set, it is what satisfies
+   check_transaction_not_null.
+
+   The pointer is the count, not the count row. count_rows is scratch data that
+   inventory_count.delete_activated hard deletes, unlike invoice_items,
+   credit_memo_items and purchase_order_items, which are only ever flagged: a
+   cascade from there would silently restate stock, and a restrict would make
+   that delete raise. product_id is already on this table, so the count and the
+   product together point as precisely as count_rows itself does. */
+ALTER TABLE public.inventory_transactions
+	ADD COLUMN IF NOT EXISTS count_summary_id bigint
+		REFERENCES inventory.count_summaries(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+/* One correction per product per count, held in the database as well as in the
+   close, so two windows closing the same count at once cannot both write. */
+CREATE UNIQUE INDEX IF NOT EXISTS inventory_transactions_count_summary_product_uq
+	ON public.inventory_transactions (count_summary_id, product_id)
+	WHERE count_summary_id IS NOT NULL;

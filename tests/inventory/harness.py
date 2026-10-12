@@ -86,10 +86,26 @@ ALTER TABLE public.inventory_transactions
 	ADD COLUMN IF NOT EXISTS credit_memo_item_id bigint
 		REFERENCES public.credit_memo_items(id)
 		ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE inventory.count_summaries
+	ADD COLUMN IF NOT EXISTS location_id integer
+		REFERENCES public.locations(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+UPDATE inventory.count_summaries SET location_id =
+	(SELECT id FROM locations ORDER BY id LIMIT 1) WHERE location_id IS NULL;
+ALTER TABLE inventory.count_summaries ALTER COLUMN location_id SET NOT NULL;
+ALTER TABLE public.inventory_transactions
+	ADD COLUMN IF NOT EXISTS count_summary_id bigint
+		REFERENCES inventory.count_summaries(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;
 """
 # the update also widens purchase_order_items.expense_account to bigint, which is
 # left out here: it rewrites the table, and no test uses an account number big
-# enough to need it
+# enough to need it.
+# Left out for the same reason: the unique index on
+# (count_summary_id, product_id). The statements above are no-ops once they have
+# run, but a CREATE INDEX on inventory_transactions is a real index build on a
+# large table, and this runs in every setUp. The cost is that the tests exercise
+# close_count's own idempotence guard rather than the database's backstop.
+# count_summaries is small enough that its SET NOT NULL does not matter
 
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
@@ -120,7 +136,10 @@ class DBTestCase(unittest.TestCase):
 		return self.one("INSERT INTO locations (name) VALUES (%s) RETURNING id",
 						(name,))
 
-	def on_hand(self, product_id):
+	def on_hand(self, product_id, location_id = None):
+		'''the whole company by default, one location when asked: a count close
+		corrects the location its summary names, so most of its tests need both'''
 		return self.one("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-						"FROM inventory_transactions WHERE product_id = %s",
-						(product_id,))
+						"FROM inventory_transactions WHERE product_id = %s "
+						"AND (%s::int IS NULL OR location_id = %s)",
+						(product_id, location_id, location_id))

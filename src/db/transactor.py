@@ -632,6 +632,65 @@ def post_inventory_adjustment (date, description, amount, debit_account, credit_
 	cursor.close()
 	return gl_entries_id
 
+def post_inventory_count (cursor, count_summary_id, date, transaction_id = None):
+	'''value the corrections a count close wrote: one two sided entry per corrected
+	product, debiting the product's inventory account and crediting its expense
+	account where the count found more than the books, and the other way round
+	where it found less, so a shortage reaches the profit and loss as the period
+	cost it is. That is the same pair of sides a hand adjustment of the same size
+	would post, so where the stock came from does not change what the ledger says.
+
+	The rows are valued at the cost the count froze on them rather than at the cost
+	the product carries now, the promise post_invoice_cogs makes as well, so
+	editing a cost afterwards cannot restate a count that is already closed.
+
+	One close is one transaction with one entry per product, which is what lets a
+	report show what a single count cost. Both sides of an entry carry the same
+	rounded amount, so no amount of rounding can leave the transaction out of
+	balance and no balancing entry is needed. The transaction is made only once a
+	row needing one has been found: a count that agreed with the books in every
+	line has nothing to post and must not leave an empty transaction behind, and
+	neither must a second close'''
+	# date_inserted is passed rather than left to its default, see cancel_invoice
+	cursor.execute("SELECT it.id, ROUND((it.qty_in + it.qty_out) * it.price, 2), "
+						"it.qty_in, p.inventory_account, p.default_expense_account, "
+						"cs.name "
+					"FROM inventory_transactions AS it "
+					"JOIN inventory.count_summaries AS cs "
+						"ON cs.id = it.count_summary_id "
+					"JOIN products AS p ON p.id = it.product_id "
+					"WHERE it.count_summary_id = %s AND it.gl_entries_id IS NULL "
+					"ORDER BY it.id", (count_summary_id,))
+	rows = cursor.fetchall()
+	if rows == []:
+		return transaction_id
+	if transaction_id == None:
+		cursor.execute("INSERT INTO gl_transactions (date_inserted) "
+						"VALUES (%s) RETURNING id", (date,))
+		transaction_id = cursor.fetchone()[0]
+	for row in rows:
+		row_id = row[0]
+		amount = row[1]
+		# GREATEST leaves exactly one of the two quantities non zero
+		qty_in = row[2]
+		inventory_account = row[3]
+		expense_account = row[4]
+		description = 'Inventory count: ' + row[5]
+		if qty_in > 0: # the count found more than the books, it is an asset
+			debit_account, credit_account = inventory_account, expense_account
+		else: # a shortage is written off the same way a breakage is
+			debit_account, credit_account = expense_account, inventory_account
+		cursor.execute("WITH new_row AS (INSERT INTO gl_entries "
+							"(amount, debit_account, credit_account, "
+							"gl_transaction_id, date_inserted, "
+							"transaction_description) "
+							"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id) "
+						"UPDATE inventory_transactions SET gl_entries_id = "
+							"((SELECT id FROM new_row)) WHERE id = %s",
+						(amount, debit_account, credit_account, transaction_id, date,
+						description, row_id))
+	return transaction_id
+
 def post_invoice_cogs (cursor, invoice_id, transaction_id, date):
 	'''relieve inventory for the stock this invoice took. One two sided entry per
 	sale row, debiting the product's cost of goods sold account and crediting its

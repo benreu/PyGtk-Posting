@@ -42,10 +42,12 @@ class InventoryCompareGUI(Gtk.Builder):
 		c = DB.cursor()
 		store = self.get_object('inventory_summaries_store')
 		store.clear()
-		c.execute("SELECT id::text, name "
-					"FROM inventory.count_summaries "
-					"WHERE active = True "
-					"ORDER BY name")
+		c.execute("SELECT cs.id::text, "
+					"cs.name || ' (' || COALESCE(l.name, 'no location') || ')' "
+					"FROM inventory.count_summaries AS cs "
+					"LEFT JOIN locations AS l ON l.id = cs.location_id "
+					"WHERE cs.active = True "
+					"ORDER BY cs.name")
 		for row in c.fetchall():
 			store.append(row)
 		DB.rollback()

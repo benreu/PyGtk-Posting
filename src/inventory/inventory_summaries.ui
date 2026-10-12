@@ -10,6 +10,14 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="location_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="inventory_summaries_store">
     <columns>
       <!-- column-name id -->
@@ -22,6 +30,10 @@
       <column type="gchararray"/>
       <!-- column-name active -->
       <column type="gboolean"/>
+      <!-- column-name location_id -->
+      <column type="gint"/>
+      <!-- column-name location_name -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window1">
@@ -82,6 +94,21 @@
                       <object class="GtkCellRendererText"/>
                       <attributes>
                         <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Location</property>
+                    <property name="expand">True</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">6</property>
+                    <child>
+                      <object class="GtkCellRendererText"/>
+                      <attributes>
+                        <attribute name="text">6</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -170,6 +197,38 @@
                 <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Location</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="location_combo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="model">location_store</property>
+                <property name="id_column">0</property>
+                <signal name="changed" handler="location_changed" swapped="no"/>
+                <child>
+                  <object class="GtkCellRendererText"/>
+                  <attributes>
+                    <attribute name="text">1</attribute>
+                  </attributes>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
               </packing>
             </child>
           </object>

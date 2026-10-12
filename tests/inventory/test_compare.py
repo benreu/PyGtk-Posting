@@ -4,9 +4,11 @@ from harness import DBTestCase
 class PreviousCountTest(DBTestCase):
 	def summary(self, name, date):
 		fiscal_id = self.one("SELECT id FROM fiscal_years LIMIT 1")
+		location_id = self.one("SELECT id FROM locations ORDER BY id LIMIT 1")
 		return self.one("INSERT INTO inventory.count_summaries "
-						"(name, fiscal_id, date_created) VALUES (%s, %s, %s) "
-						"RETURNING id", (name, fiscal_id, date))
+						"(name, fiscal_id, date_created, location_id) "
+						"VALUES (%s, %s, %s, %s) "
+						"RETURNING id", (name, fiscal_id, date, location_id))
 
 	def previous_label(self, summary_id):
 		from inventory import inventory_compare

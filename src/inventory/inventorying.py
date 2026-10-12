@@ -329,4 +329,126 @@ def manufacture (manufacturing_id, destination_location_id = None):
 										transaction_id)
 	cursor.close()
 
+def uncorrectable_count_message (count_summary_id):
+	'''a counted product the close has to leave alone: one that is not tracked yet
+	and has nowhere to carry its value, or that the rest of the application does
+	not treat as stock at all. A product that is already tracked is never in here,
+	its stock is real and the count is the authority on it. Returns a message
+	naming them, or None when every counted product can be corrected'''
+	cursor = DB.cursor()
+	cursor.execute("SELECT p.name, p.ext_name, p.inventory_account IS NULL "
+					"FROM inventory.count_rows AS cr "
+					"JOIN products AS p ON p.id = cr.product_id "
+					"WHERE cr.count_summary_id = %s "
+					"AND NOT p.inventory_enabled "
+					"AND (p.inventory_account IS NULL "
+						"OR NOT p.stock OR p.deleted) "
+					"ORDER BY p.name, p.ext_name", (count_summary_id,))
+	lines = []
+	for name, ext_name, no_account in cursor.fetchall():
+		reason = 'no inventory account' if no_account else 'not a stocked product'
+		lines.append("'%s %s': %s" % (name, ext_name, reason))
+	cursor.close()
+	if lines:
+		return "\n".join(lines)
 
+def close_count (count_summary_id, date = None):
+	'''make the books agree with what was counted, then close the count. Only a
+	product with a count row is touched, and only at the location the summary
+	names: a product nobody counted was not looked at, and no count row is not
+	evidence of no stock. What gets written is the difference between the counted
+	quantity and what that location holds, so a product counted at the quantity
+	the books already carry costs nothing and gets no row at all.
+
+	A counted product that is not tracked yet holds nothing at the location, so
+	the difference is the whole counted quantity, which is the opening stock
+	inventory_adjustment writes by hand: one formula covers both and tracking is
+	turned on afterwards. A product with no inventory account has nowhere for that
+	value to sit, and one the application does not treat as stock would start
+	taking sale rows forever after, so both are skipped and named by
+	uncorrectable_count_message rather than guessed at. The count still values
+	them, what was counted does not depend on what the books could do with it.
+
+	A count row at zero is a correction like any other. inventory_compare exists
+	to write those rows, they are the user saying the shelf is empty, and skipping
+	them the way restock and receive skip empty lines would quietly keep stock
+	that is not there.
+
+	Nothing here commits, so the corrections, the ledger entries and the close
+	itself are one unit and a failure anywhere leaves the count open and the books
+	untouched. A date of None means today, and the stock rows, the entries and
+	date_ended all take it, so one close cannot straddle two periods.
+
+	Returns the number of products corrected'''
+	if date == None:
+		date = datetime.today()
+	cursor = DB.cursor()
+	# the lock is what stops two windows closing the same count at once; active
+	# read behind it is the first of the guards against closing one twice
+	cursor.execute("SELECT active, location_id, name "
+					"FROM inventory.count_summaries WHERE id = %s FOR UPDATE",
+					(count_summary_id,))
+	row = cursor.fetchone()
+	if row == None:
+		cursor.close()
+		return 0
+	active, location_id, name = row
+	if active == False:
+		cursor.close()
+		return 0
+	if location_id == None:
+		cursor.close()
+		raise ValueError("'%s' has no location, so there is nothing to compare "
+							"the count against" % name)
+	# TRUNC rather than a cast, which rounds: see resync_invoice_inventory. The
+	# variance is taken from the truncated count so the stock row agrees with it
+	cursor.execute("INSERT INTO inventory_transactions "
+						"(product_id, qty_in, qty_out, date_inserted, "
+						"location_id, price, reason, count_summary_id) "
+					"SELECT cr.product_id, "
+						"GREATEST(TRUNC(cr.qty)::int - on_hand.qty, 0), "
+						"GREATEST(on_hand.qty - TRUNC(cr.qty)::int, 0), "
+						"%s, cs.location_id, cr.cost, 'Inventory count', cs.id "
+					"FROM inventory.count_rows AS cr "
+					"JOIN inventory.count_summaries AS cs "
+						"ON cs.id = cr.count_summary_id "
+					"JOIN products AS p ON p.id = cr.product_id "
+					"JOIN LATERAL (SELECT COALESCE(SUM(it.qty_in - it.qty_out), 0) "
+							"AS qty FROM inventory_transactions AS it "
+							"WHERE it.product_id = cr.product_id "
+							"AND it.location_id = cs.location_id) AS on_hand "
+						"ON True "
+					"WHERE cr.count_summary_id = %s "
+					"AND TRUNC(cr.qty)::int <> on_hand.qty "
+					"AND (p.inventory_enabled "
+						"OR (p.inventory_account IS NOT NULL "
+							"AND p.stock AND NOT p.deleted)) "
+					"AND NOT EXISTS (SELECT 1 FROM inventory_transactions "
+						"WHERE count_summary_id = cr.count_summary_id "
+						"AND product_id = cr.product_id)",
+					(date, count_summary_id))
+	corrected = cursor.rowcount
+	# the insert only wrote rows for products that have an account, so
+	# products.inventory_account_is_applied cannot fire here
+	cursor.execute("UPDATE products SET inventory_enabled = True "
+					"WHERE NOT inventory_enabled AND id IN "
+						"(SELECT product_id FROM inventory_transactions "
+						"WHERE count_summary_id = %s)", (count_summary_id,))
+	if corrected > 0:
+		transactor.post_inventory_count (cursor, count_summary_id, date)
+	# the totals are the count's own valuation, which is what the window showed
+	# while it was being taken, and they cover every counted row including the
+	# products the close had to skip
+	cursor.execute("UPDATE inventory.count_summaries SET "
+						"(active, date_ended, total_cost, total_retail) = "
+						"(False, %s, "
+						"(SELECT COALESCE(SUM(cost * qty), 0.00) "
+							"FROM inventory.count_rows "
+							"WHERE count_summary_id = %s), "
+						"(SELECT COALESCE(SUM(retail * qty), 0.00) "
+							"FROM inventory.count_rows "
+							"WHERE count_summary_id = %s)) "
+					"WHERE id = %s AND active",
+					(date, count_summary_id, count_summary_id, count_summary_id))
+	cursor.close()
+	return corrected
