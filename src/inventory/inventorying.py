@@ -20,6 +20,21 @@ from decimal import Decimal
 from db_connection import DB
 from db import transactor
 
+def first_location_id (cursor = None):
+	'''the location every writer falls back to when none is named: the oldest
+	one. manufacture () and the project window have to agree on this, or the
+	shortfall the window shows is not the stock the post consumes. A caller
+	already inside a transaction hands in its own cursor rather than have a
+	second one opened on it'''
+	own_cursor = cursor == None
+	if own_cursor:
+		cursor = DB.cursor()
+	cursor.execute("SELECT id FROM locations ORDER BY id LIMIT 1")
+	row = cursor.fetchone()
+	if own_cursor:
+		cursor.close()
+	return row[0] if row != None else None
+
 def fractional_quantity_message (invoice_store):
 	'''inventory is counted in whole units, so a fractional quantity of a tracked
 	product would be silently truncated. Returns a message, or None if all is fine'''
@@ -271,14 +286,52 @@ def transfer (transfer_store):
 	cursor = DB.cursor()
 	cursor.close()
 
+def manufacturing_shortage_message (manufacturing_id):
+	'''a build is allowed to take stock below zero (the count may be off), but
+	the user should be told, the same as a sale is. Each line is measured against
+	its own source location, the one manufacture () will consume it from: stock
+	the company holds anywhere else is not stock this build can use. Returns a
+	message naming the short components, or None when every line is covered'''
+	cursor = DB.cursor()
+	params = {'project_id': manufacturing_id,
+					'first_location': first_location_id(cursor)}
+	cursor.execute("SELECT p.name, sl.name, src.qty, mi.qty "
+					"FROM manufacturing_items AS mi "
+					"JOIN products AS p ON p.id = mi.product_id "
+					"JOIN locations AS sl "
+						"ON sl.id = COALESCE(mi.source_location_id, "
+							"%(first_location)s) "
+					# the rows this project already wrote are not stock taken yet: a
+					# repost deletes and rewrites them, so they are discounted here
+					# the way negative_stock_message discounts the invoice it is
+					# called for
+					"JOIN LATERAL (SELECT COALESCE(SUM(it.qty_in - it.qty_out), 0) "
+							"AS qty FROM inventory_transactions AS it "
+							"WHERE it.product_id = mi.product_id "
+							"AND it.location_id = "
+								"COALESCE(mi.source_location_id, %(first_location)s) "
+							"AND (it.manufacturing_id IS NULL "
+							"OR it.manufacturing_id <> %(project_id)s)) AS src "
+						"ON True "
+					"WHERE mi.manufacturing_project_id = %(project_id)s "
+					# the lines manufacture () moves stock for, and no others
+					"AND p.inventory_enabled AND mi.qty > 0 "
+					"AND src.qty < mi.qty "
+					"ORDER BY p.name", params)
+	lines = ["'%s': %s on hand at %s, consuming %s (would be %s)" %
+					(name, on_hand, location, qty, on_hand - qty)
+					for name, location, on_hand, qty in cursor.fetchall()]
+	cursor.close()
+	if lines:
+		return "\n".join(lines)
+
 def manufacture (manufacturing_id, destination_location_id = None):
 	'''consume each component from its line's source location and add the
 	finished product to the destination. Rerunning replaces the project's earlier
 	rows. A source not set on the line, or a destination neither given nor saved
 	on the project, falls back to the first location'''
 	cursor = DB.cursor()
-	cursor.execute("SELECT id FROM locations ORDER BY id LIMIT 1")
-	first_location = cursor.fetchone()[0]
+	first_location = first_location_id(cursor)
 	if destination_location_id == None:
 		cursor.execute("SELECT destination_location_id "
 						"FROM manufacturing_projects WHERE id = %s",

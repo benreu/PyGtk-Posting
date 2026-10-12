@@ -99,6 +99,13 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 				cursor.close()
 				DB.rollback()
 				return
+		# nothing has been written yet, so declining this leaves the project
+		# exactly as it is
+		message = inventorying.manufacturing_shortage_message (project_id)
+		DB.rollback()
+		if message != None and not self.confirm_shortage (message):
+			cursor.close()
+			return
 		cursor.execute("UPDATE time_clock_projects "
 						"SET (active, stop_date) = "
 						"(False, CURRENT_DATE) "
@@ -112,6 +119,20 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 		DB.commit()
 		cursor.close()
 		self.populate_projects()
+
+	def confirm_shortage (self, message):
+		'''a build whose components are short at the location they come from is
+		allowed, the way a sale that takes stock below zero is: the count may be
+		off and the build has already happened. It is never silent, though'''
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.WARNING,
+									buttons = Gtk.ButtonsType.YES_NO)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup ("This build takes stock below zero:\n\n%s\n\n"
+							"The stock count may be off. Post anyway?" %
+							GLib.markup_escape_text(message))
+		result = dialog.run()
+		dialog.destroy()
+		return result == Gtk.ResponseType.YES
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

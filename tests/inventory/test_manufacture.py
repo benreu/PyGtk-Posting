@@ -67,5 +67,59 @@ class ManufactureTest(DBTestCase):
 		self.assertEqual(self.one(location, (self.project_id, other_product)), first_id)
 		self.assertEqual(self.one(location, (self.project_id, self.product_id)), third_id)
 
+	def stock(self, product_id, location_id, qty):
+		self.cursor.execute("INSERT INTO inventory_transactions "
+							"(product_id, qty_in, price, location_id, "
+							"date_inserted, reason) "
+							"VALUES (%s, %s, 1, %s, CURRENT_DATE, 'test')",
+							(product_id, qty, location_id))
+
+	def every_line(self):
+		self.cursor.execute("SELECT product_id, qty FROM manufacturing_items "
+							"WHERE manufacturing_project_id = %s AND qty > 0",
+							(self.project_id,))
+		return self.cursor.fetchall()
+
+	def point_every_line_at(self, location_id):
+		self.cursor.execute("UPDATE manufacturing_items "
+							"SET source_location_id = %s "
+							"WHERE manufacturing_project_id = %s",
+							(location_id, self.project_id))
+
+	def test_stock_at_another_location_does_not_cover_a_line(self):
+		'''the whole point of measuring per line: a part the company holds
+		somewhere this build never touches leaves the source short, and saying
+		otherwise is what let a post drive a location negative'''
+		source_id = self.new_location('Test source')
+		elsewhere_id = self.new_location('Test elsewhere')
+		self.point_every_line_at(source_id)
+		product_id, qty = self.components[0]
+		self.stock(product_id, elsewhere_id, qty + 5)
+		name = self.one("SELECT name FROM products WHERE id = %s", (product_id,))
+		message = self.inventorying.manufacturing_shortage_message(self.project_id)
+		self.assertIsNotNone(message)
+		self.assertIn(name, message)
+		self.assertIn('Test source', message)
+		self.assertNotIn('Test elsewhere', message)
+
+	def test_stock_at_the_source_covers_every_line(self):
+		source_id = self.new_location('Test source')
+		self.point_every_line_at(source_id)
+		for product_id, qty in self.every_line():
+			self.stock(product_id, source_id, qty)
+		self.assertIsNone(
+			self.inventorying.manufacturing_shortage_message(self.project_id))
+
+	def test_reposting_does_not_warn_about_its_own_consumption(self):
+		'''manufacture () deletes and rewrites the project's rows, so the stock
+		its last post took is not stock taken yet'''
+		source_id = self.new_location('Test source')
+		self.point_every_line_at(source_id)
+		for product_id, qty in self.every_line():
+			self.stock(product_id, source_id, qty)
+		self.inventorying.manufacture(self.project_id)
+		self.assertIsNone(
+			self.inventorying.manufacturing_shortage_message(self.project_id))
+
 if __name__ == '__main__':
 	unittest.main()

@@ -99,6 +99,10 @@
       <column type="gchararray"/>
       <!-- column-name source_location_name -->
       <column type="gchararray"/>
+      <!-- column-name source_location_id -->
+      <column type="gint"/>
+      <!-- column-name total_on_hand_qty -->
+      <column type="gint"/>
     </columns>
   </object>
   <object class="GtkListStore" id="product_store">
@@ -508,6 +512,20 @@
                               <object class="GtkCellRendererText" id="on_hand_renderer"/>
                               <attributes>
                                 <attribute name="text">5</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="total_on_hand_column">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">All locations</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort-column-id">13</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="total_on_hand_renderer"/>
+                              <attributes>
+                                <attribute name="text">13</attribute>
                               </attributes>
                             </child>
                           </object>

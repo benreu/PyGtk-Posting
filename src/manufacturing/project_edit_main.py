@@ -19,6 +19,7 @@
 from gi.repository import Gtk, Gdk, GLib
 from db_connection import DB, broadcaster
 from constants import ui_directory, MANUFACTURING_PROJECT_LOCK_CLASSID
+from inventory import inventorying
 
 UI_FILE = ui_directory + "/manufacturing/project_edit_main.ui"
 
@@ -78,7 +79,11 @@ class ProjectEditGUI(Gtk.Builder):
 		cursor.execute("SELECT id::text, name FROM locations ORDER BY name")
 		for row in cursor.fetchall():
 			location_store.append(row)
-		cursor.execute("SELECT name FROM locations ORDER BY id LIMIT 1")
+		# a line with no source of its own is consumed from the first location
+		# by manufacture (), so the window has to measure it there too
+		self.default_source_id = inventorying.first_location_id(cursor)
+		cursor.execute("SELECT name FROM locations WHERE id = %s",
+					(self.default_source_id,))
 		self.default_source_name = cursor.fetchone()[0]
 		cursor.close()
 		DB.rollback()
@@ -343,15 +348,34 @@ class ProjectEditGUI(Gtk.Builder):
 				return False
 		return True
 
-	def get_on_hand_qty (self, product_id):
+	def get_on_hand_qty (self, product_id, location_id = None):
+		'''the stock at one location, or the company's whole stock when
+		location_id is None. A line is only short against the location the post
+		will take the part from, so the company wide figure is for display'''
 		c = DB.cursor()
 		c.execute("SELECT COALESCE(SUM(qty_in - qty_out), 0) "
-					"FROM inventory_transactions WHERE product_id = %s",
-					(product_id,))
+					"FROM inventory_transactions WHERE product_id = %s "
+					"AND (%s::int IS NULL OR location_id = %s)",
+					(product_id, location_id, location_id))
 		on_hand = c.fetchone()[0]
 		c.close()
 		DB.rollback()
 		return on_hand
+
+	def refresh_shortfall (self, tree_iter):
+		'''the Order qty has to follow whichever of the three inputs changed --
+		the part, the needed qty, or the source location -- and only the stock at
+		the source counts towards it, because that is the only stock manufacture ()
+		will consume for this line. The company wide total is shown beside it and
+		never subtracted from the need: stock at another location has to be moved
+		before this build can use it'''
+		row = self.parts_needed_store[tree_iter]
+		product_id = row[2]
+		if product_id == 0:
+			return # no part chosen on this line yet
+		row[5] = self.get_on_hand_qty(product_id, row[12])
+		row[13] = self.get_on_hand_qty(product_id)
+		row[8] = max(row[1] - row[5], 0)
 
 	def get_vendor_sku (self, vendor_id, product_id):
 		c = DB.cursor()
@@ -424,33 +448,53 @@ class ProjectEditGUI(Gtk.Builder):
 	def populate_parts_needed_store (self):
 		self.parts_needed_store.clear()
 		c = DB.cursor()
+		params = {'project_id': self.project_id,
+					'first_location': self.default_source_id,
+					'default_source_name': self.default_source_name}
+		# On hand is the stock at the line's own source location, the only
+		# stock manufacture () will consume for it. Worked out against the whole
+		# company instead, the Order qty reads 0 for a part held somewhere this
+		# build never touches and the post then drives the source negative. The
+		# company wide total rides alongside so that such a part can be seen
+		# for what it is -- stock to transfer rather than stock to buy
 		c.execute("SELECT mi.id, mi.qty, mi.product_id, p.name, "
 					"mi.default_product_id, "
-					"COALESCE((SELECT SUM(qty_in - qty_out) "
-					"FROM inventory_transactions "
-					"WHERE product_id = mi.product_id), 0) AS on_hand, "
+					"src.qty AS on_hand, "
 					"COALESCE(mi.vendor_id, 0), "
 					"COALESCE(v.name, 'Select a vendor'), "
 					"mi.purchase_order_item_id IS NOT NULL, "
 					"COALESCE(vpn.vendor_sku, ''), "
-					"COALESCE(sl.name, %s) "
+					"COALESCE(sl.name, %(default_source_name)s), "
+					"COALESCE(mi.source_location_id, %(first_location)s), "
+					"total.qty AS total_on_hand "
 					"FROM manufacturing_items AS mi "
 					"JOIN products AS p ON p.id = mi.product_id "
 					"LEFT JOIN locations AS sl ON sl.id = mi.source_location_id "
 					"LEFT JOIN contacts AS v ON v.id = mi.vendor_id "
 					"LEFT JOIN vendor_product_numbers AS vpn "
-					"ON (vpn.vendor_id, vpn.product_id) = "
-					"(mi.vendor_id, mi.product_id) AND vpn.deleted = False "
-					"WHERE mi.manufacturing_project_id = %s "
-					"ORDER BY mi.id",
-					(self.default_source_name, self.project_id))
+						"ON (vpn.vendor_id, vpn.product_id) = "
+						"(mi.vendor_id, mi.product_id) AND vpn.deleted = False "
+					"JOIN LATERAL (SELECT COALESCE(SUM(it.qty_in - it.qty_out), 0) "
+							"AS qty FROM inventory_transactions AS it "
+							"WHERE it.product_id = mi.product_id "
+							"AND it.location_id = "
+								"COALESCE(mi.source_location_id, %(first_location)s)) "
+							"AS src "
+						"ON True "
+					"JOIN LATERAL (SELECT COALESCE(SUM(it.qty_in - it.qty_out), 0) "
+							"AS qty FROM inventory_transactions AS it "
+							"WHERE it.product_id = mi.product_id) AS total "
+						"ON True "
+					"WHERE mi.manufacturing_project_id = %(project_id)s "
+					"ORDER BY mi.id", params)
 		for row in c.fetchall():
 			needed, on_hand = row[1], row[5]
 			order_qty = max(needed - on_hand, 0)
 			status = "Added" if row[8] else ""
 			self.parts_needed_store.append([row[0], row[1], row[2], row[3],
 							row[4], on_hand, row[6], row[7],
-							order_qty, status, row[9], row[10]])
+							order_qty, status, row[9], row[10],
+							row[11], row[12]])
 		c.close()
 		DB.rollback()
 
@@ -498,10 +542,7 @@ class ProjectEditGUI(Gtk.Builder):
 		self.parts_needed_store[tree_iter][3] = product_name
 		DB.commit()
 		c.close()
-		on_hand = self.get_on_hand_qty(product_id)
-		self.parts_needed_store[tree_iter][5] = on_hand
-		self.parts_needed_store[tree_iter][8] = max(
-			self.parts_needed_store[tree_iter][1] - on_hand, 0)
+		self.refresh_shortfall(tree_iter)
 		if vendor_id != 0:
 			self.parts_needed_store[tree_iter][10] = self.get_vendor_sku(
 									vendor_id, product_id)
@@ -564,11 +605,15 @@ class ProjectEditGUI(Gtk.Builder):
 			self.show_message("Select a product for this line first.")
 			return
 		self.parts_needed_store[path][11] = location_name
+		self.parts_needed_store[path][12] = int(location_id)
 		c = DB.cursor()
 		c.execute("UPDATE manufacturing_items SET source_location_id = %s "
 					"WHERE id = %s", (location_id, item_id))
 		DB.commit()
 		c.close()
+		# the shortfall was measured against the location this line used to
+		# take its stock from, which is a different question now
+		self.refresh_shortfall(self.parts_needed_store.get_iter(path))
 
 	def order_qty_edited (self, widget, path, text):
 		try:
@@ -737,7 +782,8 @@ class ProjectEditGUI(Gtk.Builder):
 		column = treeview.get_column(0)
 		row = self.parts_needed_store.append([0, 1, 0, "Select a product", 0,
 							0, 0, "Select a vendor", 1, "", "",
-							self.default_source_name])
+							self.default_source_name,
+							self.default_source_id, 0])
 		path = self.parts_needed_store.get_path(row)
 		treeview.set_cursor(path, column, True)
 
@@ -775,7 +821,8 @@ class ProjectEditGUI(Gtk.Builder):
 		tree_row = self.parts_needed_store.append([0, 1, 0,
 							"Select a product", 0, 0, 0,
 							"Select a vendor", 1, "", "",
-							self.default_source_name])
+							self.default_source_name,
+							self.default_source_id, 0])
 		self.apply_part_selection(tree_row, product_id, product_name)
 
 	def set_needed_qty (self, tree_iter, qty):
@@ -789,8 +836,7 @@ class ProjectEditGUI(Gtk.Builder):
 					(qty, qty, item_id))
 		DB.commit()
 		c.close()
-		on_hand = self.parts_needed_store[tree_iter][5]
-		self.parts_needed_store[tree_iter][8] = max(qty - on_hand, 0)
+		self.refresh_shortfall(tree_iter)
 
 	def needed_qty_edited (self, widget, path, text):
 		try:
