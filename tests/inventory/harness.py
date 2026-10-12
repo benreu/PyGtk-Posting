@@ -90,9 +90,56 @@ class FakeBroadcaster:
 # before any application module is imported
 import db_connection
 db_connection.broadcaster = FakeBroadcaster()
+# Whether the copy already has everything PENDING_SCHEMA would add. It has to be
+# asked once, because the answer cannot be cached by applying the DDL: the block
+# runs inside the test transaction, and real_rollback () throws the whole
+# transaction away after every test, so anything applied at import time is gone
+# before the second test starts. Committing it instead would write the migration
+# to the database for real, which is the one thing this harness promises not to
+# do -- the application applies migrations, from its own upgrade dialog.
+#
+# So the DDL stays in setUp, and this is what stops it being paid 600 times over
+# on a copy that is already current: each ALTER is a no-op there, but it still
+# takes ACCESS EXCLUSIVE on the table, 600 times, against a connection that is
+# holding a transaction open. That is lock contention bought for nothing.
+SCHEMA_PROBE = """
+SELECT NOT (
+	EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'settings', 'inventory_capitalized'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'inventory_transactions', 'credit_memo_item_id'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name, is_nullable) =
+		('inventory', 'count_summaries', 'location_id', 'NO'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'inventory_transactions', 'count_summary_id'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'inventory_transactions', 'transfer_id'))
+	AND to_regclass('inventory.transfers') IS NOT NULL
+	AND EXISTS (SELECT 1 FROM pg_proc AS p JOIN pg_namespace AS n
+		ON n.oid = p.pronamespace
+		WHERE (n.nspname, p.proname) = ('inventory', 'count_summary_changed'))
+	AND EXISTS (SELECT 1 FROM pg_trigger
+		WHERE tgname = 'count_summary_insert_trigger')
+	AND EXISTS (SELECT 1 FROM pg_trigger
+		WHERE tgname = 'count_summary_update_trigger'))
+"""
+
 _conn = None
+_schema_pending = True # until asked; a copy that is behind pays the DDL per test
 try:
 	_conn = connect()
+	# asked here, before FakeDB opens the savepoint every test rolls back to, so
+	# giving the probe's read transaction back cannot disturb it
+	_probe = _conn.cursor()
+	_probe.execute(SCHEMA_PROBE)
+	_schema_pending = _probe.fetchone()[0]
+	_probe.close()
+	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
 except unittest.SkipTest:
 	pass
@@ -205,8 +252,13 @@ class DBTestCase(unittest.TestCase):
 		transaction so it is rolled back with everything else. Postgres keeps DDL
 		transactional, so this leaves the database alone while letting the suite
 		run against a copy that has not had the update applied yet. Every
-		statement is a no-op once it has'''
-		self.cursor.execute(PENDING_SCHEMA)
+		statement is a no-op once it has.
+
+		Skipped outright once SCHEMA_PROBE has said the copy is already current,
+		which is the usual case and the difference between taking ACCESS
+		EXCLUSIVE on four tables in every setUp and taking none at all'''
+		if _schema_pending:
+			self.cursor.execute(PENDING_SCHEMA)
 
 	def tearDown(self):
 		if _conn is not None:
