@@ -115,7 +115,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkCheckMenuItem" id="menuitem1">
+      <object class="GtkCheckMenuItem" id="direct_print_checkmenuitem">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Direct print</property>
@@ -141,7 +141,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem5">
+      <object class="GtkMenuItem" id="post_and_process_menuitem">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
         <property name="can-focus">False</property>
@@ -160,7 +160,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menuitem2">
+      <object class="GtkMenuItem" id="view_purchase_order_menuitem">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
         <property name="can-focus">False</property>
@@ -277,7 +277,7 @@
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkEntry" id="entry2">
+              <object class="GtkEntry" id="comments_entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="hexpand">True</property>
@@ -320,7 +320,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkComboBox" id="combobox1">
+                      <object class="GtkComboBox" id="vendor_combo">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="hexpand">True</property>
@@ -355,7 +355,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="checkbutton1">
+                      <object class="GtkCheckButton" id="view_all_checkbutton">
                         <property name="label" translatable="yes">View all</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -396,7 +396,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry1">
+                      <object class="GtkEntry" id="order_date_entry">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="editable">False</property>
@@ -426,7 +426,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="entry8">
+                      <object class="GtkEntry" id="vendor_phone_entry">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="editable">False</property>
@@ -466,7 +466,7 @@
             <property name="hscrollbar-policy">never</property>
             <property name="shadow-type">in</property>
             <child>
-              <object class="GtkTreeView" id="treeview2">
+              <object class="GtkTreeView" id="po_items_treeview">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="model">purchase_order_store</property>
@@ -781,7 +781,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button3">
+              <object class="GtkButton" id="new_line_item_button">
                 <property name="label" translatable="yes">New</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
@@ -797,7 +797,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button2">
+              <object class="GtkButton" id="post_po_button">
                 <property name="label" translatable="yes">Post Purchase Order</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
@@ -827,7 +827,7 @@
             <property name="hexpand">True</property>
             <property name="column-spacing">5</property>
             <child>
-              <object class="GtkEntry" id="entry5">
+              <object class="GtkEntry" id="total_entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="editable">False</property>
@@ -981,7 +981,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <child>
-                  <object class="GtkEntry" id="entry10">
+                  <object class="GtkEntry" id="barcode_error_scan_entry">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="placeholder-text" translatable="yes">Scan barcode</property>
@@ -1110,7 +1110,7 @@ Do you want to update the quantity to </property>
                 <property name="can-focus">False</property>
                 <property name="halign">center</property>
                 <child>
-                  <object class="GtkSpinButton" id="spinbutton1">
+                  <object class="GtkSpinButton" id="duplicate_qty_spinbutton">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="text" translatable="yes">0</property>
@@ -1123,7 +1123,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label5">
+                  <object class="GtkLabel" id="duplicate_product_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes"> Product </property>
@@ -1385,7 +1385,7 @@ Do you want to update the quantity to </property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button1">
+              <object class="GtkButton" id="create_product_button">
                 <property name="label" translatable="yes">Create product</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
@@ -1429,7 +1429,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="combobox2">
+                  <object class="GtkComboBox" id="expense_account_combo">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="model">expense_account_store</property>
@@ -1459,7 +1459,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="combobox3">
+                  <object class="GtkComboBox" id="revenue_account_combo">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="model">revenue_account_store</property>
@@ -1489,7 +1489,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="entry3">
+                  <object class="GtkEntry" id="non_stock_order_number_entry">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <signal name="changed" handler="create_product_widgets_changed" swapped="no"/>
@@ -1511,7 +1511,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="entry4">
+                  <object class="GtkEntry" id="non_stock_name_entry">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <signal name="changed" handler="create_product_widgets_changed" swapped="no"/>
@@ -1522,7 +1522,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label15">
+                  <object class="GtkLabel" id="name_in_use_label">
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">That product name is already in use !</property>
                     <attributes>
@@ -1543,7 +1543,7 @@ Do you want to update the quantity to </property>
               </packing>
             </child>
             <child>
-              <object class="GtkBox" id="box8">
+              <object class="GtkBox" id="order_number_in_use_box">
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
@@ -1562,7 +1562,7 @@ Do you want to update the quantity to </property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label13">
+                  <object class="GtkLabel" id="order_number_in_use_product_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">product name</property>
@@ -1594,7 +1594,7 @@ Do you want to update the quantity to </property>
     </child>
     <action-widgets>
       <action-widget response="-6">button8</action-widget>
-      <action-widget response="-3">button1</action-widget>
+      <action-widget response="-3">create_product_button</action-widget>
     </action-widgets>
   </object>
   <object class="GtkDialog" id="temp_permanent_dialog">
@@ -1663,7 +1663,7 @@ this purchase order.</property>
           </packing>
         </child>
         <child>
-          <object class="GtkCheckButton" id="checkbutton2">
+          <object class="GtkCheckButton" id="remember_selection_checkbutton">
             <property name="label" translatable="yes">Remember selection for the rest of this purchase order</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>

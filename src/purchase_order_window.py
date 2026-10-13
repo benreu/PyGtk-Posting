@@ -174,7 +174,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.populate_product_store ()
 
 		enforce_target = Gtk.TargetEntry.new('text/plain', Gtk.TargetFlags(1), 129)
-		self.treeview = self.get_object('treeview2')
+		self.treeview = self.get_object('po_items_treeview')
 		self.treeview.drag_dest_set(Gtk.DestDefaults.ALL, [enforce_target], Gdk.DragAction.COPY)
 		self.treeview.drag_dest_set_target_list([enforce_target])
 		
@@ -190,18 +190,18 @@ class PurchaseOrderGUI(Gtk.Builder):
 			for row in cursor.fetchall():
 				po_name = row[0]
 				self.vendor_id = row[1]
-				self.get_object('combobox1').set_active_id(str(self.vendor_id))
+				self.get_object('vendor_combo').set_active_id(str(self.vendor_id))
 				self.get_object('po_name_entry').set_text(po_name)
 				self.get_object('po_number_entry').set_text(str(edit_po_id))
-				self.get_object('button2').set_sensitive(True)
-				self.get_object('button3').set_sensitive(True)
-				self.get_object('menuitem5').set_sensitive(True)
-				self.get_object('menuitem2').set_sensitive(True)
+				self.get_object('post_po_button').set_sensitive(True)
+				self.get_object('new_line_item_button').set_sensitive(True)
+				self.get_object('post_and_process_menuitem').set_sensitive(True)
+				self.get_object('view_purchase_order_menuitem').set_sensitive(True)
 				self.purchase_order_id = int(edit_po_id)
 				self.populate_purchase_order_items ()
 
 		cursor.execute("SELECT print_direct FROM settings")
-		self.get_object('menuitem1').set_active(cursor.fetchone()[0]) #set the direct print checkbox
+		self.get_object('direct_print_checkmenuitem').set_active(cursor.fetchone()[0]) #set the direct print checkbox
 		cursor.close()
 
 		self.window = self.get_object('window')
@@ -324,7 +324,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def populate_purchase_order_items (self):
 		cursor = DB.cursor()
 		self.p_o_store.clear()
-		if self.get_object ('checkbutton1').get_active() == True:
+		if self.get_object ('view_all_checkbutton').get_active() == True:
 			self.get_object('treeviewcolumn11').set_visible(True)
 			cursor.execute("SELECT "
 								"poli.id, "
@@ -533,7 +533,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def populate_vendor_store (self, m=None, i=None):
 		self.populating = True
-		name_combo = self.get_object('combobox1')
+		name_combo = self.get_object('vendor_combo')
 		active_customer = name_combo.get_active() 
 		self.vendor_store.clear()
 		cursor = DB.cursor()
@@ -565,7 +565,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		return True
 
 	def view_purchase_order(self, widget):
-		comment = self.get_object('entry2').get_text()
+		comment = self.get_object('comments_entry').get_text()
 		purchase_order = purchase_ordering.Setup( self.vendor_id, 
 													comment, 
 													self.datetime, 
@@ -596,12 +596,12 @@ class PurchaseOrderGUI(Gtk.Builder):
 			if row[0] == False:
 				self.show_message("Somebody else is still accessing this PO")
 				return
-		comment = self.get_object('entry2').get_text()
+		comment = self.get_object('comments_entry').get_text()
 		purchase_order = purchase_ordering.Setup(self.vendor_id, 
 													comment, 
 													self.datetime, 
 													self.purchase_order_id)
-		if self.get_object('menuitem1').get_active() == True:
+		if self.get_object('direct_print_checkmenuitem').get_active() == True:
 			result = purchase_order.print_directly(self.window)
 		else:
 			result = purchase_order.print_dialog(self.window)
@@ -656,14 +656,14 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def select_vendor (self, vendor_id):
 		self.p_o_store.clear()
-		self.get_object ('checkbutton1').set_active(False)
+		self.get_object ('view_all_checkbutton').set_active(False)
 		if vendor_id != None and self.populating == False:
 			self.unlock_po()
 			self.vendor_id = vendor_id
-			self.get_object('button2').set_sensitive(True)
-			self.get_object('button3').set_sensitive(True)
-			self.get_object('menuitem5').set_sensitive(True)
-			self.get_object('menuitem2').set_sensitive(True)
+			self.get_object('post_po_button').set_sensitive(True)
+			self.get_object('new_line_item_button').set_sensitive(True)
+			self.get_object('post_and_process_menuitem').set_sensitive(True)
+			self.get_object('view_purchase_order_menuitem').set_sensitive(True)
 			cursor = DB.cursor()
 			cursor.execute("SELECT * FROM "
 								"(SELECT "
@@ -682,8 +682,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 			for row in cursor.fetchall() : # check for active PO
 				self.purchase_order_id = row[0]
 				self.datetime = row[1]
-				self.get_object('entry1').set_text(row[2])
-				self.get_object('entry8').set_text(row[3])
+				self.get_object('order_date_entry').set_text(row[2])
+				self.get_object('vendor_phone_entry').set_text(row[3])
 				self.get_object('po_name_entry').set_text(row[4])
 				self.get_object('po_number_entry').set_text(str(row[0]))
 				self.populate_purchase_order_items ()
@@ -698,8 +698,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 				for row in cursor.fetchall() :
 					self.purchase_order_id = None
 					self.datetime = row[0]
-					self.get_object('entry1').set_text(row[1])
-					self.get_object('entry8').set_text(row[2])
+					self.get_object('order_date_entry').set_text(row[1])
+					self.get_object('vendor_phone_entry').set_text(row[2])
 					self.get_object('po_name_entry').set_text('')
 					self.get_object('po_number_entry').set_text('')
 			cursor.close()
@@ -863,7 +863,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		return True
 
 	def show_temporary_permanent_dialog (self, order_number, product_id):
-		if self.get_object('checkbutton2').get_active() == True:
+		if self.get_object('remember_selection_checkbutton').get_active() == True:
 			if self.order_number_response == 1:
 				self.update_vendor_order_number (order_number, product_id)
 			return # user selected to always have the same action
@@ -968,8 +968,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		DB.rollback()
 
 	def create_product_widgets_changed (self, widget):
-		self.get_object ('button1').set_sensitive(False)
-		product_name = self.get_object ('entry4').get_text()
+		self.get_object ('create_product_button').set_sensitive(False)
+		product_name = self.get_object ('non_stock_name_entry').get_text()
 		cursor = DB.cursor()
 		if product_name == '':
 			cursor.close()
@@ -978,11 +978,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 			cursor.execute("SELECT id FROM products "
 								"WHERE name = %s", (product_name,))
 			for row in cursor.fetchall():
-				self.get_object('label15').set_visible(True)
+				self.get_object('name_in_use_label').set_visible(True)
 				break
 			else:
-				self.get_object('label15').set_visible(False)
-		order_number = self.get_object ('entry3').get_text()
+				self.get_object('name_in_use_label').set_visible(False)
+		order_number = self.get_object ('non_stock_order_number_entry').get_text()
 		if order_number == '':
 			cursor.close()
 			return # no order number
@@ -995,32 +995,32 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"(%s, %s)", (order_number, self.vendor_id))
 			for row in cursor.fetchall():
 				product_name = row[0]
-				self.get_object('label13').set_text(product_name)
-				self.get_object('box8').set_visible(True)
+				self.get_object('order_number_in_use_product_label').set_text(product_name)
+				self.get_object('order_number_in_use_box').set_visible(True)
 				break
 			else:
-				self.get_object('box8').set_visible(False)
+				self.get_object('order_number_in_use_box').set_visible(False)
 		cursor.close()
-		if self.get_object ('combobox2').get_active_id() == None:
+		if self.get_object ('expense_account_combo').get_active_id() == None:
 			return # no expense account
-		if self.get_object ('combobox3').get_active_id() == None:
+		if self.get_object ('revenue_account_combo').get_active_id() == None:
 			return # no income account
-		self.get_object ('button1').set_sensitive(True)
+		self.get_object ('create_product_button').set_sensitive(True)
 		DB.rollback()
 
 	def product_renderer_edited (self, cellrenderertext, path, product_text):
 		_iter = self.p_o_store.get_iter(path)
 		self.populate_account_store ()
-		self.get_object ('entry4').set_text(product_text)
+		self.get_object ('non_stock_name_entry').set_text(product_text)
 		dialog = self.get_object ('non_stock_product_dialog')
 		result = dialog.run ()
-		self.get_object('box8').set_visible(False)
-		self.get_object('label15').set_visible(False)
+		self.get_object('order_number_in_use_box').set_visible(False)
+		self.get_object('name_in_use_label').set_visible(False)
 		dialog.hide ()
-		product_name = self.get_object ('entry4').get_text()
-		product_number = self.get_object ('entry3').get_text()
-		expense_account = self.get_object ('combobox2').get_active_id()
-		revenue_account = self.get_object ('combobox3').get_active_id()
+		product_name = self.get_object ('non_stock_name_entry').get_text()
+		product_number = self.get_object ('non_stock_order_number_entry').get_text()
+		expense_account = self.get_object ('expense_account_combo').get_active_id()
+		revenue_account = self.get_object ('revenue_account_combo').get_active_id()
 		if result == Gtk.ResponseType.ACCEPT:
 			product_id = add_non_stock_product(	self.vendor_id, product_name,
 												product_number, expense_account,
@@ -1028,8 +1028,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 			self.p_o_store[_iter][2] = product_id
 			self.save_product (_iter, product_id)
 			self.calculate_totals ()
-		self.get_object ('entry3').set_text('')
-		self.get_object ('button1').set_sensitive(False)
+		self.get_object ('non_stock_order_number_entry').set_text('')
+		self.get_object ('create_product_button').set_sensitive(False)
 
 	def save_product (self, _iter, product_id):
 		if self.check_for_duplicate_products (product_id, _iter) == True:
@@ -1038,7 +1038,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		self.save_product_without_duplicate_check (_iter, product_id)
 		# retrieve path again after all sorting has happened for the updates
 		path = self.p_o_store.get_path(_iter)
-		treeview = self.get_object('treeview2')
+		treeview = self.get_object('po_items_treeview')
 		c = treeview.get_column(5)
 		treeview.set_cursor(path, c, True)
 
@@ -1129,9 +1129,9 @@ class PurchaseOrderGUI(Gtk.Builder):
 				continue # continue with the rest of the liststore
 			if product_id == row[2]: # the liststore has duplicates
 				product_name = row[5]
-				self.get_object('label5').set_label(product_name)
+				self.get_object('duplicate_product_label').set_label(product_name)
 				qty = row[1]
-				qty_spinbutton = self.get_object('spinbutton1')
+				qty_spinbutton = self.get_object('duplicate_qty_spinbutton')
 				qty_spinbutton.set_value(int(qty))
 				self.duplicate_product_id = product_id
 				self.duplicate_product_primary_row = row
@@ -1148,7 +1148,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		model, path = selection.get_selected_rows ()
 		if path == []:
 			return
-		qty_spinbutton = self.get_object('spinbutton1')
+		qty_spinbutton = self.get_object('duplicate_qty_spinbutton')
 		qty = qty_spinbutton.get_text()
 		self.duplicate_product_primary_row[1] = qty
 		row_id = self.duplicate_product_primary_row[0]
@@ -1231,13 +1231,13 @@ class PurchaseOrderGUI(Gtk.Builder):
 						(self.purchase_order_id,))
 		for row in cursor.fetchall():
 			total = row[0]
-			self.get_object('entry5').set_text(total)
+			self.get_object('total_entry').set_text(total)
 		rows = len(self.p_o_store)
 		self.get_object('rows_entry').set_text(str(rows))
 
 	def check_po_id (self):
 		if self.purchase_order_id == None:
-			comment = self.get_object('entry2').get_text()
+			comment = self.get_object('comments_entry').get_text()
 			cursor = DB.cursor()
 			cursor.execute("INSERT INTO purchase_orders "
 									"(name, "
@@ -1259,7 +1259,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 
 	def new_entry_clicked (self, button):
 		_iter = self.add_entry ()
-		treeview = self.get_object('treeview2')
+		treeview = self.get_object('po_items_treeview')
 		c = treeview.get_column(1)
 		path = self.p_o_store.get_path(_iter)
 		treeview.set_cursor(path, c, True)
@@ -1401,7 +1401,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			continue
 		else:
 			self.barcodes_not_found_store.append([0, 1, barcode])
-		self.get_object('entry10').grab_focus()
+		self.get_object('barcode_error_scan_entry').grab_focus()
 		barcode_error_dialog = self.get_object('barcode_error_dialog')
 		barcode_error_dialog.run()
 		barcode_error_dialog.hide()
@@ -1420,7 +1420,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 	def calendar_day_selected (self, calendar):
 		self.datetime = calendar.get_date()
 		day_text = calendar.get_text()
-		self.get_object('entry1').set_text(day_text)
+		self.get_object('order_date_entry').set_text(day_text)
 
 	def calendar_entry_icon_release (self, widget, icon, void):
 		self.calendar.set_relative_to (widget)
