@@ -250,10 +250,18 @@ CREATE TABLE public.tax_rates (
 CREATE TABLE public.units (
     id serial PRIMARY KEY, 
     name varchar UNIQUE NOT NULL,
+    abbreviation varchar DEFAULT ''::character varying NOT NULL,
     standard boolean DEFAULT false NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
+    parent_id integer REFERENCES public.units (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    parent_qty numeric(12,4),
     date_created date DEFAULT now() NOT NULL,
-    date_edited date DEFAULT now() NOT NULL);
+    date_edited date DEFAULT now() NOT NULL,
+    CONSTRAINT unit_parent_is_another_unit
+        CHECK (parent_id IS NULL OR parent_id <> id),
+    CONSTRAINT unit_parent_qty_together
+        CHECK ((parent_id IS NULL) = (parent_qty IS NULL)
+                AND (parent_qty IS NULL OR parent_qty > 0)));
 
 --CREATE TABLE public.products
 CREATE TABLE public.products (

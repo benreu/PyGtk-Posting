@@ -1039,3 +1039,67 @@ ALTER TABLE public.units
 UPDATE public.units SET standard = True
 	WHERE id = (SELECT min(id) FROM public.units)
 		AND NOT EXISTS (SELECT 1 FROM public.units WHERE standard = True);
+
+--0.7.27
+/* Units carried a name and nothing else: no abbreviation to put beside a
+   quantity, and no way to record that a foot is twelve inches. parent_id is the
+   same self-referencing shape gl_accounts.parent_number uses. The ratio is
+   reference data and nothing converts a quantity by it: qty_in and qty_out are
+   integers, and both whole-quantity guards would reject the fractions a real
+   conversion produces.
+
+   The whole block is one shot, gated on the column not being there yet, rather
+   than the usual per-statement IF NOT EXISTS. Two reasons. The seeded ratios and
+   abbreviations must not come back: this file re-runs from the top on every
+   upgrade, so a per-row "WHERE parent_id IS NULL" guard would resurrect a
+   relationship the user had deliberately cleared. And an ADD COLUMN IF NOT
+   EXISTS still takes ACCESS EXCLUSIVE on the table every time it runs, where the
+   information_schema probe takes nothing. A longer cycle (foot to inch to foot)
+   is deliberately not blocked here; the units window walks the chain before it
+   saves, and nothing traverses it yet, so a cycle would be wrong data rather
+   than a hang. abbreviation is deliberately not UNIQUE either: it defaults to
+   the empty string on every row that already exists. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns WHERE
+						(table_schema, table_name, column_name) =
+						('public', 'units', 'abbreviation'))
+		THEN RETURN;
+	END IF;
+
+	ALTER TABLE public.units
+		ADD COLUMN abbreviation varchar NOT NULL DEFAULT '';
+	ALTER TABLE public.units
+		ADD COLUMN parent_id integer
+			REFERENCES public.units (id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+	ALTER TABLE public.units
+		ADD COLUMN parent_qty numeric(12,4);
+	ALTER TABLE public.units
+		ADD CONSTRAINT unit_parent_is_another_unit
+			CHECK (parent_id IS NULL OR parent_id <> id);
+	ALTER TABLE public.units
+		ADD CONSTRAINT unit_parent_qty_together
+			CHECK ((parent_id IS NULL) = (parent_qty IS NULL)
+							AND (parent_qty IS NULL OR parent_qty > 0));
+
+	EXECUTE $q$
+		UPDATE public.units SET abbreviation = v.abbr
+			FROM (VALUES ('Piece','pc'), ('Hour','hr'), ('Minute','min'),
+						('Foot','ft'), ('Inch','in'), ('Ounce','oz'),
+						('Pound','lb'), ('Ton','t'), ('Acre','ac')) AS v(name, abbr)
+			WHERE units.name = v.name
+		$q$;
+	EXECUTE $q$
+		UPDATE public.units SET (parent_id, parent_qty) =
+				((SELECT id FROM public.units WHERE name = 'Inch'), 12)
+			WHERE name = 'Foot'
+				AND EXISTS (SELECT 1 FROM public.units WHERE name = 'Inch')
+		$q$;
+	EXECUTE $q$
+		UPDATE public.units SET (parent_id, parent_qty) =
+				((SELECT id FROM public.units WHERE name = 'Minute'), 60)
+			WHERE name = 'Hour'
+				AND EXISTS (SELECT 1 FROM public.units WHERE name = 'Minute')
+		$q$;
+END
+$$;

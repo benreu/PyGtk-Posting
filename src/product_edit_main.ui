@@ -701,9 +701,23 @@
                                       <object class="GtkComboBoxText" id="comboboxtext1">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <signal name="changed" handler="unit_combo_changed" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
+                                        <property name="top_attach">6</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="unit_detail_label">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="margin_start">6</property>
+                                        <property name="xalign">0</property>
+                                        <property name="label" translatable="no"></property>
+                                      </object>
+                                      <packing>
+                                        <property name="left_attach">2</property>
                                         <property name="top_attach">6</property>
                                       </packing>
                                     </child>

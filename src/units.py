@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+from decimal import Decimal, InvalidOperation
 from db_connection import DB
 from constants import ui_directory
 
@@ -25,6 +26,14 @@ UI_FILE = ui_directory + "/units.ui"
 #id_column and GtkComboBox only reads a string there. A row that has not been
 #inserted yet carries this instead of an id.
 UNSAVED = '0'
+
+def qty_text (value):
+	'''parent_qty is numeric(12,4), so it comes back as 12.0000 where the grid
+	should read 12. format () rather than str () because Decimal.normalize turns
+	10 into 1E+1'''
+	if value == None:
+		return ''
+	return format(Decimal(value).normalize(), 'f')
 
 class UnitsGUI:
 	def __init__(self, parent_callback = None):
@@ -50,16 +59,38 @@ class UnitsGUI:
 	def populate_unit_store (self):
 		self.unit_store.clear()
 		cursor = DB.cursor()
-		cursor.execute("SELECT id::text, name, standard "
-							"FROM units "
+		cursor.execute("SELECT u.id::text, u.name, u.standard, u.abbreviation, "
+							"u.parent_qty, "
+							"COALESCE(p.name, ''), COALESCE(p.id::text, '') "
+							"FROM units AS u "
+							"LEFT JOIN units AS p ON p.id = u.parent_id "
+							"WHERE u.deleted = False ORDER BY u.name")
+		for row in cursor.fetchall():
+			self.unit_store.append([row[0], row[1], row[2], row[3],
+									qty_text(row[4]), row[5], row[6]])
+		cursor.close()
+		DB.rollback()
+		self.populate_parent_store ()
+
+	def populate_parent_store (self):
+		'''the model behind the "Of unit" combo column. The leading blank row is
+		how a relationship is cleared. A column has one model for every row, so
+		it cannot leave out the unit being edited: parent_combo_changed is what
+		refuses a unit as its own parent'''
+		store = self.builder.get_object('parent_store')
+		store.clear()
+		store.append(['', '—'])
+		cursor = DB.cursor()
+		cursor.execute("SELECT id::text, name FROM units "
 							"WHERE deleted = False ORDER BY name")
 		for row in cursor.fetchall():
-			self.unit_store.append(row)
+			store.append(row)
 		cursor.close()
 		DB.rollback()
 
 	def new_clicked (self, button):
-		iter_ = self.unit_store.append([UNSAVED, 'New unit', False])
+		iter_ = self.unit_store.append([UNSAVED, 'New unit', False, '',
+										'', '', ''])
 		self.builder.get_object('treeview-selection1').select_iter(iter_)
 
 	def unit_combo_changed (self, combo):
@@ -70,24 +101,108 @@ class UnitsGUI:
 		self.unit_store[path][1] = text
 		self.save (iter_)
 
+	def abbreviation_edited (self, text_renderer, path, text):
+		iter_ = self.unit_store.get_iter(path)
+		self.unit_store[path][3] = text.strip()
+		self.save (iter_)
+
+	def parent_qty_edited (self, spin_renderer, path, text):
+		if self.unit_store[path][6] == '':
+			#parent_qty without a parent is what unit_parent_qty_together
+			#refuses, and a number on its own says nothing anyway
+			self.show_message ("Choose the unit this one is measured in first.")
+			return
+		try:
+			qty = Decimal(text)
+		except InvalidOperation:
+			self.show_message ("'%s' is not a number." % text)
+			return
+		if qty <= 0:
+			self.show_message ("A unit cannot be worth none of another one.")
+			return
+		iter_ = self.unit_store.get_iter(path)
+		self.unit_store[path][4] = qty_text(qty)
+		self.save (iter_)
+
+	def parent_combo_changed (self, combo, path, tree_iter):
+		parent_store = self.builder.get_object('parent_store')
+		parent_id = parent_store[tree_iter][0]
+		parent_name = parent_store[tree_iter][1]
+		unit_id = self.unit_store[path][0]
+		if parent_id != '' and unit_id != UNSAVED:
+			if parent_id == unit_id:
+				self.show_message ("A unit cannot be measured in itself.")
+				return
+			if self.would_cycle (unit_id, parent_id):
+				self.show_message ("'%s' is already measured in '%s', so this "
+									"would run in a circle."
+									% (parent_name, self.unit_store[path][1]))
+				return
+		iter_ = self.unit_store.get_iter(path)
+		self.unit_store[path][6] = parent_id
+		if parent_id == '':
+			self.unit_store[path][5] = ''
+			self.unit_store[path][4] = ''
+		else:
+			self.unit_store[path][5] = parent_name
+		self.save (iter_)
+
+	def would_cycle (self, unit_id, parent_id):
+		'''walk up from the proposed parent: if this unit turns up on the way,
+		the relationship runs in a circle. A CHECK cannot see past its own row,
+		so the database only refuses a unit that is its own parent and this has
+		to catch the longer way round. The seen set is in case the table already
+		holds a cycle, put there through the SQL window'''
+		cursor = DB.cursor()
+		seen = set()
+		walker = parent_id
+		cycles = False
+		while walker != None and walker not in seen:
+			if walker == str(unit_id):
+				cycles = True
+				break
+			seen.add(walker)
+			cursor.execute("SELECT parent_id::text FROM units WHERE id = %s",
+							(walker,))
+			row = cursor.fetchone()
+			walker = row[0] if row != None else None
+		cursor.close()
+		DB.rollback()
+		return cycles
+
 	def save (self, iter_):
 		row_id = self.unit_store[iter_][0]
 		name = self.unit_store[iter_][1]
+		abbreviation = self.unit_store[iter_][3]
+		parent_id = self.unit_store[iter_][6] or None
+		parent_qty = self.unit_store[iter_][4] or None
+		#unit_parent_qty_together wants both or neither: naming a parent with no
+		#ratio yet means one of it, and clearing the parent clears the ratio
+		if parent_id == None:
+			parent_qty = None
+		elif parent_qty == None:
+			parent_qty = '1'
+		self.unit_store[iter_][4] = qty_text(parent_qty)
 		cursor = DB.cursor()
 		try:
 			if row_id == UNSAVED:
-				cursor.execute("INSERT INTO units (name) VALUES (%s) "
-									"RETURNING id::text", (name,))
+				cursor.execute("INSERT INTO units "
+									"(name, abbreviation, parent_id, parent_qty) "
+									"VALUES (%s, %s, %s, %s) RETURNING id::text",
+									(name, abbreviation, parent_id, parent_qty))
 				self.unit_store[iter_][0] = cursor.fetchone()[0]
 			else:
-				cursor.execute("UPDATE units "
-									"SET (name, date_edited) = (%s, CURRENT_DATE) "
+				cursor.execute("UPDATE units SET "
+									"(name, abbreviation, parent_id, parent_qty, "
+									"date_edited) = "
+									"(%s, %s, %s, %s, CURRENT_DATE) "
 									"WHERE id = %s",
-									(name, row_id))
+									(name, abbreviation, parent_id, parent_qty,
+									row_id))
 		except Exception as e:
 			#units.name is UNIQUE, which the lookup tables this window is
 			#modelled on are not, so a repeated name aborts the transaction.
-			#Reloading is what puts the row back to the name actually stored,
+			#Reloading is what puts the row back to what is actually stored,
 			#rather than leaving one on screen that was never written.
 			DB.rollback()
 			cursor.close()
@@ -98,6 +213,7 @@ class UnitsGUI:
 			return
 		cursor.close()
 		DB.commit()
+		self.populate_parent_store ()
 
 	def default_toggled (self, cell_renderer, path):
 		selected_path = Gtk.TreePath(path)
@@ -136,6 +252,15 @@ class UnitsGUI:
 			self.show_message ("That is the standard unit. Make a different "
 								"unit standard before deleting this one.")
 			return
+		child = self.one_child_of (current_unit_id)
+		if child != None:
+			#parent_id is ON DELETE RESTRICT too, so the probe below would fail
+			#on this as well, and the dialog it opens offers to move products,
+			#which would do nothing for a unit measured in this one
+			self.show_message ("'%s' is measured in this unit, so it cannot be "
+								"deleted. Clear that relationship first."
+								% child)
+			return
 		cursor = DB.cursor()
 		try:
 			#products.unit is ON DELETE RESTRICT, so this asks the database
@@ -166,6 +291,17 @@ class UnitsGUI:
 		DB.commit()
 		self.builder.get_object('button2').set_sensitive(False)
 		self.populate_unit_store ()
+
+	def one_child_of (self, unit_id):
+		'''the name of some live unit measured in this one, or None'''
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM units "
+							"WHERE parent_id = %s AND deleted = False LIMIT 1",
+							(unit_id,))
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		return row[0] if row != None else None
 
 	def populate_reassign_store (self, current_unit_id):
 		'''the dialog gets its own store rather than sharing the treeview's,

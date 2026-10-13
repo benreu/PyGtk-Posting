@@ -28,6 +28,7 @@ from accounts import 	product_revenue_tree, \
 						product_expense_list, \
 						product_inventory_list
 from sqlite_utils import get_apsw_connection
+from units import qty_text
 import spell_check, barcode_generator
 
 
@@ -67,6 +68,9 @@ class Item(object):#this is used by py3o library see their example for more info
 class ProductEditMainGUI (Gtk.Builder):
 	product_id = 0
 	product_lock_acquired = False
+	#filled by populate_unit_combo, read by unit_combo_changed. A class
+	#attribute so the handler is safe if the combo changes before it is filled
+	unit_details = {}
 	def __init__(self, product_overview = None):
 
 		Gtk.Builder.__init__(self)
@@ -192,11 +196,17 @@ class ProductEditMainGUI (Gtk.Builder):
 		if current_unit != None:
 			current_unit = str(current_unit)
 		unit_combobox.remove_all()
-		c.execute("SELECT id::text, name FROM units "
-							"WHERE deleted = False OR id::text = %s "
-							"ORDER BY name", (current_unit,))
+		c.execute("SELECT u.id::text, u.name, u.abbreviation, u.parent_qty, "
+							"COALESCE(p.name, '') "
+							"FROM units AS u "
+							"LEFT JOIN units AS p ON p.id = u.parent_id "
+							"WHERE u.deleted = False OR u.id::text = %s "
+							"ORDER BY u.name", (current_unit,))
+		self.unit_details = dict()
 		for item in c.fetchall():
 			unit_combobox.append(item[0], item[1])
+			self.unit_details[item[0]] = (item[1], item[2],
+											qty_text(item[3]), item[4])
 		if current_unit == None:
 			#products.unit is NOT NULL and Glade no longer pre-selects unit 1,
 			#so a new product has to be given the standard unit here or it
@@ -210,6 +220,22 @@ class ProductEditMainGUI (Gtk.Builder):
 		if cursor == None:
 			c.close()
 			DB.rollback()
+
+	def unit_combo_changed (self, combo):
+		'''the abbreviation and the ratio beside the combo. remove_all () in
+		populate_unit_combo fires this with nothing selected, so None is normal'''
+		label = self.get_object('unit_detail_label')
+		detail = self.unit_details.get(combo.get_active_id())
+		if detail == None:
+			label.set_label('')
+			return
+		name, abbreviation, parent_qty, parent_name = detail
+		parts = []
+		if abbreviation != '':
+			parts.append(abbreviation)
+		if parent_name != '':
+			parts.append("1 %s = %s %s" % (name, parent_qty, parent_name))
+		label.set_label(' \u00b7 '.join(parts))
 
 	def unit_window (self, widget):
 		import units

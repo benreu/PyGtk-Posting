@@ -129,7 +129,10 @@ SELECT NOT (
 		WHERE tgname = 'count_summary_update_trigger')
 	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
 		(table_schema, table_name, column_name) =
-		('public', 'units', 'standard')))
+		('public', 'units', 'standard'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'units', 'abbreviation')))
 """
 
 _conn = None
@@ -238,6 +241,50 @@ ALTER TABLE public.units
 UPDATE public.units SET standard = True
 	WHERE id = (SELECT min(id) FROM public.units)
 		AND NOT EXISTS (SELECT 1 FROM public.units WHERE standard = True);
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns WHERE
+						(table_schema, table_name, column_name) =
+						('public', 'units', 'abbreviation'))
+		THEN RETURN;
+	END IF;
+
+	ALTER TABLE public.units
+		ADD COLUMN abbreviation varchar NOT NULL DEFAULT '';
+	ALTER TABLE public.units
+		ADD COLUMN parent_id integer
+			REFERENCES public.units (id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+	ALTER TABLE public.units
+		ADD COLUMN parent_qty numeric(12,4);
+	ALTER TABLE public.units
+		ADD CONSTRAINT unit_parent_is_another_unit
+			CHECK (parent_id IS NULL OR parent_id <> id);
+	ALTER TABLE public.units
+		ADD CONSTRAINT unit_parent_qty_together
+			CHECK ((parent_id IS NULL) = (parent_qty IS NULL)
+							AND (parent_qty IS NULL OR parent_qty > 0));
+
+	EXECUTE $q$
+		UPDATE public.units SET abbreviation = v.abbr
+			FROM (VALUES ('Piece','pc'), ('Hour','hr'), ('Minute','min'),
+						('Foot','ft'), ('Inch','in'), ('Ounce','oz'),
+						('Pound','lb'), ('Ton','t'), ('Acre','ac')) AS v(name, abbr)
+			WHERE units.name = v.name
+		$q$;
+	EXECUTE $q$
+		UPDATE public.units SET (parent_id, parent_qty) =
+				((SELECT id FROM public.units WHERE name = 'Inch'), 12)
+			WHERE name = 'Foot'
+				AND EXISTS (SELECT 1 FROM public.units WHERE name = 'Inch')
+		$q$;
+	EXECUTE $q$
+		UPDATE public.units SET (parent_id, parent_qty) =
+				((SELECT id FROM public.units WHERE name = 'Minute'), 60)
+			WHERE name = 'Hour'
+				AND EXISTS (SELECT 1 FROM public.units WHERE name = 'Minute')
+		$q$;
+END
+$$;
 """
 # the update also widens purchase_order_items.expense_account to bigint, and
 # purchase_order_items.received from smallint to integer, both left out here:

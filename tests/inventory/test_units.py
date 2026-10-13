@@ -1,4 +1,5 @@
 import unittest
+from decimal import Decimal
 from unittest import mock
 from harness import DBTestCase  # pins Gtk to 3.0, so it is imported first
 from gi.repository import Gtk
@@ -170,6 +171,117 @@ class UnitsWindowTest(DBTestCase):
 		self.assertNotIn(unit_id, offered)
 		self.assertNotEqual(offered, [])
 
+	def parent_iter(self, unit_id):
+		for row in self.gui.builder.get_object('parent_store'):
+			if row[0] == str(unit_id):
+				return row.iter
+		self.fail('unit %s is not offered in the combo' % unit_id)
+
+	def blank_parent_iter(self):
+		"""the leading row, which is how a relationship is cleared"""
+		return self.gui.builder.get_object('parent_store')[0].iter
+
+	def set_parent(self, unit_id, parent_id):
+		self.gui.parent_combo_changed(None, self.path_of(unit_id),
+										self.parent_iter(parent_id))
+
+	def named(self, name):
+		return self.one("SELECT id::text FROM units WHERE name = %s", (name,))
+
+	def relationship(self, unit_id):
+		"""(parent name, ratio) as stored"""
+		self.cursor.execute("SELECT p.name, u.parent_qty FROM units AS u "
+							"LEFT JOIN units AS p ON p.id = u.parent_id "
+							"WHERE u.id = %s", (unit_id,))
+		return self.cursor.fetchone()
+
+	def test_the_seeded_abbreviations_and_ratios_landed(self):
+		self.assertEqual(self.one("SELECT abbreviation FROM units "
+									"WHERE name = 'Piece'"), 'pc')
+		self.assertEqual(self.relationship(self.named('Foot')),
+							('Inch', Decimal('12')))
+		self.assertEqual(self.relationship(self.named('Hour')),
+							('Minute', Decimal('60')))
+
+	def test_an_abbreviation_is_saved_trimmed(self):
+		unit_id = self.new_unit('Reel')
+		self.gui.abbreviation_edited(None, self.path_of(unit_id), '  rl  ')
+		self.assertEqual(self.one("SELECT abbreviation FROM units WHERE id = %s",
+									(unit_id,)), 'rl')
+
+	def test_a_relationship_is_saved(self):
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Inch'))
+		self.gui.parent_qty_edited(None, self.path_of(unit_id), '250')
+		self.assertEqual(self.relationship(unit_id), ('Inch', Decimal('250')))
+
+	def test_naming_a_parent_with_no_ratio_means_one_of_it(self):
+		"""unit_parent_qty_together wants both or neither, so the window has to
+		supply the half the user did not"""
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Inch'))
+		self.assertEqual(self.relationship(unit_id), ('Inch', Decimal('1')))
+
+	def test_clearing_the_parent_clears_the_ratio_with_it(self):
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Inch'))
+		self.gui.parent_combo_changed(None, self.path_of(unit_id),
+										self.blank_parent_iter())
+		self.assertEqual(self.relationship(unit_id), (None, None))
+
+	def test_a_ratio_without_a_parent_is_refused(self):
+		unit_id = self.new_unit('Reel')
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.gui.parent_qty_edited(None, self.path_of(unit_id), '12')
+		show_message.assert_called_once()
+		self.assertEqual(self.relationship(unit_id), (None, None))
+
+	def test_a_ratio_of_none_is_refused(self):
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Inch'))
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.gui.parent_qty_edited(None, self.path_of(unit_id), '0')
+		show_message.assert_called_once()
+		self.assertEqual(self.relationship(unit_id), ('Inch', Decimal('1')))
+
+	def test_a_ratio_that_is_not_a_number_is_refused(self):
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Inch'))
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.gui.parent_qty_edited(None, self.path_of(unit_id), 'twelve')
+		show_message.assert_called_once()
+		self.assertEqual(self.relationship(unit_id), ('Inch', Decimal('1')))
+
+	def test_a_unit_cannot_be_measured_in_itself(self):
+		unit_id = self.new_unit('Reel')
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.gui.parent_combo_changed(None, self.path_of(unit_id),
+											self.parent_iter(unit_id))
+		show_message.assert_called_once()
+		self.assertEqual(self.relationship(unit_id), (None, None))
+
+	def test_a_cycle_is_refused(self):
+		"""Foot is measured in Inch, so Inch cannot be measured in Foot. A CHECK
+		cannot see past its own row, so would_cycle is what catches this"""
+		inch, foot = self.named('Inch'), self.named('Foot')
+		self.assertEqual(self.relationship(foot)[0], 'Inch') # precondition
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.gui.parent_combo_changed(None, self.path_of(inch),
+											self.parent_iter(foot))
+		show_message.assert_called_once()
+		self.assertEqual(self.relationship(inch), (None, None))
+
+	def test_a_unit_another_is_measured_in_cannot_be_deleted(self):
+		"""the probe DELETE would fail on the self FK too, but the dialog it
+		opens offers to move products, which would not mend the child unit"""
+		inch = self.named('Inch')
+		self.select(inch)
+		with mock.patch.object(self.gui, 'show_message') as show_message:
+			self.gui.delete_clicked(None)
+		show_message.assert_called_once()
+		self.assertIn('Foot', show_message.call_args[0][0])
+		self.assertEqual(self.deleted(inch), False)
+
 	def test_closing_tells_whoever_opened_it(self):
 		told = []
 		gui = self.units.UnitsGUI(lambda: told.append(True))
@@ -243,6 +355,26 @@ class ProductEditUnitComboTest(DBTestCase):
 			gui.save_clicked()
 		self.assertEqual(self.one("SELECT unit FROM products WHERE id = 19"),
 							unit_id)
+
+	def test_the_detail_label_shows_the_abbreviation_and_the_ratio(self):
+		gui = self.open_editor()
+		foot = self.one("SELECT id::text FROM units WHERE name = 'Foot'")
+		gui.get_object('comboboxtext1').set_active_id(foot)
+		self.assertEqual(gui.get_object('unit_detail_label').get_label(),
+							'ft \u00b7 1 Foot = 12 Inch')
+
+	def test_the_detail_label_is_just_the_abbreviation_without_a_ratio(self):
+		gui = self.open_editor()
+		piece = self.one("SELECT id::text FROM units WHERE name = 'Piece'")
+		gui.get_object('comboboxtext1').set_active_id(piece)
+		self.assertEqual(gui.get_object('unit_detail_label').get_label(), 'pc')
+
+	def test_the_detail_label_survives_an_empty_combo(self):
+		"""populate_unit_combo's remove_all () fires changed with nothing
+		selected, which must not raise"""
+		gui = self.open_editor()
+		gui.get_object('comboboxtext1').remove_all()
+		self.assertEqual(gui.get_object('unit_detail_label').get_label(), '')
 
 if __name__ == '__main__':
 	unittest.main()
