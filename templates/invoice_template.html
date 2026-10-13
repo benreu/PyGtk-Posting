@@ -13,11 +13,16 @@
   p { margin: 0; line-height: 1.4; }
 
   table.header { width: 100%; border-collapse: collapse; }
-  .header-left { vertical-align: top; width: 50%; }
-  .header-right { vertical-align: top; width: 50%; text-align: center; }
-  .doc-type   { font-size: 24pt; font-weight: bold; margin-bottom: 4pt; }
-  .doc-number { font-size: 14pt; font-weight: bold; }
-  .doc-date   { font-size: 14pt; font-weight: bold; }
+  /* The row height is pinned: .company below it has to stay in the envelope
+     window, so the doc block must be free to move inside the cell without
+     shifting anything after it. 1.088in reproduces the old 1.067in row. */
+  .header-left { vertical-align: top; width: 50%; height: 1.088in; }
+  .header-right { vertical-align: top; width: 50%; text-align: center;
+                  height: 1.088in; }
+  .doc-type   { font-size: 24pt; font-weight: bold; line-height: 1.0;
+                margin-bottom: 0; }
+  .doc-number { font-size: 14pt; font-weight: bold; line-height: 1.1; }
+  .doc-date   { font-size: 14pt; font-weight: bold; line-height: 1.1; }
 
   .spacer  { height: 0.6in; }
   .company { margin-bottom: 12pt; font-size: 14pt; }
@@ -52,8 +57,14 @@
   .footer { margin-top: 0.25in; }
   .footer p { line-height: 1.7; }
 
-  .ship-to { margin-top: 0.2in; font-size: 10pt; }
+  .address-band { position: relative; }
+  .ship-to { position: absolute; top: 0; left: 50%; width: 50%;
+             font-size: 10pt; }
   .ship-to p { margin-bottom: 2pt; }
+  /* The label is lifted clear of the block so the shipping name starts on the
+     same line as the billing name beside it. bottom: 100% sits it right on top
+     of the block, whatever the label's own size. */
+  .ship-to .label { position: absolute; bottom: 100%; margin-bottom: 0; }
 </style>
 </head>
 <body>
@@ -75,10 +86,21 @@
 
 <div class="spacer"></div>
 
+<div class="address-band">
 <div class="company">
 	<p>{{ contact.name }}</p>
 	<p>{{ contact.street }}</p>
 	<p>{{ contact.city }}, {{ contact.state }} {{ contact.zip }}</p>
+</div>
+{% if shipping %}
+<div class="ship-to">
+  <p class="label"><strong>Ship To</strong></p>
+  <p>{{ shipping.name }}</p>
+  <p>{{ shipping.street }}</p>
+  <p>{{ shipping.city }}, {{ shipping.state }} {{ shipping.zip }}</p>
+  {% if shipping.carrier %}<p>via {{ shipping.carrier }}</p>{% endif %}
+</div>
+{% endif %}
 </div>
 
 <div style="height: 40pt;"></div>
@@ -126,13 +148,6 @@
     </tr>
   </tfoot>
 </table>
-</div>
-
-<div class="ship-to">
-  <p><strong>Ship To</strong></p>
-  <p>{{ shipping.name }}</p>
-  <p>{{ shipping.street }}</p>
-  <p>{{ shipping.city }}, {{ shipping.state }} {{ shipping.zip }}</p>
 </div>
 
 {% if serial_numbers %}

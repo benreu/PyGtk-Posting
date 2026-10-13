@@ -45,17 +45,17 @@ class Setup:
         cursor.execute(
             "SELECT c.name, c.ext_name, c.address, c.city, c.state, c.zip, "
             "c.fax, c.phone, c.email, c.label, c.tax_number, i.name, "
-            "COALESCE(sa.address, c.address), "
-            "COALESCE(sa.city, c.city), "
-            "COALESCE(sa.state, c.state), "
-            "COALESCE(sa.zip, c.zip) "
+            "sa.id, sa.address, sa.city, sa.state, sa.zip, "
+            "COALESCE(sc.name, '') "
             "FROM contacts AS c "
             "JOIN invoices AS i ON i.customer_id = c.id "
             "LEFT JOIN contact_shipping_addresses AS sa "
             "ON sa.id = i.shipping_address_id "
+            "LEFT JOIN shipping_carriers AS sc "
+            "ON sc.id = sa.shipping_carrier_id "
             "WHERE i.id = %s", [self.invoice_id])
         customer = Item()
-        shipping = Item()
+        shipping = None
         for row in cursor.fetchall():
             customer.name = row[0]
             customer.ext_name = row[1]
@@ -69,11 +69,14 @@ class Setup:
             customer.label = row[9]
             customer.tax_exempt_number = row[10]
             invoice_name = row[11]
-            shipping.name = row[0]
-            shipping.street = row[12]
-            shipping.city = row[13]
-            shipping.state = row[14]
-            shipping.zip = row[15]
+            if row[12] != None:  # the invoice names a shipping address
+                shipping = Item()
+                shipping.name = row[0]
+                shipping.street = row[13]
+                shipping.city = row[14]
+                shipping.state = row[15]
+                shipping.zip = row[16]
+                shipping.carrier = row[17]
 
         company = Item()
         cursor.execute("SELECT * FROM company_info")

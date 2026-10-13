@@ -5,6 +5,20 @@ from harness import DBTestCase  # pins Gtk to 3.0, so it is imported first
 from unittest import mock
 
 UNIT = 13 # invoice_store column
+PX = 96.0 # WeasyPrint lays the page out in CSS pixels
+COMPANY_Y = 2.187 # the billing address, as it sits in the envelope window
+FOLD_MARK_Y = 3.851
+
+class Stub(object):
+	'''a template value that answers '' for whatever was not set'''
+
+	def __init__(self, **kwargs):
+		self.__dict__.update(kwargs)
+
+	def __getattr__(self, name):
+		return ''
+
+DEFAULT_SHIPPING = object() # render()'s own blank Stub, not an omitted address
 
 class InvoiceLineUnitTest(DBTestCase):
 	'''invoice_items stores no unit: a line shows whatever its product says now,
@@ -129,24 +143,56 @@ class ItemsTableWidth(HTMLParser):
 class InvoiceTemplateTest(unittest.TestCase):
 	'''the real invoice_template.html, which Jinja and WeasyPrint render'''
 
-	def render(self):
+	def render(self, shipping = DEFAULT_SHIPPING):
 		from jinja2 import Environment, FileSystemLoader
 		here = os.path.dirname(os.path.abspath(__file__))
 		templates = os.path.join(here, '..', '..', 'templates')
 
-		class Stub(object):
-			def __getattr__(self, name):
-				return ''
 		def line(qty, unit):
 			item = Stub()
 			item.qty, item.unit, item.product = qty, unit, 'A PRODUCT'
 			item.price, item.ext_price, item.tax_letter = '1.00', '2.00', 'T'
 			return item
+		if shipping is DEFAULT_SHIPPING:
+			shipping = Stub()
+		contact = Stub(name = 'CUSTOMER NAME', street = '100 Billing Rd',
+						city = 'Billtown', state = 'PA', zip = '17500')
+		company = Stub(name = 'OUR COMPANY', street = '1 Main St',
+						city = 'Ourtown', state = 'PA', zip = '17000')
+		document = Stub(type = 'Invoice', number = '12345',
+						date = '10/13/2026', subtotal = '$20.00', tax = '$1.20',
+						total = '$21.20', payment_due = 'Due 11/12/2026')
 		env = Environment(loader = FileSystemLoader(templates))
 		return env.get_template('invoice_template.html').render(
 					items = [line('10', 'ft'), line('3', 'hr')],
-					document = Stub(), contact = Stub(), shipping = Stub(),
-					terms = Stub(), company = Stub(), serial_numbers = [])
+					document = document, contact = contact, shipping = shipping,
+					terms = Stub(), company = company, serial_numbers = [])
+
+	def ship_to(self, **kwargs):
+		fields = dict(name = 'CUSTOMER NAME', street = '250 Shipping Ln',
+						city = 'Shipville', state = 'PA', zip = '17600',
+						carrier = 'UPS Ground')
+		fields.update(kwargs)
+		return Stub(**fields)
+
+	def anchor_positions(self, html):
+		'''y of each class's first box, in inches down the sheet'''
+		import weasyprint
+		page = weasyprint.HTML(string = html).render().pages[0]
+
+		def walk(box):
+			for child in getattr(box, 'all_children', lambda: [])():
+				yield child
+				for further in walk(child):
+					yield further
+		found = {}
+		for box in walk(page._page_box):
+			element = getattr(box, 'element', None)
+			classes = (element.get('class') or '') if element != None else ''
+			for name in classes.split():
+				if name not in found:
+					found[name] = box.position_y / PX
+		return found
 
 	def test_the_unit_is_printed(self):
 		out = self.render()
@@ -161,6 +207,41 @@ class InvoiceTemplateTest(unittest.TestCase):
 		self.assertTrue(parser.rows, 'the items table was not found')
 		self.assertEqual(set(parser.rows), {6},
 							'rows are %s cells wide' % parser.rows)
+
+	def test_the_envelope_window_anchors_hold(self):
+		'''the sheet is folded for a window envelope, so no shipping address,
+		however long, may shift the billing address or the fold mark'''
+		long = self.ship_to(name = 'A VERY LONG RECEIVING DEPARTMENT NAME LLC',
+							street = '12345 Extremely Long Industrial Parkway',
+							city = 'Averylongcitynamehere',
+							carrier = 'Some Freight Carrier Co')
+		for label, shipping in (('a shipping address', self.ship_to()),
+								('no shipping address', None),
+								('a long shipping address', long)):
+			with self.subTest(label):
+				found = self.anchor_positions(self.render(shipping))
+				self.assertAlmostEqual(found['company'], COMPANY_Y, delta = 0.01,
+						msg = 'the billing address left the envelope window')
+				self.assertAlmostEqual(found['fold-mark'], FOLD_MARK_Y,
+						delta = 0.01, msg = 'the fold mark moved')
+				if shipping != None:
+					self.assertLess(found['ship-to'], found['fold-mark'],
+							msg = 'ship to belongs above the fold, beside the '
+									'billing address')
+					self.assertAlmostEqual(found['ship-to'], found['company'],
+							delta = 0.01, msg = 'the two names start on one line')
+					self.assertLess(found['label'], found['company'],
+							msg = 'the Ship To label sits above both addresses')
+
+	def test_ship_to_is_printed_only_when_the_invoice_has_one(self):
+		'''the address used to be COALESCEd onto the customer's own, so every
+		invoice printed a Ship To that just repeated the billing address'''
+		self.assertNotIn('Ship To', self.render(None))
+		out = self.render(self.ship_to())
+		self.assertIn('Ship To', out)
+		self.assertIn('250 Shipping Ln', out)
+		self.assertIn('via UPS Ground', out)
+		self.assertNotIn('via', self.render(self.ship_to(carrier = '')))
 
 if __name__ == '__main__':
 	unittest.main()
