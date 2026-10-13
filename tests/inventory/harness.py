@@ -132,7 +132,10 @@ SELECT NOT (
 		('public', 'units', 'standard'))
 	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
 		(table_schema, table_name, column_name) =
-		('public', 'units', 'abbreviation')))
+		('public', 'units', 'abbreviation'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'units', 'category')))
 """
 
 _conn = None
@@ -282,6 +285,27 @@ BEGIN
 				((SELECT id FROM public.units WHERE name = 'Minute'), 60)
 			WHERE name = 'Hour'
 				AND EXISTS (SELECT 1 FROM public.units WHERE name = 'Minute')
+		$q$;
+END
+$$;
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns WHERE
+						(table_schema, table_name, column_name) =
+						('public', 'units', 'category'))
+		THEN RETURN;
+	END IF;
+
+	ALTER TABLE public.units
+		ADD COLUMN category varchar NOT NULL DEFAULT '';
+
+	EXECUTE $q$
+		UPDATE public.units SET category = v.cat
+			FROM (VALUES ('Piece','Count'), ('Hour','Time'), ('Minute','Time'),
+						('Foot','Length'), ('Inch','Length'), ('Ounce','Weight'),
+						('Pound','Weight'), ('Ton','Weight'),
+						('Acre','Area')) AS v(name, cat)
+			WHERE units.name = v.name
 		$q$;
 END
 $$;

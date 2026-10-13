@@ -1103,3 +1103,35 @@ BEGIN
 		$q$;
 END
 $$;
+
+--0.7.28
+/* The unit lists were alphabetical, which scatters a category: Foot came
+   before Inch and Hour before Minute. category is what groups them, and the
+   order inside a group comes from the ratios 0.7.27 recorded rather than a
+   second column that could disagree with them, so recording "Yard = 3 Foot"
+   is all it takes to slot a yard in after a foot.
+
+   One shot, gated on the column not being there yet, for the reasons 0.7.27
+   gives: this file re-runs from the top on every upgrade, and a category the
+   user had cleared must not come back. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns WHERE
+						(table_schema, table_name, column_name) =
+						('public', 'units', 'category'))
+		THEN RETURN;
+	END IF;
+
+	ALTER TABLE public.units
+		ADD COLUMN category varchar NOT NULL DEFAULT '';
+
+	EXECUTE $q$
+		UPDATE public.units SET category = v.cat
+			FROM (VALUES ('Piece','Count'), ('Hour','Time'), ('Minute','Time'),
+						('Foot','Length'), ('Inch','Length'), ('Ounce','Weight'),
+						('Pound','Weight'), ('Ton','Weight'),
+						('Acre','Area')) AS v(name, cat)
+			WHERE units.name = v.name
+		$q$;
+END
+$$;

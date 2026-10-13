@@ -46,7 +46,7 @@ VALUES
 	('Credit Memos', 5, 5110, 5100),
 	('Credit Memo Taxes', 5, 5120, 5100)
 ;
-INSERT INTO units (name, standard, abbreviation) VALUES ('Piece', True, 'pc'), ('Hour', False, 'hr'), ('Minute', False, 'min'), ('Foot', False, 'ft'), ('Inch', False, 'in'), ('Ounce', False, 'oz'), ('Pound', False, 'lb'), ('Ton', False, 't'), ('Acre', False, 'ac');
+INSERT INTO units (name, standard, abbreviation, category) VALUES ('Piece', True, 'pc', 'Count'), ('Hour', False, 'hr', 'Time'), ('Minute', False, 'min', 'Time'), ('Foot', False, 'ft', 'Length'), ('Inch', False, 'in', 'Length'), ('Ounce', False, 'oz', 'Weight'), ('Pound', False, 'lb', 'Weight'), ('Ton', False, 't', 'Weight'), ('Acre', False, 'ac', 'Area');
 --Set unit relationships
 UPDATE units SET (parent_id, parent_qty) = ((SELECT id FROM units WHERE name = 'Inch'), 12) WHERE name = 'Foot';
 UPDATE units SET (parent_id, parent_qty) = ((SELECT id FROM units WHERE name = 'Minute'), 60) WHERE name = 'Hour';

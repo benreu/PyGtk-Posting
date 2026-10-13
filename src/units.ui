@@ -18,6 +18,14 @@
       <column type="gchararray"/>
       <!-- column-name parent_id -->
       <column type="gchararray"/>
+      <!-- column-name category -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="category_store">
+    <columns>
+      <!-- column-name category -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="parent_store">
@@ -46,7 +54,7 @@
     <property name="border_width">10</property>
     <property name="title" translatable="yes">Units</property>
     <property name="window_position">center</property>
-    <property name="default_width">620</property>
+    <property name="default_width">720</property>
     <property name="default_height">250</property>
     <property name="icon_name">pygtk-posting</property>
     <signal name="destroy" handler="destroy" swapped="no"/>
@@ -102,6 +110,27 @@
                       </object>
                       <attributes>
                         <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="resizable">True</property>
+                    <property name="title" translatable="yes">Category</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort_column_id">7</property>
+                    <child>
+                      <object class="GtkCellRendererCombo" id="cellrenderercombo2">
+                        <property name="editable">True</property>
+                        <property name="has_entry">True</property>
+                        <property name="model">category_store</property>
+                        <property name="text_column">0</property>
+                        <signal name="changed" handler="category_combo_changed" swapped="no"/>
+                        <signal name="edited" handler="category_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="text">7</attribute>
                       </attributes>
                     </child>
                   </object>

@@ -251,6 +251,7 @@ CREATE TABLE public.units (
     id serial PRIMARY KEY, 
     name varchar UNIQUE NOT NULL,
     abbreviation varchar DEFAULT ''::character varying NOT NULL,
+    category varchar DEFAULT ''::character varying NOT NULL,
     standard boolean DEFAULT false NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
     parent_id integer REFERENCES public.units (id) ON UPDATE RESTRICT ON DELETE RESTRICT,

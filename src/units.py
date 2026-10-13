@@ -27,6 +27,26 @@ UI_FILE = ui_directory + "/units.ui"
 #inserted yet carries this instead of an id.
 UNSAVED = '0'
 
+#Every unit list is grouped by what the unit measures, and inside a group the
+#smallest comes first -- inches before feet -- which the recorded ratios already
+#say: a unit with no parent is its category's base and counts as one, anything
+#else is the product of the ratios up its chain. Deriving it means the order can
+#never disagree with the ratio, and recording "Yard = 3 Foot" is the whole of
+#slotting a yard in after a foot. The depth cap is because a cycle is wrong data
+#the database does not refuse, a CHECK being unable to see past its own row, and
+#an uncapped recursion over one would never return.
+UNIT_FACTOR = """
+			WITH RECURSIVE chain (id, next_id, factor, depth) AS (
+					SELECT id, parent_id, COALESCE(parent_qty, 1), 1 FROM units
+				UNION ALL
+					SELECT c.id, u.parent_id,
+							c.factor * COALESCE(u.parent_qty, 1), c.depth + 1
+						FROM chain AS c JOIN units AS u ON u.id = c.next_id
+						WHERE c.depth < 10)
+			SELECT id, max(factor) AS factor FROM chain GROUP BY id
+"""
+UNIT_ORDER = "ORDER BY u.category, f.factor, u.name"
+
 def qty_text (value):
 	'''parent_qty is numeric(12,4), so it comes back as 12.0000 where the grid
 	should read 12. format () rather than str () because Decimal.normalize turns
@@ -61,16 +81,19 @@ class UnitsGUI:
 		cursor = DB.cursor()
 		cursor.execute("SELECT u.id::text, u.name, u.standard, u.abbreviation, "
 							"u.parent_qty, "
-							"COALESCE(p.name, ''), COALESCE(p.id::text, '') "
+							"COALESCE(p.name, ''), COALESCE(p.id::text, ''), "
+							"u.category "
 							"FROM units AS u "
 							"LEFT JOIN units AS p ON p.id = u.parent_id "
-							"WHERE u.deleted = False ORDER BY u.name")
+							"JOIN (" + UNIT_FACTOR + ") AS f ON f.id = u.id "
+							"WHERE u.deleted = False " + UNIT_ORDER)
 		for row in cursor.fetchall():
 			self.unit_store.append([row[0], row[1], row[2], row[3],
-									qty_text(row[4]), row[5], row[6]])
+									qty_text(row[4]), row[5], row[6], row[7]])
 		cursor.close()
 		DB.rollback()
 		self.populate_parent_store ()
+		self.populate_category_store ()
 
 	def populate_parent_store (self):
 		'''the model behind the "Of unit" combo column. The leading blank row is
@@ -81,8 +104,23 @@ class UnitsGUI:
 		store.clear()
 		store.append(['', '—'])
 		cursor = DB.cursor()
-		cursor.execute("SELECT id::text, name FROM units "
-							"WHERE deleted = False ORDER BY name")
+		cursor.execute("SELECT u.id::text, u.name FROM units AS u "
+							"JOIN (" + UNIT_FACTOR + ") AS f ON f.id = u.id "
+							"WHERE u.deleted = False " + UNIT_ORDER)
+		for row in cursor.fetchall():
+			store.append(row)
+		cursor.close()
+		DB.rollback()
+
+	def populate_category_store (self):
+		'''the categories already in use, so they keep being spelled the same
+		way. The renderer carries an entry too, which is how a new one is made'''
+		store = self.builder.get_object('category_store')
+		store.clear()
+		cursor = DB.cursor()
+		cursor.execute("SELECT DISTINCT category FROM units "
+							"WHERE deleted = False AND category != '' "
+							"ORDER BY category")
 		for row in cursor.fetchall():
 			store.append(row)
 		cursor.close()
@@ -90,7 +128,7 @@ class UnitsGUI:
 
 	def new_clicked (self, button):
 		iter_ = self.unit_store.append([UNSAVED, 'New unit', False, '',
-										'', '', ''])
+										'', '', '', ''])
 		self.builder.get_object('treeview-selection1').select_iter(iter_)
 
 	def unit_combo_changed (self, combo):
@@ -104,6 +142,22 @@ class UnitsGUI:
 	def abbreviation_edited (self, text_renderer, path, text):
 		iter_ = self.unit_store.get_iter(path)
 		self.unit_store[path][3] = text.strip()
+		self.save (iter_)
+
+	def category_edited (self, renderer, path, text):
+		"""typed, or picked from the list and then committed"""
+		self.set_category (path, text)
+
+	def category_combo_changed (self, combo, path, tree_iter):
+		"""picked from the list. The renderer has an entry, so which of the two
+		signals arrives depends on how the choice was made; both land here, and
+		writing the same category twice costs nothing"""
+		store = self.builder.get_object('category_store')
+		self.set_category (path, store[tree_iter][0])
+
+	def set_category (self, path, text):
+		iter_ = self.unit_store.get_iter(path)
+		self.unit_store[path][7] = text.strip()
 		self.save (iter_)
 
 	def parent_qty_edited (self, spin_renderer, path, text):
@@ -174,6 +228,7 @@ class UnitsGUI:
 		row_id = self.unit_store[iter_][0]
 		name = self.unit_store[iter_][1]
 		abbreviation = self.unit_store[iter_][3]
+		category = self.unit_store[iter_][7]
 		parent_id = self.unit_store[iter_][6] or None
 		parent_qty = self.unit_store[iter_][4] or None
 		#unit_parent_qty_together wants both or neither: naming a parent with no
@@ -187,18 +242,21 @@ class UnitsGUI:
 		try:
 			if row_id == UNSAVED:
 				cursor.execute("INSERT INTO units "
-									"(name, abbreviation, parent_id, parent_qty) "
-									"VALUES (%s, %s, %s, %s) RETURNING id::text",
-									(name, abbreviation, parent_id, parent_qty))
+									"(name, abbreviation, category, "
+									"parent_id, parent_qty) "
+									"VALUES (%s, %s, %s, %s, %s) "
+									"RETURNING id::text",
+									(name, abbreviation, category,
+									parent_id, parent_qty))
 				self.unit_store[iter_][0] = cursor.fetchone()[0]
 			else:
 				cursor.execute("UPDATE units SET "
-									"(name, abbreviation, parent_id, parent_qty, "
-									"date_edited) = "
-									"(%s, %s, %s, %s, CURRENT_DATE) "
+									"(name, abbreviation, category, parent_id, "
+									"parent_qty, date_edited) = "
+									"(%s, %s, %s, %s, %s, CURRENT_DATE) "
 									"WHERE id = %s",
-									(name, abbreviation, parent_id, parent_qty,
-									row_id))
+									(name, abbreviation, category, parent_id,
+									parent_qty, row_id))
 		except Exception as e:
 			#units.name is UNIQUE, which the lookup tables this window is
 			#modelled on are not, so a repeated name aborts the transaction.
@@ -214,6 +272,7 @@ class UnitsGUI:
 		cursor.close()
 		DB.commit()
 		self.populate_parent_store ()
+		self.populate_category_store ()
 
 	def default_toggled (self, cell_renderer, path):
 		selected_path = Gtk.TreePath(path)
@@ -310,9 +369,10 @@ class UnitsGUI:
 		store = self.builder.get_object('reassign_store')
 		store.clear()
 		cursor = DB.cursor()
-		cursor.execute("SELECT id::text, name FROM units "
-							"WHERE deleted = False AND id != %s "
-							"ORDER BY name", (current_unit_id,))
+		cursor.execute("SELECT u.id::text, u.name FROM units AS u "
+							"JOIN (" + UNIT_FACTOR + ") AS f ON f.id = u.id "
+							"WHERE u.deleted = False AND u.id != %s "
+							+ UNIT_ORDER, (current_unit_id,))
 		for row in cursor.fetchall():
 			store.append(row)
 		cursor.close()

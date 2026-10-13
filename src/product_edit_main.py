@@ -28,7 +28,7 @@ from accounts import 	product_revenue_tree, \
 						product_expense_list, \
 						product_inventory_list
 from sqlite_utils import get_apsw_connection
-from units import qty_text
+from units import qty_text, UNIT_FACTOR, UNIT_ORDER
 import spell_check, barcode_generator
 
 
@@ -200,8 +200,9 @@ class ProductEditMainGUI (Gtk.Builder):
 							"COALESCE(p.name, '') "
 							"FROM units AS u "
 							"LEFT JOIN units AS p ON p.id = u.parent_id "
+							"JOIN (" + UNIT_FACTOR + ") AS f ON f.id = u.id "
 							"WHERE u.deleted = False OR u.id::text = %s "
-							"ORDER BY u.name", (current_unit,))
+							+ UNIT_ORDER, (current_unit,))
 		self.unit_details = dict()
 		for item in c.fetchall():
 			unit_combobox.append(item[0], item[1])

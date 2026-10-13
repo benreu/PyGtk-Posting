@@ -282,6 +282,62 @@ class UnitsWindowTest(DBTestCase):
 		self.assertIn('Foot', show_message.call_args[0][0])
 		self.assertEqual(self.deleted(inch), False)
 
+	def listed(self):
+		"""(category, name) in the order the window shows them"""
+		return [(row[7], row[1]) for row in self.gui.unit_store]
+
+	def test_the_seeded_categories_landed(self):
+		by_name = dict((name, cat) for cat, name in self.listed())
+		self.assertEqual(by_name['Inch'], 'Length')
+		self.assertEqual(by_name['Foot'], 'Length')
+		self.assertEqual(by_name['Minute'], 'Time')
+		self.assertEqual(by_name['Hour'], 'Time')
+		self.assertEqual(by_name['Piece'], 'Count')
+
+	def test_a_category_is_listed_in_one_run_not_scattered(self):
+		cats = [cat for cat, name in self.listed() if cat != '']
+		runs = [c for i, c in enumerate(cats) if i == 0 or cats[i - 1] != c]
+		self.assertEqual(sorted(runs), sorted(set(runs)))
+
+	def test_inside_a_category_the_smallest_comes_first(self):
+		"""the whole point: alphabetically Foot precedes Inch"""
+		length = [name for cat, name in self.listed() if cat == 'Length']
+		self.assertEqual(length[:2], ['Inch', 'Foot'])
+		time = [name for cat, name in self.listed() if cat == 'Time']
+		self.assertEqual(time, ['Minute', 'Hour'])
+
+	def test_a_two_step_chain_sorts_on_its_total(self):
+		"""Yard = 3 Foot carries a smaller ratio than Foot = 12 Inch, so
+		ordering on parent_qty alone would put a yard before a foot"""
+		yard = self.one("INSERT INTO units (name, category, parent_id, "
+						"parent_qty) VALUES ('Yard', 'Length', %s, 3) "
+						"RETURNING id::text", (self.named('Foot'),))
+		self.DB.commit()
+		self.gui.populate_unit_store ()
+		length = [name for cat, name in self.listed() if cat == 'Length']
+		self.assertEqual(length[:3], ['Inch', 'Foot', 'Yard'])
+
+	def test_a_category_typed_in_is_saved(self):
+		unit_id = self.new_unit('Reel')
+		self.gui.category_edited(None, self.path_of(unit_id), '  Length  ')
+		self.assertEqual(self.one("SELECT category FROM units WHERE id = %s",
+									(unit_id,)), 'Length')
+
+	def test_a_category_picked_from_the_list_is_saved(self):
+		unit_id = self.new_unit('Reel')
+		store = self.gui.builder.get_object('category_store')
+		picked = next(row.iter for row in store if row[0] == 'Time')
+		self.gui.category_combo_changed(None, self.path_of(unit_id), picked)
+		self.assertEqual(self.one("SELECT category FROM units WHERE id = %s",
+									(unit_id,)), 'Time')
+
+	def test_the_category_list_holds_the_ones_in_use_once_each(self):
+		listed = [row[0] for row in
+					self.gui.builder.get_object('category_store')]
+		self.assertEqual(listed, sorted(set(listed)))
+		self.assertIn('Length', listed)
+		self.assertNotIn('', listed)
+
 	def test_closing_tells_whoever_opened_it(self):
 		told = []
 		gui = self.units.UnitsGUI(lambda: told.append(True))
@@ -375,6 +431,13 @@ class ProductEditUnitComboTest(DBTestCase):
 		gui = self.open_editor()
 		gui.get_object('comboboxtext1').remove_all()
 		self.assertEqual(gui.get_object('unit_detail_label').get_label(), '')
+
+	def test_the_combo_is_grouped_by_category(self):
+		gui = self.open_editor()
+		names = [row[0] for row in
+					gui.get_object('comboboxtext1').get_model()]
+		self.assertLess(names.index('Inch'), names.index('Foot'))
+		self.assertLess(names.index('Minute'), names.index('Hour'))
 
 if __name__ == '__main__':
 	unittest.main()
