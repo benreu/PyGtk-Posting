@@ -152,7 +152,7 @@
                 <property name="can-focus">False</property>
                 <property name="shadow-type">none</property>
                 <child>
-                  <!-- n-columns=3 n-rows=3 -->
+                  <!-- n-columns=2 n-rows=2 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -175,7 +175,7 @@
                                 <property name="can-focus">False</property>
                                 <property name="left-padding">12</property>
                                 <child>
-                                  <!-- n-columns=3 n-rows=4 -->
+                                  <!-- n-columns=2 n-rows=4 -->
                                   <object class="GtkGrid" id="grid5">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -306,18 +306,6 @@
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">3</property>
                                       </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
                                     </child>
                                   </object>
                                 </child>
@@ -470,7 +458,7 @@
                                 <property name="margin-bottom">10</property>
                                 <property name="orientation">vertical</property>
                                 <child>
-                                  <!-- n-columns=3 n-rows=3 -->
+                                  <!-- n-columns=2 n-rows=3 -->
                                   <object class="GtkGrid" id="grid9">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -572,15 +560,6 @@
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">2</property>
                                       </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
                                     </child>
                                   </object>
                                   <packing>
@@ -919,7 +898,7 @@
                       </packing>
                     </child>
                     <child>
-                      <!-- n-columns=3 n-rows=3 -->
+                      <!-- n-columns=1 n-rows=3 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -939,7 +918,7 @@
                                 <property name="left-padding">10</property>
                                 <property name="right-padding">10</property>
                                 <child>
-                                  <!-- n-columns=3 n-rows=3 -->
+                                  <!-- n-columns=2 n-rows=2 -->
                                   <object class="GtkGrid" id="grid3">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -992,21 +971,6 @@
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">1</property>
                                       </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
                                     </child>
                                   </object>
                                 </child>
@@ -1153,44 +1117,11 @@
                             <property name="top-attach">2</property>
                           </packing>
                         </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">1</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                 </child>
