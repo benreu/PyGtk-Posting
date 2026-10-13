@@ -169,19 +169,19 @@ class ProductsOverviewGUI (Gtk.Builder):
 		spinner.start()
 		self.product_store.clear()
 		if self.get_object('radiobutton1').get_active() == True:
-			where = "WHERE (deleted, sellable) = (False, True) " 
+			where = "WHERE (p.deleted, p.sellable) = (False, True) " 
 		elif self.get_object('radiobutton2').get_active() == True:
-			where = "WHERE (deleted, purchasable) = (False, True) "
+			where = "WHERE (p.deleted, p.purchasable) = (False, True) "
 		elif self.get_object('radiobutton3').get_active() == True:
-			where = "WHERE (deleted, manufactured) = (False, True) "
+			where = "WHERE (p.deleted, p.manufactured) = (False, True) "
 		elif self.get_object('radiobutton4').get_active() == True:
-			where = "WHERE (deleted, job) = (False, True) "
+			where = "WHERE (p.deleted, p.job) = (False, True) "
 		elif self.get_object('radiobutton5').get_active() == True:
-			where = "WHERE (deleted, stock) = (False, False) "
+			where = "WHERE (p.deleted, p.stock) = (False, False) "
 		elif self.get_object('radiobutton7').get_active() == True:
-			where = "WHERE deleted = True "
+			where = "WHERE p.deleted = True "
 		else:
-			where = "WHERE deleted = False "
+			where = "WHERE p.deleted = False "
 		c.execute("SELECT 	p.id, "
 							"p.name, "
 							"p.ext_name, "
@@ -192,7 +192,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"p.tare::text, "
 							"p.manufacturer_sku, "
 							"COALESCE ((SELECT name FROM gl_accounts "
-								"WHERE number = default_expense_account), ''), "
+								"WHERE number = p.default_expense_account), ''), "
 							"COALESCE ((SELECT name FROM gl_accounts "
 								"WHERE number = p.inventory_account), ''), "
 							"COALESCE ((SELECT name FROM gl_accounts "
@@ -240,7 +240,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 							"p.tare::text, "
 							"p.manufacturer_sku, "
 							"COALESCE ((SELECT name FROM gl_accounts "
-								"WHERE number = default_expense_account), ''), "
+								"WHERE number = p.default_expense_account), ''), "
 							"COALESCE ((SELECT name FROM gl_accounts "
 								"WHERE number = p.inventory_account), ''), "
 							"COALESCE ((SELECT name FROM gl_accounts "
