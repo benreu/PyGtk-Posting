@@ -69,6 +69,7 @@ class InvoiceGUI:
 		self.qty_renderer_value = 1
 
 		self.populating = False
+		self.shipping_addresses = {} # combo id: address, as the box shows it
 		self.setting_location = False # True while the location combo is refilled
 		self.invoice_store = self.builder.get_object('invoice_store')
 		self.location_store = self.builder.get_object('location_store')
@@ -191,7 +192,9 @@ class InvoiceGUI:
 			if transfer_customer_id is None:
 				return # no customer chosen
 			cursor = DB.cursor()
-			cursor.execute("UPDATE invoices SET customer_id = %s "
+			# the shipping address belongs to the contact being left behind
+			cursor.execute("UPDATE invoices SET (customer_id, shipping_address_id) "
+								"= (%s, NULL) "
 								"WHERE id = %s",
 								(transfer_customer_id, self.invoice_id))
 			cursor.close()
@@ -200,6 +203,7 @@ class InvoiceGUI:
 			self.loading = True # stay on this invoice, don't look for the new customer's draft
 			combo.set_active_id(transfer_customer_id)
 			self.loading = False
+			self.populate_shipping_address_combo () # the old list is gone
 			self.update_invoice_name ("Inv")
 			self.populate_document_list ()
 
@@ -492,6 +496,7 @@ class InvoiceGUI:
 			self.calendar.set_date(date)
 		cursor.close()
 		self.document_type = self.document_list_store[path][2]
+		self.populate_shipping_address_combo ()
 		self.populate_invoice_items(save_totals = False)
 		DB.rollback()
 
@@ -565,6 +570,7 @@ class InvoiceGUI:
 		self.datetime = datetime.today()
 		self.calendar.set_today()
 		self.invoice_store.clear()
+		self.populate_shipping_address_combo () # back to this customer's default
 		self.calculate_totals ()
 		self.populate_document_list ()
 
@@ -854,6 +860,7 @@ class InvoiceGUI:
 		combo = self.builder.get_object('comboboxtext_shipping')
 		combo.remove_all()
 		combo.append('0', "Billing address")
+		self.shipping_addresses = {'0': ''} # the billing box already shows it
 		selected_id = None
 		cursor = DB.cursor()
 		if self.invoice_id != 0:
@@ -862,26 +869,44 @@ class InvoiceGUI:
 			row = cursor.fetchone()
 			if row and row[0] != None:
 				selected_id = str(row[0])
-		cursor.execute("SELECT id, description "
+		# an address retired since still belongs on this invoice, the printed
+		# Ship To block does not filter sa.deleted either
+		cursor.execute("SELECT id, description, address, city, state, zip "
 							"FROM contact_shipping_addresses "
-							"WHERE (contact_id, deleted) = (%s, False) "
+							"WHERE contact_id = %s "
+								"AND (deleted = False OR id::text = %s) "
 							"ORDER BY standard DESC, description",
-							(self.customer_id,))
+							(self.customer_id, selected_id))
 		default_id = '0'
 		first = True
 		for row in cursor.fetchall():
-			combo.append(str(row[0]), row[1])
+			address_id = str(row[0])
+			combo.append(address_id, row[1])
+			self.shipping_addresses[address_id] = "{}\n{}, {} {}".format(
+													row[2], row[3], row[4], row[5])
 			if first:
-				default_id = str(row[0])
+				default_id = address_id
 				first = False
 		cursor.close()
+		DB.rollback()
+		if selected_id not in self.shipping_addresses:
+			selected_id = None # it belongs to a contact this invoice has left
 		combo.set_active_id(selected_id if selected_id != None else default_id)
 		self.populating = False
-		DB.rollback()
+		self.show_shipping_address ()
+
+	def show_shipping_address (self):
+		'''the box follows the combo; "Billing address" leaves it blank, the
+		billing box beside it is already showing that address'''
+		combo = self.builder.get_object('comboboxtext_shipping')
+		address = self.shipping_addresses.get(combo.get_active_id(), '')
+		self.builder.get_object('shipping_address_box').get_buffer().set_text(
+																			address)
 
 	def shipping_address_combo_changed (self, combo):
 		if self.populating == True:
-			return
+			return # only being refilled, populate_ sets the box itself
+		self.show_shipping_address () # never between the UPDATE and the commit
 		shipping_address_id = combo.get_active_id()
 		if shipping_address_id == '0':
 			shipping_address_id = None
@@ -1591,6 +1616,7 @@ class InvoiceGUI:
 		self.document_type = header['doc_type']
 		self.posted = header['posted']
 		self.loading = False
+		self.populate_shipping_address_combo () # customer_selected bailed out
 
 	def show_reload_infobar (self, broadcaster, invoice_id, is_remote):
 		if invoice_id != self.invoice_id or not is_remote:
