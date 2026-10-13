@@ -46,7 +46,7 @@ VALUES
 	('Credit Memos', 5, 5110, 5100),
 	('Credit Memo Taxes', 5, 5120, 5100)
 ;
-INSERT INTO units (name) VALUES ('Piece'), ('Hour'), ('Minute'), ('Foot'), ('Inch'), ('Ounce'), ('Pound'), ('Ton'), ('Acre');
+INSERT INTO units (name, standard) VALUES ('Piece', True), ('Hour', False), ('Minute', False), ('Foot', False), ('Inch', False), ('Ounce', False), ('Pound', False), ('Ton', False), ('Acre', False);
 --set bank account
 UPDATE gl_accounts SET 
 	(bank_account, deposits, check_writing) = (True, True, True)
@@ -87,7 +87,7 @@ VALUES
 INSERT INTO products 
 	(name, description, unit, cost, tax_rate_id, deleted, sellable, purchasable, min_inventory, reorder_qty, tax_exemptible, manufactured, weight, tare, default_expense_account, revenue_account) 
 VALUES 
-	('Example product', '', 1, 1.00, 1, False, True, True, 0, 0, True, False, 0.000, 0.000, 3100, 4100)
+	('Example product', '', (SELECT id FROM units WHERE standard = True), 1.00, 1, False, True, True, 0, 0, True, False, 0.000, 0.000, 3100, 4100)
 ;
 
 --Insert example terms and discounts

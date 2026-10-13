@@ -1016,3 +1016,26 @@ ALTER TABLE public.inventory_transactions
 CREATE UNIQUE INDEX IF NOT EXISTS inventory_transactions_transfer_product_uq
 	ON public.inventory_transactions (transfer_id, product_id, location_id)
 	WHERE transfer_id IS NOT NULL;
+
+--0.7.26
+/* units was the one lookup table the app gave nobody a way to maintain: no
+   deleted flag to retire one with, no standard flag for a new product to fall
+   back on, and so every product INSERT path hardcoded the literal unit 1. The
+   product editor's combo was a hardcoded Glade list whose nine ids happened to
+   match insert_basic.sql's seeding order, so a unit added or renamed here never
+   reached it. Guarded, because this file runs from the top on every upgrade. */
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS standard boolean DEFAULT false NOT NULL;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS deleted boolean DEFAULT false NOT NULL;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS date_created date DEFAULT now() NOT NULL;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS date_edited date DEFAULT now() NOT NULL;
+
+/* One unit has to be standard or a new product has nothing to default to, and
+   the lowest id is the one insert_basic.sql seeds as Piece. The NOT EXISTS is
+   what keeps this from undoing a later choice every time the file re-runs. */
+UPDATE public.units SET standard = True
+	WHERE id = (SELECT min(id) FROM public.units)
+		AND NOT EXISTS (SELECT 1 FROM public.units WHERE standard = True);

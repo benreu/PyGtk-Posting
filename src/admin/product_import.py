@@ -171,7 +171,7 @@ class ProductsImportGUI(Gtk.Builder):
 												"tax_rate_id, "
 												"unit)"
 						"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-						"1)",
+						"(SELECT id FROM units WHERE standard = True))",
 						(product_name_rules.normalize(row[0]),
 						row[1],row[2],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],
@@ -210,7 +210,7 @@ class ProductsImportGUI(Gtk.Builder):
 												"tax_rate_id, "
 												"unit)"
 						"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-						"1)",
+						"(SELECT id FROM units WHERE standard = True))",
 						(product_name_rules.normalize(row[0]),
 						row[1],row[2],row[3],row[4],row[5],row[6],
 						row[7],row[8],row[9],row[10],row[11],

@@ -44,7 +44,8 @@ def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 					"manufactured, weight, tare, ext_name, stock, "
 					"inventory_enabled, default_expense_account, "
 					"revenue_account) "
-					"VALUES (%s, '', 1, 1.00, "
+					"VALUES (%s, '', "
+					"(SELECT id FROM units WHERE standard = True), 1.00, "
 					"%s, False, False, True, 0, 0, True, False, 0.00, 0.00, "
 					"'', False, False, %s, %s) RETURNING id", ( product_name, 
 					default_tax_rate, expense_account, revenue_account))

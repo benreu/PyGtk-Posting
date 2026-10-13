@@ -108,7 +108,7 @@ class GUI(Gtk.Builder):
 								"default_expense_account) "
 							"VALUES "
 								"('New expense product', "
-								"1, "
+								"(SELECT id FROM units WHERE standard = True), "
 								"0.00, "
 								"True, "
 								"(SELECT id FROM tax_rates "

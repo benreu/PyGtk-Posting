@@ -126,7 +126,10 @@ SELECT NOT (
 	AND EXISTS (SELECT 1 FROM pg_trigger
 		WHERE tgname = 'count_summary_insert_trigger')
 	AND EXISTS (SELECT 1 FROM pg_trigger
-		WHERE tgname = 'count_summary_update_trigger'))
+		WHERE tgname = 'count_summary_update_trigger')
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'units', 'standard')))
 """
 
 _conn = None
@@ -224,6 +227,17 @@ ALTER TABLE public.inventory_transactions
 	ADD COLUMN IF NOT EXISTS transfer_id bigint
 		REFERENCES inventory.transfers(id)
 		ON UPDATE RESTRICT ON DELETE RESTRICT;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS standard boolean DEFAULT false NOT NULL;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS deleted boolean DEFAULT false NOT NULL;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS date_created date DEFAULT now() NOT NULL;
+ALTER TABLE public.units
+	ADD COLUMN IF NOT EXISTS date_edited date DEFAULT now() NOT NULL;
+UPDATE public.units SET standard = True
+	WHERE id = (SELECT min(id) FROM public.units)
+		AND NOT EXISTS (SELECT 1 FROM public.units WHERE standard = True);
 """
 # the update also widens purchase_order_items.expense_account to bigint, and
 # purchase_order_items.received from smallint to integer, both left out here:
@@ -259,6 +273,13 @@ class DBTestCase(unittest.TestCase):
 		EXCLUSIVE on four tables in every setUp and taking none at all'''
 		if _schema_pending:
 			self.cursor.execute(PENDING_SCHEMA)
+			# move the savepoint past the DDL. FakeDB.rollback () returns to
+			# test_sp, which was taken at import, so a window doing the usual
+			# DB.rollback () after a read would otherwise undo the columns just
+			# added and the test would see the old schema. commit () here is
+			# still only a savepoint release, so nothing reaches the database:
+			# tearDown's real_rollback () discards the DDL with everything else
+			self.DB.commit()
 
 	def tearDown(self):
 		if _conn is not None:

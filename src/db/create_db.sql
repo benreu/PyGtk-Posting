@@ -249,7 +249,11 @@ CREATE TABLE public.tax_rates (
 --CREATE TABLE units
 CREATE TABLE public.units (
     id serial PRIMARY KEY, 
-    name varchar UNIQUE NOT NULL);
+    name varchar UNIQUE NOT NULL,
+    standard boolean DEFAULT false NOT NULL,
+    deleted boolean DEFAULT false NOT NULL,
+    date_created date DEFAULT now() NOT NULL,
+    date_edited date DEFAULT now() NOT NULL);
 
 --CREATE TABLE public.products
 CREATE TABLE public.products (

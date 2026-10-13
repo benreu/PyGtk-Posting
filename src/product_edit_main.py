@@ -45,7 +45,8 @@ def add_non_stock_product (vendor_id, product_name, product_number, #FIXME
 					"manufactured, weight, tare, ext_name, stock, "
 					"inventory_enabled, default_expense_account, "
 					"revenue_account) "
-					"VALUES (%s, '', 1, 1.00, "
+					"VALUES (%s, '', "
+					"(SELECT id FROM units WHERE standard = True), 1.00, "
 					"%s, False, False, True, 0, 0, True, False, 0.00, 0.00, "
 					"'', False, False, %s, %s) RETURNING id", ( product_name, 
 					default_tax_rate, expense_account, revenue_account))
@@ -79,6 +80,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.treeview = self.get_object('treeview2')
 		self.populate_terms_listbox()
 		self.populate_account_combos ()
+		self.populate_unit_combo ()
 		self.set_window_layout_from_settings ()
 		self.window = self.get_object('window')
 		self.window.show_all()
@@ -176,6 +178,42 @@ class ProductEditMainGUI (Gtk.Builder):
 			tax_combobox.set_active_id(current_tax)
 		c.close()
 		DB.rollback()
+
+	def populate_unit_combo (self, current_unit = None, cursor = None):
+		'''the units are a table now, not the hardcoded list Glade used to
+		carry, so a unit added or renamed in Edit -> Units reaches this combo.
+		A retired unit is left out unless it is the one this product already
+		carries: dropping that would quietly move the product onto whatever
+		else happened to be selected the next time it was saved.'''
+		c = cursor or DB.cursor()
+		unit_combobox = self.get_object('comboboxtext1')
+		if current_unit == None:
+			current_unit = unit_combobox.get_active_id()
+		if current_unit != None:
+			current_unit = str(current_unit)
+		unit_combobox.remove_all()
+		c.execute("SELECT id::text, name FROM units "
+							"WHERE deleted = False OR id::text = %s "
+							"ORDER BY name", (current_unit,))
+		for item in c.fetchall():
+			unit_combobox.append(item[0], item[1])
+		if current_unit == None:
+			#products.unit is NOT NULL and Glade no longer pre-selects unit 1,
+			#so a new product has to be given the standard unit here or it
+			#cannot be saved at all
+			c.execute("SELECT id::text FROM units WHERE deleted = False "
+								"ORDER BY standard DESC, name LIMIT 1")
+			for row in c.fetchall():
+				current_unit = row[0]
+		if current_unit != None:
+			unit_combobox.set_active_id(current_unit)
+		if cursor == None:
+			c.close()
+			DB.rollback()
+
+	def unit_window (self, widget):
+		import units
+		units.UnitsGUI(self.populate_unit_combo)
 
 	def tax_window(self, widget):
 		import tax_rates
@@ -401,7 +439,7 @@ class ProductEditMainGUI (Gtk.Builder):
 			self.get_object('entry1').set_text(row[0])
 			self.get_object("textbuffer1").set_text(row[1])
 			self.get_object('entry2').set_text(row[2])
-			self.get_object('comboboxtext1').set_active_id(str(row[3]))
+			self.populate_unit_combo (row[3], cursor = c)
 			self.get_object('spinbutton1').set_value(float(row[4]))
 			self.get_object('comboboxtext4').set_active_id(str(row[5]))
 			self.get_object('checkbutton4').set_active(row[6])

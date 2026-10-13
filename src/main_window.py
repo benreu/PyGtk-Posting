@@ -430,6 +430,10 @@ class MainGUI :
 		import shipping_carriers
 		shipping_carriers.ShippingCarriersGUI()
 
+	def units_activated (self, menuitem):
+		import units
+		units.UnitsGUI()
+
 	def process_po(self, widget):
 		import unprocessed_po
 		unprocessed_po.GUI()

@@ -121,6 +121,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem87">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Units</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="units_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem84">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>

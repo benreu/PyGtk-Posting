@@ -685,10 +685,12 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkLabel" id="label31">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
+                                      <object class="GtkButton" id="button8">
                                         <property name="label" translatable="yes">Unit</property>
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
+                                        <signal name="clicked" handler="unit_window" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left_attach">0</property>
@@ -699,18 +701,6 @@
                                       <object class="GtkComboBoxText" id="comboboxtext1">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="active_id">1</property>
-                                        <items>
-                                          <item id="1" translatable="yes">Piece</item>
-                                          <item id="2" translatable="yes">Hour</item>
-                                          <item id="3" translatable="yes">Minute</item>
-                                          <item id="4" translatable="yes">Foot</item>
-                                          <item id="5" translatable="yes">Inch</item>
-                                          <item id="6" translatable="yes">Ounce</item>
-                                          <item id="7" translatable="yes">Pound</item>
-                                          <item id="8" translatable="yes">Ton</item>
-                                          <item id="9" translatable="yes">Acre</item>
-                                        </items>
                                       </object>
                                       <packing>
                                         <property name="left_attach">1</property>
