@@ -1135,3 +1135,18 @@ BEGIN
 		$q$;
 END
 $$;
+
+--0.7.29
+/* The invoice line items grew a Unit column, and which of those columns a user
+   sees is driven from settings.invoice_columns: load_settings calls set_visible
+   for every row it finds there, and the settings window builds its checkboxes
+   from the same table. Without a row the column simply always shows, so this is
+   additive and an un-upgraded database is not broken by the new column.
+
+   Guarded on the row being absent rather than on a version, because what the
+   user owns here is the visible flag: once the row exists this never fires
+   again, so a column they have switched off stays off. */
+INSERT INTO settings.invoice_columns (column_id, column_name, visible)
+	SELECT 'unit_column', 'Unit', True
+		WHERE NOT EXISTS (SELECT 1 FROM settings.invoice_columns
+							WHERE column_id = 'unit_column');

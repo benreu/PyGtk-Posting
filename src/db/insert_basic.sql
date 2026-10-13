@@ -159,6 +159,7 @@ INSERT INTO settings.invoice_columns
 	(column_id, column_name, visible) 
 VALUES 
 	('treeviewcolumn1', 'Qty', True), 
+	('unit_column', 'Unit', True), 
 	('treeviewcolumn2', 'Product', True), 
 	('treeviewcolumn7', 'Ext. name', True), 
 	('treeviewcolumn3', 'Remark', True), 

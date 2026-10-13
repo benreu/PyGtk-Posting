@@ -94,6 +94,7 @@ class Setup:
         for i in self.store:
             item = Item()
             item.qty = i[1]
+            item.unit = i[13]
             item.product = i[3]
             item.ext_name = (" , " + i[4]) if i[4] else ""
             item.remark = (" : " + i[5]) if i[5] else ""

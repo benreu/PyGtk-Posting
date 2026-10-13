@@ -309,10 +309,10 @@ class InvoiceGUI:
 		self.check_invoice_id()
 		iter_ = self.invoice_store.append([0, qty, int(product_id), '',
 											'', '', '1', '1', '1', '', 
-											True, '', False])
+											True, '', False, ''])
 		self.check_invoice_item_id (iter_)
 		treeview = self.builder.get_object('invoice_treeview')
-		c = treeview.get_column(0)
+		c = self.builder.get_object('treeviewcolumn1')
 		path = self.invoice_store.get_path(iter_)
 		treeview.set_cursor(path, c, True)
 		self.product_selected (product_id, path)
@@ -732,9 +732,11 @@ class InvoiceGUI:
 		cursor.execute("SELECT ili.id, qty, product_id, products.name, "
 							"ext_name, remark, price::text, tax::text, ext_price::text, "
 							"ili.tax_rate_id, COALESCE(tax_letter, ''), "
-							"products.invoice_serial_numbers "
+							"products.invoice_serial_numbers, "
+							"COALESCE(NULLIF(u.abbreviation, ''), u.name) "
 							"FROM invoice_items AS ili "
 							"JOIN products ON products.id = ili.product_id "
+							"JOIN units AS u ON u.id = products.unit "
 							"LEFT JOIN tax_rates "
 							"ON tax_rates.id = ili.tax_rate_id "
 							"WHERE (invoice_id, canceled) = (%s, False) "
@@ -752,13 +754,14 @@ class InvoiceGUI:
 			tax_rate_id = str(row[9])
 			tax_letter = row[10]
 			serial_number = row[11]
+			unit = row[12]
 			if serial_number == True:
 				self.builder.get_object('serial_column').set_visible(True)
 				qty = int(qty)
 			self.invoice_store.append([id, str(qty), product_id, product_name, 
 										ext_name, remark, price, tax, 
 										ext_price, tax_rate_id, False,
-										tax_letter, serial_number])
+										tax_letter, serial_number, unit])
 		cursor.close()
 		self.check_serial_numbers()
 		self.calculate_totals(save = save_totals)
@@ -1107,8 +1110,12 @@ class InvoiceGUI:
 							"SET invoice_item_id = NULL "
 							"WHERE invoice_item_id = %s",
 							(invoice_line_id,))
-		cursor.execute("SELECT name, ext_name, invoice_serial_numbers "
-							"FROM products WHERE id = %s", (product_id,))
+		cursor.execute("SELECT products.name, ext_name, "
+							"invoice_serial_numbers, "
+							"COALESCE(NULLIF(u.abbreviation, ''), u.name) "
+							"FROM products "
+							"JOIN units AS u ON u.id = products.unit "
+							"WHERE products.id = %s", (product_id,))
 		# the exemption id (or 0); the database trigger swaps in the new 
 		# product's own tax rate when no exemption applies to it
 		tax_rate_id = self.builder.get_object('tax_exemption_combo').get_active_id()
@@ -1116,6 +1123,7 @@ class InvoiceGUI:
 			product_name = row[0]
 			ext_name = row[1]
 			serial_number = row[2]
+			unit = row[3]
 			iter_ = self.invoice_store.get_iter(path)
 			if serial_number == True:
 				self.builder.get_object('serial_column').set_visible(True)
@@ -1127,6 +1135,7 @@ class InvoiceGUI:
 			self.invoice_store[iter_][4] = ext_name
 			self.invoice_store[iter_][10] = False
 			self.invoice_store[iter_][12] = serial_number
+			self.invoice_store[iter_][13] = unit
 			self.set_product_price (iter_)
 			line_id = self.invoice_store[iter_][0]
 			cursor.execute("UPDATE invoice_items "
@@ -1163,7 +1172,7 @@ class InvoiceGUI:
 		# retrieve path again after all sorting has happened for the updates
 		path = self.invoice_store.get_path(iter_)
 		treeview = self.builder.get_object('invoice_treeview')
-		c = treeview.get_column(3)
+		c = self.builder.get_object('treeviewcolumn3')
 		treeview.set_cursor(path, c, True)
 		self.resync_posted_invoice ()
 
@@ -1447,21 +1456,25 @@ class InvoiceGUI:
 
 	def new_item_clicked (self, button):
 		cursor = DB.cursor()
-		cursor.execute("SELECT id, name "
+		cursor.execute("SELECT products.id, products.name, "
+							"COALESCE(NULLIF(u.abbreviation, ''), u.name) "
 							"FROM products "
-							"WHERE (deleted, sellable, stock) = "
-									"(False, True, True) "
-							"ORDER BY invoice_serial_numbers ASC, id ASC "
+							"JOIN units AS u ON u.id = products.unit "
+							"WHERE (products.deleted, products.sellable, "
+									"products.stock) = (False, True, True) "
+							"ORDER BY products.invoice_serial_numbers ASC, "
+									"products.id ASC "
 							"LIMIT 1")
 		for row in cursor.fetchall():
 			product_id = row[0]
 			product_name = row[1]
+			unit = row[2]
 			iter_ = self.invoice_store.append([0, '1', product_id, product_name,
 												"", "", '1', '1', '1', "", 
-												True, '', False])
+												True, '', False, unit])
 			self.check_invoice_item_id (iter_)
 			treeview = self.builder.get_object('invoice_treeview')
-			c = treeview.get_column(0)
+			c = self.builder.get_object('treeviewcolumn1')
 			path = self.invoice_store.get_path(iter_)
 			treeview.set_cursor(path, c, True)
 		cursor.close()

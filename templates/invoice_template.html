@@ -89,6 +89,7 @@
   <thead>
     <tr>
       <th style="width:52pt">Qty</th>
+      <th style="width:34pt">Unit</th>
       <th>Product</th>
       <th style="width:65pt" class="r">Price</th>
       <th style="width:18pt">T</th>
@@ -99,6 +100,7 @@
     {% for item in items %}
     <tr>
       <td>{{ item.qty }}</td>
+      <td>{{ item.unit }}</td>
       <td>{{ item.product }}{{ item.ext_name }}{{ item.remark }}</td>
       <td class="r">{{ item.price }}</td>
       <td>{{ item.tax_letter }}</td>
@@ -108,7 +110,7 @@
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="2" rowspan="3" class="comment-cell">
+      <td colspan="3" rowspan="3" class="comment-cell">
         {% if document.comment %}{{ document.comment }}{% endif %}
       </td>
       <td colspan="2" class="tl">Subtotal</td>

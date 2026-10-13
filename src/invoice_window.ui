@@ -257,6 +257,8 @@
       <column type="gchararray"/>
       <!-- column-name serial_number -->
       <column type="gboolean"/>
+      <!-- column-name unit -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkListStore" id="location_store">
@@ -636,6 +638,20 @@
                               </object>
                               <attributes>
                                 <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="unit_column">
+                            <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Unit</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort-column-id">13</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="unit_renderer"/>
+                              <attributes>
+                                <attribute name="text">13</attribute>
                               </attributes>
                             </child>
                           </object>
