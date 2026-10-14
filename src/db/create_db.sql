@@ -844,7 +844,9 @@ CREATE TABLE public.settings (
     request_po_attachment boolean NOT NULL,
     major_version smallint NOT NULL,
     minor_version smallint NOT NULL,
-    finance_rate numeric(12,6) NOT NULL DEFAULT 0.00
+    finance_rate numeric(12,6) NOT NULL DEFAULT 0.00,
+    -- renamed to freight_product_id by 0.7.32, which the fresh install replays
+    shipping_product_id integer REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 --CREATE TABLE public.vendor_product_numbers
 CREATE TABLE public.vendor_product_numbers (

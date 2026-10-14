@@ -54,6 +54,33 @@
       </attributes>
     </child>
   </object>
+  <object class="GtkListStore" id="freight_product_store">
+    <columns>
+      <!-- column-name id -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name ext_name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="freight_product_completion">
+    <property name="model">freight_product_store</property>
+    <property name="text-column">1</property>
+    <signal name="match-selected" handler="freight_product_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkListStore" id="shipping_history_store">
     <columns>
       <!-- column-name id -->
@@ -109,7 +136,7 @@
                         <property name="left-padding">10</property>
                         <property name="right-padding">10</property>
                         <child>
-                          <!-- n-columns=2 n-rows=5 -->
+                          <!-- n-columns=2 n-rows=6 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -132,7 +159,7 @@
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
-                                <property name="top-attach">3</property>
+                                <property name="top-attach">4</property>
                               </packing>
                             </child>
                             <child>
@@ -144,7 +171,7 @@
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
-                                <property name="top-attach">3</property>
+                                <property name="top-attach">4</property>
                               </packing>
                             </child>
                             <child>
@@ -155,7 +182,7 @@
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
-                                <property name="top-attach">4</property>
+                                <property name="top-attach">5</property>
                               </packing>
                             </child>
                             <child>
@@ -171,7 +198,7 @@ This transaction will be linked to the shipping info.</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
-                                <property name="top-attach">4</property>
+                                <property name="top-attach">5</property>
                               </packing>
                             </child>
                             <child>
@@ -255,7 +282,7 @@ This transaction will be linked to the shipping info.</property>
                                   <object class="GtkComboBox" id="invoice_id_combo">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Select the invoice that contains the shipment items</property>
+                                    <property name="tooltip-text" translatable="yes">Select the invoice that contains the shipment items. Only invoices a freight charge can still go on are listed: not paid, not on a statement, and not already shipped</property>
                                     <property name="model">invoice_store</property>
                                     <property name="has-entry">True</property>
                                     <property name="entry-text-column">0</property>
@@ -309,6 +336,53 @@ This transaction will be linked to the shipping info.</property>
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="bill_freight_check">
+                                <property name="label" translatable="yes">Freight product</property>
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="active">True</property>
+                                <property name="tooltip-text" translatable="yes">Clear this to record the shipment and its carrier payment without charging the customer for the freight. It starts out checked on every shipment</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="bill_freight_toggled" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBox" id="freight_product_combo">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">The freight paid on the payment tab is billed to the invoice as this product</property>
+                                <property name="model">freight_product_store</property>
+                                <property name="has-entry">True</property>
+                                <property name="entry-text-column">1</property>
+                                <property name="id-column">0</property>
+                                <signal name="changed" handler="freight_product_combo_changed" swapped="no"/>
+                                <child>
+                                  <object class="GtkCellRendererText"/>
+                                  <attributes>
+                                    <attribute name="text">2</attribute>
+                                  </attributes>
+                                </child>
+                                <child internal-child="entry">
+                                  <object class="GtkEntry">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="completion">freight_product_completion</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">3</property>
                               </packing>
                             </child>
                           </object>

@@ -148,8 +148,21 @@ SELECT NOT (
 		LIKE '%jsonb_populate_record%')
 """
 
+# Asked separately from SCHEMA_PROBE, and applied separately below. SCHEMA_PROBE
+# is all or nothing: one missing column there turns the whole of PENDING_SCHEMA
+# back on for every setUp, which takes ACCESS EXCLUSIVE on four tables including
+# inventory_transactions - and that deadlocks against a second run of this suite
+# on the same copy. The shipping product is a metadata only ALTER on a one row
+# table, cheap enough to pay per test while the copy is behind
+SETTINGS_SCHEMA_PROBE = """
+SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
+	(table_schema, table_name, column_name) =
+	('public', 'settings', 'freight_product_id'))
+"""
+
 _conn = None
 _schema_pending = True # until asked; a copy that is behind pays the DDL per test
+_settings_schema_pending = True
 try:
 	_conn = connect()
 	# asked here, before FakeDB opens the savepoint every test rolls back to, so
@@ -157,6 +170,8 @@ try:
 	_probe = _conn.cursor()
 	_probe.execute(SCHEMA_PROBE)
 	_schema_pending = _probe.fetchone()[0]
+	_probe.execute(SETTINGS_SCHEMA_PROBE)
+	_settings_schema_pending = _probe.fetchone()[0]
 	_probe.close()
 	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
@@ -404,6 +419,34 @@ $$;
 # backstop for either. inventory.transfers keeps its CHECK, which is free.
 # count_summaries is small enough that its SET NOT NULL does not matter
 
+# 0.7.31 and 0.7.32, the product the shipping window bills freight as. Its own
+# block, see SETTINGS_SCHEMA_PROBE. The rename comes first, so a copy that had
+# 0.7.31 applied keeps the product it remembers instead of growing a second
+# column. The REFERENCES products(id) the migration carries is left off
+# deliberately: adding the foreign key takes SHARE ROW EXCLUSIVE on products,
+# and this runs in every setUp, so it deadlocks against anything else holding
+# settings and reading products - a second run of this suite does both. Without
+# it the ALTER only touches settings, which is one row. Nothing here tests the
+# constraint; the tests write ids that exist
+PENDING_SETTINGS_SCHEMA = """
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns WHERE
+				(table_schema, table_name, column_name) =
+				('public', 'settings', 'shipping_product_id'))
+		AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
+				(table_schema, table_name, column_name) =
+				('public', 'settings', 'freight_product_id'))
+	THEN
+		ALTER TABLE public.settings
+			RENAME COLUMN shipping_product_id TO freight_product_id;
+	END IF;
+END
+$$;
+ALTER TABLE public.settings
+	ADD COLUMN IF NOT EXISTS freight_product_id integer;
+"""
+
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
@@ -419,11 +462,15 @@ class DBTestCase(unittest.TestCase):
 		run against a copy that has not had the update applied yet. Every
 		statement is a no-op once it has.
 
-		Skipped outright once SCHEMA_PROBE has said the copy is already current,
-		which is the usual case and the difference between taking ACCESS
-		EXCLUSIVE on four tables in every setUp and taking none at all'''
+		Each block is skipped outright once its probe has said the copy already
+		has it, which for SCHEMA_PROBE is the usual case and the difference
+		between taking ACCESS EXCLUSIVE on four tables in every setUp and
+		taking none at all'''
 		if _schema_pending:
 			self.cursor.execute(PENDING_SCHEMA)
+		if _settings_schema_pending:
+			self.cursor.execute(PENDING_SETTINGS_SCHEMA)
+		if _schema_pending or _settings_schema_pending:
 			# move the savepoint past the DDL. FakeDB.rollback () returns to
 			# test_sp, which was taken at import, so a window doing the usual
 			# DB.rollback () after a read would otherwise undo the columns just

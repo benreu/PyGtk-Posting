@@ -1289,3 +1289,45 @@ UPDATE public.company_info SET city = city
 	WHERE city <> btrim(city) OR state <> btrim(state) OR zip <> btrim(zip)
 		OR country <> btrim(country)
 		OR (state ~ '^[A-Za-z]{2}$' AND state <> upper(state));
+
+--0.7.31
+/* The shipping window can now bill the freight it just paid to the customer's
+   invoice, as a line item of whichever product the user picks. This remembers
+   that product so the combo comes up on it next time, the way the rest of the
+   company wide preferences live in this one row.
+
+   Nullable, with no default and no backfill: null means "no usual shipping
+   product", which is exactly how an un-upgraded database behaves, and the
+   window simply opens with an empty combo until someone chooses one. There is
+   no sensible product to guess here - which product freight is billed as, and
+   through products.revenue_account which income account it lands in, is a
+   decision only the user can make.
+
+   0.7.30 is deliberately not used: it belongs to the address normalization
+   change being written alongside this one. */
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS shipping_product_id integer
+	REFERENCES public.products(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+--0.7.32
+/* "Shipping" was the wrong word for it. What the shipping window bills to the
+   customer is the freight it just paid a carrier, and freight is what the rest
+   of the window now calls it, so the setting holding that product follows.
+
+   Guarded the way the employee_info renames in update_db_major.sql are, because
+   ALTER TABLE ... RENAME COLUMN has no IF EXISTS and this file re-runs from the
+   top on every upgrade. A rename rather than a drop and re-add: the column
+   already holds whichever product the user has been billing freight as. */
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM information_schema.columns WHERE
+				(table_schema, table_name, column_name) =
+				('public', 'settings', 'shipping_product_id'))
+		AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
+				(table_schema, table_name, column_name) =
+				('public', 'settings', 'freight_product_id'))
+	THEN
+		ALTER TABLE public.settings
+			RENAME COLUMN shipping_product_id TO freight_product_id;
+	END IF;
+END
+$$;
