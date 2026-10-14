@@ -37,11 +37,17 @@ def account_balances (start_date, end_date):
 	Three things here are decisions rather than accidents.
 
 	The LATERAL (VALUES ...) is how an entry is split into sides. gl_entries
-	holds a positive amount and two nullable account columns, so the side is
-	which column is set, not a sign, and a row may be two sided - a whole
-	balanced entry on one row - or one of a pair of siblings under the same
+	holds an amount and two nullable account columns, so the side is which
+	column is set, not a sign, and a row may be two sided - a whole balanced
+	entry on one row - or one of a pair of siblings under the same
 	gl_transaction_id. Emitting one row per non null side counts a two sided row
 	on both sides and a one sided row once, in a single scan of the table.
+
+	The amount is only expected positive, not guaranteed: nothing constrains it
+	but credit_or_debit_is_not_null, and a real ledger here holds negative and
+	zero amounts both. Subtracting credits from debits is right either way, a
+	negative debit being a credit, which is why this returns a signed figure and
+	leaves the presentation to the caller.
 
 	The date filtered on is the entry's own date_inserted, not the parent
 	transaction's. The entry date is what the entry is filed under, it is what
@@ -89,6 +95,228 @@ def account_balances (start_date, end_date):
 					"GROUP BY a.number "
 					"ORDER BY a.number",
 					{'start_date': start_date, 'end_date': end_date})
+	rows = cursor.fetchall()
+	cursor.close()
+	return rows
+
+
+def unbalanced_transactions ():
+	'''every gl_transaction whose debits and credits do not agree, as
+	(id, date, lines, debits, credits, first_line_date, last_line_date,
+	reconciled_lines, attached_lines, header_claimed).
+
+	Which of them can safely be touched is the point of this, not the list. A
+	line referenced by a posted invoice, purchase order or loan is that
+	document's half of the story, and writing the missing side by hand changes
+	the document's ledger footprint behind its back - the app's own way of
+	correcting posted entries is to re-derive them from the document, the way
+	transactor.resync_invoice_accounts does. So attached_lines and
+	header_claimed come back with the totals and the caller labels the row
+	rather than discovering it per transaction.
+
+	Driven from gl_transactions outward, not from gl_entries inward, so that a
+	header carrying no lines at all comes back in the same pass. Those are
+	invisible to a GROUP BY over gl_entries - they fall out of the grouping -
+	and they are a defect of their own, an empty journal entry nothing
+	references.
+
+	The sides are summed with CASE WHEN rather than the LATERAL account_balances
+	uses: grouping by transaction needs no row splitting, and a two sided row
+	adding its amount to both sums is already what double entry means here.
+	count(*) then stays the true line count.
+
+	No rollback, as account_balances'''
+	cursor = DB.cursor()
+	cursor.execute("WITH attached AS "
+							# every column in the schema that claims an entry as
+							# a document's own. Four of them match nothing in
+							# the ledger this was written against; they stay
+							# because the next defect may land there
+						"(SELECT gl_entries_id AS entry_id FROM invoice_items "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_id FROM invoices "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_tax_id FROM invoices "
+							"WHERE gl_entries_tax_id IS NOT NULL "
+						"UNION SELECT gl_entries_id FROM purchase_order_items "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_id FROM purchase_orders "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entry_id FROM incoming_invoices "
+							"WHERE gl_entry_id IS NOT NULL "
+						"UNION SELECT gl_entry_expense_id "
+							"FROM incoming_invoices_gl_entry_expenses_ids "
+						"UNION SELECT gl_entries_id FROM payments_incoming "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_deposit_id FROM payments_incoming "
+							"WHERE gl_entries_deposit_id IS NOT NULL "
+						"UNION SELECT gl_entries_id FROM credit_memos "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_tax_id FROM credit_memos "
+							"WHERE gl_entries_tax_id IS NOT NULL "
+						"UNION SELECT gl_entry_id FROM credit_memo_items "
+							"WHERE gl_entry_id IS NOT NULL "
+						"UNION SELECT gl_entries_id FROM inventory_transactions "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_id FROM loans "
+							"WHERE gl_entries_id IS NOT NULL "
+						"UNION SELECT gl_entries_total_id FROM loan_payments "
+							"WHERE gl_entries_total_id IS NOT NULL "
+						"UNION SELECT gl_entries_principal_id FROM loan_payments "
+							"WHERE gl_entries_principal_id IS NOT NULL "
+						"UNION SELECT gl_entries_interest_id FROM loan_payments "
+							"WHERE gl_entries_interest_id IS NOT NULL), "
+						# and the columns that claim a whole transaction rather
+						# than one of its lines
+						"claimed AS "
+						"(SELECT gl_transaction_id AS transaction_id "
+							"FROM incoming_invoices "
+							"WHERE gl_transaction_id IS NOT NULL "
+						"UNION SELECT gl_transaction_payment_id "
+							"FROM purchase_orders "
+							"WHERE gl_transaction_payment_id IS NOT NULL "
+						"UNION SELECT account_transaction_id "
+							"FROM payroll.emp_payments "
+							"WHERE account_transaction_id IS NOT NULL) "
+					"SELECT t.id, "
+						"t.date_inserted, "
+						"count(e.id) AS lines, "
+						"COALESCE(SUM(CASE WHEN e.debit_account IS NOT NULL "
+							"THEN e.amount ELSE 0 END), 0.00) AS debits, "
+						"COALESCE(SUM(CASE WHEN e.credit_account IS NOT NULL "
+							"THEN e.amount ELSE 0 END), 0.00) AS credits, "
+						"min(e.date_inserted) AS first_line_date, "
+						"max(e.date_inserted) AS last_line_date, "
+						"count(*) FILTER (WHERE e.reconciled) AS reconciled_lines, "
+						"count(a.entry_id) AS attached_lines, "
+						"(t.id IN (SELECT transaction_id FROM claimed)) "
+							"AS header_claimed "
+					"FROM gl_transactions AS t "
+					"LEFT JOIN gl_entries AS e ON e.gl_transaction_id = t.id "
+					"LEFT JOIN attached AS a ON a.entry_id = e.id "
+					"GROUP BY t.id "
+					"HAVING count(e.id) = 0 "
+						"OR COALESCE(SUM(CASE WHEN e.debit_account IS NOT NULL "
+							"THEN e.amount ELSE 0 END), 0.00) "
+						"<> COALESCE(SUM(CASE WHEN e.credit_account IS NOT NULL "
+							"THEN e.amount ELSE 0 END), 0.00) "
+					"ORDER BY t.date_inserted, t.id")
+	rows = cursor.fetchall()
+	cursor.close()
+	return rows
+
+
+def transaction_entries (transaction_ids):
+	'''the lines of the given transactions, as (id, transaction_id, date,
+	amount, debit_account, debit_name, credit_account, credit_name, reconciled,
+	check_number, description, documents). An account number comes back 0 and a
+	name '' on the side an entry does not have.
+
+	documents names whichever source documents claim the line, comma separated,
+	or '' for a line nothing references. Every column in the schema that points
+	at gl_entries.id gets a branch, each selecting the entry id so a document
+	can be traced back to the line that produced it - which is what stops this
+	being gl_entry_lookup, whose deduplicating UNION leaves the entry id out
+	and so cannot say which of several entries a document belongs to. UNION ALL
+	and string_agg rather than picking one: an entry really can be claimed
+	twice, and hiding that would hide the reason it cannot be repaired.
+
+	Restricting each branch to the lines in scope is what makes this quick. The
+	same query resolving through a correlated subquery per row took ninety times
+	as long on the same data'''
+	cursor = DB.cursor()
+	cursor.execute("WITH scope AS "
+						"(SELECT id FROM gl_entries "
+							"WHERE gl_transaction_id = ANY (%(ids)s)), "
+					"docs AS "
+						"(SELECT gl_entries_id AS entry_id, "
+								"'Invoice ' || invoice_id::text AS document "
+							"FROM invoice_items "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, 'Invoice ' || id::text "
+							"FROM invoices "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_tax_id, "
+								"'Invoice ' || id::text || ' tax' "
+							"FROM invoices "
+							"WHERE gl_entries_tax_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, "
+								"'Purchase order ' || purchase_order_id::text "
+							"FROM purchase_order_items "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, "
+								"'Purchase order ' || id::text "
+							"FROM purchase_orders "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entry_id, "
+								"'Incoming invoice ' || id::text "
+							"FROM incoming_invoices "
+							"WHERE gl_entry_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entry_expense_id, "
+								"'Incoming invoice ' "
+								"|| incoming_invoices_id::text || ' expense' "
+							"FROM incoming_invoices_gl_entry_expenses_ids "
+							"WHERE gl_entry_expense_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, 'Payment ' || id::text "
+							"FROM payments_incoming "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_deposit_id, "
+								"'Deposit of payment ' || id::text "
+							"FROM payments_incoming "
+							"WHERE gl_entries_deposit_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, "
+								"'Credit memo ' || id::text "
+							"FROM credit_memos "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_tax_id, "
+								"'Credit memo ' || id::text || ' tax' "
+							"FROM credit_memos "
+							"WHERE gl_entries_tax_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entry_id, "
+								"'Credit memo ' || credit_memo_id::text "
+							"FROM credit_memo_items "
+							"WHERE gl_entry_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, "
+								"'Inventory movement ' || id::text "
+							"FROM inventory_transactions "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_id, 'Loan ' || id::text "
+							"FROM loans "
+							"WHERE gl_entries_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_total_id, "
+								"'Loan payment ' || id::text "
+							"FROM loan_payments "
+							"WHERE gl_entries_total_id IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_principal_id, "
+								"'Loan payment ' || id::text || ' principal' "
+							"FROM loan_payments "
+							"WHERE gl_entries_principal_id "
+								"IN (SELECT id FROM scope) "
+						"UNION ALL SELECT gl_entries_interest_id, "
+								"'Loan payment ' || id::text || ' interest' "
+							"FROM loan_payments "
+							"WHERE gl_entries_interest_id "
+								"IN (SELECT id FROM scope)) "
+					"SELECT e.id, "
+						"e.gl_transaction_id, "
+						"e.date_inserted, "
+						"e.amount, "
+						"COALESCE(e.debit_account, 0), "
+						"COALESCE(da.name, ''), "
+						"COALESCE(e.credit_account, 0), "
+						"COALESCE(ca.name, ''), "
+						"e.reconciled, "
+						"COALESCE(e.check_number, 0), "
+						"COALESCE(e.transaction_description, ''), "
+						"COALESCE(string_agg(DISTINCT d.document, ', '), '') "
+					"FROM gl_entries AS e "
+					"LEFT JOIN gl_accounts AS da ON da.number = e.debit_account "
+					"LEFT JOIN gl_accounts AS ca ON ca.number = e.credit_account "
+					"LEFT JOIN docs AS d ON d.entry_id = e.id "
+					"WHERE e.gl_transaction_id = ANY (%(ids)s) "
+					"GROUP BY e.id, da.name, ca.name "
+					"ORDER BY e.gl_transaction_id, e.id",
+					{'ids': list(transaction_ids)})
 	rows = cursor.fetchall()
 	cursor.close()
 	return rows

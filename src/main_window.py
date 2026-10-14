@@ -885,4 +885,8 @@ class MainGUI :
 		from reports import trial_balance
 		trial_balance.TrialBalanceGUI()
 
+	def unbalanced_transactions (self, button):
+		from reports import unbalanced_transactions
+		unbalanced_transactions.UnbalancedTransactionsGUI()
+
 

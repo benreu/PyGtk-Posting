@@ -123,6 +123,10 @@ class MainReportsGUI:
 		from reports import trial_balance
 		trial_balance.TrialBalanceGUI()
 
+	def unbalanced_transactions_clicked (self, button):
+		from reports import unbalanced_transactions
+		unbalanced_transactions.UnbalancedTransactionsGUI()
+
 	def po_payment_matching_clicked (self, button):
 		from reports import po_payment_matching
 		po_payment_matching.PoPaymentMatchingGUI()

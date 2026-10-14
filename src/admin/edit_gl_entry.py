@@ -61,6 +61,13 @@ class EditGlEntryGUI(Gtk.Builder):
 					"(SELECT gl_transaction_id FROM gl_entries WHERE id = %s)", (self.gl_entry_id,))
 		for row in c.fetchall():
 			model.append(row)
+		c.close()
+		DB.rollback()
+		# on load too, not only after an amount is typed: a transaction opened
+		# from the unbalanced report is already out, and the save button has no
+		# sensitive property of its own, so it would otherwise open ready to
+		# save the imbalance straight back
+		self.check_amount_validity()
 
 	def amount_editing_started (self, cellrenderer, celleditable, path):
 		celleditable.set_property('numeric', True)
@@ -89,20 +96,29 @@ class EditGlEntryGUI(Gtk.Builder):
 			model[iter_][4] = date_formatted
 
 	def debit_combo_changed (self, cellrenderercombo, path, treeiter):
+		'''get_iter needs the path the signal hands in. Without it this raised
+		rather than editing, and columns 9 and 10 - which side the entry is on -
+		were loaded once and never moved, so giving a one sided entry the
+		account it was missing left the balance check still reading it as one
+		sided. Filling in a missing half is the whole point of opening this'''
 		account_number = all_accounts_tree[treeiter][0]
 		account_name = all_accounts_tree[treeiter][1]
 		model = self.get_object('gl_entry_store')
-		iter_ = model.get_iter()
+		iter_ = model.get_iter(path)
 		model[iter_][5] = account_number
 		model[iter_][6] = account_name
+		model[iter_][9] = account_number != None
+		self.check_amount_validity()
 
 	def credit_combo_changed (self, cellrenderercombo, path, treeiter):
 		account_number = all_accounts_tree[treeiter][0]
 		account_name = all_accounts_tree[treeiter][1]
 		model = self.get_object('gl_entry_store')
-		iter_ = model.get_iter()
+		iter_ = model.get_iter(path)
 		model[iter_][7] = account_number
 		model[iter_][8] = account_name
+		model[iter_][10] = account_number != None
+		self.check_amount_validity()
 
 	def description_edited (self, cellrenderertext, path, text):
 		model = self.get_object('gl_entry_store')
@@ -154,12 +170,16 @@ class EditGlEntryGUI(Gtk.Builder):
 		for row in model:
 			row_id = row[0]
 			amount = row[2]
-			date = row[4]
+			# columns 3 and 13 are the dates as the database renders them;
+			# 4 and 14 are format_date (), which is to_char through whatever
+			# mask settings.date_format holds, so saving those put the date
+			# back through a user configurable format on its way in
+			date = row[3]
 			debit_number = row[5] or None
 			credit_number = row[7] or None
 			description = row[11]
 			reconciled = row[12]
-			date_reconciled = row[14]
+			date_reconciled = row[13] or None
 			c.execute("UPDATE gl_entries SET "
 						"(amount, date_inserted, debit_account, "
 							"credit_account, transaction_description, "
