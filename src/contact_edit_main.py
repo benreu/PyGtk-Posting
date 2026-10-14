@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory, CONTACT_LOCK_CLASSID
+import zip_completion
 
 UI_FILE = ui_directory + "/contact_edit_main.ui"
 
@@ -36,6 +37,8 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.contact_id = contact_id
 		if contact_id != None:
 			self.load_contact()
+		else:
+			self.get_object('country_entry').set_text('USA')
 		self.overview_class = overview_class
 		
 	def destroy(self, window):
@@ -48,35 +51,17 @@ class ContactEditMainGUI(Gtk.Builder):
 		DB.rollback()
 
 	def populate_zip_codes (self):
-		zip_code_store = self.get_object("zip_code_store")
-		zip_code_store.clear()
-		cursor = DB.cursor()
-		cursor.execute("SELECT zip, city, state FROM contacts "
-							"WHERE deleted = False "
-							"GROUP BY zip, city, state "
-							"ORDER BY zip, city")
-		for row in cursor.fetchall():
-			zip_code_store.append(row)
-		cursor.close()
+		zip_completion.populate_store(self.get_object("zip_code_store"))
 
 	def zip_code_match_selected (self, completion, store, _iter):
-		city = store[_iter][1]
-		state = store[_iter][2]
-		self.get_object("entry5").set_text(city)
-		self.get_object("entry6").set_text(state)
+		self.get_object("entry5").set_text(store[_iter][1])
+		self.get_object("entry6").set_text(store[_iter][2])
 
 	def zip_activated (self, entry):
-		zip_code = entry.get_text()
-		cursor = DB.cursor()
-		cursor.execute("SELECT city, state FROM contacts "
-							"WHERE (deleted, zip) = (False, %s) "
-							"GROUP BY city, state LIMIT 1", (zip_code,))
-		for row in cursor.fetchall():
-			city = row[0]
-			state = row[1]
-			self.get_object("entry5").set_text(city)
-			self.get_object("entry6").set_text(state)
-		cursor.close()
+		row = zip_completion.city_state_for_zip(entry.get_text())
+		if row != None:
+			self.get_object("entry5").set_text(row[0])
+			self.get_object("entry6").set_text(row[1])
 
 	def populate_combos (self):
 		store = self.get_object('terms_store')
@@ -146,7 +131,8 @@ class ContactEditMainGUI(Gtk.Builder):
 								"employee, "
 								"service_provider, "
 								"terms_and_discounts_id::text, "
-								"markup_percent_id::text "
+								"markup_percent_id::text, "
+								"country "
 							"FROM contacts WHERE id = %s",
 							(self.contact_id, ))
 		for row in cursor.fetchall():
@@ -174,6 +160,7 @@ class ContactEditMainGUI(Gtk.Builder):
 			self.get_object('checkbutton4').set_active(row[20])
 			self.get_object('combobox1').set_active_id(row[21])
 			self.get_object('combobox2').set_active_id(row[22])
+			self.get_object('country_entry').set_text(row[23])
 		cursor.close()
 		DB.rollback()
 
@@ -197,6 +184,7 @@ class ContactEditMainGUI(Gtk.Builder):
 		custom2 = self.get_object('entry14').get_text()
 		custom3 = self.get_object('entry15').get_text()
 		custom4 = self.get_object('entry16').get_text()
+		country = self.get_object('country_entry').get_text()
 		buf = self.get_object('notes_buffer')
 		start = buf.get_start_iter ()
 		end = buf.get_end_iter ()
@@ -216,17 +204,18 @@ class ContactEditMainGUI(Gtk.Builder):
 								"customer, employee, custom1, "
 								"custom2, custom3, custom4, notes, "
 								"terms_and_discounts_id, service_provider, "
-								"checks_payable_to, markup_percent_id) = "
+								"checks_payable_to, markup_percent_id, "
+								"country) = "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s, %s, %s ,%s, %s, %s, %s, "
-								"%s, %s) "
+								"%s, %s, %s) "
 								"WHERE id = %s ",
 								(name, ext_name, address, city,
 								state, zip_code, phone, fax, email, misc,
 								tax_number, vendor, customer, employee,
 								custom1, custom2, custom3, custom4, notes,
 								term_id, service_provider, checks_payable_to,
-								markup_id, self.contact_id))
+								markup_id, country, self.contact_id))
 			if self.contact_lock_acquired:
 				cursor.execute("SELECT pg_advisory_unlock(%s, %s)",
 							(CONTACT_LOCK_CLASSID, self.contact_id))
@@ -240,17 +229,18 @@ class ContactEditMainGUI(Gtk.Builder):
 								"customer, employee, custom1, "
 								"custom2, custom3, custom4, notes, deleted, "
 								"terms_and_discounts_id, service_provider, "
-								"checks_payable_to, markup_percent_id) "
+								"checks_payable_to, markup_percent_id, "
+								"country) "
 								"VALUES "
 								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
 								"%s, %s, %s, %s ,%s, %s, %s, %s, %s, False, "
-								"%s, %s, %s, %s) RETURNING id ",
+								"%s, %s, %s, %s, %s) RETURNING id ",
 								(name, ext_name, address, city, state, zip_code,
 								phone, fax, email, misc, tax_number, vendor,
 								customer, employee, custom1, custom2,
 								custom3, custom4, notes, term_id,
 								service_provider, checks_payable_to,
-								markup_id))
+								markup_id, country))
 			contact_id = cursor.fetchone()[0]
 			cursor.close()
 			DB.commit()

@@ -18,6 +18,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory, CONTACT_INDIVIDUALS_LOCK_CLASSID
+import zip_completion
 
 UI_FILE = ui_directory + "/contact_edit_individual.ui"
 
@@ -34,8 +35,11 @@ class ContactEditIndividualGUI (Gtk.Builder):
 		self.window = self.get_object('window')
 		self.window.set_transient_for(overview_class.window)
 		self.window.show_all()
+		self.populate_zip_codes ()
 		if individual_id != None:
 			self.populate_individual ()
+		else:
+			self.get_object('country_entry').set_text('USA')
 
 	def destroy (self, widget):
 		if self.lock_acquired:
@@ -70,7 +74,8 @@ class ContactEditIndividualGUI (Gtk.Builder):
 					"phone, "
 					"fax, "
 					"email, "
-					"notes "
+					"notes, "
+					"country "
 				"FROM contact_individuals WHERE id = %s",
 				(self.individual_id,))
 		for row in c.fetchall():
@@ -84,8 +89,22 @@ class ContactEditIndividualGUI (Gtk.Builder):
 			self.get_object('entry8').set_text(row[7])
 			self.get_object('entry9').set_text(row[8])
 			self.get_object('notes_buffer').set_text(row[9])
+			self.get_object('country_entry').set_text(row[10])
 		c.close()
 		
+	def populate_zip_codes (self):
+		zip_completion.populate_store(self.get_object("zip_code_store"))
+
+	def zip_code_match_selected (self, completion, store, _iter):
+		self.get_object("entry5").set_text(store[_iter][1])
+		self.get_object("entry6").set_text(store[_iter][2])
+
+	def zip_activated (self, entry):
+		row = zip_completion.city_state_for_zip(entry.get_text())
+		if row != None:
+			self.get_object("entry5").set_text(row[0])
+			self.get_object("entry6").set_text(row[1])
+
 	def cancel_clicked (self, button):
 		self.window.destroy()
 
@@ -100,6 +119,7 @@ class ContactEditIndividualGUI (Gtk.Builder):
 		phone = self.get_object('entry7').get_text()
 		fax = self.get_object('entry8').get_text()
 		email = self.get_object('entry9').get_text()
+		country = self.get_object('country_entry').get_text()
 		buf = self.get_object('notes_buffer')
 		start = buf.get_start_iter ()
 		end = buf.get_end_iter ()
@@ -108,20 +128,21 @@ class ContactEditIndividualGUI (Gtk.Builder):
 			#if the id is not None we update the info
 			c.execute("UPDATE contact_individuals SET "
 						"(name, ext_name, address, city, state, zip, "
-						"phone, fax, email, notes) = "
-						"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+						"phone, fax, email, notes, country) = "
+						"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
 						"WHERE id = %s ", 
 						(name, ext_name, address, city, 
 						state, zip_code, phone, fax, email, 
-						notes, self.individual_id))
+						notes, country, self.individual_id))
 		else:
 			c.execute("INSERT INTO contact_individuals " 
 						"(name, ext_name, address, city, state, zip, "
-						"phone, fax, email, notes, contact_id) "
+						"phone, fax, email, notes, country, contact_id) "
 						"VALUES "
-						"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", 
+						"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", 
 						(name, ext_name, address, city, state, 
-						zip_code, phone, fax, email, notes, self.contact_id))
+						zip_code, phone, fax, email, notes, country,
+						self.contact_id))
 		DB.commit()
 		c.close()
 		self.window.destroy()

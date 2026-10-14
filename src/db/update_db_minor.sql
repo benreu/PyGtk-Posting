@@ -1150,3 +1150,142 @@ INSERT INTO settings.invoice_columns (column_id, column_name, visible)
 	SELECT 'unit_column', 'Unit', True
 		WHERE NOT EXISTS (SELECT 1 FROM settings.invoice_columns
 							WHERE column_id = 'unit_column');
+
+--0.7.30
+/* City, state and zip were free text with nothing keeping them tidy, and they
+   drifted: 114 contacts carried a trailing space in city, so "Geneva " and
+   "Geneva" were two cities to every GROUP BY and every autocomplete; states
+   were a mix of "NY", "NY " and "Ky"; and on two rows a phone number had been
+   typed into the state or zip field.
+
+   Normalizing into city/state lookup tables was considered and rejected. The
+   whole address vocabulary is ~192 distinct triples over 1574 contacts, while
+   those columns are read by 41 SQL statements across 25 files (13 of them with
+   positional SELECT *), 17 print templates, and the XLS import/export column
+   contract. Normalizing would touch every one of those to de-duplicate eleven
+   values. units.category is the same repeated-free-text shape and was left
+   denormalized for the same reason.
+
+   So instead the database keeps the columns clean itself. A BEFORE INSERT OR
+   UPDATE trigger normalizes on the way in, which fixes all seven write paths at
+   once, including any added later, with no column moving.
+
+   City is trimmed but never case folded: there are no case-only duplicates, and
+   initcap would corrupt real values (McLeansville, City of Industry). State is
+   only uppercased when it is exactly two letters, or the one Canadian contact's
+   "Ontario" would become "ONTARIO". No CHECK on zip format, because ZIP+4 and
+   "L6T 5G7" are both legitimate. */
+
+/* This comes first, and must: log.contacts is LIKE public.contacts plus
+   date_edited, and the old body was "INSERT INTO log.contacts SELECT NEW.*",
+   which maps by position. Appending country to contacts makes it position 27,
+   where log.contacts has date_edited, so every contact insert and update would
+   fail with "column date_edited is of type timestamp but expression is of type
+   character varying" until this is replaced. Matching by name through jsonb
+   instead makes the trigger immune to column order and to the next column
+   somebody adds. log.save_product_trigger still has the positional form. */
+CREATE OR REPLACE FUNCTION log.save_contact_trigger ()
+	RETURNS TRIGGER AS
+$BODY$
+	BEGIN
+	INSERT INTO log.contacts SELECT * FROM jsonb_populate_record(
+			NULL::log.contacts,
+			to_jsonb(NEW) || jsonb_build_object('date_edited', now()));
+	RETURN NEW;
+	END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE
+	COST 100;
+
+/* company_info already had country; the other three address tables did not, so
+   the one Canadian contact had nowhere to say so. NOT NULL DEFAULT rather than
+   nullable on purpose: the contact_update trigger fires WHEN (old.* <> new.*),
+   and a row comparison yields NULL when the only differing column is NULL on
+   one side, so a nullable country would silently skip the audit row. */
+ALTER TABLE public.contacts
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+ALTER TABLE log.contacts
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+ALTER TABLE public.contact_individuals
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+ALTER TABLE public.contact_shipping_addresses
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+
+/* One function for all four tables, since every one of them has city, state,
+   zip and country under those names. Country is only trimmed, never case
+   folded: country names are not two-letter codes. */
+CREATE OR REPLACE FUNCTION public.normalize_address_trigger ()
+	RETURNS TRIGGER AS
+$BODY$
+	BEGIN
+	NEW.city := btrim(regexp_replace(NEW.city, '\s+', ' ', 'g'));
+	NEW.zip := btrim(regexp_replace(NEW.zip, '\s+', ' ', 'g'));
+	NEW.country := btrim(regexp_replace(NEW.country, '\s+', ' ', 'g'));
+	NEW.state := btrim(regexp_replace(NEW.state, '\s+', ' ', 'g'));
+	IF NEW.state ~ '^[A-Za-z]{2}$' THEN
+		NEW.state := upper(NEW.state);
+	END IF;
+	RETURN NEW;
+	END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE
+	COST 100;
+
+DROP TRIGGER IF EXISTS contact_normalize_address ON public.contacts;
+CREATE TRIGGER contact_normalize_address BEFORE INSERT OR UPDATE
+	ON public.contacts FOR EACH ROW
+	EXECUTE FUNCTION public.normalize_address_trigger();
+DROP TRIGGER IF EXISTS individual_normalize_address ON public.contact_individuals;
+CREATE TRIGGER individual_normalize_address BEFORE INSERT OR UPDATE
+	ON public.contact_individuals FOR EACH ROW
+	EXECUTE FUNCTION public.normalize_address_trigger();
+DROP TRIGGER IF EXISTS shipping_normalize_address ON public.contact_shipping_addresses;
+CREATE TRIGGER shipping_normalize_address BEFORE INSERT OR UPDATE
+	ON public.contact_shipping_addresses FOR EACH ROW
+	EXECUTE FUNCTION public.normalize_address_trigger();
+DROP TRIGGER IF EXISTS company_normalize_address ON public.company_info;
+CREATE TRIGGER company_normalize_address BEFORE INSERT OR UPDATE
+	ON public.company_info FOR EACH ROW
+	EXECUTE FUNCTION public.normalize_address_trigger();
+
+/* The three fixes trimming cannot make. Each is guarded on the exact bad value,
+   not on a version or a loose IS NULL: this file re-runs from the top on every
+   upgrade, and a loose guard in 0.7.27 resurrected a relationship the user had
+   deliberately cleared. Once these have run they can never fire again, so a
+   value the user later corrects by hand stays corrected.
+
+   "canadaigua" under zip 14424 is a misspelling of Canandaigua, which 27 other
+   contacts spell correctly under the same zip. The other two are phone numbers
+   that landed in the wrong field. Two more rows have a zip with one digit too
+   many (id 269 Aurora CO "800111", id 394 Michigan City IN "436360"); correcting
+   those is guesswork rather than cleaning, so they are deliberately left for
+   somebody to look at. */
+UPDATE public.contacts SET city = 'Canandaigua'
+	WHERE lower(btrim(city)) = 'canadaigua' AND btrim(zip) = '14424';
+UPDATE public.contacts SET state = ''
+	WHERE id = 222 AND btrim(state) = '315 536 0648';
+UPDATE public.contacts SET zip = '14527'
+	WHERE id = 1351 AND btrim(zip) = '14527315 531 4089';
+
+/* Backfill the rows that are already dirty by reusing the trigger: assigning a
+   column to itself is a no-op UPDATE that the BEFORE trigger then normalizes,
+   so there is exactly one definition of "normalized" rather than a second copy
+   of the expressions here. The WHERE is what makes this idempotent and keeps it
+   from rewriting all 1574 rows, and so from writing 1574 audit rows; it writes
+   roughly 115 the first time, which is a true record of what changed. */
+UPDATE public.contacts SET city = city
+	WHERE city <> btrim(city) OR state <> btrim(state) OR zip <> btrim(zip)
+		OR country <> btrim(country)
+		OR (state ~ '^[A-Za-z]{2}$' AND state <> upper(state));
+UPDATE public.contact_individuals SET city = city
+	WHERE city <> btrim(city) OR state <> btrim(state) OR zip <> btrim(zip)
+		OR country <> btrim(country)
+		OR (state ~ '^[A-Za-z]{2}$' AND state <> upper(state));
+UPDATE public.contact_shipping_addresses SET city = city
+	WHERE city <> btrim(city) OR state <> btrim(state) OR zip <> btrim(zip)
+		OR country <> btrim(country)
+		OR (state ~ '^[A-Za-z]{2}$' AND state <> upper(state));
+UPDATE public.company_info SET city = city
+	WHERE city <> btrim(city) OR state <> btrim(state) OR zip <> btrim(zip)
+		OR country <> btrim(country)
+		OR (state ~ '^[A-Za-z]{2}$' AND state <> upper(state));

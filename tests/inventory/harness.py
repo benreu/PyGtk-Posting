@@ -135,7 +135,17 @@ SELECT NOT (
 		('public', 'units', 'abbreviation'))
 	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
 		(table_schema, table_name, column_name) =
-		('public', 'units', 'category')))
+		('public', 'units', 'category'))
+	AND EXISTS (SELECT 1 FROM information_schema.columns WHERE
+		(table_schema, table_name, column_name) =
+		('public', 'contacts', 'country'))
+	AND EXISTS (SELECT 1 FROM pg_trigger
+		WHERE tgname = 'contact_normalize_address')
+	/* the log trigger has to have been rewritten as well as the column added:
+	   a copy with contacts.country but the old positional
+	   "INSERT INTO log.contacts SELECT NEW.*" fails every contact insert */
+	AND pg_get_functiondef('log.save_contact_trigger'::regproc)
+		LIKE '%jsonb_populate_record%')
 """
 
 _conn = None
@@ -309,7 +319,77 @@ BEGIN
 		$q$;
 END
 $$;
+/* 0.7.30. This one comes first of the address work and must: log.contacts
+   mirrors public.contacts by position, so the moment country is added below,
+   the old body maps it onto log.contacts.date_edited and every contact insert
+   in every test dies with a type error. */
+CREATE OR REPLACE FUNCTION log.save_contact_trigger () RETURNS trigger
+	LANGUAGE plpgsql
+	AS
+$BODY$
+	BEGIN
+	INSERT INTO log.contacts SELECT * FROM jsonb_populate_record(
+			NULL::log.contacts,
+			to_jsonb(NEW) || jsonb_build_object('date_edited', now()));
+	RETURN NEW;
+	END;
+$BODY$ ;
+ALTER TABLE public.contacts
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+ALTER TABLE log.contacts
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+ALTER TABLE public.contact_individuals
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+ALTER TABLE public.contact_shipping_addresses
+	ADD COLUMN IF NOT EXISTS country character varying DEFAULT 'USA' NOT NULL;
+CREATE OR REPLACE FUNCTION public.normalize_address_trigger () RETURNS trigger
+	LANGUAGE plpgsql
+	AS
+$BODY$
+	BEGIN
+	NEW.city := btrim(regexp_replace(NEW.city, '\\s+', ' ', 'g'));
+	NEW.zip := btrim(regexp_replace(NEW.zip, '\\s+', ' ', 'g'));
+	NEW.country := btrim(regexp_replace(NEW.country, '\\s+', ' ', 'g'));
+	NEW.state := btrim(regexp_replace(NEW.state, '\\s+', ' ', 'g'));
+	IF NEW.state ~ '^[A-Za-z]{2}$' THEN
+		NEW.state := upper(NEW.state);
+	END IF;
+	RETURN NEW;
+	END;
+$BODY$ ;
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'contact_normalize_address') THEN
+		CREATE TRIGGER contact_normalize_address BEFORE INSERT OR UPDATE
+		ON public.contacts FOR EACH ROW
+		EXECUTE PROCEDURE public.normalize_address_trigger();
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'individual_normalize_address') THEN
+		CREATE TRIGGER individual_normalize_address BEFORE INSERT OR UPDATE
+		ON public.contact_individuals FOR EACH ROW
+		EXECUTE PROCEDURE public.normalize_address_trigger();
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'shipping_normalize_address') THEN
+		CREATE TRIGGER shipping_normalize_address BEFORE INSERT OR UPDATE
+		ON public.contact_shipping_addresses FOR EACH ROW
+		EXECUTE PROCEDURE public.normalize_address_trigger();
+	END IF;
+	IF NOT EXISTS (SELECT 1 FROM pg_trigger
+					WHERE tgname = 'company_normalize_address') THEN
+		CREATE TRIGGER company_normalize_address BEFORE INSERT OR UPDATE
+		ON public.company_info FOR EACH ROW
+		EXECUTE PROCEDURE public.normalize_address_trigger();
+	END IF;
+END
+$$;
 """
+# Left out of 0.7.30: the three one-off data fixes and the four backfill
+# UPDATEs. Those repair rows the user already has, which no test asserts on, and
+# the contacts backfill alone rewrites ~115 rows and writes ~115 audit rows in
+# every setUp. The trigger above is what the address tests actually exercise.
 # the update also widens purchase_order_items.expense_account to bigint, and
 # purchase_order_items.received from smallint to integer, both left out here:
 # each rewrites the table, and that rewrite is rolled back with every test, so

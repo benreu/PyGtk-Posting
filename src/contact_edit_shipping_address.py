@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import zip_completion
 
 UI_FILE = ui_directory + "/contact_edit_shipping_address.ui"
 
@@ -33,9 +34,12 @@ class ContactEditShippingAddressGUI:
 		self.window = self.builder.get_object('window')
 		self.window.set_transient_for(overview_class.window)
 		self.populate_carrier_combo ()
+		self.populate_zip_codes ()
 		self.window.show_all()
 		if shipping_address_id != None:
 			self.populate_shipping_address ()
+		else:
+			self.builder.get_object('country_entry').set_text('USA')
 
 	def destroy (self, widget):
 		pass
@@ -60,7 +64,8 @@ class ContactEditShippingAddressGUI:
 					"zip, "
 					"shipping_carrier_id::text, "
 					"standard, "
-					"contact_id "
+					"contact_id, "
+					"country "
 				"FROM contact_shipping_addresses WHERE id = %s",
 				(self.shipping_address_id,))
 		for row in c.fetchall():
@@ -73,6 +78,7 @@ class ContactEditShippingAddressGUI:
 				self.builder.get_object('combobox1').set_active_id(row[5])
 			self.builder.get_object('checkbutton1').set_active(row[6])
 			self.contact_id = row[7]
+			self.builder.get_object('country_entry').set_text(row[8])
 		c.close()
 		DB.rollback()
 
@@ -83,15 +89,29 @@ class ContactEditShippingAddressGUI:
 		if not contact_id:
 			return
 		c = DB.cursor()
-		c.execute("SELECT address, city, state, zip FROM contacts "
+		c.execute("SELECT address, city, state, zip, country FROM contacts "
 					"WHERE id = %s", (contact_id,))
 		for row in c.fetchall():
 			self.builder.get_object('entry2').set_text(row[0])
 			self.builder.get_object('entry4').set_text(row[1])
 			self.builder.get_object('entry5').set_text(row[2])
 			self.builder.get_object('entry3').set_text(row[3])
+			self.builder.get_object('country_entry').set_text(row[4])
 		c.close()
 		DB.rollback()
+
+	def populate_zip_codes (self):
+		zip_completion.populate_store(self.builder.get_object("zip_code_store"))
+
+	def zip_code_match_selected (self, completion, store, _iter):
+		self.builder.get_object("entry4").set_text(store[_iter][1])
+		self.builder.get_object("entry5").set_text(store[_iter][2])
+
+	def zip_activated (self, entry):
+		row = zip_completion.city_state_for_zip(entry.get_text())
+		if row != None:
+			self.builder.get_object("entry4").set_text(row[0])
+			self.builder.get_object("entry5").set_text(row[1])
 
 	def cancel_clicked (self, button):
 		self.window.destroy()
@@ -103,25 +123,29 @@ class ContactEditShippingAddressGUI:
 		zip_code = self.builder.get_object('entry3').get_text()
 		city = self.builder.get_object('entry4').get_text()
 		state = self.builder.get_object('entry5').get_text()
+		country = self.builder.get_object('country_entry').get_text()
 		carrier_id = self.builder.get_object('combobox1').get_active_id()
 		standard = self.builder.get_object('checkbutton1').get_active()
 		if self.shipping_address_id != None:
 			c.execute("UPDATE contact_shipping_addresses SET "
 						"(description, address, city, state, zip, "
-						"shipping_carrier_id, standard, date_edited) = "
-						"(%s, %s, %s, %s, %s, %s, %s, CURRENT_DATE) "
+						"shipping_carrier_id, standard, country, "
+						"date_edited) = "
+						"(%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_DATE) "
 						"WHERE id = %s ",
 						(description, address, city, state, zip_code,
-						carrier_id, standard, self.shipping_address_id))
+						carrier_id, standard, country,
+						self.shipping_address_id))
 			contact_id = self.contact_id
 		else:
 			c.execute("INSERT INTO contact_shipping_addresses "
 						"(description, address, city, state, zip, "
-						"shipping_carrier_id, standard, contact_id) "
+						"shipping_carrier_id, standard, country, "
+						"contact_id) "
 						"VALUES "
-						"(%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+						"(%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
 						(description, address, city, state, zip_code,
-						carrier_id, standard, self.contact_id))
+						carrier_id, standard, country, self.contact_id))
 			self.shipping_address_id = c.fetchone()[0]
 			contact_id = self.contact_id
 		if standard:

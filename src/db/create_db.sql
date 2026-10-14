@@ -92,7 +92,8 @@ CREATE TABLE public.contacts (
     terms_and_discounts_id integer NOT NULL REFERENCES public.terms_and_discounts(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     service_provider boolean DEFAULT false NOT NULL,
     checks_payable_to character varying DEFAULT ''::character varying NOT NULL,
-    markup_percent_id integer NOT NULL REFERENCES public.customer_markup_percent(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+    markup_percent_id integer NOT NULL REFERENCES public.customer_markup_percent(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    country character varying DEFAULT 'USA'::character varying NOT NULL
 );
 --CREATE TABLE payroll.employee_info
 CREATE TABLE payroll.employee_info (
@@ -333,7 +334,8 @@ CREATE TABLE public.contact_individuals (
     role character varying DEFAULT '' NOT NULL,
     extension character varying DEFAULT '' NOT NULL,
     ext_name varchar DEFAULT '' NOT NULL,
-    notes varchar DEFAULT '' NOT NULL
+    notes varchar DEFAULT '' NOT NULL,
+    country character varying DEFAULT 'USA' NOT NULL
 );
 --CREATE TABLE public.contact_shipping_addresses
 CREATE TABLE public.contact_shipping_addresses (
@@ -348,7 +350,8 @@ CREATE TABLE public.contact_shipping_addresses (
     standard boolean DEFAULT false NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
     date_created date DEFAULT now() NOT NULL,
-    date_edited date DEFAULT now() NOT NULL
+    date_edited date DEFAULT now() NOT NULL,
+    country character varying DEFAULT 'USA' NOT NULL
 );
 --CREATE TABLE public.statements
 CREATE TABLE public.statements (
@@ -1206,7 +1209,34 @@ CREATE FUNCTION log.save_contact_trigger ()
     RETURNS TRIGGER AS 
 $BODY$ 
     BEGIN
-    INSERT INTO log.contacts SELECT NEW.*;
+    /* matched by name through jsonb, not by position: log.contacts is LIKE
+       public.contacts plus date_edited, so "SELECT NEW.*" broke the moment a
+       column was appended to contacts, mapping it onto date_edited. */
+    INSERT INTO log.contacts SELECT * FROM jsonb_populate_record(
+            NULL::log.contacts,
+            to_jsonb(NEW) || jsonb_build_object('date_edited', now()));
+    RETURN NEW;
+    END;
+$BODY$
+    LANGUAGE plpgsql VOLATILE
+    COST 100;
+
+/* Keeps city, state, zip and country tidy on the way in, so no write path
+   has to
+   remember to. City is trimmed but never case folded: initcap would corrupt
+   real names like McLeansville. State is only uppercased when it is exactly two
+   letters, so "Ontario" survives. See the 0.7.30 block in update_db_minor.sql. */
+CREATE FUNCTION public.normalize_address_trigger ()
+    RETURNS TRIGGER AS
+$BODY$
+    BEGIN
+    NEW.city := btrim(regexp_replace(NEW.city, '\s+', ' ', 'g'));
+    NEW.zip := btrim(regexp_replace(NEW.zip, '\s+', ' ', 'g'));
+    NEW.country := btrim(regexp_replace(NEW.country, '\s+', ' ', 'g'));
+    NEW.state := btrim(regexp_replace(NEW.state, '\s+', ' ', 'g'));
+    IF NEW.state ~ '^[A-Za-z]{2}$' THEN
+        NEW.state := upper(NEW.state);
+    END IF;
     RETURN NEW;
     END;
 $BODY$
@@ -1291,6 +1321,14 @@ CREATE TRIGGER contact_insert AFTER INSERT ON public.contacts FOR EACH ROW EXECU
 CREATE TRIGGER product_update AFTER UPDATE ON public.products FOR EACH ROW WHEN (OLD.* <> NEW.*) EXECUTE PROCEDURE log.save_product_trigger();
 
 CREATE TRIGGER product_insert AFTER INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE log.save_product_trigger();
+
+CREATE TRIGGER contact_normalize_address BEFORE INSERT OR UPDATE ON public.contacts FOR EACH ROW EXECUTE PROCEDURE public.normalize_address_trigger();
+
+CREATE TRIGGER individual_normalize_address BEFORE INSERT OR UPDATE ON public.contact_individuals FOR EACH ROW EXECUTE PROCEDURE public.normalize_address_trigger();
+
+CREATE TRIGGER shipping_normalize_address BEFORE INSERT OR UPDATE ON public.contact_shipping_addresses FOR EACH ROW EXECUTE PROCEDURE public.normalize_address_trigger();
+
+CREATE TRIGGER company_normalize_address BEFORE INSERT OR UPDATE ON public.company_info FOR EACH ROW EXECUTE PROCEDURE public.normalize_address_trigger();
 
 CREATE UNIQUE INDEX IF NOT EXISTS employee_info_employee_current_unique
 ON payroll.employee_info (employee_id, active)

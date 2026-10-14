@@ -2,6 +2,40 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkListStore" id="zip_code_store">
+    <columns>
+      <!-- column-name zip -->
+      <column type="gchararray"/>
+      <!-- column-name city -->
+      <column type="gchararray"/>
+      <!-- column-name state -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="zip_code_completion">
+    <property name="model">zip_code_store</property>
+    <property name="text_column">0</property>
+    <property name="inline_completion">True</property>
+    <signal name="match-selected" handler="zip_code_match_selected" swapped="no"/>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">0</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">2</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkMenu" id="menu1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -45,6 +79,27 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="hexpand">True</property>
+                        <child>
+                          <object class="GtkLabel" id="country_label">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Country</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="country_entry">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="top_attach">3</property>
+                          </packing>
+                        </child>
                         <child>
                           <object class="GtkLabel" id="label5">
                             <property name="visible">True</property>
@@ -120,7 +175,7 @@
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
-                            <property name="top_attach">3</property>
+                            <property name="top_attach">4</property>
                           </packing>
                         </child>
                         <child>
@@ -130,7 +185,7 @@
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
-                            <property name="top_attach">3</property>
+                            <property name="top_attach">4</property>
                           </packing>
                         </child>
                         <child>
@@ -141,7 +196,7 @@
                           </object>
                           <packing>
                             <property name="left_attach">2</property>
-                            <property name="top_attach">3</property>
+                            <property name="top_attach">4</property>
                           </packing>
                         </child>
                         <child>
@@ -151,7 +206,7 @@
                           </object>
                           <packing>
                             <property name="left_attach">3</property>
-                            <property name="top_attach">3</property>
+                            <property name="top_attach">4</property>
                           </packing>
                         </child>
                         <child>
@@ -162,7 +217,7 @@
                           </object>
                           <packing>
                             <property name="left_attach">0</property>
-                            <property name="top_attach">4</property>
+                            <property name="top_attach">5</property>
                           </packing>
                         </child>
                         <child>
@@ -172,7 +227,7 @@
                           </object>
                           <packing>
                             <property name="left_attach">1</property>
-                            <property name="top_attach">4</property>
+                            <property name="top_attach">5</property>
                           </packing>
                         </child>
                         <child>
@@ -199,6 +254,8 @@
                           <object class="GtkEntry" id="entry4">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="completion">zip_code_completion</property>
+                            <signal name="activate" handler="zip_activated" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left_attach">3</property>
