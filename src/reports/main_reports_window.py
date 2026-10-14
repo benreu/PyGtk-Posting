@@ -119,6 +119,10 @@ class MainReportsGUI:
 		from reports import net_worth
 		net_worth.NetWorthGUI()
 
+	def trial_balance_clicked (self, button):
+		from reports import trial_balance
+		trial_balance.TrialBalanceGUI()
+
 	def po_payment_matching_clicked (self, button):
 		from reports import po_payment_matching
 		po_payment_matching.PoPaymentMatchingGUI()

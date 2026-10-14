@@ -533,6 +533,15 @@
                                 <signal name="activate" handler="profit_loss" swapped="no"/>
                               </object>
                             </child>
+                            <child>
+                              <object class="GtkMenuItem">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Trial balance</property>
+                                <property name="use-underline">True</property>
+                                <signal name="activate" handler="trial_balance" swapped="no"/>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>

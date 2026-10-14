@@ -35,6 +35,11 @@ CONTACT_FILES_LOCK_CLASSID = 7
 CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID = 8
 CONTACT_INDIVIDUALS_LOCK_CLASSID = 9
 
+# gl_accounts.type. There is no types table; the meanings live only in the
+# seed rows in src/db/insert_basic.sql
+ACCOUNT_TYPES = {1: 'Assets', 2: 'Equities', 3: 'Expenses',
+					4: 'Revenue', 5: 'Liabilities'}
+
 
 help_dir = ''
 ui_directory = ''

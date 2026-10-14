@@ -881,4 +881,8 @@ class MainGUI :
 		from reports import net_worth
 		net_worth.NetWorthGUI()
 
+	def trial_balance (self, button):
+		from reports import trial_balance
+		trial_balance.TrialBalanceGUI()
+
 
