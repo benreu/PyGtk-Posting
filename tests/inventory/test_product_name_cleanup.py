@@ -693,30 +693,84 @@ class CleanupWindowTest(RulesTestCase):
 		self.assertEqual(self.one("SELECT count(*) FROM product_name_rules "
 								"WHERE name = 'kilohms'"), 1)
 
-	def test_nothing_listens_for_an_edit_to_the_current_name(self):
-		'''The column is editable for viewing only. No "edited" handler is
-		connected, so Gtk drops whatever is typed and the cell redraws from
-		the store: the column has no way to rename anything. Connecting a
-		handler here would give the window a second, unreviewed rename path.'''
+	#Every column that shows a product name is editable with no "edited"
+	#handler so the cell can be clicked into: that is what puts a text cursor
+	#in the name and lets it be selected and copied. On the current name the
+	#cursor is the point, because it is the only way to see a trailing or a
+	#doubled space; on the suggested name and the two report lists the point is
+	#the clipboard, those being the names a user wants to paste elsewhere. The
+	#property lives in the .ui, where a Glade round trip drops it without a
+	#word, and the absent handler is a standing invitation to connect one, so
+	#both halves are pinned here.
+
+	NAME_RENDERERS = (('fix_current_renderer', 'fix_store', 1),
+						('fix_suggested_renderer', 'fix_store', 2),
+						('word_order_name_renderer', 'word_order_store', 1),
+						('duplicate_name_renderer', 'duplicate_store', 1))
+
+	def _every_tab(self):
+		'''a window with rows in the fixes list and in both report lists'''
+		self._rename(2, 'Widget collision test')
+		self._rename(3, 'widget collision test ')
+		self._rename(4, 'O-ring 26x1.5mm Visotron solenoid')
+		gui = self._ready()
+		for renderer_id, store_name, column in self.NAME_RENDERERS:
+			self.assertTrue(len(getattr(gui, store_name)) > 0,
+							'%s is empty, so %s is not being tested'
+							% (store_name, renderer_id))
+		return gui
+
+	def test_every_name_cell_can_be_clicked_into(self):
+		gui = self._every_tab()
+		for renderer_id, store_name, column in self.NAME_RENDERERS:
+			renderer = gui.builder.get_object(renderer_id)
+			self.assertIsNotNone(renderer, renderer_id)
+			self.assertTrue(renderer.get_property('editable'),
+							'%s is not editable, so its text cannot be '
+							'selected or copied' % renderer_id)
+
+	def test_nothing_listens_for_an_edit_to_a_name(self):
+		'''The columns are editable for viewing and copying only. No "edited"
+		handler is connected to any of them, so Gtk drops whatever is typed and
+		the cell redraws from the store. Connecting one would give the window a
+		second, unreviewed rename path, and on the Duplicates list it would
+		bypass the advisory lock apply_clicked takes.'''
 		gui = self._window()
 		self.assertFalse(hasattr(gui, 'current_name_edited'))
 		with open(self.module.UI_FILE) as ui_file:
 			ui = ui_file.read()
-		renderer = ui.split('id="fix_current_renderer"')[1].split('</object>')[0]
-		self.assertNotIn('signal', renderer)
-		self.assertIn('editable', renderer)
+		for renderer_id, store_name, column in self.NAME_RENDERERS:
+			renderer = ui.split('id="%s"' % renderer_id)[1].split(
+														'</object>')[0]
+			self.assertNotIn('signal', renderer, renderer_id)
+			self.assertIn('editable', renderer, renderer_id)
 
-	def test_current_name_cell_can_be_clicked_into(self):
-		'''editable only so a text cursor shows where the name really ends,
-		which is the only way to see a trailing or doubled space'''
-		gui = self._window()
-		self.assertTrue(gui.builder.get_object(
-						'fix_current_renderer').get_property('editable'))
+	def test_clicking_into_a_name_cannot_rename_anything(self):
+		gui = self._every_tab()
+		for renderer_id, store_name, column in self.NAME_RENDERERS:
+			row = getattr(gui, store_name)[0]
+			product_id = row[0]
+			shown = row[column]
+			name = self.one("SELECT name FROM products WHERE id = %s",
+							(product_id,))
+			gui.builder.get_object(renderer_id).emit('edited', str(row.path),
+													'typed over the name')
+			self.assertEqual(getattr(gui, store_name)[0][column], shown,
+							'%s took what was typed into the store'
+							% renderer_id)
+			self.assertEqual(self.one("SELECT name FROM products "
+										"WHERE id = %s", (product_id,)), name,
+							'%s renamed a product; only the Apply button may'
+							% renderer_id)
 
-	def test_the_other_fix_columns_stay_read_only(self):
-		'''the editable cell is a deliberate single exception, not a pattern'''
+	def test_the_columns_that_are_not_names_stay_read_only(self):
+		'''the editable cell is for reading a name, not a pattern for every
+		column: nothing is gained by putting a cursor in a row id or in the
+		name of the problem, and each one is another renderer somebody could
+		hang a handler on'''
 		gui = self._window()
-		for renderer in ['fix_suggested_renderer', 'fix_kind_renderer']:
+		for renderer in ['fix_kind_renderer', 'word_order_id_renderer',
+							'duplicate_id_renderer']:
 			self.assertFalse(gui.builder.get_object(renderer).get_property(
 							'editable'), renderer)
 

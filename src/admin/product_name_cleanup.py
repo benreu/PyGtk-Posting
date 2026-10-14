@@ -170,13 +170,16 @@ class ProductNameCleanupGUI ():
 
 	####################### the fixes tab
 
-	#The current name column is editable with no "edited" handler connected on
-	#purpose. It is editable only so the cell can be clicked into: a text
-	#cursor is the only way to see where a name actually ends, which is the
-	#whole question with a trailing or a doubled space. With nothing listening,
-	#Gtk discards whatever is typed and the cell redraws from the store, so the
-	#column cannot rename anything. Renaming goes through the Fix column and
-	#the Apply button. Do not connect a handler here.
+	#Both name columns are editable with no "edited" handler connected on
+	#purpose. They are editable only so the cells can be clicked into, which
+	#buys two things. On the current name, a text cursor is the only way to see
+	#where a name actually ends, which is the whole question with a trailing or
+	#a doubled space. On the suggested name, the in place entry is the only way
+	#to select the text and copy it, and that name is the one a user wants to
+	#paste somewhere else. With nothing listening, Gtk discards whatever is
+	#typed and the cell redraws from the store, so neither column can rename
+	#anything. Renaming goes through the Fix column and the Apply button. Do
+	#not connect a handler to either renderer.
 
 	def apply_renderer_toggled (self, cell_renderer, path):
 		self.fix_store[path][5] = not cell_renderer.get_active()
@@ -371,7 +374,10 @@ class ProductNameCleanupGUI ():
 	#instead is the history: which of the two products the invoices and orders
 	#actually point at, and whether a brand first name is the one in use. So
 	#both lists open the product hub on the row that was picked. The id is
-	#column 0 of both stores.
+	#column 0 of both stores. The name columns here are editable with no
+	#handler for the same reason as the ones on the fixes tab: it is what makes
+	#the name selectable, so it can be copied. See the comment there, and do
+	#not connect a handler to these either.
 
 	def _popup_product_hub (self, menu_id, event):
 		if event.button == 3:
