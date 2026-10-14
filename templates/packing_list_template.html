@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  /* The pick sheet twin of invoice_template.html: the same header, address band
+     and items border, with every trace of money cut out. Keep the shared parts
+     in step with that file. */
+  @page {
+    size: letter; margin: 0.5in 0.75in 0.75in 0.75in;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: "Liberation Serif", "Times New Roman", serif;
+      font-size: 9pt;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Liberation Serif", "Times New Roman", serif;
+    font-size: 11pt;
+    margin: 0; padding: 0; color: #000;
+  }
+  p { margin: 0; line-height: 1.4; }
+
+  table.header { width: 100%; border-collapse: collapse; }
+  /* The row height is pinned here for the same reason as on the invoice: the
+     .company block below has to keep its place whatever the doc block does. */
+  .header-left { vertical-align: top; width: 50%; height: 1.088in; }
+  .header-right { vertical-align: top; width: 50%; text-align: center;
+                  height: 1.088in; }
+  .doc-type   { font-size: 24pt; font-weight: bold; line-height: 1.0;
+                margin-bottom: 0; }
+  .doc-number { font-size: 14pt; font-weight: bold; line-height: 1.1; }
+  .doc-date   { font-size: 14pt; font-weight: bold; line-height: 1.1; }
+
+  .spacer  { height: 0.6in; }
+  .company { margin-bottom: 12pt; font-size: 14pt; }
+
+  table.items { width: 100%; border-collapse: collapse; border: 1pt solid #000;
+                margin-top: 0.25in; }
+  table.items thead th {
+    border: 1pt solid #000; padding: 3pt 5pt; font-weight: bold;
+  }
+  /* A sheet long enough to spill has to name its columns on every page, and a
+     line must not be split across the fold where a picker would miss half of it */
+  table.items thead { display: table-header-group; }
+  table.items tbody tr { page-break-inside: avoid; }
+  /* roomier than the invoice's 2pt: these rows get ticked off with a pen */
+  table.items tbody td { padding: 5pt 5pt; }
+  table.items tbody td.c { text-align: center; }
+  .box { display: inline-block; width: 0.18in; height: 0.18in;
+         border: 0.75pt solid #000; }
+
+  /* The invoice carries its comment inside the totals block, where what it is
+     needs no saying. Out here on its own it does, so it is labelled. */
+  .comments { margin-top: 0.25in; page-break-inside: avoid; }
+  .comments .label { font-weight: bold; }
+
+  table.signoff { width: 100%; border-collapse: collapse; margin-top: 0.5in;
+                  page-break-inside: avoid; }
+  table.signoff td { vertical-align: bottom; padding: 0; }
+  table.signoff .line { border-bottom: 0.75pt solid #000; height: 0.34in; }
+  table.signoff .caption { font-size: 9pt; padding-top: 2pt; }
+  table.signoff .gap { width: 5%; }
+
+  .address-band { position: relative; }
+  .ship-to { position: absolute; top: 0; left: 50%; width: 50%;
+             font-size: 10pt; }
+  .ship-to p { margin-bottom: 2pt; }
+  /* The label is lifted clear of the block so the shipping name starts on the
+     same line as the billing name beside it. bottom: 100% sits it right on top
+     of the block, whatever the label's own size. */
+  .ship-to .label { position: absolute; bottom: 100%; margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<table class="header">
+  <tr>
+    <td class="header-left">
+			<p>{{ company.name }}</p>
+			<p>{{ company.street }}</p>
+			<p>{{ company.city }} {{ company.state }} {{ company.zip }}</p>
+    </td>
+    <td class="header-right">
+      <p class="doc-type">Packing List</p>
+      <p class="doc-number"># {{ document.number }}</p>
+      <p class="doc-date">{{ document.date }}</p>
+    </td>
+  </tr>
+</table>
+
+<div class="spacer"></div>
+
+<div class="address-band">
+<div class="company">
+	<p>{{ contact.name }}</p>
+	<p>{{ contact.street }}</p>
+	<p>{{ contact.city }}, {{ contact.state }} {{ contact.zip }}</p>
+</div>
+{% if shipping %}
+<div class="ship-to">
+  <p class="label"><strong>Ship To</strong></p>
+  <p>{{ shipping.name }}</p>
+  <p>{{ shipping.street }}</p>
+  <p>{{ shipping.city }}, {{ shipping.state }} {{ shipping.zip }}</p>
+  {% if shipping.carrier %}<p>via {{ shipping.carrier }}</p>{% endif %}
+</div>
+{% endif %}
+</div>
+
+<div style="height: 40pt;"></div>
+
+<table class="items">
+  <thead>
+    <tr>
+      <th style="width:52pt">Qty</th>
+      <th style="width:34pt">Unit</th>
+      <th>Product</th>
+      <th style="width:56pt">Picked</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.qty }}</td>
+      <td>{{ item.unit }}</td>
+      <td>{{ item.product }}{{ item.ext_name }}{{ item.remark }}</td>
+      <td class="c"><span class="box"></span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if document.comment %}
+<div class="comments">
+  <p class="label">Comments</p>
+  <p>{{ document.comment }}</p>
+</div>
+{% endif %}
+
+<table class="signoff">
+  <tr>
+    <td style="width:55%"><div class="line"></div>
+        <p class="caption">Picked by</p></td>
+    <td class="gap"></td>
+    <td style="width:40%"><div class="line"></div>
+        <p class="caption">Date</p></td>
+  </tr>
+</table>
+
+</body>
+</html>

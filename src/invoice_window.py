@@ -611,12 +611,17 @@ class InvoiceGUI:
 			return False
 		return True
 
-	def create_invoice_document (self):
-		'''a fresh pdf of what is on screen, so nothing printed can be stale'''
+	def live_comment (self):
+		'''the comment as it is typed, not as invoices.comments has it: the save
+		waits on a 500ms typing pause, so the column can be a sentence behind'''
 		buf = self.builder.get_object('comment_buffer')
 		start = buf.get_start_iter()
 		end = buf.get_end_iter()
-		comment = buf.get_text(start, end, True)
+		return buf.get_text(start, end, True)
+
+	def create_invoice_document (self):
+		'''a fresh pdf of what is on screen, so nothing printed can be stale'''
+		comment = self.live_comment ()
 		return invoice_create.Setup(self.invoice_store, 
 									self.customer_id, 
 									comment, 
@@ -629,6 +634,15 @@ class InvoiceGUI:
 		if not self.invoice_has_items ():
 			return
 		self.create_invoice_document ().view()
+
+	def packing_list_activated (self, menuitem):
+		'''a pick sheet of what is on screen. Nothing here stamps date_printed
+		or touches the invoice's totals, see invoice.packing_list'''
+		if not self.invoice_has_items ():
+			return
+		from invoice import packing_list
+		packing_list.Setup (self.invoice_store, self.invoice_id,
+							self.datetime, self.live_comment ()).view ()
 
 	def post_invoice(self, widget):
 		if not self.invoice_has_items ():
@@ -1389,6 +1403,7 @@ class InvoiceGUI:
 		self.builder.get_object('import_time_clock_menuitem').set_sensitive(True)
 		self.builder.get_object('refresh_all_prices_menuitem').set_sensitive(True)
 		self.builder.get_object('document_list_menuitem').set_sensitive(True)
+		self.builder.get_object('packing_list_menuitem').set_sensitive(True)
 		self.builder.get_object('comment_textview').set_sensitive(True)
 
 	def refresh_all_prices_clicked (self, menuitem):
