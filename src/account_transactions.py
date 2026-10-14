@@ -108,15 +108,11 @@ class GUI:
 		model, paths = selection.get_selected_rows()
 		if paths == []:
 			return
-		if len(paths) > 1:
-			path_list = list()
-			for path in paths:
-				path_list.append(model[path][9])
-			path_result = str(tuple(path_list))
-		else:
-			path_result = "(%s)" % paths[0] 
+		# column 9 is entry_id; a path stringifies to the row's position in the
+		# tree, which for a child row is not even a number
+		entry_ids = tuple(model[path][9] for path in paths)
 		from reports import gl_entry_lookup
-		gl_entry_lookup.GlEntryLookupGUI(path_result)
+		gl_entry_lookup.GlEntryLookupGUI(entry_ids)
 
 	def treecolumn_clicked (self, column):
 		label = self.builder.get_object('label1')

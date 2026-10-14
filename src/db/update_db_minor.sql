@@ -1331,3 +1331,84 @@ BEGIN
 	END IF;
 END
 $$;
+
+--0.7.33
+/* What wrote this entry. Twelve tables already hold a pointer the other way,
+   from a document line to the entry that values it, and those all stay: three of
+   them carry the UNIQUE that enforces one posting per document, four carry a NOT
+   NULL, and post_inventory_count, resync_purchase_order_inventory,
+   resync_invoice_accounts and cancel_invoice all read them as their idempotency
+   guard. They answer "which entry values this line". This pair answers "what
+   wrote this entry", which is the question the GL entry lookup window asks and
+   which nothing in the database could answer before: that window had to search
+   seventeen columns backwards and still came up empty for anything posted
+   without a document behind it.
+
+   Deliberately only for those postings - a bank charge, a voided check, a hand
+   written journal entry, a bank to credit card transfer, a card fee or reward, a
+   cash or check deposit, the payable leg of a vendor payment, miscellaneous
+   revenue. Setting it on an entry that already has a pointer the other way would
+   create a second truth with no way to tell which one is right once they drift,
+   so the lookup window reads the inverse pointers first and only falls back to
+   this.
+
+   A type and an id rather than typed foreign key columns because most of these
+   have no table to point at: there is no deposits table, no bank_statements
+   table, no credit_card_statements table and no journal table. A foreign key
+   needs a target relation, so typed columns could not express them at all. And a
+   vendor payment settles several purchase orders with one bank entry, so no
+   single valued column could hold its source either - that one keeps resolving
+   through purchase_orders.gl_transaction_payment_id, which already exists and is
+   the better answer because it names the orders.
+
+   source_id therefore stays null for most types; it is here for the ones that do
+   have a single document, and the window treats a null as "nothing to open" and
+   offers the whole balanced transaction instead.
+
+   Nullable with no backfill, and no backfill is possible: nothing recorded
+   whether an existing entry came from the bank charge window or the journal
+   window, and transaction_description is user text in both, so matching on it
+   would mislabel real rows the way the 0.7.27 seeding guard did. Existing
+   entries stay null on purpose and show up as a journal entry whose drill down
+   is the whole transaction, which for an old bank charge is everything there is
+   to know about it. */
+ALTER TABLE public.gl_entries
+	ADD COLUMN IF NOT EXISTS source_type character varying;
+ALTER TABLE public.gl_entries
+	ADD COLUMN IF NOT EXISTS source_id bigint;
+
+/* The enumeration is the only integrity available to a pair with no foreign key,
+   and it is the integrity that actually matters here: a mistyped type silently
+   sends the lookup window's drill down to the wrong window, whereas a stale id
+   merely falls back to the transaction. Dropped and re-added by name rather than
+   guarded on absence, because this file re-runs from the top on every upgrade
+   and the list grows whenever another window starts posting. */
+DO $$
+BEGIN
+	ALTER TABLE public.gl_entries
+		DROP CONSTRAINT IF EXISTS gl_entries_source_type_known;
+	ALTER TABLE public.gl_entries
+		ADD CONSTRAINT gl_entries_source_type_known CHECK (
+			source_type IS NULL OR source_type IN (
+				'bank_charge', 'voided_check', 'journal_entry',
+				'bank_to_credit_card_transfer', 'credit_card_fee_reward',
+				'deposit_cash', 'deposit_check', 'vendor_payment',
+				'misc_revenue'));
+	ALTER TABLE public.gl_entries
+		DROP CONSTRAINT IF EXISTS gl_entries_source_id_needs_type;
+	ALTER TABLE public.gl_entries
+		ADD CONSTRAINT gl_entries_source_id_needs_type CHECK (
+			source_type IS NOT NULL OR source_id IS NULL);
+END
+$$;
+
+/* The one posting already in the ledger that can be named without guessing:
+   post_voided_check writes 'Voided check' as a literal, not as anything a user
+   typed, on a zero amount entry carrying a check number. Nothing else in the
+   code writes that combination, so this cannot claim a row it should not, and
+   once it has run it can never match again. Every other existing entry is left
+   null deliberately - see above. */
+UPDATE public.gl_entries SET source_type = 'voided_check'
+	WHERE source_type IS NULL AND amount = 0.00
+		AND check_number IS NOT NULL
+		AND transaction_description = 'Voided check';

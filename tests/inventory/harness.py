@@ -160,9 +160,19 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
 	('public', 'settings', 'freight_product_id'))
 """
 
+# Asked separately for the same reason as SETTINGS_SCHEMA_PROBE: SCHEMA_PROBE is
+# all or nothing, so folding this in would turn the whole of PENDING_SCHEMA back
+# on for every setUp on a copy that is only missing this one column
+GL_SOURCE_SCHEMA_PROBE = """
+SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
+	(table_schema, table_name, column_name) =
+	('public', 'gl_entries', 'source_type'))
+"""
+
 _conn = None
 _schema_pending = True # until asked; a copy that is behind pays the DDL per test
 _settings_schema_pending = True
+_gl_source_schema_pending = True
 try:
 	_conn = connect()
 	# asked here, before FakeDB opens the savepoint every test rolls back to, so
@@ -172,6 +182,8 @@ try:
 	_schema_pending = _probe.fetchone()[0]
 	_probe.execute(SETTINGS_SCHEMA_PROBE)
 	_settings_schema_pending = _probe.fetchone()[0]
+	_probe.execute(GL_SOURCE_SCHEMA_PROBE)
+	_gl_source_schema_pending = _probe.fetchone()[0]
 	_probe.close()
 	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
@@ -447,6 +459,29 @@ ALTER TABLE public.settings
 	ADD COLUMN IF NOT EXISTS freight_product_id integer;
 """
 
+# 0.7.33, what wrote a gl entry. Its own block, see GL_SOURCE_SCHEMA_PROBE.
+# Needed because transactor's bank_charge, post_voided_check, Deposit,
+# VendorPayment, DoubleEntryTransaction, MiscRevenueTransaction,
+# credit_card_fee_reward and bank_to_credit_card_transfer all name source_type in
+# their INSERT now, so any test that posts through one of them fails with
+# "column source_type does not exist" on a copy that has not had the upgrade.
+#
+# The two CHECKs the migration carries are left off, the same way the settings
+# block above leaves off its REFERENCES and for the same reason: ADD CONSTRAINT
+# validates by scanning the table and holds ACCESS EXCLUSIVE while it does, and
+# gl_entries is written by most of this suite, so paying it in every setUp both
+# costs time (measured: 134s to 145s) and is exactly the lock a second run of
+# this suite deadlocks against. Nothing here tests the enumeration; every writer
+# in transactor sets a literal the migration allows. The real migration keeps
+# both constraints. Its one-time UPDATE claiming old voided checks is left off
+# as well - it writes rows, and no test reads them
+PENDING_GL_SOURCE_SCHEMA = """
+ALTER TABLE public.gl_entries
+	ADD COLUMN IF NOT EXISTS source_type character varying;
+ALTER TABLE public.gl_entries
+	ADD COLUMN IF NOT EXISTS source_id bigint;
+"""
+
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
@@ -470,7 +505,10 @@ class DBTestCase(unittest.TestCase):
 			self.cursor.execute(PENDING_SCHEMA)
 		if _settings_schema_pending:
 			self.cursor.execute(PENDING_SETTINGS_SCHEMA)
-		if _schema_pending or _settings_schema_pending:
+		if _gl_source_schema_pending:
+			self.cursor.execute(PENDING_GL_SOURCE_SCHEMA)
+		if _schema_pending or _settings_schema_pending \
+							or _gl_source_schema_pending:
 			# move the savepoint past the DDL. FakeDB.rollback () returns to
 			# test_sp, which was taken at import, so a window doing the usual
 			# DB.rollback () after a read would otherwise undo the columns just

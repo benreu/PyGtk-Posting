@@ -4,20 +4,28 @@
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListStore" id="lookup_store">
     <columns>
-      <!-- column-name description -->
+      <!-- column-name type_label -->
       <column type="gchararray"/>
       <!-- column-name number -->
-      <column type="glong"/>
-      <!-- column-name product -->
+      <column type="gchararray"/>
+      <!-- column-name description -->
       <column type="gchararray"/>
       <!-- column-name amount -->
-      <column type="gchararray"/>
+      <column type="gfloat"/>
       <!-- column-name contact -->
       <column type="gchararray"/>
       <!-- column-name date -->
       <column type="gchararray"/>
       <!-- column-name date_formatted -->
       <column type="gchararray"/>
+      <!-- column-name source_id -->
+      <column type="glong"/>
+      <!-- column-name source_type -->
+      <column type="gchararray"/>
+      <!-- column-name gl_entry_id -->
+      <column type="glong"/>
+      <!-- column-name aux_id -->
+      <column type="glong"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
@@ -41,6 +49,9 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="model">lookup_store</property>
+            <property name="tooltip_text" translatable="yes">Double click a row to open the document it came from</property>
+            <signal name="button-release-event" handler="treeview_button_release_event" swapped="no"/>
+            <signal name="row-activated" handler="treeview_row_activated" swapped="no"/>
             <child internal-child="selection">
               <object class="GtkTreeSelection"/>
             </child>
@@ -63,7 +74,7 @@
                 <property name="resizable">True</property>
                 <property name="title" translatable="yes">Number</property>
                 <property name="reorderable">True</property>
-                <property name="sort_column_id">1</property>
+                <property name="sort_column_id">7</property>
                 <child>
                   <object class="GtkCellRendererText"/>
                   <attributes>
@@ -87,13 +98,16 @@
               </object>
             </child>
             <child>
-              <object class="GtkTreeViewColumn">
+              <object class="GtkTreeViewColumn" id="amount_column">
                 <property name="resizable">True</property>
                 <property name="title" translatable="yes">Amount</property>
                 <property name="reorderable">True</property>
+                <property name="alignment">1</property>
                 <property name="sort_column_id">3</property>
                 <child>
-                  <object class="GtkCellRendererText"/>
+                  <object class="GtkCellRendererText" id="amount_renderer">
+                    <property name="xalign">1</property>
+                  </object>
                   <attributes>
                     <attribute name="text">3</attribute>
                   </attributes>
@@ -119,7 +133,7 @@
                 <property name="resizable">True</property>
                 <property name="title" translatable="yes">Date</property>
                 <property name="reorderable">True</property>
-                <property name="sort_column_id">6</property>
+                <property name="sort_column_id">5</property>
                 <child>
                   <object class="GtkCellRendererText"/>
                   <attributes>
@@ -130,6 +144,28 @@
             </child>
           </object>
         </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMenu" id="lookup_menu">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Open source document</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="open_source_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Edit GL transaction</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="edit_gl_entry_activated" swapped="no"/>
       </object>
     </child>
   </object>
