@@ -106,13 +106,21 @@ def unbalanced_transactions ():
 	reconciled_lines, attached_lines, header_claimed).
 
 	Which of them can safely be touched is the point of this, not the list. A
-	line referenced by a posted invoice, purchase order or loan is that
-	document's half of the story, and writing the missing side by hand changes
-	the document's ledger footprint behind its back - the app's own way of
+	line referenced by a posted invoice or purchase order is that document's
+	half of the story, and writing the missing side by hand changes the
+	document's ledger footprint behind its back - the app's own way of
 	correcting posted entries is to re-derive them from the document, the way
 	transactor.resync_invoice_accounts does. So attached_lines and
 	header_claimed come back with the totals and the caller labels the row
 	rather than discovering it per transaction.
+
+	loans.gl_entries_id is deliberately not one of those claims, although it is
+	a document link like any other. A loan records only its liability account,
+	so the debit that create_loan left out until 0.7.34 cannot be re-derived
+	from the loan the way an invoice's entries can be re-derived from the
+	invoice: the ledger is the only place that half can exist, which makes this
+	report the place it gets repaired rather than somewhere to be sent away
+	from. transaction_entries still names the line as the loan's.
 
 	Driven from gl_transactions outward, not from gl_entries inward, so that a
 	header carrying no lines at all comes back in the same pass. Those are
@@ -158,8 +166,9 @@ def unbalanced_transactions ():
 							"WHERE gl_entry_id IS NOT NULL "
 						"UNION SELECT gl_entries_id FROM inventory_transactions "
 							"WHERE gl_entries_id IS NOT NULL "
-						"UNION SELECT gl_entries_id FROM loans "
-							"WHERE gl_entries_id IS NOT NULL "
+							# loans.gl_entries_id is left out on purpose, see
+							# above. loan_payments is not: a repayment is three
+							# lines that can be posted again from the payment
 						"UNION SELECT gl_entries_total_id FROM loan_payments "
 							"WHERE gl_entries_total_id IS NOT NULL "
 						"UNION SELECT gl_entries_principal_id FROM loan_payments "

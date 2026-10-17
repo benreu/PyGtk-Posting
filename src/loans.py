@@ -72,7 +72,7 @@ class LoanGUI :
 		cursor.close()
 		DB.rollback()
 
-	def refresh_liability_accounts_clicked (self, button):
+	def refresh_accounts_clicked (self, button):
 			self.populate_accounts()
 
 	def populate_accounts (self):
@@ -86,6 +86,16 @@ class LoanGUI :
 			parent = accounts_store.append(None, row)
 			number = row[0]
 			self.populate_child_accounts(number, parent, accounts_store)
+		# where the money landed. A flat list, unlike the liability tree: these
+		# two flags are only ever set on accounts that are posted to, so there
+		# is no parent in here to pick by mistake
+		debit_store = self.builder.get_object('debit_account_store')
+		debit_store.clear()
+		cursor.execute("SELECT number::text, name FROM gl_accounts "
+						"WHERE bank_account = True OR cash_account = True "
+						"ORDER BY number")
+		for row in cursor.fetchall():
+			debit_store.append(row)
 		cursor.close()
 		DB.rollback()
 
@@ -172,11 +182,18 @@ class LoanGUI :
 		account = combobox.get_active_id ()
 		if account != None:
 			self.account = account
+			self.builder.get_object('debit_account_combo').set_sensitive(True)
+
+	def debit_account_combo_changed (self, combobox):
+		account = combobox.get_active_id ()
+		if account != None:
+			self.debit_account = account
 			self.builder.get_object('button1').set_sensitive(True)
 
 	def save_clicked (self, button):
-		gl_entries_id = transactor.create_loan(self.date, 
-												self.amount, self.account)
+		gl_entries_id = transactor.create_loan(self.date, self.amount, 
+												self.account, 
+												self.debit_account)
 		period_amount = self.builder.get_object('period_amount_spin').get_text()
 		cursor = DB.cursor()
 		cursor.execute("INSERT INTO loans "
@@ -187,14 +204,16 @@ class LoanGUI :
 								"period, "
 								"period_amount, "
 								"last_payment_date, "
+								"liability_account, "
 								"gl_entries_id) "
-							"VALUES (%s, %s, %s, %s, %s, %s, now(), %s) ",
+							"VALUES (%s, %s, %s, %s, %s, %s, now(), %s, %s) ",
 							(self.description,
 							self.contact_id,
 							self.date,
 							self.amount,
 							self.payment_period,
 							period_amount,
+							self.account,
 							gl_entries_id))
 		cursor.close()
 		DB.commit()

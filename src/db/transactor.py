@@ -1454,15 +1454,29 @@ def post_finance_charge(invoice_id):
 				(invoice_id, invoice_id))
 	c.close()
 
-def create_loan (date, amount, liability_account):
+def create_loan (date, amount, liability_account, debit_account):
+	'''the money borrowed, as one two sided entry: the liability credited, and
+	the account the proceeds landed in debited. Both sides on the one row,
+	because loans.gl_entries_id is a single reference to it.
+
+	The debit has to be written here or nowhere. A loan records only its
+	liability account, so the half this left out until 0.7.34 cannot be
+	re-derived from the loan afterwards the way an invoice's entries can be
+	re-derived from the invoice.
+
+	date goes to the entry as well as to its header. The entry's own default is
+	now (), which would date the ledger line today while its header carried the
+	date the loan started'''
 	cursor = DB.cursor()
 	cursor.execute("WITH new_row AS "
 						"(INSERT INTO gl_transactions "
 						"(date_inserted) VALUES (%s) RETURNING id) "
 				"INSERT INTO gl_entries "
-				"(gl_transaction_id, credit_account, amount) "
-				"VALUES ((SELECT id FROM new_row), %s, %s) RETURNING id", 
-				(date, liability_account, amount))
+				"(gl_transaction_id, credit_account, debit_account, "
+				"amount, date_inserted) "
+				"VALUES ((SELECT id FROM new_row), %s, %s, %s, %s) "
+				"RETURNING id", 
+				(date, liability_account, debit_account, amount, date))
 	gl_entries_id = cursor.fetchone()[0]
 	cursor.close()
 	return gl_entries_id

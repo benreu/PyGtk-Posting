@@ -40,8 +40,17 @@ class UnbalancedTransactionsTest(DBTestCase):
 						"RETURNING id",
 						(day, amount, debit, credit, transaction_id, reconciled))
 
+	def attach_credit_memo(self, entry_id):
+		'''the cheapest document link that counts as a claim:
+		credit_memos.gl_entries_id. A memo can be posted again from the memo,
+		so its line really is the document's half of the story'''
+		return self.one("INSERT INTO credit_memos (customer_id, date_created, "
+						"gl_entries_id) VALUES (%s, %s, %s) RETURNING id",
+						(self.contact_id, DAY, entry_id))
+
 	def attach_loan(self, entry_id):
-		'''the cheapest real document link: loans.gl_entries_id'''
+		'''loans.gl_entries_id, which is a document link and deliberately not a
+		claim - see ledger.unbalanced_transactions'''
 		return self.one("INSERT INTO loans (description, contact_id, "
 						"date_received, amount, period, gl_entries_id, "
 						"last_payment_date) "
@@ -147,10 +156,28 @@ class UnbalancedTransactionsTest(DBTestCase):
 		transaction_id = self.new_transaction()
 		entry_id = self.entry(transaction_id, Decimal('90.00'),
 								credit = self.revenue)
-		loan_id = self.attach_loan(entry_id)
+		memo_id = self.attach_credit_memo(entry_id)
 		self.DB.commit()
 		row = self.found()[transaction_id]
 		self.assertEqual(self.safety(row), 'Attached')
+		lines = self.lines_of(transaction_id)
+		self.assertEqual(lines[0][11], 'Credit memo %s' % memo_id)
+
+	def test_a_loans_own_entry_is_repairable_but_still_named(self):
+		'''the loan window posted one sided until 0.7.34, and a loan records
+		only its liability account - so the debit cannot be re-derived from the
+		loan the way an invoice's entries can be re-derived from the invoice.
+		This report is the only place that half can be written, so a loan must
+		not come back as somewhere else's business. It is still named, which is
+		what tells whoever repairs it what they are looking at'''
+		transaction_id = self.new_transaction()
+		entry_id = self.entry(transaction_id, Decimal('2500.00'),
+								credit = self.revenue)
+		loan_id = self.attach_loan(entry_id)
+		self.DB.commit()
+		row = self.found()[transaction_id]
+		self.assertEqual(row[8], 0)                      # attached lines
+		self.assertEqual(self.safety(row), 'Orphan')
 		lines = self.lines_of(transaction_id)
 		self.assertEqual(lines[0][11], 'Loan %s' % loan_id)
 
@@ -172,7 +199,7 @@ class UnbalancedTransactionsTest(DBTestCase):
 		attached = self.entry(transaction_id, Decimal('60.00'),
 								credit = self.revenue)
 		self.entry(transaction_id, Decimal('25.00'), debit = self.cash)
-		self.attach_loan(attached)
+		self.attach_credit_memo(attached)
 		self.DB.commit()
 		row = self.found()[transaction_id]
 		self.assertEqual(self.safety(row), 'Mixed')

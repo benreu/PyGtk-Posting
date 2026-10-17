@@ -1412,3 +1412,18 @@ UPDATE public.gl_entries SET source_type = 'voided_check'
 	WHERE source_type IS NULL AND amount = 0.00
 		AND check_number IS NOT NULL
 		AND transaction_description = 'Voided check';
+
+/* 0.7.34, the loan posting's missing debit. No DDL, and the version marker is
+   taken so nothing else claims it: create_loan now writes both sides of a new
+   loan, and the only repair the loans already in the ledger need from here is
+   the 0.6.4 backfill of loans.liability_account above - this file re-runs from
+   the top on every upgrade and that UPDATE is guarded on
+   liability_account IS NULL, so bumping the version is what applies it to every
+   loan entered since, which the loan report's totals join needs.
+
+   The debits those loans never got are deliberately not written here. Nothing
+   in the database knows which account the money landed in, and guessing one
+   would be a posting the user never made; they are left to the unbalanced
+   transactions report, which no longer classifies a loan's entries as the
+   document's own and so can repair them one at a time with the account chosen
+   each time. */

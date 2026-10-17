@@ -43,7 +43,9 @@ def money (value):
 def safety_of (lines, attached_lines, header_claimed):
 	'''how far into a posted document somebody would be reaching to repair this.
 	A line a document claims as its own is that document's half of the story,
-	so the fix belongs to the document, not to the ledger'''
+	so the fix belongs to the document, not to the ledger. A loan's own entries
+	are the exception and come back repairable - ledger.unbalanced_transactions
+	says why'''
 	if lines == 0:
 		return EMPTY
 	if attached_lines == 0:
@@ -213,10 +215,11 @@ class UnbalancedTransactionsGUI (Gtk.Builder):
 					"anything dated outside the period it was run for. "
 					% money(net))
 		if repairable:
-			message += ("%s of these are claimed by no document and can be put "
-						"right here. " % repairable)
+			message += ("%s of these can be put right here: nothing is "
+						"re-deriving them from a document that the repair "
+						"would then contradict. " % repairable)
 		if entangled:
-			message += ("%s are a posted invoice, purchase order or loan's own "
+			message += ("%s are a posted invoice or purchase order's own "
 						"entries; writing their missing half by hand would "
 						"change that document's ledger footprint behind its "
 						"back, so fix the document instead. " % entangled)
