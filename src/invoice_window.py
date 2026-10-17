@@ -34,13 +34,13 @@ def make_invoice_name (document_prefix, invoice_id, contact_name, date):
 	abbreviation = "".join(word[0:3] for word in contact_name.split(' ')).lower()
 	return "%s_%s_%s_%s" % (document_prefix[0:3], invoice_id, abbreviation, str(date)[0:10])
 
-def create_new_invoice (date, customer_id):
+def create_new_invoice (customer_id):
 	cursor = DB.cursor()
 	cursor.execute ("INSERT INTO invoices "
-					"(customer_id, date_created, paid, canceled, "
+					"(customer_id, paid, canceled, "
 					"posted, doc_type, comments) "
-					"VALUES (%s, %s, False, False, False, 'Invoice', '') "
-					"RETURNING id", (customer_id, date))
+					"VALUES (%s, False, False, False, 'Invoice', '') "
+					"RETURNING id", (customer_id,))
 	invoice_id = cursor.fetchone()[0]
 	cursor.execute("SELECT name FROM contacts WHERE id = %s", (customer_id,))
 	name = cursor.fetchone()[0]
@@ -129,6 +129,7 @@ class InvoiceGUI:
 			# location cannot make the window rewrite the ledger it just read
 			self.invoice_id = invoice_id
 			self.apply_invoice_header (header)
+			self.show_creation_date ()
 			self.set_widgets_sensitive ()
 			self.populate_invoice_items(save_totals = False)
 			
@@ -495,6 +496,7 @@ class InvoiceGUI:
 			self.builder.get_object("comment_buffer").set_text(comments)
 			self.calendar.set_date(date)
 		cursor.close()
+		self.show_creation_date ()
 		self.document_type = self.document_list_store[path][2]
 		self.populate_shipping_address_combo ()
 		self.populate_invoice_items(save_totals = False)
@@ -565,6 +567,7 @@ class InvoiceGUI:
 		self.builder.get_object('comment_buffer').set_text('')
 		self.loading = False
 		self.invoice_id = 0
+		self.show_creation_date ()
 		self.negative_stock_message = None
 		self.document_type = "Invoice"
 		self.datetime = datetime.today()
@@ -999,6 +1002,7 @@ class InvoiceGUI:
 			self.calendar.set_today()
 		cursor.close()
 		DB.rollback()
+		self.show_creation_date ()
 
 	def email_button_clicked (self, button):
 		email = self.builder.get_object('entry_email').get_text()
@@ -1474,7 +1478,7 @@ class InvoiceGUI:
 
 	def check_invoice_id (self):
 		if self.invoice_id == 0:
-			self.invoice_id = create_new_invoice(self.datetime, self.customer_id)
+			self.invoice_id = create_new_invoice(self.customer_id)
 			self.flush_comment () # drop the pending write, it was typed for no invoice
 			buf = self.builder.get_object('comment_buffer')
 			comment = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), True)
@@ -1492,6 +1496,7 @@ class InvoiceGUI:
 										(shipping_address_id, self.invoice_id))
 				cursor.close()
 			DB.commit()
+			self.show_creation_date ()
 			self.populate_document_list()
 
 	def new_item_clicked (self, button):
@@ -1632,6 +1637,20 @@ class InvoiceGUI:
 		self.posted = header['posted']
 		self.loading = False
 		self.populate_shipping_address_combo () # customer_selected bailed out
+
+	def show_creation_date (self):
+		'''blank until the invoice row is made by its first line'''
+		entry = self.builder.get_object('creation_date_entry')
+		entry.set_text('')
+		if self.invoice_id == 0:
+			return
+		cursor = DB.cursor()
+		cursor.execute("SELECT format_date(date_created) FROM invoices "
+						"WHERE id = %s", (self.invoice_id,))
+		for row in cursor.fetchall():
+			entry.set_text(row[0])
+		cursor.close()
+		DB.rollback()
 
 	def show_reload_infobar (self, broadcaster, invoice_id, is_remote):
 		if invoice_id != self.invoice_id or not is_remote:

@@ -458,7 +458,7 @@ class JobSheetGUI(Gtk.Builder):
 			else:
 				return # cancel posting to invoice altogether
 		else: # create new invoice
-			invoice_id = create_new_invoice (datetime.today(), self.customer_id)
+			invoice_id = create_new_invoice (self.customer_id)
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, invoice_id) "
 					"SELECT qty, product_id, remark, %s "

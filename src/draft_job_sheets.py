@@ -16,7 +16,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
-from datetime import datetime
 from invoice_window import create_new_invoice 
 from db_connection import DB
 from constants import ui_directory
@@ -156,7 +155,7 @@ class DraftJobSheetsGUI (Gtk.Builder):
 				cursor.close()
 				return # cancel posting to invoice altogether
 		else: # create new invoice
-			invoice_id = create_new_invoice (datetime.today(), customer_id)
+			invoice_id = create_new_invoice (customer_id)
 		cursor.close()
 		c = DB.cursor()
 		c.execute("INSERT INTO invoice_items "

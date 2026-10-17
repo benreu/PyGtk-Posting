@@ -19,7 +19,6 @@
 from gi.repository import Gtk
 import psycopg2
 import invoice_window
-from datetime import datetime
 from db_connection import DB
 from constants import ui_directory
 
@@ -87,7 +86,7 @@ Do you want to append the document items?" % customer_name)
 			invoice_exists_dialog.hide()
 			break
 		else:
-			invoice_id = invoice_window.create_new_invoice(datetime.today(), customer_id)
+			invoice_id = invoice_window.create_new_invoice(customer_id)
 			self.import_document_items_to_invoice(document_id, invoice_id)
 		cursor.close()
 
