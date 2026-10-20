@@ -100,7 +100,7 @@ class Setup:
             item.unit = i[13]
             item.product = i[3]
             item.ext_name = (" , " + i[4]) if i[4] else ""
-            item.remark = (" : " + i[5]) if i[5] else ""
+            item.remark = i[5]
             item.price = i[6]
             item.tax_letter = i[11]
             item.tax = i[7]

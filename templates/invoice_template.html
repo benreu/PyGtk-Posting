@@ -36,6 +36,12 @@
   table.items thead th.r { text-align: right; }
   table.items tbody td { padding: 2pt 5pt; }
   table.items tbody td.r { text-align: right; }
+  /* Each line is its own tbody with a faint rule across the foot of it. A
+     line's comment gets a row of its own, tucked up under the product, and
+     inside the tbody a page break cannot part a comment from its product. */
+  table.items tbody { page-break-inside: avoid; }
+  table.items tbody tr.remark td { padding-top: 0; }
+  table.items tbody tr:last-child td { border-bottom: 0.5pt dashed #999; }
   .fold-wrapper { position: relative; padding-top: 0.25in; }
   .fold-mark {
     position: absolute;
@@ -118,18 +124,24 @@
       <th style="width:72pt" class="r">Ext. Price</th>
     </tr>
   </thead>
+  {% for item in items %}
   <tbody>
-    {% for item in items %}
     <tr>
       <td>{{ item.qty }}</td>
       <td>{{ item.unit }}</td>
-      <td>{{ item.product }}{{ item.ext_name }}{{ item.remark }}</td>
+      <td>{{ item.product }}{{ item.ext_name }}</td>
       <td class="r">{{ item.price }}</td>
       <td>{{ item.tax_letter }}</td>
       <td class="r">{{ item.ext_price }}</td>
     </tr>
-    {% endfor %}
+    {% if item.remark %}
+    <tr class="remark">
+      <td colspan="2"></td>
+      <td colspan="4" class="remark">{{ item.remark }}</td>
+    </tr>
+    {% endif %}
   </tbody>
+  {% endfor %}
   <tfoot>
     <tr>
       <td colspan="3" rowspan="3" class="comment-cell">

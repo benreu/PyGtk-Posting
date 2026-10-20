@@ -143,18 +143,14 @@ class ItemsTableWidth(HTMLParser):
 class InvoiceTemplateTest(unittest.TestCase):
 	'''the real invoice_template.html, which Jinja and WeasyPrint render'''
 
-	def render(self, shipping = DEFAULT_SHIPPING):
+	def render(self, shipping = DEFAULT_SHIPPING, items = None):
 		from jinja2 import Environment, FileSystemLoader
 		here = os.path.dirname(os.path.abspath(__file__))
 		templates = os.path.join(here, '..', '..', 'templates')
-
-		def line(qty, unit):
-			item = Stub()
-			item.qty, item.unit, item.product = qty, unit, 'A PRODUCT'
-			item.price, item.ext_price, item.tax_letter = '1.00', '2.00', 'T'
-			return item
 		if shipping is DEFAULT_SHIPPING:
 			shipping = Stub()
+		if items == None:
+			items = [self.line('10', 'ft'), self.line('3', 'hr')]
 		contact = Stub(name = 'CUSTOMER NAME', street = '100 Billing Rd',
 						city = 'Billtown', state = 'PA', zip = '17500')
 		company = Stub(name = 'OUR COMPANY', street = '1 Main St',
@@ -164,9 +160,16 @@ class InvoiceTemplateTest(unittest.TestCase):
 						total = '$21.20', payment_due = 'Due 11/12/2026')
 		env = Environment(loader = FileSystemLoader(templates))
 		return env.get_template('invoice_template.html').render(
-					items = [line('10', 'ft'), line('3', 'hr')],
+					items = items,
 					document = document, contact = contact, shipping = shipping,
 					terms = Stub(), company = company, serial_numbers = [])
+
+	def line(self, qty, unit, remark = ''):
+		item = Stub()
+		item.qty, item.unit, item.product = qty, unit, 'A PRODUCT'
+		item.price, item.ext_price, item.tax_letter = '1.00', '2.00', 'T'
+		item.remark = remark
+		return item
 
 	def ship_to(self, **kwargs):
 		fields = dict(name = 'CUSTOMER NAME', street = '250 Shipping Ln',
@@ -201,12 +204,22 @@ class InvoiceTemplateTest(unittest.TestCase):
 		self.assertIn('Unit', out)
 
 	def test_the_table_is_square(self):
-		'''adding a column means the footer's colspans have to keep up'''
+		'''adding a column means the footer's colspans have to keep up, and the
+		comment row's too'''
 		parser = ItemsTableWidth()
-		parser.feed(self.render())
+		parser.feed(self.render(items = [self.line('10', 'ft', 'cut to length'),
+										self.line('3', 'hr')]))
 		self.assertTrue(parser.rows, 'the items table was not found')
 		self.assertEqual(set(parser.rows), {6},
 							'rows are %s cells wide' % parser.rows)
+
+	def test_only_a_line_with_a_comment_gets_a_comment_row(self):
+		out = self.render(items = [self.line('10', 'ft', 'cut to length'),
+									self.line('3', 'hr')])
+		self.assertEqual(out.count('<tr class="remark">'), 1)
+		self.assertIn('class="remark">cut to length<', out)
+		self.assertNotIn(' : ', out) # no longer tacked onto the product
+		self.assertNotIn('<tr class="remark">', self.render())
 
 	def test_the_envelope_window_anchors_hold(self):
 		'''the sheet is folded for a window envelope, so no shipping address,

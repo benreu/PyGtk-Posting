@@ -48,6 +48,11 @@
   /* roomier than the invoice's 2pt: these rows get ticked off with a pen */
   table.items tbody td { padding: 5pt 5pt; }
   table.items tbody td.c { text-align: center; }
+  /* the invoice's lines: each is its own tbody with a faint rule across the
+     foot, so the picker never finds a comment over the page from its line */
+  table.items tbody { page-break-inside: avoid; }
+  table.items tbody tr.remark td { padding-top: 0; }
+  table.items tbody tr:last-child td { border-bottom: 0.5pt dashed #999; }
   .box { display: inline-block; width: 0.18in; height: 0.18in;
          border: 0.75pt solid #000; }
 
@@ -120,16 +125,22 @@
       <th style="width:56pt">Picked</th>
     </tr>
   </thead>
+  {% for item in items %}
   <tbody>
-    {% for item in items %}
     <tr>
       <td>{{ item.qty }}</td>
       <td>{{ item.unit }}</td>
-      <td>{{ item.product }}{{ item.ext_name }}{{ item.remark }}</td>
+      <td>{{ item.product }}{{ item.ext_name }}</td>
       <td class="c"><span class="box"></span></td>
     </tr>
-    {% endfor %}
+    {% if item.remark %}
+    <tr class="remark">
+      <td colspan="2"></td>
+      <td colspan="2" class="remark">{{ item.remark }}</td>
+    </tr>
+    {% endif %}
   </tbody>
+  {% endfor %}
 </table>
 
 {% if document.comment %}

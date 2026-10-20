@@ -24,6 +24,7 @@ class Stub(object):
 		return ''
 
 DEFAULT_SHIPPING = object() # render()'s own blank Stub, not an omitted address
+LINES_WITH_COMMENTS = 30 # without the tbody rule, the second page break parts a pair
 
 class PackingListTest(harness.DBTestCase):
 
@@ -194,8 +195,11 @@ class PackingListTest(harness.DBTestCase):
 		html = self.sheet(gui).html
 		self.assertLess(html.index(self.second_name), html.index(self.first_name))
 
-	def test_the_product_cell_carries_the_remark(self):
-		self.assertIn('%s : a remark' % self.first_name, self.sheet().html)
+	def test_the_remark_gets_a_row_of_its_own(self):
+		html = self.sheet().html
+		self.assertNotIn(' : a remark', html)
+		self.assertIn('class="remark">a remark<', html)
+		self.assertEqual(html.count('<tr class="remark">'), 1) # not the second line
 
 	def test_a_canceled_line_is_not_picked(self):
 		gui = self.window()
@@ -277,12 +281,13 @@ class PackingListTemplateTest(unittest.TestCase):
 					items = items, document = document, contact = contact,
 					shipping = shipping, company = company)
 
-	def line(self, qty, unit, product = 'A PRODUCT'):
+	def line(self, qty, unit, product = 'A PRODUCT', remark = ''):
 		'''carries the money fields too, so the template gets the chance to
 		print them and is shown not to take it'''
 		item = Stub()
 		item.qty, item.unit, item.product = qty, unit, product
 		item.price, item.ext_price, item.tax_letter = '1.00', '2.00', 'T'
+		item.remark = remark
 		return item
 
 	def ship_to(self, **kwargs):
@@ -346,6 +351,28 @@ class PackingListTemplateTest(unittest.TestCase):
 			if element != None:
 				tags.add(element.tag)
 		self.assertIn('th', tags)
+
+	def test_only_a_line_with_a_comment_gets_a_comment_row(self):
+		out = self.render(items = [self.line('10', 'ft', remark = 'blue ones'),
+									self.line('3', 'hr')])
+		self.assertEqual(out.count('<tr class="remark">'), 1)
+		self.assertIn('class="remark">blue ones<', out)
+		self.assertNotIn(' : ', out)
+		self.assertNotIn('<tr class="remark">', self.render())
+
+	def test_a_page_break_never_parts_a_comment_from_its_line(self):
+		items = [self.line(str(n), 'ea', 'PRODUCT %s' % n, 'NOTE %s' % n)
+					for n in range(LINES_WITH_COMMENTS)]
+		pages = self.pages(self.render(items = items))
+		self.assertGreater(len(pages), 1)
+		for number, page in enumerate(pages, 1):
+			products, notes = set(), set()
+			for box in self.walk(page._page_box):
+				text = getattr(box, 'text', '') or ''
+				for prefix, found in (('PRODUCT ', products), ('NOTE ', notes)):
+					if text.startswith(prefix):
+						found.add(text[len(prefix):])
+			self.assertEqual(products, notes, 'page %s' % number)
 
 	def test_the_comment_block_appears_only_when_there_is_one(self):
 		self.assertNotIn('Comments', self.render())
