@@ -88,6 +88,8 @@ class InvoiceGUI:
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.customer_id = None # the combo ids are text, so it is text once picked
+		self.fax_number = None # confirmed before posting, see fax_invoice_activated
+		self.fax_customer_id = None # the customer that number was confirmed for
 		self.exemption_customer_id = None # customer the exemption combo was filled for
 		self.tax_rate_id = '0'
 		
@@ -484,6 +486,7 @@ class InvoiceGUI:
 	def document_list_row_activated (self, treeview, path, column):
 		self.flush_comment ()
 		self.invoice_id = self.document_list_store[path][0]
+		self.set_fax_number (None) # it was for the invoice being left
 		cursor = DB.cursor()
 		cursor.execute("SELECT "
 								"comments, "
@@ -567,6 +570,7 @@ class InvoiceGUI:
 		self.builder.get_object('comment_buffer').set_text('')
 		self.loading = False
 		self.invoice_id = 0
+		self.set_fax_number (None) # it was for the invoice being left
 		self.show_creation_date ()
 		self.negative_stock_message = None
 		self.document_type = "Invoice"
@@ -692,6 +696,8 @@ class InvoiceGUI:
 			return
 		if self.builder.get_object('email_invoice_menuitem').get_active() == True:
 			self.email_posted_invoice (invoice) # only after it is saved
+		if self.fax_number:
+			invoice.fax(self.window, self.fax_number) # only after it is saved
 		self.window.destroy()
 
 	def email_posted_invoice (self, invoice):
@@ -704,6 +710,43 @@ class InvoiceGUI:
 		cursor.close()
 		DB.rollback()
 		invoice.email("%s < %s >" % (name, email), invoice.total)
+
+	def fax_invoice_activated (self, menuitem):
+		'''the number is settled here, while the invoice can still be checked
+		against it, and posting faxes to it without asking again. Opened again,
+		it changes the number or takes the fax back'''
+		import faxing
+		if not faxing.queue_available():
+			faxing.show_message(self.window, Gtk.MessageType.ERROR,
+								faxing.missing_queue_message())
+			return
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, fax FROM contacts WHERE id = %s",
+						(self.customer_id,))
+		name, fax = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		dialog = faxing.FaxDialog(self.window, name, fax,
+									number = self.fax_number,
+									send_label = "Fax when posted",
+									can_stop = self.fax_number is not None)
+		number = dialog.get_number()
+		if number == '':
+			self.set_fax_number (None)
+		elif number is not None:
+			self.set_fax_number (number)
+
+	def set_fax_number (self, number):
+		'''None for no fax. The number belongs to the customer it was confirmed
+		for, so every way of leaving that customer or this invoice clears it'''
+		import faxing
+		self.fax_number = number
+		self.fax_customer_id = self.customer_id if number else None
+		menuitem = self.builder.get_object('fax_invoice_menuitem')
+		if number:
+			menuitem.set_label("Fax invoice to %s..." % faxing.display(number))
+		else:
+			menuitem.set_label("Fax invoice...")
 
 	def resync_posted_invoice (self):
 		'''a posted invoice can still be edited and every change is saved as it is
@@ -938,6 +981,8 @@ class InvoiceGUI:
 
 	def customer_selected(self, name_id):
 		self.flush_comment ()
+		if self.fax_number and str(name_id) != str(self.fax_customer_id):
+			self.set_fax_number (None) # it was the last customer's fax
 		cursor = DB.cursor()
 		cursor.execute("SELECT address, phone, city, state, zip, email "
 							"FROM contacts WHERE id = (%s)",(name_id,))
@@ -1408,6 +1453,7 @@ class InvoiceGUI:
 		self.builder.get_object('refresh_all_prices_menuitem').set_sensitive(True)
 		self.builder.get_object('document_list_menuitem').set_sensitive(True)
 		self.builder.get_object('packing_list_menuitem').set_sensitive(True)
+		self.builder.get_object('fax_invoice_menuitem').set_sensitive(True)
 		self.builder.get_object('comment_textview').set_sensitive(True)
 
 	def refresh_all_prices_clicked (self, menuitem):

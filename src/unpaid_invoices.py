@@ -133,6 +133,33 @@ class GUI (Gtk.Builder):
 		import contact_hub
 		contact_hub.ContactHubGUI(customer_id)
 
+	def fax_invoice_activated (self, menuitem):
+		selection = self.get_object('treeview-selection')
+		model, path = selection.get_selected_rows()
+		if path == []:
+			return
+		invoice_id = model[path][0]
+		c = DB.cursor()
+		c.execute("SELECT i.pdf_data, c.name, c.fax FROM invoices AS i "
+					"JOIN contacts AS c ON c.id = i.customer_id "
+					"WHERE i.id = %s", (invoice_id,))
+		row = c.fetchone()
+		c.close()
+		DB.rollback()
+		if row is None or row[0] is None:
+			self.show_message("No saved PDF found for this invoice.")
+			return
+		pdf_data, name, fax = row
+		import faxing
+		# the posted pdf is faxed as it was printed, not rebuilt from today's
+		# data; lp has read the file by the time fax_pdf returns
+		with tempfile.NamedTemporaryFile(prefix = "Invoice_%s_" % invoice_id,
+										suffix = ".pdf") as f:
+			f.write(bytes(pdf_data))
+			f.flush()
+			faxing.fax_pdf(self.window, f.name, "Invoice_%s" % invoice_id,
+							name, fax)
+
 	def reprint_invoice_activated(self, menuitem):
 		selection = self.get_object('treeview-selection')
 		model, path = selection.get_selected_rows()

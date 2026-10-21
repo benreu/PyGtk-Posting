@@ -247,6 +247,14 @@ class Setup:
                           "--attach", self.invoice_pdf,
                           email])
 
+    def fax(self, window, number):
+        # its own lp job carrying the number, never the print dialog, so it
+        # neither stamps date_printed nor touches the saved print settings.
+        # The number was confirmed in the invoice window before posting
+        import faxing
+        return faxing.send_and_report(window, self.invoice_pdf, number,
+                                      "Invoice_%s" % self.invoice_id)
+
     def post(self):
         with open(self.invoice_pdf, 'rb') as f:
             binary = psycopg2.Binary(f.read())

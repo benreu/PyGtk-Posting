@@ -164,6 +164,16 @@
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="fax_invoice_menuitem">
+        <property name="visible">True</property>
+        <property name="sensitive">False</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Fax invoice...</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="fax_invoice_activated" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menuitem5">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
