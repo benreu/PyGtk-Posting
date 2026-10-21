@@ -515,6 +515,17 @@ class GUI (Gtk.Builder):
 		new_statement.GUI()
 
 	def customer_invoices_pdf_clicked(self, widget):
+		try:
+			from pypdf import PdfWriter, PdfReader, Transformation
+			from reportlab.pdfgen import canvas as rl_canvas
+			from reportlab.lib.pagesizes import letter
+		except ImportError as e:
+			# imported here on the main thread, not in generate(), so a missing
+			# package is reported; in the thread it died before generate's try,
+			# leaving the progress window blank and the traceback only on stderr
+			self.show_message("%s\n\nInstall it with:\n"
+							"sudo apt install python3-pypdf python3-reportlab" % e)
+			return
 		import threading
 		from gi.repository import GLib
 		c = DB.cursor()
@@ -601,9 +612,6 @@ class GUI (Gtk.Builder):
 		close_button.connect("clicked", lambda _: progress_window.destroy())
 
 		def generate():
-			from pypdf import PdfWriter, PdfReader, Transformation
-			from reportlab.pdfgen import canvas as rl_canvas
-			from reportlab.lib.pagesizes import letter
 			import io as _io
 			log("Found %d unpaid invoice(s) for %s" % (len(invoices), customer_name))
 			try:
