@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Faxes arrive as 1-bit black and white at 200 dpi, so this sheet keeps to
+     black, solid rules and nothing smaller than 12pt. */
+  @page { size: letter; margin: 0.75in; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Liberation Serif", "Times New Roman", serif;
+    font-size: 13pt;
+    margin: 0; padding: 0; color: #000;
+  }
+  p { margin: 0; line-height: 1.4; }
+
+  .company { font-size: 14pt; }
+  .company .name { font-size: 18pt; font-weight: bold; }
+  .title { font-size: 40pt; font-weight: bold; margin: 0.4in 0 0.2in 0;
+           border-bottom: 2pt solid #000; }
+
+  table.fields { width: 100%; border-collapse: collapse; }
+  table.fields td { padding: 6pt 0; vertical-align: top;
+                    border-bottom: 0.75pt solid #000; }
+  table.fields td.label { width: 1.3in; font-weight: bold; }
+
+  .note { margin-top: 0.3in; white-space: pre-wrap; line-height: 1.4; }
+</style>
+</head>
+<body>
+  <div class="company">
+    <p class="name">{{ company.name }}</p>
+    <p>{{ company.street }}</p>
+    <p>{{ company.city }}{% if company.city and company.state %}, {% endif %}{{ company.state }} {{ company.zip }}</p>
+  </div>
+
+  <div class="title">FAX</div>
+
+  <table class="fields">
+    <tr><td class="label">To</td><td>{{ fax.attention }}</td></tr>
+    <tr><td class="label">Fax</td><td>{{ fax.number }}</td></tr>
+    <tr><td class="label">From</td><td>{{ company.name }}</td></tr>
+    {% if company.phone %}<tr><td class="label">Phone</td><td>{{ company.phone }}</td></tr>{% endif %}
+    {% if company.fax %}<tr><td class="label">Reply fax</td><td>{{ company.fax }}</td></tr>{% endif %}
+    {% if company.email %}<tr><td class="label">Email</td><td>{{ company.email }}</td></tr>{% endif %}
+    <tr><td class="label">Date</td><td>{{ fax.date }}</td></tr>
+    <tr><td class="label">Pages</td><td>{{ fax.pages }}, including this one</td></tr>
+    {% if fax.subject %}<tr><td class="label">Re</td><td>{{ fax.subject }}</td></tr>{% endif %}
+  </table>
+
+  {% if fax.note %}<div class="note">{{ fax.note }}</div>{% endif %}
+</body>
+</html>

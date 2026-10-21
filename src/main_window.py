@@ -237,6 +237,10 @@ class MainGUI :
 		from reports import contact_history
 		contact_history.ContactHistoryGUI()
 
+	def send_fax_activated (self, menuitem):
+		import fax_window
+		fax_window.FaxGUI()
+
 	def serial_numbers_activated (self, menuitem):
 		import product_serial_numbers
 		product_serial_numbers.ProductSerialNumbersGUI()

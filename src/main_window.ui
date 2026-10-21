@@ -402,6 +402,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Send fax</property>
+                        <property name="use-underline">True</property>
+                        <signal name="activate" handler="send_fax_activated" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuitem75">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
