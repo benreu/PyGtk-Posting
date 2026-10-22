@@ -1,4 +1,11 @@
 import unittest
+import os, sys
+# the harness is a directory up, beside the other test folders; its
+# own directory is here as well, for the fixtures a folder shares
+sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)),
+				os.path.join(os.path.dirname(os.path.abspath(__file__)),
+								'..')]
+
 from harness import DBTestCase
 
 class StockReturnTest(DBTestCase):

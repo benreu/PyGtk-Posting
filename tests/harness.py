@@ -1,13 +1,14 @@
 # harness.py
 #
-# Shared setup for the inventory tests. They run against the restore copy
+# Shared setup for every test folder beside it: it stands a level above them
+# because it belongs to none of them. They run against the restore copy
 # 'silrep_restore' only, inside one transaction that is rolled back in tearDown,
 # so the database is left unchanged. The password is read from the environment.
 
 import os, sys, unittest
 import psycopg2
 
-SRC = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
+SRC = os.path.join(os.path.dirname(__file__), '..', 'src')
 sys.path.insert(0, os.path.abspath(SRC))
 
 import constants
