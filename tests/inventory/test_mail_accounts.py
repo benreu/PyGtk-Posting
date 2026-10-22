@@ -37,6 +37,11 @@ class MailAccountTest (harness.DBTestCase):
 		self.message = mock.patch.object(Gtk.MessageDialog, 'run',
 											return_value = None).start()
 		self.verify = mock.patch.object(emailing, 'verify_login').start()
+		# every way out to a server is stopped here, not per test: check_login
+		# lists the folders as well as logging in, and one unmocked call means
+		# the suite dials the real mail server
+		self.list_folders = mock.patch.object(emailing, 'list_folders',
+												return_value = []).start()
 		self.store = mock.patch.object(credentials, 'store_password').start()
 		self.clear = mock.patch.object(credentials, 'clear_password',
 										return_value = True).start()
@@ -244,9 +249,22 @@ class PasswordTest (MailAccountTest):
 		with mock.patch.object(credentials, 'password',
 								return_value = 'stored') as lookup:
 			self.gui.check_login(acct)
-		lookup.assert_called_once_with('smtp', 'smtp.emypeople.net',
-										'silrep@emypeople.net')
+		lookup.assert_any_call('smtp', 'smtp.emypeople.net',
+								'silrep@emypeople.net')
 		self.verify.assert_called_once_with(acct, 'stored')
+
+	def test_logging_in_also_asks_what_the_folders_are_called (self):
+		# the same connection answers both, so the Sent folder can be picked
+		# from the server's own names rather than typed from memory
+		self.fill()
+		acct = self.gui.mail_account_form()
+		self.list_folders.return_value = [(['\\Sent'], 'Sent')]
+		with mock.patch.object(credentials, 'password',
+								return_value = 'stored'):
+			message = self.gui.check_login(acct)
+		self.assertTrue(self.list_folders.called)
+		self.assertEqual(self.gui.listed_folders, [(['\\Sent'], 'Sent')])
+		self.assertIn('1 folders', message)
 
 	def test_forgetting_says_what_was_forgotten (self):
 		self.fill()
@@ -474,3 +492,74 @@ class SecurityAndPortTest (MailAccountTest):
 						'mail_account_smtp_port_spinbutton').set_value(2525)
 		acct = self.gui.mail_account_form()
 		self.assertEqual(self.gui.security_mismatch_hint(acct), '')
+
+
+class SentFolderTest (MailAccountTest):
+	'''Where copies of sent mail are filed. Typed from memory this gets a
+	capital letter or a namespace prefix wrong, the APPEND is refused, and
+	every message goes out with its copy unfiled - so the list comes from the
+	server, by pressing Test.'''
+
+	def combo (self):
+		return self.gui.builder.get_object('mail_account_sent_folder_combo')
+
+	def chosen (self):
+		return (self.combo().get_active_text() or '').strip()
+
+	def listed (self):
+		return [row[0] for row in self.combo().get_model()]
+
+	def test_the_folders_the_server_named_are_offered (self):
+		self.fill()
+		self.gui.listed_folders = [(['\\HasNoChildren'], 'INBOX'),
+									(['\\Sent'], 'Sent'),
+									([], 'Quotes')]
+		self.gui.fill_sent_folders()
+		self.assertEqual(self.listed(), ['INBOX', 'Sent', 'Quotes'])
+
+	def test_the_one_the_server_flags_is_chosen (self):
+		self.fill()
+		self.gui.listed_folders = [([], 'INBOX'), (['\\Sent'], 'Sent Items')]
+		self.gui.fill_sent_folders()
+		self.assertEqual(self.chosen(), 'Sent Items')
+		self.assertIn('Sent Items', self.status())
+
+	def test_a_choice_already_made_is_not_overruled (self):
+		# the list is there to change it, not to decide for somebody
+		self.fill()
+		self.combo().get_child().set_text('INBOX.Sent')
+		self.gui.listed_folders = [(['\\Sent'], 'Sent')]
+		self.gui.fill_sent_folders()
+		self.assertEqual(self.chosen(), 'INBOX.Sent')
+
+	def test_nothing_obvious_is_left_for_the_user_to_pick (self):
+		self.fill()
+		self.gui.listed_folders = [([], 'INBOX'), ([], 'Work')]
+		self.gui.fill_sent_folders()
+		self.assertEqual(self.chosen(), '')
+		self.assertEqual(self.listed(), ['INBOX', 'Work'])
+
+	def test_it_is_saved_with_the_account (self):
+		self.fill()
+		self.combo().get_child().set_text('Sent')
+		self.gui.mail_account_save_clicked(None)
+		self.cursor.execute("SELECT sent_folder FROM settings.mail_accounts "
+							"WHERE active")
+		self.assertEqual(self.cursor.fetchone()[0], 'Sent')
+
+	def test_it_comes_back_when_the_account_is_opened (self):
+		self.fill()
+		self.combo().get_child().set_text('Sent Items')
+		self.gui.mail_account_save_clicked(None)
+		self.gui.mail_account_new_clicked(None)
+		self.assertEqual(self.chosen(), '')
+		selection = self.gui.builder.get_object('mail_account_selection')
+		store = self.gui.builder.get_object('mail_account_store')
+		selection.select_iter(store.get_iter_first())
+		self.assertEqual(self.chosen(), 'Sent Items')
+
+	def test_emailing_sends_from_an_account_that_knows_its_sent_folder (self):
+		self.fill()
+		self.combo().get_child().set_text('Sent')
+		self.gui.mail_account_save_clicked(None)
+		self.assertEqual(emailing.account().sent_folder, 'Sent')

@@ -40,7 +40,7 @@ main thread from the idle callback.'''
 from gi.repository import Gtk, GLib
 from email.message import EmailMessage
 from email.utils import formataddr, parseaddr, make_msgid
-import mimetypes, smtplib, ssl, threading
+import mimetypes, re, smtplib, ssl, threading
 from db_connection import DB
 import credentials
 
@@ -238,10 +238,16 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 						"The email was not sent:\n%s" % e)
 		return False
 
-	def report (error):
+	def report (error, not_filed):
 		if error is None:
-			show_message(parent, Gtk.MessageType.INFO,
-							"Sent to %s." % message['To'])
+			sent = "Sent to %s." % message['To']
+			if not_filed is not None:
+				# a copy that did not get filed is worth saying, but it is not
+				# a failed send: the message has gone and cannot be unsent
+				sent += ("\n\nThe copy could not be filed in %s:\n%s"
+							% (acct.sent_folder or 'the Sent folder',
+								not_filed))
+			show_message(parent, Gtk.MessageType.INFO, sent)
 		else:
 			show_message(parent, Gtk.MessageType.ERROR,
 							"The email was not sent:\n%s" % error)
@@ -250,7 +256,7 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 		return False # idle_add: once, never re-armed
 
 	def work ():
-		error = None
+		error, not_filed = None, None
 		try:
 			secret = ''
 			if acct.smtp_user != '':
@@ -263,7 +269,16 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 			# an unexpected failure on a thread would otherwise be a traceback
 			# on stderr and a window that sits there looking like it worked
 			error = e
-		GLib.idle_add(report, error)
+		if error is None and acct.imap_host != '':
+			# only now: filing a copy of a message that never went would be a
+			# record of something that did not happen
+			try:
+				append_to_sent(acct, message)
+			except (MailError, credentials.CredentialError) as e:
+				not_filed = e
+			except Exception as e:
+				not_filed = e
+		GLib.idle_add(report, error, not_filed)
 
 	threading.Thread(target = work, daemon = True).start()
 	return True
@@ -378,3 +393,145 @@ class PasswordDialog (Gtk.Dialog):
 		password = self.password_entry.get_text()
 		self.destroy()
 		return password if response == Gtk.ResponseType.OK else None
+
+
+# A folder listing line: (\HasNoChildren \Sent) "/" "Sent"
+LIST_LINE = re.compile(rb'^\((?P<flags>[^)]*)\)\s+'
+						rb'(?P<delimiter>"[^"]*"|NIL)\s+'
+						rb'(?P<name>"(?:[^"\\]|\\.)*"|\S+)\s*$')
+# the server's answer to a successful APPEND when it speaks UIDPLUS
+APPENDUID = re.compile(rb'APPENDUID\s+(\d+)\s+(\d+)')
+# what a Sent folder is called when the server does not say which one it is,
+# best first
+SENT_NAMES = ('sent', 'sent items', 'sent messages', 'sent mail',
+				'inbox.sent', '[gmail]/sent mail')
+
+
+def parse_list_line (line):
+	'''One line of a LIST response as (flags, name), or None when it is not
+	one. Server replies are bytes and the name may be quoted and escaped.'''
+	if not isinstance(line, bytes):
+		line = str(line).encode()
+	match = LIST_LINE.match(line.strip())
+	if match == None:
+		return None
+	name = match.group('name').decode('utf-8', 'replace')
+	if name.startswith('"') and name.endswith('"'):
+		name = name[1:-1].replace('\\"', '"').replace('\\\\', '\\')
+	flags = match.group('flags').decode('ascii', 'replace').split()
+	return flags, name
+
+def likely_sent_folder (entries):
+	'''Which of (flags, name) holds sent mail, or '' when none of them
+	obviously does.
+
+	A server that says which one it is, by flagging it \\Sent, is believed
+	over any name: the folder is called different things in different
+	languages and under different namespaces, and guessing wrong files
+	everything somewhere nobody looks.'''
+	for flags, name in entries:
+		if any(flag.lower() == '\\sent' for flag in flags):
+			return name
+	for wanted in SENT_NAMES:
+		for flags, name in entries:
+			if name.lower() == wanted:
+				return name
+	return ''
+
+def appenduid (response):
+	'''The uid the server filed an APPEND under, as (uidvalidity, uid), or
+	None when it did not say.
+
+	Not saying is not a failure. The copy is filed either way; only knowing
+	where is lost, so this never raises - an unparseable answer is treated as
+	"appended, uid unknown".'''
+	for part in (response or ()):
+		if not isinstance(part, bytes):
+			part = str(part).encode()
+		match = APPENDUID.search(part)
+		if match != None:
+			return int(match.group(1)), int(match.group(2))
+	return None
+
+def imap_connection (acct, secret):
+	"logged in, for the caller to use and log out of"
+	import imaplib
+	try:
+		mailbox = imaplib.IMAP4_SSL(acct.imap_host, acct.imap_port,
+									timeout = NET_TIMEOUT)
+	except (OSError, imaplib.IMAP4.error, ssl.SSLError) as e:
+		raise MailError("%s:%s could not be reached:\n%s"
+						% (acct.imap_host, acct.imap_port, e))
+	try:
+		if acct.imap_user != '':
+			mailbox.login(acct.imap_user, secret)
+	except imaplib.IMAP4.error as e:
+		mailbox.logout()
+		raise MailAuthError("%s would not accept the login for %s:\n%s"
+							% (acct.imap_host, acct.imap_user, e))
+	except (OSError, ssl.SSLError) as e:
+		mailbox.logout()
+		raise MailError("%s could not be asked whether the login for %s "
+						"works:\n%s" % (acct.imap_host, acct.imap_user, e))
+	return mailbox
+
+def list_folders (acct, secret):
+	"Every folder on the server, as (flags, name). Blocks; worker thread only."
+	mailbox = imap_connection(acct, secret)
+	try:
+		result, lines = mailbox.list()
+		if result != 'OK':
+			raise MailError("%s would not list its folders: %s"
+							% (acct.imap_host, result))
+		entries = [parse_list_line(line) for line in (lines or ())]
+		return [entry for entry in entries if entry != None]
+	finally:
+		try:
+			mailbox.logout()
+		except Exception:
+			pass
+
+def append_to_sent (acct, message):
+	'''File a copy of what was just sent in the account's Sent folder, and
+	return where it was filed as (uidvalidity, uid), or None.
+
+	Without this a message sent from Posting exists nowhere but in the
+	recipient's mailbox: it is missing from Sent on the phone, in webmail and
+	in Thunderbird, so the record of what was sent to a customer depends on
+	which program it was sent from.
+
+	It is marked \\Seen, because nobody needs to be told they have unread
+	mail they wrote themselves. Blocks; worker thread only.'''
+	import imaplib, time
+	if acct.imap_host == '':
+		raise MailError("The mail account has no IMAP server, so there is "
+						"nowhere to file a copy.\n\nOpen Settings, Mail "
+						"accounts, and fill one in.")
+	if acct.sent_folder == '':
+		raise MailError("The mail account has no Sent folder set.\n\nOpen "
+						"Settings, Mail accounts, press Test, and choose one.")
+	secret = ''
+	if acct.imap_user != '':
+		secret = credentials.password('imap', acct.imap_host, acct.imap_user)
+	mailbox = imap_connection(acct, secret)
+	try:
+		# CRLF, which is what RFC 3501 says a literal is in; as_bytes() uses
+		# the policy's own linesep, which is a bare newline, and a server
+		# entitled to refuse that would refuse every copy
+		data = message.as_bytes(policy = message.policy.clone(linesep = '\r\n'))
+		result, response = mailbox.append(acct.sent_folder, '\\Seen',
+							imaplib.Time2Internaldate(time.time()), data)
+		if result != 'OK':
+			raise MailError("%s would not file the copy in %s: %s"
+							% (acct.imap_host, acct.sent_folder, result))
+		return appenduid(response)
+	except imaplib.IMAP4.error as e:
+		raise MailError("%s would not file the copy in %s:\n%s"
+						% (acct.imap_host, acct.sent_folder, e))
+	finally:
+		try:
+			mailbox.logout()
+		except Exception:
+			# the copy is filed by now; a server that hangs up rudely
+			# afterwards has not unfiled it
+			pass

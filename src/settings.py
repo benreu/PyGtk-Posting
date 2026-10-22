@@ -607,7 +607,7 @@ class GUI():
 		cursor = DB.cursor()
 		cursor.execute("SELECT name, from_name, from_address, smtp_host, "
 							"smtp_port, smtp_security, smtp_user, imap_host, "
-							"imap_port, imap_user "
+							"imap_port, imap_user, sent_folder "
 						"FROM settings.mail_accounts WHERE id = %s",
 						(self.mail_account_id,))
 		row = cursor.fetchone()
@@ -616,7 +616,7 @@ class GUI():
 		if row == None:
 			return
 		(name, from_name, from_address, smtp_host, smtp_port, smtp_security,
-			smtp_user, imap_host, imap_port, imap_user) = row
+			smtp_user, imap_host, imap_port, imap_user, sent_folder) = row
 		# the security combo follows its port around, so what is being put
 		# into the form is not a choice anybody just made
 		self.mail_account_loading = True
@@ -630,6 +630,8 @@ class GUI():
 		self.builder.get_object('mail_account_imap_host_entry').set_text(imap_host)
 		self.builder.get_object('mail_account_imap_port_spinbutton').set_value(imap_port)
 		self.builder.get_object('mail_account_imap_user_entry').set_text(imap_user)
+		self.builder.get_object(
+				'mail_account_sent_folder_combo').get_child().set_text(sent_folder)
 		self.mail_account_loading = False
 		self.update_mail_account_status()
 
@@ -677,6 +679,8 @@ class GUI():
 		self.builder.get_object('mail_account_smtp_port_spinbutton').set_value(587)
 		self.builder.get_object('mail_account_imap_port_spinbutton').set_value(993)
 		self.builder.get_object('mail_account_security_combo').set_active_id('starttls')
+		self.builder.get_object(
+						'mail_account_sent_folder_combo').get_child().set_text('')
 		self.builder.get_object('mail_account_status_label').set_text('')
 		self.builder.get_object('mail_account_name_entry').grab_focus()
 
@@ -701,7 +705,8 @@ class GUI():
 		acct.imap_port = self.builder.get_object(
 							'mail_account_imap_port_spinbutton').get_value_as_int()
 		acct.imap_user = get('mail_account_imap_user_entry')
-		acct.sent_folder = ''
+		acct.sent_folder = (self.builder.get_object(
+					'mail_account_sent_folder_combo').get_active_text() or '').strip()
 		if acct.name == '':
 			self.show_message("The account needs a name.")
 			return None
@@ -721,7 +726,8 @@ class GUI():
 		warning = self.orphaned_password_warning(acct)
 		values = (acct.name, acct.from_name, acct.from_address, acct.smtp_host,
 					acct.smtp_port, acct.smtp_security, acct.smtp_user,
-					acct.imap_host, acct.imap_port, acct.imap_user)
+					acct.imap_host, acct.imap_port, acct.imap_user,
+					acct.sent_folder)
 		cursor = DB.cursor()
 		# saving an account is what puts it in use, and only one may be: the
 		# unique index on (active) WHERE active refuses a second one, so the
@@ -732,17 +738,19 @@ class GUI():
 			cursor.execute("INSERT INTO settings.mail_accounts "
 								"(name, from_name, from_address, smtp_host, "
 								"smtp_port, smtp_security, smtp_user, "
-								"imap_host, imap_port, imap_user, active) "
+								"imap_host, imap_port, imap_user, "
+								"sent_folder, active) "
 								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, "
-								"%s, True) RETURNING id", values)
+								"%s, %s, True) RETURNING id", values)
 			self.mail_account_id = cursor.fetchone()[0]
 		else:
 			cursor.execute("UPDATE settings.mail_accounts SET "
 								"(name, from_name, from_address, smtp_host, "
 								"smtp_port, smtp_security, smtp_user, "
-								"imap_host, imap_port, imap_user, active) = "
-								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) "
-								"WHERE id = %s",
+								"imap_host, imap_port, imap_user, "
+								"sent_folder, active) = "
+								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+								"True) WHERE id = %s",
 								values + (self.mail_account_id,))
 		cursor.close()
 		DB.commit()
@@ -896,11 +904,16 @@ class GUI():
 		acct = self.mail_account_form()
 		if acct == None:
 			return
+		self.listed_folders = []
 		self.run_mail_account_check(acct, lambda: self.check_login(acct),
-									"Logging in...")
+									"Logging in...",
+									on_success = self.fill_sent_folders)
 
 	def check_login (self, acct):
-		"worker thread: log in with the password stored on this workstation"
+		'''worker thread: log in with the password stored on this
+		workstation, and while connected ask what the folders are called, so
+		the Sent folder can be chosen from the server's own list rather than
+		typed from memory'''
 		password = ''
 		if acct.smtp_user != '':
 			password = credentials.password('smtp', acct.smtp_host,
@@ -909,9 +922,38 @@ class GUI():
 			password = credentials.password('imap', acct.imap_host,
 											acct.imap_user)
 		emailing.verify_login(acct, password)
-		return "Logged in. Mail can be sent from this computer."
+		if acct.imap_host == '':
+			return "Logged in. Mail can be sent from this computer."
+		imap_password = password
+		if acct.imap_user != '' and acct.imap_user != acct.smtp_user:
+			imap_password = credentials.password('imap', acct.imap_host,
+													acct.imap_user)
+		self.listed_folders = emailing.list_folders(acct, imap_password)
+		return ("Logged in. Mail can be sent from this computer, and %s "
+				"folders were found." % len(self.listed_folders))
 
-	def run_mail_account_check (self, acct, work, busy_text, on_error = None):
+	def fill_sent_folders (self):
+		'''Main thread: offer the folders the server just named, and pick the
+		one it says is Sent when nothing has been chosen yet.
+
+		Typed from memory this gets a capital letter or a namespace prefix
+		wrong, the APPEND is refused, and every message goes out with its copy
+		unfiled - so the list comes from the server.'''
+		combo = self.builder.get_object('mail_account_sent_folder_combo')
+		combo.remove_all()
+		for flags, name in self.listed_folders:
+			combo.append_text(name)
+		if (combo.get_active_text() or '').strip() != '':
+			return # already chosen; the list is there to change it
+		guess = emailing.likely_sent_folder(self.listed_folders)
+		if guess != '':
+			combo.get_child().set_text(guess)
+			self.set_mail_account_status("%s is where copies of sent mail will "
+										"be filed. Press Save to keep it."
+										% guess)
+
+	def run_mail_account_check (self, acct, work, busy_text, on_error = None,
+								on_success = None):
 		'''Run work on a worker thread and report what it says in the status
 		label. Everything it does blocks - a keyring lookup waits on a prompt
 		when the keyring is locked, and a server that is not answering waits
@@ -939,6 +981,8 @@ class GUI():
 				# and no update_mail_account_status () after it, which would
 				# overwrite this with its own wording the moment it was shown
 				self.set_mail_account_status(message)
+				if on_success != None:
+					on_success()
 			return False # idle_add: once, never re-armed
 
 		def run ():

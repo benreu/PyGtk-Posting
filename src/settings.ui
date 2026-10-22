@@ -1981,6 +1981,37 @@
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="label" translatable="yes">Sent folder</property>
+                              </object>
+                              <packing>
+                                <property name="left_attach">0</property>
+                                <property name="top_attach">10</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="mail_account_sent_folder_combo">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="has-entry">True</property>
+                                <property name="tooltip_text" translatable="yes">Where a copy of each message is filed, so it shows in Sent everywhere else. Press Test to list the folders on the server</property>
+                                <child internal-child="entry">
+                                  <object class="GtkEntry" id="mail_account_sent_folder_entry">
+                                    <property name="can_focus">True</property>
+                                    <property name="width_chars">28</property>
+                                    <property name="placeholder_text" translatable="yes">Press Test to find it</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">1</property>
+                                <property name="top_attach">10</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkEntry" id="mail_account_imap_user_entry">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
