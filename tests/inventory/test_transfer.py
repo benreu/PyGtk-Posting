@@ -2,6 +2,13 @@ import unittest
 from datetime import date, timedelta
 from decimal import Decimal
 from unittest import mock
+import os, sys
+# the harness is a directory up, beside the other test folders; its
+# own directory is here as well, for the fixtures a folder shares
+sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)),
+				os.path.join(os.path.dirname(os.path.abspath(__file__)),
+								'..')]
+
 from harness import DBTestCase
 
 INVENTORY_ACCOUNT = 1761 # a real inventory asset account; 1710 is receivables

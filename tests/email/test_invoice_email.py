@@ -14,16 +14,21 @@
 import os, sys, unittest
 from unittest import mock
 
-sys.path.insert(0, os.path.dirname(__file__))
+# the harness is a directory up, beside the other test folders; its
+# own directory is here as well, for the fixtures a folder shares
+sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)),
+				os.path.join(os.path.dirname(os.path.abspath(__file__)),
+								'..')]
 
 import harness
+from mail_schema import MailTestCase
 import emailing
 from gi.repository import Gtk
 
 PDF = b'%PDF-1.4 the bytes that were posted'
 
 
-class InvoiceEmailTest (harness.DBTestCase):
+class InvoiceEmailTest (MailTestCase):
 
 	REAL_CUSTOMERS = ("SELECT c.id FROM contacts AS c "
 						"JOIN customer_markup_percent AS m "
@@ -161,7 +166,7 @@ class PostedInvoiceTest (InvoiceEmailTest):
 		self.assertFalse(self.compose.called)
 
 
-class DocumentEmailTest (harness.DBTestCase):
+class DocumentEmailTest (MailTestCase):
 
 	def setUp (self):
 		super().setUp()

@@ -1,13 +1,14 @@
 # harness.py
 #
-# Shared setup for the inventory tests. They run against the restore copy
+# Shared setup for every test folder beside it: it stands a level above them
+# because it belongs to none of them. They run against the restore copy
 # 'silrep_restore' only, inside one transaction that is rolled back in tearDown,
 # so the database is left unchanged. The password is read from the environment.
 
 import os, sys, unittest
 import psycopg2
 
-SRC = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
+SRC = os.path.join(os.path.dirname(__file__), '..', 'src')
 sys.path.insert(0, os.path.abspath(SRC))
 
 import constants
@@ -169,27 +170,10 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
 	('public', 'gl_entries', 'source_type'))
 """
 
-# Asked separately for the same reason again, and the cheapest of the lot: the
-# table is new in 0.7.35 and nothing existed to lock, so a copy that is behind
-# pays one CREATE TABLE on a table no other test touches
-MAIL_SCHEMA_PROBE = """
-SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
-	(table_schema, table_name) = ('settings', 'mail_accounts'))
-"""
-
-# And again for 0.7.36. Its own probe because the two upgrades land
-# separately: a copy can have the account table and not the messages one
-MAIL_MESSAGE_SCHEMA_PROBE = """
-SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
-	(table_schema, table_name) = ('settings', 'email_messages'))
-"""
-
 _conn = None
 _schema_pending = True # until asked; a copy that is behind pays the DDL per test
 _settings_schema_pending = True
 _gl_source_schema_pending = True
-_mail_schema_pending = True
-_mail_message_schema_pending = True
 try:
 	_conn = connect()
 	# asked here, before FakeDB opens the savepoint every test rolls back to, so
@@ -201,10 +185,6 @@ try:
 	_settings_schema_pending = _probe.fetchone()[0]
 	_probe.execute(GL_SOURCE_SCHEMA_PROBE)
 	_gl_source_schema_pending = _probe.fetchone()[0]
-	_probe.execute(MAIL_SCHEMA_PROBE)
-	_mail_schema_pending = _probe.fetchone()[0]
-	_probe.execute(MAIL_MESSAGE_SCHEMA_PROBE)
-	_mail_message_schema_pending = _probe.fetchone()[0]
 	_probe.close()
 	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
@@ -503,57 +483,6 @@ ALTER TABLE public.gl_entries
 	ADD COLUMN IF NOT EXISTS source_id bigint;
 """
 
-# 0.7.35, the mail account the Settings page edits and emailing.account () reads.
-# Its own block, see MAIL_SCHEMA_PROBE. There is deliberately no password column
-# here or in the migration: the password is in the workstation's login keyring
-# through credentials.py, so nothing in this database - or in a dump of it, or
-# in this restore copy - can leak it.
-#
-# The CHECK and the one-active index the migration carries are kept, unlike the
-# two blocks above: the table is new, so validating a constraint on it scans
-# nothing and locks nothing any other test wants, and both are what the settings
-# page is tested against
-PENDING_MAIL_SCHEMA = """
-CREATE TABLE IF NOT EXISTS settings.mail_accounts (
-	id serial PRIMARY KEY,
-	name varchar NOT NULL,
-	imap_host varchar NOT NULL DEFAULT '',
-	imap_port int NOT NULL DEFAULT 993,
-	imap_user varchar NOT NULL DEFAULT '',
-	smtp_host varchar NOT NULL DEFAULT '',
-	smtp_port int NOT NULL DEFAULT 587,
-	smtp_user varchar NOT NULL DEFAULT '',
-	smtp_security varchar NOT NULL DEFAULT 'starttls',
-	from_name varchar NOT NULL DEFAULT '',
-	from_address varchar NOT NULL DEFAULT '',
-	sent_folder varchar NOT NULL DEFAULT '',
-	active boolean NOT NULL DEFAULT True,
-	date_created date NOT NULL DEFAULT now()
-);
-ALTER TABLE settings.mail_accounts
-	DROP CONSTRAINT IF EXISTS mail_accounts_smtp_security_known;
-ALTER TABLE settings.mail_accounts
-	ADD CONSTRAINT mail_accounts_smtp_security_known
-		CHECK (smtp_security IN ('starttls', 'tls', 'none'));
-CREATE UNIQUE INDEX IF NOT EXISTS mail_accounts_one_active
-	ON settings.mail_accounts (active) WHERE active;
-"""
-
-# 0.7.36, the wording an invoice is emailed with. The real migration seeds the
-# standard message inside the same guard that creates the table, so that a
-# re-run cannot put it back under somebody who rewrote it; the seed is left
-# off here because every test that reads a message sets the one it wants, and
-# a fixture row nobody asked for is a precondition waiting to be inherited
-PENDING_MAIL_MESSAGE_SCHEMA = """
-CREATE TABLE IF NOT EXISTS settings.email_messages (
-	id serial PRIMARY KEY,
-	name varchar NOT NULL UNIQUE,
-	subject varchar NOT NULL DEFAULT '',
-	body varchar NOT NULL DEFAULT '',
-	date_created date NOT NULL DEFAULT now()
-);
-"""
-
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
@@ -579,14 +508,8 @@ class DBTestCase(unittest.TestCase):
 			self.cursor.execute(PENDING_SETTINGS_SCHEMA)
 		if _gl_source_schema_pending:
 			self.cursor.execute(PENDING_GL_SOURCE_SCHEMA)
-		if _mail_schema_pending:
-			self.cursor.execute(PENDING_MAIL_SCHEMA)
-		if _mail_message_schema_pending:
-			self.cursor.execute(PENDING_MAIL_MESSAGE_SCHEMA)
 		if _schema_pending or _settings_schema_pending \
-							or _gl_source_schema_pending \
-							or _mail_schema_pending \
-							or _mail_message_schema_pending:
+							or _gl_source_schema_pending:
 			# move the savepoint past the DDL. FakeDB.rollback () returns to
 			# test_sp, which was taken at import, so a window doing the usual
 			# DB.rollback () after a read would otherwise undo the columns just

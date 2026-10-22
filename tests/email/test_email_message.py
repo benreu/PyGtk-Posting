@@ -12,9 +12,14 @@
 import os, sys, unittest
 from unittest import mock
 
-sys.path.insert(0, os.path.dirname(__file__))
+# the harness is a directory up, beside the other test folders; its
+# own directory is here as well, for the fixtures a folder shares
+sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)),
+				os.path.join(os.path.dirname(os.path.abspath(__file__)),
+								'..')]
 
 import harness
+from mail_schema import MailTestCase
 import emailing
 from gi.repository import Gtk
 
@@ -68,7 +73,7 @@ class FillTemplateTest (unittest.TestCase):
 		self.assertNotIn('{', filled)
 
 
-class MessageTemplateTest (harness.DBTestCase):
+class MessageTemplateTest (MailTestCase):
 
 	def setUp (self):
 		super().setUp()
@@ -112,7 +117,7 @@ class MessageTemplateTest (harness.DBTestCase):
 		self.assertEqual(body, 'Hi Alvin, you owe $486.20.')
 
 
-class EmailMessageWindowTest (harness.DBTestCase):
+class EmailMessageWindowTest (MailTestCase):
 
 	def setUp (self):
 		super().setUp()
@@ -211,7 +216,7 @@ if __name__ == '__main__':
 	unittest.main()
 
 
-class SeededMessageTest (harness.DBTestCase):
+class SeededMessageTest (MailTestCase):
 	'''The standard wording lives in two places that must not drift: the
 	INSERT in --0.7.36, which is what an upgraded database gets, and
 	emailing.DEFAULT_MESSAGES, which is what the Restore button puts back and
@@ -239,7 +244,7 @@ class SeededMessageTest (harness.DBTestCase):
 
 	def setUp (self):
 		super().setUp()
-		# the harness creates the table without the seed, so that every test
+		# mail_schema creates the table without the seed, so that every test
 		# sets the message it wants; this one wants what the upgrade does
 		self.cursor.execute("DROP TABLE IF EXISTS settings.email_messages")
 		self.DB.commit()
