@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import os, apsw
-import constants
+import constants, credentials
 
 
 def get_apsw_connection():
@@ -26,7 +26,65 @@ def get_apsw_connection():
 	else:
 		pref_file = os.path.join(constants.preferences_path, 
 											'local_settings')
+	make_private(pref_file)
 	return apsw.Connection(pref_file)
+
+def make_private (path):
+	'''Readable by its owner only. The file used to be created 0644, readable
+	by every account on the machine, while it held the database password in
+	plain text. A new one is created 0600 here; an old one is narrowed to it.
+	SQLite gives its journal the same mode as the file.'''
+	try:
+		fd = os.open(path, os.O_CREAT | os.O_RDONLY, 0o600)
+		try:
+			if os.fstat(fd).st_mode & 0o077:
+				os.fchmod(fd, 0o600)
+		finally:
+			os.close(fd)
+	except OSError as e:
+		print("sqlite_utils: could not make %s private: %s" % (path, e))
+
+def move_passwords_to_keyring(cursor):
+	'''Move the database passwords this file used to keep in plain text into
+	the login keyring (see credentials.py), and blank them here.
+
+	A password is blanked only once the keyring has taken it, because it may be
+	the only copy there is. When the keyring cannot be reached - no
+	gir1.2-secret-1, no desktop session, the unlock prompt declined - nothing
+	more is touched, the plain text keeps working, and the next start tries
+	again. Where two rows name the same server and user with different
+	passwords, the default connection's wins: it is the one in use, and a
+	stale one would only be asked for at the next connect anyway.
+
+	Returns how many passwords were moved.'''
+	rows = list(cursor.execute("SELECT host, port, user, password "
+								"FROM postgres_conn"))
+	rows += list(cursor.execute("SELECT server, port, user, password "
+								"FROM db_connections ORDER BY id DESC"))
+	moved = set()
+	for host, port, user, password in rows:
+		if password in ('', 'None') or (host, port, user) in moved:
+			continue
+		try:
+			credentials.store_password('postgres',
+										credentials.postgres_host(host, port),
+										user, password)
+		except credentials.CredentialError as e:
+			print("sqlite_utils: database passwords stay in local_settings "
+					"until the login keyring can take them: %s" % e)
+			break
+		cursor.execute("UPDATE postgres_conn SET password = '' "
+						"WHERE host = ? AND port = ? AND user = ?",
+						(host, port, user))
+		cursor.execute("UPDATE db_connections SET password = '' "
+						"WHERE server = ? AND port = ? AND user = ?",
+						(host, port, user))
+		moved.add((host, port, user))
+	if moved:
+		# an overwritten value stays readable in the file's free pages until
+		# the file is rebuilt
+		cursor.execute("VACUUM")
+	return len(moved)
 
 def create_apsw_tables(cursor):
 	cursor.execute("PRAGMA foreign_keys=on;")
@@ -82,6 +140,8 @@ def create_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO db_connections VALUES "
 					"('1', 'name', 'localhost', '5432', "
 					"'postgres', 'None', 'None', 'False', 'False')")
+	# the password columns are kept, so an older Posting can still read this
+	# file, and hold '' for every connection whose password is in the keyring
 
 def update_apsw_tables(cursor):
 	cursor.execute("INSERT OR IGNORE INTO postgres_conn VALUES "

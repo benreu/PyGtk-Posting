@@ -19,53 +19,8 @@ sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)),
 
 import harness
 import credentials
+from harness import FakeSecret
 from gi.repository import GLib
-
-
-class FakeSchemaAttributeType (object):
-	STRING = 'string'
-
-
-class FakeSecret (object):
-	"only what credentials.py asks of libsecret"
-	COLLECTION_DEFAULT = 'default'
-	SchemaAttributeType = FakeSchemaAttributeType
-
-	class SchemaFlags (object):
-		NONE = 0
-
-	class ServiceFlags (object):
-		OPEN_SESSION = 2
-
-	class SearchFlags (object):
-		NONE = 0
-		UNLOCK = 2
-		LOAD_SECRETS = 4
-
-	class Schema (object):
-		@staticmethod
-		def new (name, flags, attributes):
-			return {'name': name, 'flags': flags, 'attributes': attributes}
-
-	def __init__ (self):
-		self.stored = {}
-		self.lookup_error = None
-		self.lookup_result = None
-		self.items = []
-		self.searched = []
-
-	def password_lookup_sync (self, schema, attributes, cancellable):
-		if self.lookup_error != None:
-			raise self.lookup_error
-		return self.lookup_result
-
-	def password_store_sync (self, schema, attributes, collection, label,
-								password, cancellable):
-		self.stored[tuple(sorted(attributes.items()))] = (label, password)
-		return True
-
-	def password_clear_sync (self, schema, attributes, cancellable):
-		return self.stored.pop(tuple(sorted(attributes.items())), None) != None
 
 
 class CredentialsTestCase (unittest.TestCase):
@@ -108,11 +63,15 @@ class SchemaTest (CredentialsTestCase):
 		with self.assertRaises(credentials.CredentialError):
 			credentials.attributes('ftp', 'h', 'u')
 
-	def test_postgres_is_a_service_so_this_could_serve_it_later (self):
-		# not used yet, and deliberately: the connection password cannot be
-		# fetched before it is known which database to dial
+	def test_postgres_is_a_service (self):
+		# the database connection password; tests/db covers how it is used
 		self.assertIn('postgres', credentials.SERVICES)
 		credentials.attributes('postgres', 'h', 'u')
+
+	def test_a_database_password_is_kept_under_host_and_port (self):
+		# changing this orphans every connection password already stored
+		self.assertEqual(credentials.postgres_host('192.168.50.120', '5432'),
+							'192.168.50.120:5432')
 
 
 class PasswordTest (CredentialsTestCase):
@@ -126,6 +85,13 @@ class PasswordTest (CredentialsTestCase):
 		with self.assertRaises(credentials.CredentialError) as caught:
 			credentials.password('smtp', 'h', 'u')
 		self.assertIn('Set password', str(caught.exception))
+
+	def test_a_missing_database_password_does_not_send_anyone_to_mail (self):
+		self.secret.lookup_result = None
+		with self.assertRaises(credentials.CredentialError) as caught:
+			credentials.password('postgres', 'h:5432', 'u')
+		self.assertNotIn('Mail accounts', str(caught.exception))
+		self.assertIn('asks for it', str(caught.exception))
 
 	def test_a_keyring_that_will_not_answer_is_reported_not_swallowed (self):
 		self.secret.lookup_error = GLib.Error('no can do')

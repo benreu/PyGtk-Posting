@@ -33,20 +33,23 @@ while user@host is the same mailbox whichever database named it. One stored
 password then serves every database configured against that mailbox, and it
 outlives the row being deleted and added back.
 
-Nothing here is mail specific. 'postgres' is a service like any other, so the
-connection passwords that sqlite_utils still keeps in plain text could move
-here later without changing this module - that migration is a harder problem
-than this one and is deliberately not attempted: the keyring cannot be reached
-before it is known which database to dial, and a workstation with no stored
-connection password cannot start at all, where one with no stored mail
-password merely cannot send.
+Nothing here is mail specific. 'postgres' is a service like any other, and
+the database connection password is kept here too, under the host and port
+from the local_settings row (postgres_host()), which is known before the
+password is needed. sqlite_utils.move_passwords_to_keyring() moved the ones
+that used to be in local_settings in plain text. A workstation with nothing
+stored still starts: db_connection asks for the password, and keeps it here
+once it has connected.
 
 Every lookup is a blocking call onto the session bus. It is sub-millisecond
 while the keyring is unlocked and open ended while it is not, because the
 service puts up a prompt and waits for it to be answered - so password() is
 called from the worker thread that is about to connect, never from the main
-loop. have_password() is the main-loop-safe question: it asks the service for
-the item without unlocking it and without reading its value.'''
+loop. The one exception is the connection password, read once at startup
+before Gtk.main() runs, when there is no window yet to freeze; reconnects use
+the copy held in memory. have_password() is the main-loop-safe question: it
+asks the service for the item without unlocking it and without reading its
+value.'''
 
 try:
 	import gi
@@ -63,6 +66,12 @@ from gi.repository import GLib
 
 SCHEMA_NAME = "org.pygtk_posting.Secret"
 SERVICES = ('imap', 'smtp', 'postgres')
+# what to do about a password that is not stored here, by service
+MAIL_HINT = "Open Settings, Mail accounts, and press Set password."
+MISSING_HINTS = {'imap': MAIL_HINT,
+				'smtp': MAIL_HINT,
+				'postgres': "Posting asks for it when it connects, and saves "
+							"it in the login keyring once it works."}
 
 _schema = None
 
@@ -103,6 +112,11 @@ def label (service, host, user):
 	"what the item is called in a keyring manager, so a person can find it"
 	return "PyGtk Posting %s - %s on %s" % (service, user, host)
 
+def postgres_host (host, port):
+	'''the host a database password is kept under. The port is part of it,
+	so two clusters on one machine keep separate passwords.'''
+	return "%s:%s" % (host, port)
+
 def password (service, host, user):
 	'''The stored password. Raises CredentialError when there is none here or
 	the keyring will not give it up.
@@ -120,9 +134,8 @@ def password (service, host, user):
 								e.message))
 	if stored is None:
 		raise CredentialError("No %s password for %s has been saved on this "
-								"computer.\n\nOpen Settings, Mail accounts, "
-								"and press Set password."
-								% (service, user))
+								"computer.\n\n%s"
+								% (service, user, MISSING_HINTS[service]))
 	return stored
 
 def store_password (service, host, user, secret_text):

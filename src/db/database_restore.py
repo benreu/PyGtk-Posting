@@ -21,6 +21,7 @@ from gi.repository import Gtk, GLib, Vte
 from db_connection import DB
 from constants import ui_directory
 from sqlite_utils import get_apsw_connection
+from db.database_backup import connection_url, password_environment
 
 UI_FILE = ui_directory + "/db/database_restore.ui"
 
@@ -92,13 +93,13 @@ class RestoreGUI(Gtk.Builder):
 		pty = Vte.Pty.new_sync(Vte.PtyFlags.DEFAULT)
 		self.terminal.set_pty(pty)
 		create_command = ["%s/psql" % self.bin_path,
-							"postgresql://%s:%s@%s:%s/postgres" %
-							(self.user, self.password, self.host, self.port),
+							connection_url(self.user, self.host, self.port,
+											'postgres'),
 							"-c",
 							"CREATE DATABASE %s" % self.db_name]
 		pty.spawn_async(None,
 						create_command,
-						None,
+						password_environment(self.password),
 						GLib.SpawnFlags.DEFAULT,
 						None,
 						None,
@@ -127,12 +128,12 @@ class RestoreGUI(Gtk.Builder):
 		self.terminal.set_pty(pty)
 		restore_command = ["%s/pg_restore" % self.bin_path, 
 							"-v",
-							"--dbname=postgresql://%s:%s@%s:%s/%s" % 
-							(self.user, self.password, self.host, self.port, self.db_name),
+							"--dbname=%s" % connection_url(self.user, self.host,
+														self.port, self.db_name),
 							self.db_file]
 		pty.spawn_async(None,
 						restore_command,
-						None,
+						password_environment(self.password),
 						GLib.SpawnFlags.DEFAULT,
 						None,
 						None,

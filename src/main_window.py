@@ -20,7 +20,6 @@ from gi.repository import Gtk, GLib, GObject, Gdk
 import os, subprocess, re, psycopg2
 from db_connection import DB, db_name, broadcaster, mobile
 from constants import ui_directory, dev_mode, modules_dir, help_dir
-from sqlite_utils import get_apsw_connection
 import admin_utils
 
 UI_FILE = ui_directory + "/main_window.ui"
@@ -459,17 +458,14 @@ class MainGUI :
 		pay_stub_history.PayStubHistoryGUI()
 
 	def backup_window (self, n):
-		sqlite = get_apsw_connection()
-		for row in sqlite.cursor().execute("SELECT "
-											"user, password, host, port "
-											"FROM postgres_conn;"):
-			user = row[0]
-			password = row[1]
-			host = row[2]
-			port = row[3]
-		sqlite.close()
+		# the server this window is connected to, with the password it connected
+		# with - not the default connection's, which is another server when this
+		# was opened as 'database N', and whose password is in the keyring now
+		params = DB._params
 		from db import database_backup
-		database_backup.BackupGUI( host, port, user, password, db_name, automatic = True)
+		database_backup.BackupGUI(params['host'], params['port'], params['user'],
+									params['password'], params['dbname'],
+									automatic = True)
 
 	def to_do_row_activated (self, treeview, path, column):
 		selection = treeview.get_selection()

@@ -87,6 +87,52 @@ class FakeBroadcaster:
 		return [handler for registered, handler in self.handlers.values()
 				if registered == signal]
 
+class FakeSchemaAttributeType (object):
+	STRING = 'string'
+
+class FakeSecret (object):
+	'''only what credentials.py asks of libsecret, so no test touches the real
+	login keyring. Patched in as credentials.Secret; stored is what a store
+	left behind, keyed on the sorted attributes'''
+	COLLECTION_DEFAULT = 'default'
+	SchemaAttributeType = FakeSchemaAttributeType
+
+	class SchemaFlags (object):
+		NONE = 0
+
+	class ServiceFlags (object):
+		OPEN_SESSION = 2
+
+	class SearchFlags (object):
+		NONE = 0
+		UNLOCK = 2
+		LOAD_SECRETS = 4
+
+	class Schema (object):
+		@staticmethod
+		def new (name, flags, attributes):
+			return {'name': name, 'flags': flags, 'attributes': attributes}
+
+	def __init__ (self):
+		self.stored = {}
+		self.lookup_error = None
+		self.lookup_result = None
+		self.items = []
+		self.searched = []
+
+	def password_lookup_sync (self, schema, attributes, cancellable):
+		if self.lookup_error != None:
+			raise self.lookup_error
+		return self.lookup_result
+
+	def password_store_sync (self, schema, attributes, collection, label,
+								password, cancellable):
+		self.stored[tuple(sorted(attributes.items()))] = (label, password)
+		return True
+
+	def password_clear_sync (self, schema, attributes, cancellable):
+		return self.stored.pop(tuple(sorted(attributes.items())), None) != None
+
 # db_connection.DB is imported by value everywhere, so it has to be replaced
 # before any application module is imported
 import db_connection
