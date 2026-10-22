@@ -1427,3 +1427,69 @@ UPDATE public.gl_entries SET source_type = 'voided_check'
    transactions report, which no longer classifies a loan's entries as the
    document's own and so can repair them one at a time with the account chosen
    each time. */
+
+--0.7.35
+/* Mail accounts, so an invoice or a document goes out from Posting itself
+   instead of through xdg-email or thunderbird -compose. Those handed the job
+   to whichever client the desktop happened to have and then knew nothing: not
+   whether the message was sent, not whether the address was usable, and not
+   whether the attachment they named still existed. A failed send looked
+   exactly like a successful one, and nothing recorded that anything went out.
+
+   There is deliberately no password column here. The mail password lives in
+   the workstation's login keyring through libsecret, keyed on service, host
+   and user - see credentials.py. A password in this table would be a password
+   in every pg_dump of it, in every restore copy somebody made to try
+   something out, and in reach of the SQL window. The cost of keeping it out
+   is that mail is sent only from workstations where someone has entered it
+   once; reading correspondence will need no password at all, because the sync
+   writes the headers here.
+
+   imap_host and smtp_host are varchar, not the inet that settings.zebra_printers
+   uses for a label printer on the LAN. A mail server is named, not numbered:
+   inet would refuse imap.emypeople.net outright, and so would the
+   ipaddress.ip_address check that the Zebra printer form does its validating
+   with. */
+CREATE TABLE IF NOT EXISTS settings.mail_accounts (
+	id serial PRIMARY KEY,
+	name varchar NOT NULL,
+	imap_host varchar NOT NULL DEFAULT '',
+	imap_port int NOT NULL DEFAULT 993,
+	imap_user varchar NOT NULL DEFAULT '',
+	smtp_host varchar NOT NULL DEFAULT '',
+	smtp_port int NOT NULL DEFAULT 587,
+	smtp_user varchar NOT NULL DEFAULT '',
+	smtp_security varchar NOT NULL DEFAULT 'starttls',
+	from_name varchar NOT NULL DEFAULT '',
+	from_address varchar NOT NULL DEFAULT '',
+	sent_folder varchar NOT NULL DEFAULT '',
+	active boolean NOT NULL DEFAULT True,
+	date_created date NOT NULL DEFAULT now()
+);
+
+/* 993 and 465 are implicit TLS, 143, 587 and 25 are STARTTLS, and guessing
+   from the port is right nearly everywhere - but 'nearly' is a password sent
+   in clear when it is wrong, so the choice is recorded rather than inferred.
+   Dropped and re-added by name because this file re-runs from the top on
+   every upgrade. */
+DO $$
+BEGIN
+	ALTER TABLE settings.mail_accounts
+		DROP CONSTRAINT IF EXISTS mail_accounts_smtp_security_known;
+	ALTER TABLE settings.mail_accounts
+		ADD CONSTRAINT mail_accounts_smtp_security_known
+			CHECK (smtp_security IN ('starttls', 'tls', 'none'));
+END
+$$;
+
+/* One account at a time, so no send site has to ask which one to use. The
+   UPDATE comes first and is not optional: this file re-runs from the top, so
+   on a database where two rows had somehow been left active the index below
+   would fail, abort the whole upgrade transaction, and leave the user on an
+   old version with nothing said about why. Lifting the restriction later is
+   one DROP INDEX. */
+UPDATE settings.mail_accounts SET active = False
+	WHERE active AND id <> (SELECT min(id) FROM settings.mail_accounts
+								WHERE active);
+CREATE UNIQUE INDEX IF NOT EXISTS mail_accounts_one_active
+	ON settings.mail_accounts (active) WHERE active;

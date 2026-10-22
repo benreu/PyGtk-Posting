@@ -16,13 +16,20 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
-import ipaddress
+import ipaddress, threading
 from db import transactor
 from db_connection import DB
 from constants import ui_directory
-import zebra
+import credentials, emailing, zebra
 
 UI_FILE = ui_directory + "/settings.ui"
+
+# What each way of encrypting an SMTP connection is nearly always spoken on.
+# Crossing two of them over - TLS on 587, STARTTLS on 465 - fails in the TLS
+# handshake with "wrong version number", which names neither setting and reads
+# like a broken server
+STANDARD_SMTP_PORTS = {'tls': 465, 'starttls': 587, 'none': 25}
+SECURITY_LABELS = {'tls': 'TLS', 'starttls': 'STARTTLS', 'none': 'None'}
 
 class GUI():
 	def __init__(self, setting_container = None):
@@ -74,6 +81,9 @@ class GUI():
 		self.populate_document_types()
 		self.zebra_printer_id = 0
 		self.populate_zebra_printers()
+		self.mail_account_id = 0
+		self.mail_account_loading = False
+		self.populate_mail_accounts()
 		DB.rollback()
 
 		self.window = self.builder.get_object('window1')
@@ -573,6 +583,395 @@ class GUI():
 			self.show_message(str(e))
 			return
 		status.set_text("Test label sent to %s:%s" % (host, port))
+
+	def populate_mail_accounts (self, select_id = None):
+		"Refill the account list; select_id, when given, is re-selected after."
+		store = self.builder.get_object('mail_account_store')
+		selection = self.builder.get_object('mail_account_selection')
+		store.clear()
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, from_address, smtp_host, active "
+							"FROM settings.mail_accounts ORDER BY name")
+		for row in cursor.fetchall():
+			tree_iter = store.append(row)
+			if row[0] == select_id:
+				selection.select_iter(tree_iter)
+		cursor.close()
+		DB.rollback()
+
+	def mail_account_selection_changed (self, selection):
+		model, tree_iter = selection.get_selected()
+		if tree_iter == None:
+			return
+		self.mail_account_id = model[tree_iter][0]
+		cursor = DB.cursor()
+		cursor.execute("SELECT name, from_name, from_address, smtp_host, "
+							"smtp_port, smtp_security, smtp_user, imap_host, "
+							"imap_port, imap_user "
+						"FROM settings.mail_accounts WHERE id = %s",
+						(self.mail_account_id,))
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		if row == None:
+			return
+		(name, from_name, from_address, smtp_host, smtp_port, smtp_security,
+			smtp_user, imap_host, imap_port, imap_user) = row
+		# the security combo follows its port around, so what is being put
+		# into the form is not a choice anybody just made
+		self.mail_account_loading = True
+		self.builder.get_object('mail_account_name_entry').set_text(name)
+		self.builder.get_object('mail_account_from_name_entry').set_text(from_name)
+		self.builder.get_object('mail_account_from_address_entry').set_text(from_address)
+		self.builder.get_object('mail_account_smtp_host_entry').set_text(smtp_host)
+		self.builder.get_object('mail_account_smtp_port_spinbutton').set_value(smtp_port)
+		self.builder.get_object('mail_account_security_combo').set_active_id(smtp_security)
+		self.builder.get_object('mail_account_smtp_user_entry').set_text(smtp_user)
+		self.builder.get_object('mail_account_imap_host_entry').set_text(imap_host)
+		self.builder.get_object('mail_account_imap_port_spinbutton').set_value(imap_port)
+		self.builder.get_object('mail_account_imap_user_entry').set_text(imap_user)
+		self.mail_account_loading = False
+		self.update_mail_account_status()
+
+	def mail_account_security_changed (self, combo):
+		'''Move the port to the one that choice is spoken on, unless a port
+		was deliberately typed.
+
+		465 is implicit TLS and 587 is STARTTLS. Crossed over, the connection
+		dies in the handshake with "wrong version number" - which mentions
+		neither the port nor the security setting, so the obvious reading is
+		that the server or the password is at fault. Nothing then gets as far
+		as checking the password, and before this the password could not be
+		saved at all in that state.'''
+		security = combo.get_active_id()
+		if security == None or self.mail_account_loading:
+			return
+		spinbutton = self.builder.get_object('mail_account_smtp_port_spinbutton')
+		if spinbutton.get_value_as_int() in STANDARD_SMTP_PORTS.values():
+			spinbutton.set_value(STANDARD_SMTP_PORTS[security])
+
+	def security_mismatch_hint (self, acct):
+		"what to add to a connection failure when the pair looks crossed over"
+		standard = STANDARD_SMTP_PORTS.get(acct.smtp_security)
+		if standard == None or acct.smtp_port == standard:
+			return ''
+		for security, port in STANDARD_SMTP_PORTS.items():
+			if port == acct.smtp_port:
+				return ("\n\nPort %s is %s, not %s. Crossed over, the "
+						"connection fails while encrypting, which is what this "
+						"looks like." % (acct.smtp_port,
+										SECURITY_LABELS[security],
+										SECURITY_LABELS[acct.smtp_security]))
+		return ''
+
+	def mail_account_new_clicked (self, button):
+		self.builder.get_object('mail_account_selection').unselect_all()
+		self.mail_account_id = 0
+		for widget in ('mail_account_name_entry', 'mail_account_from_name_entry',
+						'mail_account_from_address_entry',
+						'mail_account_smtp_host_entry',
+						'mail_account_smtp_user_entry',
+						'mail_account_imap_host_entry',
+						'mail_account_imap_user_entry'):
+			self.builder.get_object(widget).set_text('')
+		self.builder.get_object('mail_account_smtp_port_spinbutton').set_value(587)
+		self.builder.get_object('mail_account_imap_port_spinbutton').set_value(993)
+		self.builder.get_object('mail_account_security_combo').set_active_id('starttls')
+		self.builder.get_object('mail_account_status_label').set_text('')
+		self.builder.get_object('mail_account_name_entry').grab_focus()
+
+	def mail_account_form (self):
+		'''The form as a mail account, or None when it cannot make one. The
+		hosts are not checked the way the Zebra printer host is: that column
+		is inet and a label printer is on the LAN, where a mail server is
+		named rather than numbered and ipaddress would refuse it outright.'''
+		get = lambda widget: self.builder.get_object(widget).get_text().strip()
+		acct = emailing.Account()
+		acct.id = self.mail_account_id
+		acct.name = get('mail_account_name_entry')
+		acct.from_name = get('mail_account_from_name_entry')
+		acct.from_address = get('mail_account_from_address_entry')
+		acct.smtp_host = get('mail_account_smtp_host_entry')
+		acct.smtp_port = self.builder.get_object(
+							'mail_account_smtp_port_spinbutton').get_value_as_int()
+		acct.smtp_security = self.builder.get_object(
+							'mail_account_security_combo').get_active_id() or 'starttls'
+		acct.smtp_user = get('mail_account_smtp_user_entry')
+		acct.imap_host = get('mail_account_imap_host_entry')
+		acct.imap_port = self.builder.get_object(
+							'mail_account_imap_port_spinbutton').get_value_as_int()
+		acct.imap_user = get('mail_account_imap_user_entry')
+		acct.sent_folder = ''
+		if acct.name == '':
+			self.show_message("The account needs a name.")
+			return None
+		if not emailing.valid_address(acct.from_address):
+			self.show_message("'%s' is not an email address to send from."
+								% acct.from_address)
+			return None
+		if acct.smtp_host == '':
+			self.show_message("The account needs an SMTP server to send through.")
+			return None
+		return acct
+
+	def mail_account_save_clicked (self, button):
+		acct = self.mail_account_form()
+		if acct == None:
+			return
+		warning = self.orphaned_password_warning(acct)
+		values = (acct.name, acct.from_name, acct.from_address, acct.smtp_host,
+					acct.smtp_port, acct.smtp_security, acct.smtp_user,
+					acct.imap_host, acct.imap_port, acct.imap_user)
+		cursor = DB.cursor()
+		# saving an account is what puts it in use, and only one may be: the
+		# unique index on (active) WHERE active refuses a second one, so the
+		# others are stood down first, in the same transaction
+		cursor.execute("UPDATE settings.mail_accounts SET active = False "
+							"WHERE active")
+		if self.mail_account_id == 0:
+			cursor.execute("INSERT INTO settings.mail_accounts "
+								"(name, from_name, from_address, smtp_host, "
+								"smtp_port, smtp_security, smtp_user, "
+								"imap_host, imap_port, imap_user, active) "
+								"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, "
+								"%s, True) RETURNING id", values)
+			self.mail_account_id = cursor.fetchone()[0]
+		else:
+			cursor.execute("UPDATE settings.mail_accounts SET "
+								"(name, from_name, from_address, smtp_host, "
+								"smtp_port, smtp_security, smtp_user, "
+								"imap_host, imap_port, imap_user, active) = "
+								"(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, True) "
+								"WHERE id = %s",
+								values + (self.mail_account_id,))
+		cursor.close()
+		DB.commit()
+		self.populate_mail_accounts(self.mail_account_id)
+		self.set_mail_account_status("Saved. This is the account Posting sends "
+									"from." + warning)
+
+	def orphaned_password_warning (self, acct):
+		'''Secrets are keyed on user and host, so changing either leaves the
+		stored password under the old key where nothing will look for it.
+		Said out loud here, because the alternative is a send that fails days
+		later for no visible reason.'''
+		if self.mail_account_id == 0:
+			return ''
+		cursor = DB.cursor()
+		cursor.execute("SELECT smtp_host, smtp_user, imap_host, imap_user "
+						"FROM settings.mail_accounts WHERE id = %s",
+						(self.mail_account_id,))
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		if row == None:
+			return ''
+		smtp_host, smtp_user, imap_host, imap_user = row
+		changed = ((smtp_host, smtp_user) != (acct.smtp_host, acct.smtp_user)
+					and credentials.have_password('smtp', smtp_host, smtp_user))
+		changed = changed or ((imap_host, imap_user) !=
+								(acct.imap_host, acct.imap_user)
+					and credentials.have_password('imap', imap_host, imap_user))
+		if not changed:
+			return ''
+		return ("\n\nThe saved password was stored under the old user name or "
+				"server, so press Set password again.")
+
+	def mail_account_delete_clicked (self, button):
+		if self.mail_account_id == 0:
+			return
+		cursor = DB.cursor()
+		cursor.execute("DELETE FROM settings.mail_accounts WHERE id = %s",
+							(self.mail_account_id,))
+		cursor.close()
+		DB.commit()
+		self.mail_account_new_clicked(button)
+		self.populate_mail_accounts()
+		# the keyring is deliberately left alone: the same mailbox may be
+		# configured in another database from this workstation, and Forget
+		# password is there for removing it on purpose
+		self.set_mail_account_status("Account deleted. Any password it had is "
+									"still in this computer's login keyring.")
+
+	def mail_account_password_clicked (self, button):
+		acct = self.mail_account_form()
+		if acct == None:
+			return
+		if acct.smtp_user == '' and acct.imap_user == '':
+			self.show_message("Fill in the user name the server knows you by "
+								"first.\n\nA server that needs no login needs "
+								"no password either.")
+			return
+		dialog = emailing.PasswordDialog(self.window, acct)
+		password = dialog.get_password()
+		if password == None:
+			return
+		self.run_mail_account_check(acct,
+			lambda: self.store_checked_password(acct, password),
+			"Checking the password...",
+			on_error = lambda e: self.password_check_failed(acct, password, e))
+
+	def password_check_failed (self, acct, password, error):
+		'''What a failed check means. Returns whether it has been dealt with.
+
+		A server that answered and said no means the password is wrong, so
+		nothing is stored and the message says so - otherwise the only sign is
+		a different complaint later, from Test or from a send, about no
+		password being saved, and the two never connect up.
+
+		Anything else means the password was never tested: the server was
+		down, the port or the security setting was wrong, the network was
+		out. Refusing to store it then would leave somebody whose server is
+		unreachable unable to set a password at all, so it is offered.'''
+		if isinstance(error, emailing.MailAuthError):
+			self.show_message("%s\n\nNothing was saved on this computer. If "
+								"the password is right, check the user name: "
+								"many servers want the whole email address "
+								"rather than just the part before the @."
+								% error)
+			return True
+		dialog = Gtk.MessageDialog(message_type = Gtk.MessageType.QUESTION,
+									buttons = Gtk.ButtonsType.YES_NO)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup(GLib.markup_escape_text(
+						"%s%s\n\nThe password has not been checked, so it has "
+						"not been saved. Save it on this computer anyway?"
+						% (error, self.security_mismatch_hint(acct))))
+		response = dialog.run()
+		dialog.destroy()
+		if response == Gtk.ResponseType.YES:
+			self.run_mail_account_check(acct,
+					lambda: self.store_unchecked_password(acct, password),
+					"Saving the password...")
+		return True
+
+	def store_unchecked_password (self, acct, password):
+		"worker thread: keep a password that could not be tested"
+		self.save_password(acct, password)
+		return ("Saved on this computer, untested. Press Test once the server "
+				"can be reached.")
+
+	def store_checked_password (self, acct, password):
+		"worker thread: test the password, then keep it only if it worked"
+		emailing.verify_login(acct, password)
+		self.save_password(acct, password)
+		return "The password works and is saved on this computer."
+
+	def save_password (self, acct, password):
+		"worker thread: into the login keyring, under each server it is for"
+		if acct.smtp_user != '':
+			credentials.store_password('smtp', acct.smtp_host, acct.smtp_user,
+										password)
+		if acct.imap_host != '' and acct.imap_user != '':
+			credentials.store_password('imap', acct.imap_host, acct.imap_user,
+										password)
+
+	def mail_account_forget_clicked (self, button):
+		acct = self.mail_account_form()
+		if acct == None:
+			return
+		forgotten = []
+		try:
+			if credentials.clear_password('smtp', acct.smtp_host, acct.smtp_user):
+				forgotten.append('SMTP')
+			if credentials.clear_password('imap', acct.imap_host, acct.imap_user):
+				forgotten.append('IMAP')
+		except credentials.CredentialError as e:
+			self.show_message(str(e))
+			return
+		if forgotten == []:
+			self.set_mail_account_status("There was no password saved on this "
+										"computer to forget.")
+		else:
+			# and not update_mail_account_status () after it: that would
+			# overwrite this with its own "no password is saved" the instant it
+			# was shown, so the one thing the user pressed the button to find
+			# out never appeared
+			self.set_mail_account_status("The %s password is no longer saved on "
+										"this computer." % ' and '.join(forgotten))
+
+	def mail_account_test_clicked (self, button):
+		# the form, not the saved row, so a server can be tried before saving,
+		# with the password this workstation actually has
+		acct = self.mail_account_form()
+		if acct == None:
+			return
+		self.run_mail_account_check(acct, lambda: self.check_login(acct),
+									"Logging in...")
+
+	def check_login (self, acct):
+		"worker thread: log in with the password stored on this workstation"
+		password = ''
+		if acct.smtp_user != '':
+			password = credentials.password('smtp', acct.smtp_host,
+											acct.smtp_user)
+		elif acct.imap_user != '':
+			password = credentials.password('imap', acct.imap_host,
+											acct.imap_user)
+		emailing.verify_login(acct, password)
+		return "Logged in. Mail can be sent from this computer."
+
+	def run_mail_account_check (self, acct, work, busy_text, on_error = None):
+		'''Run work on a worker thread and report what it says in the status
+		label. Everything it does blocks - a keyring lookup waits on a prompt
+		when the keyring is locked, and a server that is not answering waits
+		for the timeout - so none of it may happen on the main loop.
+
+		on_error, when given, is handed whatever was raised and returns
+		whether it has reported it; the plain error dialog is shown when it
+		has not.'''
+		buttons = ('mail_account_password_button', 'mail_account_test_button',
+					'mail_account_forget_button')
+		for name in buttons:
+			self.builder.get_object(name).set_sensitive(False)
+		self.set_mail_account_status(busy_text)
+
+		def report (message, error):
+			for name in buttons:
+				self.builder.get_object(name).set_sensitive(True)
+			if error != None:
+				# the true state, not a blank: after a failed Set password the
+				# one thing worth knowing is that nothing got saved
+				self.update_mail_account_status()
+				if on_error == None or not on_error(error):
+					self.show_message(message)
+			else:
+				# and no update_mail_account_status () after it, which would
+				# overwrite this with its own wording the moment it was shown
+				self.set_mail_account_status(message)
+			return False # idle_add: once, never re-armed
+
+		def run ():
+			try:
+				message, error = work(), None
+			except Exception as e:
+				message, error = str(e), e
+			GLib.idle_add(report, message, error)
+
+		threading.Thread(target = run, daemon = True).start()
+
+	def set_mail_account_status (self, text):
+		self.builder.get_object('mail_account_status_label').set_text(text)
+
+	def update_mail_account_status (self):
+		'''Say whether this workstation can send. Asked of the keyring
+		without unlocking it and without reading the secret, so it is safe on
+		the main loop and cannot put up a prompt.'''
+		get = lambda widget: self.builder.get_object(widget).get_text().strip()
+		host, user = get('mail_account_smtp_host_entry'), get('mail_account_smtp_user_entry')
+		if user == '':
+			return # a server that needs no login has nothing to report
+		if credentials.have_password('smtp', host, user):
+			if credentials.locked('smtp', host, user):
+				self.set_mail_account_status("A password is saved on this "
+									"computer, but the login keyring is locked.")
+			else:
+				self.set_mail_account_status("A password is saved on this "
+													"computer.")
+		else:
+			self.set_mail_account_status("No password is saved on this computer, "
+								"so mail cannot be sent from it yet. Press "
+								"Set password.")
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

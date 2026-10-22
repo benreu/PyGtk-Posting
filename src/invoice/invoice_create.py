@@ -225,27 +225,13 @@ class Setup:
         cursor.close()
         return result
 
-    def email(self, email, total):
-        cursor = DB.cursor()
-        cursor.execute("SELECT name FROM contacts WHERE id = %s",
-                       (self.contact_id,))
-        name_row = cursor.fetchone()
-        cursor.close()
-        total = '${:.2f}'.format(float(total)) if total is not None else ''
-        customer_name = name_row[0] if name_row else ''
-        subject = "Invoice %s" % (self.invoice_id,)
-        # xdg-email hands this to whichever mail client the desktop is set up
-        # with, and takes its arguments literally, so the body is not quoted
-        body = ("Hi %s,\n\n"
-                "Your invoice #%s for the amount of %s is attached. "
-                "Please pay at your earliest convenience.\n\n"
-                "Delete all copies of this email if you are not the correct "
-                "recipient." % (customer_name, self.invoice_id, total))
-        subprocess.Popen(["xdg-email",
-                          "--subject", subject,
-                          "--body", body,
-                          "--attach", self.invoice_pdf,
-                          email])
+    # There is no email() here any more. It handed the job to xdg-email, which
+    # took whatever mail client the desktop had and reported nothing back, and
+    # it attached self.invoice_pdf - a /tmp path keyed on the invoice name, so
+    # two windows open on one customer wrote the same file and the second
+    # overwrote the first. invoice_window emails the posted invoice out of
+    # invoices.pdf_data instead, through emailing.py. fax() stays: Brother's
+    # driver reads a file, so that one does need a path
 
     def fax(self, window, number):
         # its own lp job carrying the number, never the print dialog, so it

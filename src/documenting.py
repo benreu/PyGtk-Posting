@@ -145,13 +145,11 @@ class Setup():
 		subprocess.call("odt2pdf " + purchase_order_file, shell = True)
 		self.store = []
 
-	def email (self, email):
-		document = "/tmp/" + self.document_pdf
-		subprocess.Popen(["thunderbird",
-							"-compose",
-							"to=" + email + 
-							",subject=Quote,"
-							"attachment=" + document])
+	# There is no email() here any more. It shelled out to thunderbird, said
+	# nothing about whether the mail went, and attached a pdf that only
+	# existed if a print had already run - print_dialog and print_directly are
+	# what write it. documents_window sends the copy that post() stored in
+	# documents.pdf_data instead, through emailing.py
 
 	def post(self, document_id):
 		cursor = DB.cursor()
