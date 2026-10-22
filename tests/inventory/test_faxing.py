@@ -81,6 +81,7 @@ class SendTest(unittest.TestCase):
 						["lp", "-d", "BRFAX", "-t", "Invoice_12",
 						"-o", "fax-number=13155551234",
 						"-o", "Quality=FINE", "-o", "PageSize=Letter",
+						"-o", "job-hold-until=no-hold",
 						"/tmp/x.pdf"])
 
 	def test_the_title_is_made_safe_for_brothers_scripts(self):
@@ -236,6 +237,8 @@ class FaxWindowTest(harness.DBTestCase):
 										(self.contact_id,))
 		self.DB.commit() # the window rolls back after every read
 		self.message = mock.patch.object(faxing, 'show_message').start()
+		# the real queue's setting is not this test's business
+		mock.patch('fax_queue.queue_holds_jobs', return_value = True).start()
 		self.addCleanup(mock.patch.stopall)
 		import fax_window
 		self.gui = fax_window.FaxGUI()
@@ -246,7 +249,7 @@ class FaxWindowTest(harness.DBTestCase):
 
 	def add_document(self, path):
 		self.gui.document_store.append([path, os.path.basename(path),
-										faxing.page_count(path)])
+										faxing.page_count(path), 0])
 		self.gui.update_pages()
 
 	def test_only_contacts_with_a_fax_number_are_offered(self):

@@ -19,7 +19,7 @@ from gi.repository import Gtk, GLib
 from datetime import date
 import os, shutil, subprocess, tempfile
 from db_connection import DB
-from constants import ui_directory, template_dir
+from constants import ui_directory, template_dir, help_dir
 import faxing
 
 UI_FILE = ui_directory + "/fax_window.ui"
@@ -46,6 +46,30 @@ class FaxGUI (Gtk.Builder):
 		self.window = self.get_object('window')
 		self.window.show_all()
 		self.update_pages()
+		self.show_hold_notice()
+
+	def show_hold_notice (self):
+		'''Faxing from other programs needs the queue to hold what is printed
+		to it, and nothing else would say it does not: a job printed to it
+		just completes, undialed. Only the command is shown, never run - it
+		needs sudo.'''
+		try:
+			import fax_queue
+		except ImportError: # no python3-cups, so no collecting either way
+			return
+		if fax_queue.queue_holds_jobs():
+			return
+		self.get_object('hold_label').set_label(
+						"Documents printed to the fax from other programs are "
+						"lost, not faxed, until the fax queue holds them. Run "
+						"this once in a terminal:\n\n%s" % fax_queue.HOLD_COMMAND)
+		self.get_object('hold_infobar').set_revealed(True)
+
+	def hold_infobar_response (self, infobar, response):
+		self.help_clicked(None)
+
+	def help_clicked (self, button):
+		subprocess.Popen(["yelp", help_dir + "/fax.page"])
 
 	def populate_contact_store (self):
 		cursor = DB.cursor()
@@ -104,12 +128,45 @@ class FaxGUI (Gtk.Builder):
 									"%s could not be read as a PDF:\n%s" %
 									(os.path.basename(path), e.message))
 				continue
-			self.document_store.append([path, os.path.basename(path), pages])
+			self.document_store.append([path, os.path.basename(path), pages, 0])
+		self.update_pages()
+
+	def add_held_job (self, job_id, path, name, pages):
+		'''a document printed to the fax queue and held there, see fax_queue.
+		It joins whatever is already listed, so pages printed from several
+		programs go as one fax'''
+		self.document_store.append([path, name, pages, job_id])
+		self.update_pages()
+		self.window.present()
+
+	def held_job_ids (self):
+		return [row[3] for row in self.document_store if row[3]]
+
+	def forget_held_jobs (self, job_ids):
+		'''cancel the held print jobs behind these rows, faxed or discarded,
+		and drop the pdfs fax_queue made of them'''
+		faxing.cancel_jobs(job_ids)
+		for row in self.document_store:
+			if row[3] in job_ids and os.path.exists(row[0]):
+				os.remove(row[0])
+
+	def drop_held_jobs (self, job_ids):
+		"rows whose held job was canceled from the print queue"
+		if not job_ids:
+			return
+		for row in list(self.document_store):
+			if row[3] in job_ids:
+				if os.path.exists(row[0]):
+					os.remove(row[0])
+				self.document_store.remove(row.iter)
 		self.update_pages()
 
 	def remove_clicked (self, button):
 		model, tree_iter = self.get_object('document_selection').get_selected()
 		if tree_iter is not None:
+			job_id = model[tree_iter][3]
+			if job_id:
+				self.forget_held_jobs([job_id])
 			model.remove(tree_iter)
 			self.update_pages()
 
@@ -231,6 +288,7 @@ class FaxGUI (Gtk.Builder):
 		self.get_object('status_label').set_label("%s  %s" %
 						(GLib.DateTime.new_now_local().format("%-I:%M %p"),
 						faxing.queued_message(job, number)))
+		self.forget_held_jobs(self.held_job_ids()) # their pages went in this fax
 		self.clear()
 
 	def clear (self):
@@ -244,5 +302,34 @@ class FaxGUI (Gtk.Builder):
 		self.get_object('note_textview').get_buffer().set_text('')
 		self.update_pages()
 
+	def ask_to_discard (self, count):
+		dialog = Gtk.MessageDialog(message_type = Gtk.MessageType.QUESTION,
+									buttons = Gtk.ButtonsType.YES_NO,
+									text = "Cancel the %s printed document%s "
+									"waiting to be faxed?" %
+									(count, '' if count == 1 else 's'))
+		dialog.format_secondary_text("They were printed to the fax and are "
+									"held in the print queue until this "
+									"window sends them.")
+		dialog.set_transient_for(self.window)
+		response = dialog.run()
+		dialog.destroy()
+		return response == Gtk.ResponseType.YES
+
+	def may_close (self):
+		'''closing would strand the held print jobs listed, so they are
+		canceled - but only once the user has said so'''
+		held = self.held_job_ids()
+		if not held:
+			return True
+		if not self.ask_to_discard(len(held)):
+			return False
+		self.forget_held_jobs(held)
+		return True
+
+	def window_delete_event (self, window, event):
+		return not self.may_close() # True keeps the window open
+
 	def close_clicked (self, button):
-		self.window.destroy()
+		if self.may_close():
+			self.window.destroy()
