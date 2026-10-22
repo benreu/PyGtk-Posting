@@ -739,14 +739,22 @@ class InvoiceGUI:
 			return False
 		total = invoice.total
 		total = '${:.2f}'.format(float(total)) if total is not None else ''
-		body = ("Hi %s,\n\n"
-				"Your invoice #%s for the amount of %s is attached. "
-				"Please pay at your earliest convenience.\n\n"
-				"Delete all copies of this email if you are not the correct "
-				"recipient." % (customer_name, self.invoice_id, total))
 		name = invoice_name or str(self.invoice_id)
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM company_info")
+		company = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		# the wording is settings.email_messages, edited in Settings, Mail
+		# accounts, Invoice message - not written here, where only changing
+		# the source could change it and every customer got the same four
+		# lines whatever this business's terms or sign-off actually are
+		subject, body = emailing.filled_message('invoice',
+						{'customer': customer_name, 'invoice': name,
+							'total': total,
+							'company': company[0] if company else ''})
 		email_window.EmailGUI(contact_id = self.customer_id, to = email,
-						subject = "Invoice %s" % name, body = body,
+						subject = subject, body = body,
 						attachments = [("%s.pdf" % name, bytes(pdf_data))],
 						link = ('invoice_id', self.invoice_id))
 		return True

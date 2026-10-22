@@ -177,11 +177,19 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 	(table_schema, table_name) = ('settings', 'mail_accounts'))
 """
 
+# And again for 0.7.36. Its own probe because the two upgrades land
+# separately: a copy can have the account table and not the messages one
+MAIL_MESSAGE_SCHEMA_PROBE = """
+SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
+	(table_schema, table_name) = ('settings', 'email_messages'))
+"""
+
 _conn = None
 _schema_pending = True # until asked; a copy that is behind pays the DDL per test
 _settings_schema_pending = True
 _gl_source_schema_pending = True
 _mail_schema_pending = True
+_mail_message_schema_pending = True
 try:
 	_conn = connect()
 	# asked here, before FakeDB opens the savepoint every test rolls back to, so
@@ -195,6 +203,8 @@ try:
 	_gl_source_schema_pending = _probe.fetchone()[0]
 	_probe.execute(MAIL_SCHEMA_PROBE)
 	_mail_schema_pending = _probe.fetchone()[0]
+	_probe.execute(MAIL_MESSAGE_SCHEMA_PROBE)
+	_mail_message_schema_pending = _probe.fetchone()[0]
 	_probe.close()
 	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
@@ -529,6 +539,21 @@ CREATE UNIQUE INDEX IF NOT EXISTS mail_accounts_one_active
 	ON settings.mail_accounts (active) WHERE active;
 """
 
+# 0.7.36, the wording an invoice is emailed with. The real migration seeds the
+# standard message inside the same guard that creates the table, so that a
+# re-run cannot put it back under somebody who rewrote it; the seed is left
+# off here because every test that reads a message sets the one it wants, and
+# a fixture row nobody asked for is a precondition waiting to be inherited
+PENDING_MAIL_MESSAGE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS settings.email_messages (
+	id serial PRIMARY KEY,
+	name varchar NOT NULL UNIQUE,
+	subject varchar NOT NULL DEFAULT '',
+	body varchar NOT NULL DEFAULT '',
+	date_created date NOT NULL DEFAULT now()
+);
+"""
+
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
@@ -556,9 +581,12 @@ class DBTestCase(unittest.TestCase):
 			self.cursor.execute(PENDING_GL_SOURCE_SCHEMA)
 		if _mail_schema_pending:
 			self.cursor.execute(PENDING_MAIL_SCHEMA)
+		if _mail_message_schema_pending:
+			self.cursor.execute(PENDING_MAIL_MESSAGE_SCHEMA)
 		if _schema_pending or _settings_schema_pending \
 							or _gl_source_schema_pending \
-							or _mail_schema_pending:
+							or _mail_schema_pending \
+							or _mail_message_schema_pending:
 			# move the savepoint past the DDL. FakeDB.rollback () returns to
 			# test_sp, which was taken at import, so a window doing the usual
 			# DB.rollback () after a read would otherwise undo the columns just

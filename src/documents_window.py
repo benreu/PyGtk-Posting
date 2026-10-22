@@ -204,8 +204,15 @@ class DocumentGUI:
 			return False
 		body = ("Hi %s,\n\n"
 				"Your %s is attached.\n\n"
-				"Delete all copies of this email if you are not the correct "
-				"recipient." % (contact_name, self.document_type.lower()))
+				"CONFIDENTIALITY NOTICE: This email and any attachments are "
+				"confidential and intended solely for the named recipient(s). "
+				"They may contain private or legally privileged information. If "
+				"you have received this message in error, please notify the "
+				"sender immediately by reply email and permanently delete it, "
+				"along with any attachments, from your system. Any review, use, "
+				"copying, or distribution of this message by anyone other than "
+				"the intended recipient is strictly prohibited."
+				% (contact_name, self.document_type.lower()))
 		email_window.EmailGUI(contact_id = self.contact_id, to = email,
 						subject = self.document_type, body = body,
 						attachments = [("%s.pdf" % document_name,

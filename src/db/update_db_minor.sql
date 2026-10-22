@@ -1493,3 +1493,59 @@ UPDATE settings.mail_accounts SET active = False
 								WHERE active);
 CREATE UNIQUE INDEX IF NOT EXISTS mail_accounts_one_active
 	ON settings.mail_accounts (active) WHERE active;
+
+--0.7.36
+/* The wording of the message an invoice is emailed with, so it can be said
+   the way this business says it rather than the way it was written here. The
+   message was built in invoice_window and could only be changed by editing
+   the source; every customer got the same four lines, and a business with a
+   different payment term, a different sign-off or no "please pay at your
+   earliest convenience" in it had no way to say so.
+
+   The text is a template. A token in braces is replaced when the message is
+   opened - {customer}, {invoice}, {total}, {company} - and anything else in
+   braces is left exactly as typed, so a message cannot be broken by writing
+   one that does not exist. Nothing here is formatted by Python: a stray brace
+   in somebody's wording would raise where it was used, long after it was
+   typed, and the window that typed it would be long closed.
+
+   Keyed by name rather than given a column of its own, so the quote and the
+   unpaid invoices summary can have their own wording later without a schema
+   change.
+
+   The whole block is gated on the table not already existing, rather than
+   each statement guarded on its own. This file re-runs from the top on every
+   upgrade, and a per-row guard would put the standard wording back under
+   somebody who had deliberately rewritten or emptied it - the same trap
+   0.7.27 documents for the unit relationships. Once the table is here this
+   block never runs again, so what is in it is theirs. */
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM information_schema.tables
+					WHERE (table_schema, table_name) =
+							('settings', 'email_messages')) THEN
+		CREATE TABLE settings.email_messages (
+			id serial PRIMARY KEY,
+			name varchar NOT NULL UNIQUE,
+			subject varchar NOT NULL DEFAULT '',
+			body varchar NOT NULL DEFAULT '',
+			date_created date NOT NULL DEFAULT now()
+		);
+		/* the same wording emailing.DEFAULT_MESSAGES holds, which is what the
+		   window's "Restore the standard message" button puts back */
+		INSERT INTO settings.email_messages (name, subject, body) VALUES
+			('invoice', 'Invoice {invoice}',
+			'Hi {customer},' || chr(10) || chr(10) ||
+			'Your invoice {invoice} for the amount of {total} is attached. '
+			'Please pay at your earliest convenience.' || chr(10) || chr(10) ||
+			'CONFIDENTIALITY NOTICE: This email and any attachments are '
+			'confidential and intended solely for the named recipient(s). '
+			'They may contain private or legally privileged information. If '
+			'you have received this message in error, please notify the '
+			'sender immediately by reply email and permanently delete it, '
+			'along with any attachments, from your system. Any review, use, '
+			'copying, or distribution of this message by anyone other than '
+			'the intended recipient is strictly prohibited.');
+	END IF;
+END
+$$;

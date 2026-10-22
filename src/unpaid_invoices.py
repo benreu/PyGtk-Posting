@@ -610,8 +610,15 @@ class GUI (Gtk.Builder):
 				return
 			body = ("Hi %s,\n\n"
 					"A summary of your unpaid invoices is attached.\n\n"
-					"Delete all copies of this email if you are not the "
-					"correct recipient." % name)
+					"CONFIDENTIALITY NOTICE: This email and any attachments are "
+					"confidential and intended solely for the named recipient(s). "
+					"They may contain private or legally privileged information. If "
+					"you have received this message in error, please notify the "
+					"sender immediately by reply email and permanently delete it, "
+					"along with any attachments, from your system. Any review, use, "
+					"copying, or distribution of this message by anyone other than "
+					"the intended recipient is strictly prohibited."
+					% name)
 			import email_window
 			email_window.EmailGUI(contact_id = self.contact_id, to = addr,
 						subject = "Unpaid invoices", body = body,

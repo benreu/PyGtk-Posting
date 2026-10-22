@@ -874,6 +874,11 @@ class GUI():
 			credentials.store_password('imap', acct.imap_host, acct.imap_user,
 										password)
 
+	def mail_account_message_clicked (self, button):
+		"the wording invoices go out with, which is not account settings"
+		import email_message
+		email_message.EmailMessageGUI()
+
 	def mail_account_forget_clicked (self, button):
 		acct = self.mail_account_form()
 		if acct == None:

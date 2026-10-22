@@ -535,3 +535,76 @@ def append_to_sent (acct, message):
 			# the copy is filed by now; a server that hangs up rudely
 			# afterwards has not unfiled it
 			pass
+
+
+# A token in a stored message: {customer}, {invoice}, {total}, {company}
+TOKEN = re.compile(r'\{(\w+)\}')
+
+# What each kind of message says before anybody changes it. The same wording
+# --0.7.36 seeds settings.email_messages with; it is kept here as well so the
+# window has something to put back, and so a database that has somehow lost
+# the row still sends a sensible message rather than an empty one
+DEFAULT_MESSAGES = {
+	'invoice': ("Invoice {invoice}",
+				"Hi {customer},\n\n"
+				"Your invoice {invoice} for the amount of {total} is "
+				"attached. Please pay at your earliest convenience.\n\n"
+				"CONFIDENTIALITY NOTICE: This email and any attachments are "
+				"confidential and intended solely for the named recipient(s). "
+				"They may contain private or legally privileged information. If "
+				"you have received this message in error, please notify the "
+				"sender immediately by reply email and permanently delete it, "
+				"along with any attachments, from your system. Any review, use, "
+				"copying, or distribution of this message by anyone other than "
+				"the intended recipient is strictly prohibited."),
+	}
+
+# What each token stands for, for the window to show and for nothing else to
+# have to remember
+TOKEN_HELP = (('customer', "the name of who it is going to"),
+				('invoice', "the invoice number"),
+				('total', "the amount, as $1,234.56"),
+				('company', "this company's name"))
+
+
+def fill_template (text, values):
+	'''A stored message with its tokens replaced.
+
+	A token nobody defined is left exactly as it was typed rather than
+	removed or complained about, and this never raises. The alternative is
+	str.format, where one stray brace in somebody's wording - a measurement,
+	a part number - raises at the moment the message is used, with the window
+	that typed it long closed and nothing on screen to say which character
+	did it.'''
+	return TOKEN.sub(lambda match:
+						str(values.get(match.group(1), match.group(0))),
+						text or '')
+
+def message_template (name):
+	'''The stored subject and body for this kind of message.
+
+	Falls back to the standard wording when there is no row, so a database
+	that predates the table, or one somebody emptied, still sends something
+	that reads properly.'''
+	default = DEFAULT_MESSAGES.get(name, ('', ''))
+	cursor = DB.cursor()
+	try:
+		cursor.execute("SELECT subject, body FROM settings.email_messages "
+						"WHERE name = %s", (name,))
+		row = cursor.fetchone()
+	except Exception:
+		# a database that has not had the upgrade yet still sends mail
+		DB.rollback()
+		return default
+	finally:
+		cursor.close()
+	DB.rollback()
+	if row == None:
+		return default
+	subject, body = row
+	return (subject or default[0], body or default[1])
+
+def filled_message (name, values):
+	"the subject and body to open a message with, tokens already replaced"
+	subject, body = message_template(name)
+	return fill_template(subject, values), fill_template(body, values)
