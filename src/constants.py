@@ -34,6 +34,11 @@ MANUFACTURING_PROJECT_LOCK_CLASSID = 6
 CONTACT_FILES_LOCK_CLASSID = 7
 CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID = 8
 CONTACT_INDIVIDUALS_LOCK_CLASSID = 9
+# one workstation reads the mail server per pass. Taken and given back
+# per pass, never held for the life of the process: a session held lock
+# would make whichever workstation booted first the only one that ever
+# syncs, and nothing would happen at all while it was asleep
+MAIL_SYNC_LOCK_CLASSID = 10
 
 # gl_accounts.type. There is no types table; the meanings live only in the
 # seed rows in src/db/insert_basic.sql

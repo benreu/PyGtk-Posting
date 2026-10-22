@@ -633,7 +633,71 @@ class GUI():
 		self.builder.get_object(
 				'mail_account_sent_folder_combo').get_child().set_text(sent_folder)
 		self.mail_account_loading = False
+		self.populate_mail_folders()
 		self.update_mail_account_status()
+
+	def mail_folder_rows (self):
+		"what the database knows about this account's folders"
+		if self.mail_account_id == 0:
+			return []
+		cursor = DB.cursor()
+		cursor.execute("SELECT folder, sync FROM settings.mail_folders "
+						"WHERE account_id = %s ORDER BY folder",
+						(self.mail_account_id,))
+		rows = cursor.fetchall()
+		cursor.close()
+		DB.rollback()
+		return rows
+
+	def populate_mail_folders (self):
+		'''The folders that can be read, ticked where they are.
+
+		Two sources, because they answer different halves: the database knows
+		which are turned on and how far each got, and only the server knows
+		what exists. A folder that has been turned on is shown whether or not
+		Test has been pressed this time, so turning one off never needs a
+		working connection.'''
+		store = self.builder.get_object('mail_folder_store')
+		store.clear()
+		known = dict(self.mail_folder_rows())
+		for flags, name in getattr(self, 'listed_folders', ()):
+			if '\\noselect' in [flag.lower() for flag in flags]:
+				continue # a container, not a folder anything can be read from
+			known.setdefault(name, False)
+		for name in sorted(known):
+			store.append([name, known[name]])
+
+	def mail_folder_sync_toggled (self, cell, path):
+		'''Turn a folder on or off, there and then.
+
+		Written straight away rather than on Save, because what it governs is
+		a background thread rather than anything in this form, and because
+		turning a folder off is the thing somebody does in a hurry.'''
+		if self.mail_account_id == 0:
+			self.set_mail_account_status("Save the account first, then choose "
+											"which folders to read.")
+			return
+		store = self.builder.get_object('mail_folder_store')
+		folder = store[path][0]
+		wanted = not store[path][1]
+		cursor = DB.cursor()
+		cursor.execute("INSERT INTO settings.mail_folders "
+							"(account_id, folder, sync) VALUES (%s, %s, %s) "
+						"ON CONFLICT (account_id, folder) "
+							"DO UPDATE SET sync = %s",
+						(self.mail_account_id, folder, wanted, wanted))
+		DB.commit()
+		cursor.close()
+		store[path][1] = wanted
+		if wanted:
+			self.set_mail_account_status("%s will be read into the "
+								"correspondence window. The first pass "
+								"fetches every message in it, which can take "
+								"a few minutes, and nothing is marked read."
+								% folder)
+		else:
+			self.set_mail_account_status("%s will not be read. What has "
+								"already been read is kept." % folder)
 
 	def mail_account_security_changed (self, combo):
 		'''Move the port to the one that choice is spoken on, unless a port
@@ -678,6 +742,8 @@ class GUI():
 			self.builder.get_object(widget).set_text('')
 		self.builder.get_object('mail_account_smtp_port_spinbutton').set_value(587)
 		self.builder.get_object('mail_account_imap_port_spinbutton').set_value(993)
+		self.listed_folders = []
+		self.populate_mail_folders()
 		self.builder.get_object('mail_account_security_combo').set_active_id('starttls')
 		self.builder.get_object(
 						'mail_account_sent_folder_combo').get_child().set_text('')
@@ -912,7 +978,7 @@ class GUI():
 		self.listed_folders = []
 		self.run_mail_account_check(acct, lambda: self.check_login(acct),
 									"Logging in...",
-									on_success = self.fill_sent_folders)
+									on_success = self.folders_listed)
 
 	def check_login (self, acct):
 		'''worker thread: log in with the password stored on this
@@ -936,6 +1002,13 @@ class GUI():
 		self.listed_folders = emailing.list_folders(acct, imap_password)
 		return ("Logged in. Mail can be sent from this computer, and %s "
 				"folders were found." % len(self.listed_folders))
+
+	def folders_listed (self):
+		'''main thread: what a successful Test found. The Sent folder to file
+		copies in and the folders to read are two separate choices made from
+		the same listing, so one connection answers both.'''
+		self.fill_sent_folders()
+		self.populate_mail_folders()
 
 	def fill_sent_folders (self):
 		'''Main thread: offer the folders the server just named, and pick the

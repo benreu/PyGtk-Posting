@@ -108,6 +108,7 @@ class MainGUI :
 			broadcaster.connect("loans_changed", self.loans_changed)
 			broadcaster.connect("resources_changed", self.resources_changed)
 			GLib.timeout_add_seconds(3600, self.check_date_reminders_timer)
+			self.start_mail_watcher()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window
@@ -236,6 +237,18 @@ class MainGUI :
 	def contact_history (self, menuitem):
 		from reports import contact_history
 		contact_history.ContactHistoryGUI()
+
+	def start_mail_watcher (self):
+		'''Read the mail server in the background, on the workstations that
+		can. Everything about whether this workstation is one of them is
+		decided inside imap_sync, quietly: no account, no IMAP server, or no
+		password in this computer's keyring and nothing starts.'''
+		try:
+			import imap_sync
+			imap_sync.start_mail_watcher()
+		except Exception as e:
+			# a mail server is not a reason for the program not to open
+			print("start_mail_watcher: %s" % e)
 
 	def correspondence_activated (self, menuitem):
 		import correspondence_window

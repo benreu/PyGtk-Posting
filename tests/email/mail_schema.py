@@ -4,8 +4,8 @@
 # the shared harness, where every inventory test paid for it and nobody
 # reading the harness could tell who it was for.
 #
-# The blocks are the DDL of --0.7.35, --0.7.36, --0.7.37 and --0.7.38,
-# applied inside the test transaction so the suite runs against a copy that
+# The blocks are the DDL of --0.7.35 through --0.7.39, applied inside the
+# test transaction so the suite runs against a copy that
 # has not had the upgrade yet and the database is left as it was. Each is
 # asked for separately because the upgrades land one at a time: a copy can
 # have the account table and not the messages one.
@@ -33,7 +33,9 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 			(table_schema, table_name) = ('public', 'mail_messages')),
 	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
-			(table_schema, table_name) = ('public', 'mail_links'))
+			(table_schema, table_name) = ('public', 'mail_links')),
+	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
+			(table_schema, table_name) = ('settings', 'mail_folders'))
 """
 
 # 0.7.35, the mail account the Settings page edits and emailing.account () reads.
@@ -168,6 +170,23 @@ CREATE INDEX IF NOT EXISTS mail_links_purchase_order
 	ON public.mail_links (purchase_order_id) WHERE purchase_order_id IS NOT NULL;
 """
 
+# 0.7.39, which folders are read and how far. sync defaults to False here as
+# it does in the migration: a fixture that read a folder by default would be a
+# precondition waiting to be inherited
+PENDING_MAIL_FOLDER_SCHEMA = """
+CREATE TABLE IF NOT EXISTS settings.mail_folders (
+	id serial PRIMARY KEY,
+	account_id integer NOT NULL REFERENCES settings.mail_accounts(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE,
+	folder varchar NOT NULL,
+	uidvalidity bigint,
+	last_uid bigint NOT NULL DEFAULT 0,
+	sync boolean NOT NULL DEFAULT False,
+	last_synced timestamptz,
+	UNIQUE (account_id, folder)
+);
+"""
+
 _pending = None # asked once, by the first test that needs these tables
 
 
@@ -180,7 +199,8 @@ def apply (case):
 		case.cursor.execute(PROBE)
 		_pending = case.cursor.fetchone()
 	blocks = (PENDING_MAIL_SCHEMA, PENDING_MAIL_MESSAGE_SCHEMA,
-				PENDING_MAIL_RECORD_SCHEMA, PENDING_MAIL_LINK_SCHEMA)
+				PENDING_MAIL_RECORD_SCHEMA, PENDING_MAIL_LINK_SCHEMA,
+				PENDING_MAIL_FOLDER_SCHEMA)
 	for needed, sql in zip(_pending, blocks):
 		if needed:
 			case.cursor.execute(sql)

@@ -94,6 +94,14 @@
     <property name="step_increment">1</property>
     <property name="page_increment">100</property>
   </object>
+  <object class="GtkListStore" id="mail_folder_store">
+    <columns>
+      <!-- column-name folder -->
+      <column type="gchararray"/>
+      <!-- column-name sync -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="mail_account_store">
     <columns>
       <!-- column-name id -->
@@ -2020,6 +2028,69 @@
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="top_attach">9</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="valign">start</property>
+                                <property name="label" translatable="yes">Read folders</property>
+                              </object>
+                              <packing>
+                                <property name="left_attach">0</property>
+                                <property name="top_attach">11</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScrolledWindow" id="mail_folder_scrolledwindow">
+                                <property name="width_request">280</property>
+                                <property name="height_request">120</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="shadow_type">in</property>
+                                <child>
+                                  <object class="GtkTreeView" id="mail_folder_treeview">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="model">mail_folder_store</property>
+                                    <property name="tooltip_text" translatable="yes">Folders ticked here are read into the correspondence window. Press Test to list what is on the server. Reading a folder for the first time fetches every message in it</property>
+                                    <property name="enable_search">False</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection" id="mail_folder_selection"/>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="mail_folder_sync_column">
+                                        <property name="title" translatable="yes">Read</property>
+                                        <child>
+                                          <object class="GtkCellRendererToggle" id="mail_folder_sync_toggle">
+                                            <signal name="toggled" handler="mail_folder_sync_toggled" swapped="no"/>
+                                          </object>
+                                          <attributes>
+                                            <attribute name="active">1</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkTreeViewColumn" id="mail_folder_name_column">
+                                        <property name="title" translatable="yes">Folder</property>
+                                        <property name="expand">True</property>
+                                        <child>
+                                          <object class="GtkCellRendererText"/>
+                                          <attributes>
+                                            <attribute name="text">0</attribute>
+                                          </attributes>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left_attach">1</property>
+                                <property name="top_attach">11</property>
                               </packing>
                             </child>
                           </object>

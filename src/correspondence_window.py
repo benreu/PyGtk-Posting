@@ -202,6 +202,10 @@ class CorrespondenceGUI (Gtk.Builder):
 		self.contact_id = int(contact_id)
 		self.populate_messages()
 
+	def direction_combo_changed (self, combo):
+		if self.loading == False:
+			self.populate_messages()
+
 	def clear_clicked (self, button):
 		'''No contact means every contact. The window is a customer's
 		correspondence and the company's outbox depending on this.'''
@@ -274,6 +278,10 @@ class CorrespondenceGUI (Gtk.Builder):
 							"WHERE mail_messages_id = m.id "
 							"AND contact_id = %s)")
 			args.append(self.contact_id)
+		direction = self.get_object('direction_combo').get_active_id()
+		if direction in ('sent', 'received'):
+			where.append("m.outgoing = %s")
+			args.append(direction == 'sent')
 		cursor.execute("SELECT m.id, "
 							"COALESCE(m.date_sent, m.date_inserted)::text, "
 							"format_timestamp(COALESCE(m.date_sent, "

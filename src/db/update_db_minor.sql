@@ -1710,3 +1710,39 @@ CREATE INDEX IF NOT EXISTS mail_links_invoice
 	ON public.mail_links (invoice_id) WHERE invoice_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS mail_links_purchase_order
 	ON public.mail_links (purchase_order_id) WHERE purchase_order_id IS NOT NULL;
+
+--0.7.39
+/* Which folders on the server are read, and how far. The row is the resume
+   point: it lives in the database rather than in the workstation's sqlite
+   file, so whichever workstation takes a pass carries on where the last one
+   stopped instead of each keeping a private idea of what it has seen.
+
+   sync defaults to False, so adding this table reads nothing. The initial
+   pass over a folder fetches every message in it, around 12,000 in this
+   account, and that is not something an upgrade should start on its own.
+   Settings, Mail accounts is where a folder is turned on.
+
+   last_uid is a high water mark and only ever moves up, which is what lets a
+   pass that was interrupted resume with no other state: the fetch runs
+   ascending in slices and the mark advances per slice committed.
+
+   uidvalidity is kept because the server is entitled to renumber a folder.
+   When it does, the mark goes back to 0 and the folder is read again, and
+   the rows already stored are deliberately left alone: they are the
+   correspondence, some of it attached to invoices, and message_id is what
+   ties the old numbering to the new.
+
+   ON DELETE CASCADE, unlike mail_messages.account_id which goes to NULL.
+   This table is not a record of anything that happened; it is only where to
+   resume, and an account that is gone has nowhere to resume. */
+CREATE TABLE IF NOT EXISTS settings.mail_folders (
+	id serial PRIMARY KEY,
+	account_id integer NOT NULL REFERENCES settings.mail_accounts(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE,
+	folder varchar NOT NULL,
+	uidvalidity bigint,
+	last_uid bigint NOT NULL DEFAULT 0,
+	sync boolean NOT NULL DEFAULT False,
+	last_synced timestamptz,
+	UNIQUE (account_id, folder)
+);

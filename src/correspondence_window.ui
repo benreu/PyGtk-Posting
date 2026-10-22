@@ -207,6 +207,26 @@
               </packing>
             </child>
             <child>
+              <object class="GtkComboBoxText" id="direction_combo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">12</property>
+                <property name="active-id">both</property>
+                <property name="tooltip-text" translatable="yes">Which way the messages went</property>
+                <items>
+                  <item id="both" translatable="yes">Both ways</item>
+                  <item id="sent" translatable="yes">Sent</item>
+                  <item id="received" translatable="yes">Received</item>
+                </items>
+                <signal name="changed" handler="direction_combo_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkSearchEntry" id="search_entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
@@ -218,7 +238,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">7</property>
+                <property name="position">8</property>
               </packing>
             </child>
           </object>
