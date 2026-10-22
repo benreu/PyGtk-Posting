@@ -93,7 +93,7 @@ class EmailWindowTest (MailTestCase):
 		self.assertEqual(gui.attachments(),
 							[(os.path.basename(path), b'%PDF-1.4 attached')])
 
-	def test_sending_hands_over_the_recipient_subject_body_and_link (self):
+	def test_sending_hands_over_the_recipient_subject_body_and_links (self):
 		gui = self.open(contact_id = self.contact_id, to = 'alvin@example.com')
 		gui.get_object('subject_entry').set_text('A question')
 		gui.get_object('body_textview').get_buffer().set_text('Hello there')
@@ -103,12 +103,13 @@ class EmailWindowTest (MailTestCase):
 					['%s <alvin@example.com>' % self.contact_name])
 		self.assertEqual(args[2], 'A question')
 		self.assertEqual(args[3], 'Hello there')
-		self.assertEqual(kwargs['link'], ('contact_id', self.contact_id))
+		self.assertEqual(kwargs['links'],
+							[('contact_id', self.contact_id)])
 
 	def test_an_address_typed_in_with_no_contact_is_linked_to_nothing (self):
 		gui = self.open(to = 'stranger@example.com')
 		gui.send_clicked(gui.get_object('send_button'))
-		self.assertIsNone(self.send.call_args.kwargs['link'])
+		self.assertEqual(self.send.call_args.kwargs['links'], [])
 
 	def test_an_attachment_that_vanished_is_reported_and_nothing_is_sent (self):
 		gui = self.open(contact_id = self.contact_id, to = 'a@b.com')
@@ -206,10 +207,14 @@ class HeldAttachmentTest (EmailWindowTest):
 		self.assertEqual(gui.attachments(),
 							[('held.pdf', b'in hand'), ('disk.pdf', b'from disk')])
 
-	def test_the_record_it_was_opened_for_wins_over_the_contact (self):
-		# an invoice's message belongs to the invoice, not just the customer
+	def test_the_record_it_was_opened_for_and_the_contact_are_both_kept (self):
+		# an invoice's message is about the invoice and about the customer it
+		# went to, and it has to be findable under either. The old either/or
+		# recorded the customer only when there was no invoice, so a
+		# customer's correspondence was missing every invoice ever emailed
 		gui = self.open(contact_id = self.contact_id, to = 'a@b.com',
-						link = ('invoice_id', 99))
+						links = [('invoice_id', 99)])
 		gui.send_clicked(gui.get_object('send_button'))
-		self.assertEqual(self.send.call_args.kwargs['link'],
-							('invoice_id', 99))
+		self.assertEqual(self.send.call_args.kwargs['links'],
+							[('invoice_id', 99),
+								('contact_id', self.contact_id)])

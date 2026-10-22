@@ -499,6 +499,7 @@ class Broadcast(GObject.GObject):
 		'loans_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
 		'resources_changed': (GObject.SignalFlags.RUN_FIRST, None, (int, bool)),
 		'inventory_counts_changed': (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+		'mail_messages_changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
 		'admin_changed': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
 		'shutdown': (GObject.SignalFlags.RUN_FIRST, None, ())
 	}
@@ -544,7 +545,8 @@ class Broadcast(GObject.GObject):
 				  "LISTEN documents;"
 				  "LISTEN loans;"
 				  "LISTEN resources;"
-				  "LISTEN inventory_counts;")
+				  "LISTEN inventory_counts;"
+				  "LISTEN mail_messages;")
 		c.close()
 		DB.commit()
 
@@ -633,6 +635,15 @@ class Broadcast(GObject.GObject):
 					# out of the very close it has to hear about. Whether this concerns a
 					# window is decided by its own summary id, not by which backend wrote
 					self.emit("inventory_counts_changed", int(notify.payload))
+				elif notify.channel == "mail_messages":
+					# no pid filter either, and for a sharper reason: the row is
+					# written on this very connection by emailing.record, so our
+					# own pid always matches and a filter would stop the window
+					# refreshing after the send most worth seeing. There is no
+					# payload - the channel says only that there is new mail to
+					# show, and a window showing one contact works out for
+					# itself whether that concerns it
+					self.emit("mail_messages_changed")
 		except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
 			# the connection died while handling a background notification - DB has
 			# already reconnected (or is reconnecting) via the cursor that hit this;

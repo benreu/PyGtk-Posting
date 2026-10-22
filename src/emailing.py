@@ -49,6 +49,12 @@ NET_TIMEOUT = 30 # seconds. smtplib's own default means "no timeout at all"
 # Most servers refuse somewhere between 10 and 25 MB, and refuse it after the
 # whole upload. Saying so before connecting beats a 552 half a minute later
 ATTACHMENT_CAP = 20 * 1024 * 1024
+# What a mail_links row can point at. A column name cannot be a query
+# parameter, so it is put into the statement itself - which means it is
+# checked against this list rather than trusted, and nothing but these three
+# names can ever reach the INSERT. Adding jobs later is one more name here and
+# one more term in the table's CHECK
+LINK_COLUMNS = ('contact_id', 'invoice_id', 'purchase_order_id')
 
 
 class MailError (Exception):
@@ -213,7 +219,7 @@ def has_attachments (message):
 	"whether anything was attached, which is what the correspondence list shows"
 	return any(True for part in message.iter_attachments())
 
-def record (acct, message, body, folder = '', filed = None):
+def record (acct, message, body, folder = '', filed = None, links = ()):
 	'''Write the row saying this message went, and return its id.
 
 	Only ever called for a message that has actually gone. A row for a failed
@@ -224,12 +230,24 @@ def record (acct, message, body, folder = '', filed = None):
 	returned it: '' and None when there is no server copy, and the folder with
 	filed None when it was appended but the server did not say under which uid.
 
+	links are the records this message is about, as (column, id) pairs, and
+	get a mail_links row each in the same transaction as the message. One per
+	target, because a message about an invoice is about a customer too and
+	those are two separate questions: a row each is what lets either be asked.
+	Without them the row is a flat log that can only be read whole.
+
 	Raises MailError, having rolled back, when the row cannot be written. The
 	message cannot be unsent by then, so the caller reports this separately
 	rather than as a failed send - but it is reported, because an invoice
 	nobody can show was sent is the thing this row is for.
 
 	Main thread only: it uses the shared connection.'''
+	for column, record_id in links:
+		if column not in LINK_COLUMNS:
+			# before anything is written, because a column name that is not
+			# one of ours must never reach the statement, and a typo silently
+			# losing the link would be worse than losing the row
+			raise MailError("A message cannot be linked to %s." % column)
 	uidvalidity, uid = filed if filed != None else (None, None)
 	cursor = DB.cursor()
 	try:
@@ -247,6 +265,14 @@ def record (acct, message, body, folder = '', filed = None):
 						str(message['Cc'] or ''), has_attachments(message),
 						body or ''))
 		row_id = cursor.fetchone()[0]
+		for column, record_id in links:
+			cursor.execute("INSERT INTO mail_links (mail_messages_id, %s) "
+							"VALUES (%%s, %%s)" % column, (row_id, record_id))
+		# one notify for the message rather than one per row, and none at all
+		# from a trigger: see the --0.7.37 comment. Not filtered on our own
+		# pid anywhere, because this writes on the shared connection and the
+		# window that most wants the refresh is the one in this process
+		cursor.execute("SELECT pg_notify('mail_messages', '')")
 		DB.commit()
 		return row_id
 	except Exception as e:
@@ -271,15 +297,15 @@ def show_message (parent, message_type, text):
 	dialog.destroy()
 
 def send_and_report (parent, to, subject, body, attachments = (), cc = (),
-						link = None, on_done = None):
+						links = (), on_done = None):
 	'''Send on a worker thread and say how it went.
 
 	to and cc are lists of formed addresses; attachments is a list of
-	(filename, bytes). link names the record the message belongs to, as a
-	(column, id) pair such as ('invoice_id', 1234) - the message's own row is
-	written either way, but nothing ties it to the record until mail_links
-	exists, and it is taken now so that adding a kind of record later changes
-	no call site.
+	(filename, bytes). links names the records the message is about, as
+	(column, id) pairs such as ('invoice_id', 1234), and is a sequence rather
+	than one pair because a message is usually about more than one thing at
+	once - an invoice and the customer it went to. Adding a kind of record
+	later is one more name in LINK_COLUMNS and changes no call site.
 
 	on_done (error) runs on the main thread once the result has been shown,
 	and is given None when the message went and whatever went wrong when it
@@ -318,7 +344,7 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 								not_filed))
 			try:
 				record(acct, message, body,
-						acct.sent_folder if appended else '', filed)
+						acct.sent_folder if appended else '', filed, links)
 			except MailError as e:
 				sent += ("\n\nThe send could not be recorded in the "
 							"database:\n%s" % e)

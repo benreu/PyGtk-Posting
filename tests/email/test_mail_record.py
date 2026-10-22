@@ -204,6 +204,10 @@ class ShippedSchemaTest (MailTestCase):
 		return sql[start:] if rest == -1 else sql[start:rest]
 
 	def shape (self, sql):
+		# mail_links first: its foreign key depends on this table, and the
+		# drop is refused rather than cascading, which is the point of the
+		# RESTRICT it carries
+		self.cursor.execute("DROP TABLE IF EXISTS public.mail_links")
 		self.cursor.execute("DROP TABLE IF EXISTS public.mail_messages")
 		self.cursor.execute(sql)
 		self.DB.commit()
@@ -272,6 +276,144 @@ class ShippedSchemaTest (MailTestCase):
 							"WHERE c.relname = 'mail_messages' "
 								"AND NOT t.tgisinternal")
 		self.assertEqual(self.cursor.fetchone()[0], 0)
+
+
+class RecordingCursor (object):
+	"a real cursor that also remembers what was run through it"
+
+	def __init__ (self, cursor):
+		self.cursor = cursor
+		self.statements = []
+
+	def execute (self, sql, args = None):
+		self.statements.append(sql)
+		if args == None:
+			return self.cursor.execute(sql)
+		return self.cursor.execute(sql, args)
+
+	def __getattr__ (self, name):
+		return getattr(self.cursor, name)
+
+
+class LinkedRecordTest (RecordTest):
+	'''The links written with the row. Before them a sent message was a row
+	in a flat log: the compose window knew which customer and which invoice it
+	was for and threw both away, so what had been sent to a customer could not
+	be asked for by customer.'''
+
+	def setUp (self):
+		RecordTest.setUp(self)
+		self.cursor.execute("SELECT id, customer_id FROM invoices "
+							"ORDER BY id LIMIT 1")
+		self.invoice_id, self.contact_id = self.cursor.fetchone()
+
+	def links (self, row_id):
+		self.cursor.execute("SELECT contact_id, invoice_id "
+							"FROM mail_links WHERE mail_messages_id = %s "
+							"ORDER BY id", (row_id,))
+		return self.cursor.fetchall()
+
+	def messages (self):
+		self.cursor.execute("SELECT count(*) FROM mail_messages "
+							"WHERE account_id = %s", (self.account_id,))
+		return self.cursor.fetchone()[0]
+
+	def test_an_emailed_invoice_is_filed_under_both (self):
+		row_id = emailing.record(self.acct, self.message(), 'b', links =
+							[('invoice_id', self.invoice_id),
+								('contact_id', self.contact_id)])
+		self.assertEqual(self.links(row_id), [(None, self.invoice_id),
+												(self.contact_id, None)])
+
+	def test_a_message_about_nothing_is_still_recorded (self):
+		# an address typed in with no contact chosen: there is nothing to link
+		# it to, and the message still went
+		row_id = emailing.record(self.acct, self.message(), 'b')
+		self.assertEqual(self.links(row_id), [])
+		self.assertEqual(self.messages(), 1)
+
+	def test_a_link_to_something_that_is_not_a_target_is_refused (self):
+		# a column name cannot be a query parameter, so it goes into the
+		# statement itself: anything but our own three names has to be
+		# stopped before it gets there
+		with self.assertRaises(emailing.MailError):
+			emailing.record(self.acct, self.message(), 'b',
+							links = [('employee_id', 1)])
+
+	def test_a_refused_column_writes_nothing_at_all (self):
+		try:
+			emailing.record(self.acct, self.message(), 'b',
+							links = [('contact_id', self.contact_id),
+										('nonsense', 1)])
+		except emailing.MailError:
+			pass
+		self.assertEqual(self.messages(), 0)
+
+	def test_a_link_to_a_record_that_does_not_exist_writes_nothing (self):
+		# the row and its links are one transaction. A message row whose
+		# links were refused would say it was sent and not what about
+		with self.assertRaises(emailing.MailError):
+			emailing.record(self.acct, self.message(), 'b',
+							links = [('invoice_id', -1)])
+		self.assertEqual(self.messages(), 0)
+
+	def test_the_same_link_twice_writes_nothing (self):
+		with self.assertRaises(emailing.MailError):
+			emailing.record(self.acct, self.message(), 'b',
+							links = [('contact_id', self.contact_id),
+										('contact_id', self.contact_id)])
+		self.assertEqual(self.messages(), 0)
+
+	def test_a_purchase_order_can_be_the_record (self):
+		self.cursor.execute("SELECT id FROM purchase_orders ORDER BY id LIMIT 1")
+		purchase_order_id = self.cursor.fetchone()[0]
+		row_id = emailing.record(self.acct, self.message(), 'b',
+						links = [('purchase_order_id', purchase_order_id)])
+		self.cursor.execute("SELECT purchase_order_id FROM mail_links "
+							"WHERE mail_messages_id = %s", (row_id,))
+		self.assertEqual(self.cursor.fetchone()[0], purchase_order_id)
+
+
+class NotifyTest (RecordTest):
+	'''Every workstation showing correspondence hears about a send. There is
+	deliberately no trigger on the table - the sync will insert 12,000 rows
+	and a per row notify is 12,000 the database cannot collapse - so the
+	writer says so itself, once.'''
+
+	def recorded (self, **kwargs):
+		cursor = RecordingCursor(self.DB.cursor())
+		with mock.patch.object(harness.db_connection.DB, 'cursor',
+								return_value = cursor):
+			emailing.record(self.acct, self.message(), 'b', **kwargs)
+		return cursor.statements
+
+	def test_a_recorded_message_notifies (self):
+		self.assertTrue(any('pg_notify' in sql for sql in self.recorded()),
+						self.recorded())
+
+	def test_it_notifies_the_channel_the_application_listens_on (self):
+		# crude on purpose. The channel name is agreed between two files that
+		# nothing else ties together, and renaming it in one of them would
+		# leave every correspondence window quietly never refreshing again
+		path = os.path.join(os.path.dirname(__file__), '..', '..',
+							'src', 'db_connection.py')
+		with open(path) as source_file:
+			source = source_file.read()
+		self.assertIn('LISTEN mail_messages;', source)
+		self.assertIn("notify.channel == \"mail_messages\"", source)
+		notifies = [sql for sql in self.recorded() if 'pg_notify' in sql]
+		self.assertTrue(notifies)
+		for sql in notifies:
+			self.assertIn("'mail_messages'", sql)
+
+	def test_it_notifies_once_however_many_links_there_are (self):
+		self.cursor.execute("SELECT id, customer_id FROM invoices "
+							"ORDER BY id LIMIT 1")
+		invoice_id, contact_id = self.cursor.fetchone()
+		statements = self.recorded(links = [('invoice_id', invoice_id),
+											('contact_id', contact_id)])
+		self.assertEqual(len([sql for sql in statements
+								if 'pg_notify' in sql]), 1)
 
 
 class SentDateTest (unittest.TestCase):

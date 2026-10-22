@@ -237,6 +237,10 @@ class MainGUI :
 		from reports import contact_history
 		contact_history.ContactHistoryGUI()
 
+	def correspondence_activated (self, menuitem):
+		import correspondence_window
+		correspondence_window.CorrespondenceGUI()
+
 	def send_fax_activated (self, menuitem):
 		import fax_window
 		fax_window.FaxGUI()

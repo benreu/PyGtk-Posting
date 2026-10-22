@@ -69,6 +69,9 @@ def create_apsw_tables(cursor):
 	cursor.execute("CREATE TABLE IF NOT EXISTS product_search "
 										"(widget_id TEXT UNIQUE NOT NULL, "
 										"value INTEGER NOT NULL)")
+	cursor.execute("CREATE TABLE IF NOT EXISTS correspondence "
+										"(widget_id TEXT UNIQUE NOT NULL, "
+										"value INTEGER NOT NULL)")
 	cursor.execute("CREATE TABLE IF NOT EXISTS db_connections "
 										"(id INTEGER PRIMARY KEY, "
 										"name TEXT, "
@@ -268,6 +271,21 @@ def update_apsw_tables(cursor):
 					"('po_date_column', 100)")
 	cursor.execute("INSERT OR IGNORE INTO vendor_history VALUES "
 					"('vendor_column', 100)")
+	# correspondence window layout
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('window_width', 900)")
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('window_height', 600)")
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('paned_position', 300)")
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('date_column', 160)")
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('direction_column', 70)")
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('contact_column', 180)")
+	cursor.execute("INSERT OR IGNORE INTO correspondence VALUES "
+					"('subject_column', 260)")
 	# product search window layout
 	cursor.execute("INSERT OR IGNORE INTO product_search VALUES "
 					"('window_width', 500)")

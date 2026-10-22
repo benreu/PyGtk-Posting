@@ -146,9 +146,12 @@ class PostedInvoiceTest (InvoiceEmailTest):
 		self.assertIn(self.customer_name, body)
 
 	def test_it_is_tied_to_the_invoice_for_mail_links (self):
+		# the customer is not passed here: the compose window adds whoever is
+		# chosen in it when Send is pressed, so changing the contact changes
+		# what the message is filed under
 		self.gui.email_posted_invoice(self.invoice())
-		self.assertEqual(self.opened()['link'],
-							('invoice_id', self.invoice_id))
+		self.assertEqual(self.opened()['links'],
+							[('invoice_id', self.invoice_id)])
 
 	def test_no_address_opens_nothing (self):
 		self.cursor.execute("UPDATE contacts SET email = '' WHERE id = %s",

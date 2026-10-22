@@ -623,8 +623,7 @@ class GUI (Gtk.Builder):
 			email_window.EmailGUI(contact_id = self.contact_id, to = addr,
 						subject = "Unpaid invoices", body = body,
 						attachments = [(os.path.basename(pdf_result[0]),
-										pdf_bytes[0])],
-						link = ('contact_id', self.contact_id))
+										pdf_bytes[0])])
 
 		view_button.connect("clicked", on_view_clicked)
 		email_button.connect("clicked", on_email_clicked)

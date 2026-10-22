@@ -4,11 +4,11 @@
 # the shared harness, where every inventory test paid for it and nobody
 # reading the harness could tell who it was for.
 #
-# The three blocks are the DDL of --0.7.35, --0.7.36 and --0.7.37, applied
-# inside the test transaction so the suite runs against a copy that has not
-# had the upgrade yet and the database is left as it was. Each is asked for
-# separately because the three upgrades land one at a time: a copy can have
-# the account table and not the messages one.
+# The blocks are the DDL of --0.7.35, --0.7.36, --0.7.37 and --0.7.38,
+# applied inside the test transaction so the suite runs against a copy that
+# has not had the upgrade yet and the database is left as it was. Each is
+# asked for separately because the upgrades land one at a time: a copy can
+# have the account table and not the messages one.
 #
 # Unlike the harness's own probes, these are asked from inside the test
 # transaction on the first test that wants them, not at import. The harness
@@ -31,7 +31,9 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 			(table_schema, table_name) = ('settings', 'email_messages')),
 	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
-			(table_schema, table_name) = ('public', 'mail_messages'))
+			(table_schema, table_name) = ('public', 'mail_messages')),
+	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
+			(table_schema, table_name) = ('public', 'mail_links'))
 """
 
 # 0.7.35, the mail account the Settings page edits and emailing.account () reads.
@@ -123,6 +125,49 @@ CREATE INDEX IF NOT EXISTS mail_messages_date_sent
 	ON public.mail_messages (date_sent DESC);
 """
 
+# 0.7.38, what a message is about. The CHECK and all six indexes come with
+# it: the exactly-one-target CHECK is the whole shape of the table, and the
+# partial unique ones are what make a link idempotent, so a copy without them
+# would be a different table from the one that ships. ShippedSchemaTest
+# asserts this block and the migration's really do agree
+PENDING_MAIL_LINK_SCHEMA = """
+CREATE TABLE IF NOT EXISTS public.mail_links (
+	id bigserial PRIMARY KEY,
+	mail_messages_id bigint NOT NULL REFERENCES public.mail_messages(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE,
+	contact_id bigint REFERENCES public.contacts(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	invoice_id bigint REFERENCES public.invoices(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	purchase_order_id bigint REFERENCES public.purchase_orders(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	date_linked timestamptz NOT NULL DEFAULT now(),
+	linked_by varchar NOT NULL DEFAULT CURRENT_USER
+);
+ALTER TABLE public.mail_links
+	DROP CONSTRAINT IF EXISTS mail_links_exactly_one_target;
+ALTER TABLE public.mail_links
+	ADD CONSTRAINT mail_links_exactly_one_target
+		CHECK ((contact_id IS NOT NULL)::int
+				+ (invoice_id IS NOT NULL)::int
+				+ (purchase_order_id IS NOT NULL)::int = 1);
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_contact
+	ON public.mail_links (mail_messages_id, contact_id)
+	WHERE contact_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_invoice
+	ON public.mail_links (mail_messages_id, invoice_id)
+	WHERE invoice_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_purchase_order
+	ON public.mail_links (mail_messages_id, purchase_order_id)
+	WHERE purchase_order_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_contact
+	ON public.mail_links (contact_id) WHERE contact_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_invoice
+	ON public.mail_links (invoice_id) WHERE invoice_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_purchase_order
+	ON public.mail_links (purchase_order_id) WHERE purchase_order_id IS NOT NULL;
+"""
+
 _pending = None # asked once, by the first test that needs these tables
 
 
@@ -135,7 +180,7 @@ def apply (case):
 		case.cursor.execute(PROBE)
 		_pending = case.cursor.fetchone()
 	blocks = (PENDING_MAIL_SCHEMA, PENDING_MAIL_MESSAGE_SCHEMA,
-				PENDING_MAIL_RECORD_SCHEMA)
+				PENDING_MAIL_RECORD_SCHEMA, PENDING_MAIL_LINK_SCHEMA)
 	for needed, sql in zip(_pending, blocks):
 		if needed:
 			case.cursor.execute(sql)

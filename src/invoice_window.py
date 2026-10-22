@@ -756,7 +756,7 @@ class InvoiceGUI:
 		email_window.EmailGUI(contact_id = self.customer_id, to = email,
 						subject = subject, body = body,
 						attachments = [("%s.pdf" % name, bytes(pdf_data))],
-						link = ('invoice_id', self.invoice_id))
+						links = [('invoice_id', self.invoice_id)])
 		return True
 
 	def fax_invoice_activated (self, menuitem):

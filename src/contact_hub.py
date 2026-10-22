@@ -72,6 +72,11 @@ class ContactHubGUI:
 		j.builder.get_object('searchentry1').set_text(self.name)
 		self.window.destroy()
 
+	def correspondence_clicked (self, button):
+		import correspondence_window
+		correspondence_window.CorrespondenceGUI(self.contact_id)
+		self.window.destroy()
+
 	def contact_history_clicked (self, button):
 		from reports import contact_history
 		c = contact_history.ContactHistoryGUI()

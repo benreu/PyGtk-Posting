@@ -1624,3 +1624,89 @@ CREATE INDEX IF NOT EXISTS mail_messages_from_address
 	ON public.mail_messages (from_address);
 CREATE INDEX IF NOT EXISTS mail_messages_date_sent
 	ON public.mail_messages (date_sent DESC);
+
+--0.7.38
+/* What a message is about. Until now a sent message was a row in a flat log:
+   the compose window knew which customer and which invoice it was for,
+   because somebody had chosen them, and then threw both away. So the record
+   of what had been sent to a customer could not be asked for by customer,
+   and the attachment could not be got back even though the document was
+   still in the database on the record the message was about.
+
+   One row per target, which is why the CHECK insists on exactly one. A
+   message about an invoice gets two rows, the invoice and the customer,
+   because those are two separate questions and each row answers one of them.
+   Pressed twice, Attach is still one link: the partial unique indexes below
+   see to that.
+
+   Nullable foreign keys rather than a (record_type, record_id) pair. Here
+   every target has a table to point at, so real foreign keys can protect the
+   rows; gl_entries could not have them, which is why it carries a source
+   type instead.
+
+   Every id is bigint, because every table it points at is a bigserial. It is
+   worth saying because files.contact_id is a smallint against one
+   (create_db.sql), which stops working at contact 32,768.
+
+   Deleting a message takes its links with it: a link to nothing is not a
+   record of anything. Deleting a target is refused instead. No invoice is
+   ever deleted anywhere in this program, so that costs nothing and means
+   correspondence cannot be quietly orphaned. A contact is deleted in one
+   place, the duplicate contact merger, which moves every reference to the
+   surviving contact first and has been taught about this table.
+
+   The seam for jobs is here: one ADD COLUMN job_id, and one more term in the
+   CHECK below. Nothing else needs to change, and send_and_report already
+   takes the pairs that would carry it. */
+CREATE TABLE IF NOT EXISTS public.mail_links (
+	id bigserial PRIMARY KEY,
+	mail_messages_id bigint NOT NULL REFERENCES public.mail_messages(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE,
+	contact_id bigint REFERENCES public.contacts(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	invoice_id bigint REFERENCES public.invoices(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	purchase_order_id bigint REFERENCES public.purchase_orders(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	date_linked timestamptz NOT NULL DEFAULT now(),
+	linked_by varchar NOT NULL DEFAULT CURRENT_USER
+);
+
+/* Dropped and re-added by name, because this file re-runs from the top on
+   every upgrade and a CHECK cannot be added twice. Maintained the way
+   gl_entries_source_type_known is. */
+DO $$
+BEGIN
+	ALTER TABLE public.mail_links
+		DROP CONSTRAINT IF EXISTS mail_links_exactly_one_target;
+	ALTER TABLE public.mail_links
+		ADD CONSTRAINT mail_links_exactly_one_target
+			CHECK ((contact_id IS NOT NULL)::int
+					+ (invoice_id IS NOT NULL)::int
+					+ (purchase_order_id IS NOT NULL)::int = 1);
+END
+$$;
+
+/* One link per message per target. Partial, because NULLs are distinct to a
+   plain unique index: a plain one on (mail_messages_id, contact_id) would
+   admit every invoice link as another row with contact_id NULL and so admit
+   the duplicates it claimed to prevent. */
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_contact
+	ON public.mail_links (mail_messages_id, contact_id)
+	WHERE contact_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_invoice
+	ON public.mail_links (mail_messages_id, invoice_id)
+	WHERE invoice_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_purchase_order
+	ON public.mail_links (mail_messages_id, purchase_order_id)
+	WHERE purchase_order_id IS NOT NULL;
+
+/* The way the correspondence window reads it: every message for this
+   contact, newest first. Without these it is a scan of the whole table for
+   every customer opened. */
+CREATE INDEX IF NOT EXISTS mail_links_contact
+	ON public.mail_links (contact_id) WHERE contact_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_invoice
+	ON public.mail_links (invoice_id) WHERE invoice_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_purchase_order
+	ON public.mail_links (purchase_order_id) WHERE purchase_order_id IS NOT NULL;

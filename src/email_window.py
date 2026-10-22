@@ -36,15 +36,16 @@ UI_FILE = ui_directory + "/email_window.ui"
 class EmailGUI (Gtk.Builder):
 
 	def __init__ (self, contact_id = None, to = '', subject = '', body = '',
-					attachments = (), link = None):
+					attachments = (), links = ()):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		self.contact_store = self.get_object('contact_store')
 		self.attachment_store = self.get_object('attachment_store')
-		# what the record this message is about is, when the window was opened
-		# for one; a message typed from scratch works it out from the contact
-		self.link = link
+		# the records this window was opened for, if any. The contact is not
+		# among them: it is whoever is chosen below, read when Send is
+		# pressed, so that changing it changes what the message is filed under
+		self.links = list(links)
 		self.held = {}
 		completion = self.get_object('contact_completion')
 		completion.set_match_func(self.contact_match_func)
@@ -174,16 +175,20 @@ class EmailGUI (Gtk.Builder):
 			emailing.show_message(self.window, Gtk.MessageType.ERROR,
 									"An attachment could not be read:\n%s" % e)
 			return
-		link = self.link
-		if link == None:
-			contact_id = self.get_object('contact_combo').get_active_id()
-			link = ('contact_id', int(contact_id)) if contact_id else None
+		# the contact as well as whatever this was opened for, not instead of
+		# it. An invoice emailed to a customer has to be findable under the
+		# customer and under the invoice, and the old either/or filed it under
+		# the customer only when there was no invoice
+		links = list(self.links)
+		contact_id = self.get_object('contact_combo').get_active_id()
+		if contact_id:
+			links.append(('contact_id', int(contact_id)))
 		button.set_sensitive(False)
 		self.get_object('status_label').set_label("Sending...")
 		started = emailing.send_and_report(self.window,
 						[emailing.address(self.contact_name(), to)],
 						self.get_object('subject_entry').get_text(), body,
-						attachments = attachments, link = link,
+						attachments = attachments, links = links,
 						on_done = self.sent)
 		if not started:
 			# nothing was sent and the reason has been shown, so on_done never

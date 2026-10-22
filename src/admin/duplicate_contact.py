@@ -135,6 +135,18 @@ class DuplicateContactGUI:
 			cursor.execute("UPDATE statements "
 								"SET customer_id = %s WHERE customer_id = %s",
 								(final_contact_id, contact_id))
+			# the correspondence follows the surviving contact. The delete
+			# comes first and is not optional: both contacts may be linked to
+			# the same message, and mail_links_one_contact would refuse the
+			# second of them - an UPDATE cannot carry ON CONFLICT
+			cursor.execute("DELETE FROM mail_links WHERE contact_id = %s "
+								"AND mail_messages_id IN "
+								"(SELECT mail_messages_id FROM mail_links "
+									"WHERE contact_id = %s)",
+								(contact_id, final_contact_id))
+			cursor.execute("UPDATE mail_links SET contact_id = %s "
+								"WHERE contact_id = %s",
+								(final_contact_id, contact_id))
 			cursor.execute("DELETE FROM vendor_product_numbers "
 								"WHERE vendor_id = %s",
 								(contact_id,))

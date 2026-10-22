@@ -216,8 +216,7 @@ class DocumentGUI:
 		email_window.EmailGUI(contact_id = self.contact_id, to = email,
 						subject = self.document_type, body = body,
 						attachments = [("%s.pdf" % document_name,
-										bytes(pdf_data))],
-						link = ('contact_id', self.contact_id))
+										bytes(pdf_data))])
 		return True
 
 	################## start customer
