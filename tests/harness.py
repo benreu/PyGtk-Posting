@@ -4,6 +4,11 @@
 # because it belongs to none of them. They run against the restore copy
 # 'silrep_restore' only, inside one transaction that is rolled back in tearDown,
 # so the database is left unchanged. The password is read from the environment.
+# They log in as posting, the login Posting itself uses (see
+# src/db/posting_role.sql), never as a superuser, so they run with exactly
+# the privileges Posting has; POSTING_TEST_DB_USER overrides that, and
+# POSTING_TEST_DB_HOST the server, for a throwaway cluster. posting owns
+# production too, which is why connect () checks the database it reached.
 
 import os, sys, unittest
 import psycopg2
@@ -20,7 +25,8 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 TEST_DB = 'silrep_restore' # never point these tests at another database
-HOST = '192.168.50.120'
+HOST = os.environ.get('POSTING_TEST_DB_HOST', '192.168.50.120')
+TEST_USER = os.environ.get('POSTING_TEST_DB_USER', 'posting')
 
 class FakeDB:
 	'''psycopg2 connection that never really commits: commit() moves a savepoint
@@ -50,7 +56,7 @@ def connect():
 	if password is None:
 		raise unittest.SkipTest('POSTING_TEST_DB_PASSWORD not set')
 	conn = psycopg2.connect(dbname = TEST_DB, host = HOST, port = 5432,
-							user = 'postgres', password = password,
+							user = TEST_USER, password = password,
 							connect_timeout = 5)
 	cursor = conn.cursor()
 	cursor.execute("SELECT current_database()")

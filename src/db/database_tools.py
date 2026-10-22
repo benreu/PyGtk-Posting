@@ -79,14 +79,18 @@ class GUI:
 	def restore_database_clicked(self, widget):
 		host = self.builder.get_object('server_entry').get_text()
 		port = self.builder.get_object('port_entry').get_text()
-		user = self.builder.get_object('username_entry').get_text()
-		password = self.builder.get_object('password_entry').get_text()
 		db_name = self.builder.get_object('entry6').get_text()
 		if db_name == "":
 			self.status_update("Database name is blank!")
-		else:
-			from db.database_restore import RestoreGUI
-			RestoreGUI(host, port, user, password, db_name)
+			return
+		from db.database_restore import RestoreGUI, ask_restore_login
+		# asked for, not taken from the form above: that is the login Posting
+		# runs as, and it may not create the database a restore needs
+		login = ask_restore_login(self.window, host, port, db_name)
+		if login == None:
+			return
+		user, password = login
+		RestoreGUI(host, port, user, password, db_name)
 			
 	def restore_name_changed(self, widget):
 		restore_database_name = widget.get_text()

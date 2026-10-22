@@ -17,6 +17,7 @@
 # through the same path.
 #
 # Usage: POSTING_TEST_DB_PASSWORD=... python3 tests/run_all.py [-v]
+# The password is the posting login's: see harness.py.
 
 import os, sys, unittest
 
