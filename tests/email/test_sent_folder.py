@@ -197,6 +197,9 @@ class SendAndFileTest (unittest.TestCase):
 		self.shown = mock.patch.object(emailing, 'show_message').start()
 		self.send = mock.patch.object(emailing, 'send').start()
 		self.append = mock.patch.object(emailing, 'append_to_sent').start()
+		# the row the send writes is test_mail_record's subject; here it would
+		# only put this test's made up account id through a real foreign key
+		self.record = mock.patch.object(emailing, 'record').start()
 		mock.patch.object(credentials, 'password',
 							return_value = 'secret').start()
 		self.addCleanup(mock.patch.stopall)

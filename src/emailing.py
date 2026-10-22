@@ -39,7 +39,8 @@ main thread from the idle callback.'''
 
 from gi.repository import Gtk, GLib
 from email.message import EmailMessage
-from email.utils import formataddr, parseaddr, make_msgid
+from email.utils import formataddr, parseaddr, make_msgid, formatdate, \
+						parsedate_to_datetime
 import mimetypes, re, smtplib, ssl, threading
 from db_connection import DB
 import credentials
@@ -137,6 +138,10 @@ def build (acct, to, subject, body, attachments = (), cc = ()):
 	if cc:
 		message['Cc'] = ', '.join([a for a in cc if valid_address(a)])
 	message['Subject'] = subject
+	# set here rather than left to whichever machine the message passes
+	# through, so the row recording the send, the copy filed in Sent and what
+	# the recipient sees all say the same time
+	message['Date'] = formatdate(localtime = True)
 	# ours, and generated here rather than by the server, so the row recording
 	# the send can be tied to the copy the server files in Sent
 	message['Message-ID'] = make_msgid()
@@ -191,6 +196,69 @@ def _said (error):
 		return message.decode('utf-8', 'replace').strip()
 	return str(error)
 
+def sent_date (message):
+	"when the message says it was sent, or None when it has no usable Date"
+	header = message['Date']
+	if header == None:
+		return None
+	stamp = getattr(header, 'datetime', None) # policy.default parses it for us
+	if stamp != None:
+		return stamp
+	try:
+		return parsedate_to_datetime(str(header))
+	except (TypeError, ValueError):
+		return None
+
+def has_attachments (message):
+	"whether anything was attached, which is what the correspondence list shows"
+	return any(True for part in message.iter_attachments())
+
+def record (acct, message, body, folder = '', filed = None):
+	'''Write the row saying this message went, and return its id.
+
+	Only ever called for a message that has actually gone. A row for a failed
+	send would make this table a record of things that did not happen, which
+	is the fault the whole of this work exists to fix.
+
+	folder and filed are where the server put the copy, as append_to_sent
+	returned it: '' and None when there is no server copy, and the folder with
+	filed None when it was appended but the server did not say under which uid.
+
+	Raises MailError, having rolled back, when the row cannot be written. The
+	message cannot be unsent by then, so the caller reports this separately
+	rather than as a failed send - but it is reported, because an invoice
+	nobody can show was sent is the thing this row is for.
+
+	Main thread only: it uses the shared connection.'''
+	uidvalidity, uid = filed if filed != None else (None, None)
+	cursor = DB.cursor()
+	try:
+		cursor.execute("INSERT INTO mail_messages (message_id, account_id, "
+							"folder, uid, uidvalidity, date_sent, subject, "
+							"from_address, from_name, to_addresses, "
+							"cc_addresses, outgoing, has_attachments, "
+							"body_text) "
+						"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+							"True, %s, %s) RETURNING id",
+						(str(message['Message-ID'] or ''), acct.id, folder,
+						uid, uidvalidity, sent_date(message),
+						str(message['Subject'] or ''), acct.from_address,
+						acct.from_name, str(message['To'] or ''),
+						str(message['Cc'] or ''), has_attachments(message),
+						body or ''))
+		row_id = cursor.fetchone()[0]
+		DB.commit()
+		return row_id
+	except Exception as e:
+		# the connection is left usable: an uncommitted failed statement makes
+		# every later one in the transaction fail too, and the rest of the
+		# program is still running in it
+		DB.rollback()
+		raise MailError(str(e).strip())
+	finally:
+		cursor.close()
+
+
 def show_message (parent, message_type, text):
 	dialog = Gtk.MessageDialog(message_type = message_type,
 								buttons = Gtk.ButtonsType.CLOSE)
@@ -208,9 +276,10 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 
 	to and cc are lists of formed addresses; attachments is a list of
 	(filename, bytes). link names the record the message belongs to, as a
-	(column, id) pair such as ('invoice_id', 1234) - nothing is written for it
-	until mail_links exists, and it is taken now so that adding a kind of
-	record later changes no call site.
+	(column, id) pair such as ('invoice_id', 1234) - the message's own row is
+	written either way, but nothing ties it to the record until mail_links
+	exists, and it is taken now so that adding a kind of record later changes
+	no call site.
 
 	on_done (error) runs on the main thread once the result has been shown,
 	and is given None when the message went and whatever went wrong when it
@@ -238,7 +307,7 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 						"The email was not sent:\n%s" % e)
 		return False
 
-	def report (error, not_filed):
+	def report (error, not_filed, filed, appended):
 		if error is None:
 			sent = "Sent to %s." % message['To']
 			if not_filed is not None:
@@ -247,6 +316,12 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 				sent += ("\n\nThe copy could not be filed in %s:\n%s"
 							% (acct.sent_folder or 'the Sent folder',
 								not_filed))
+			try:
+				record(acct, message, body,
+						acct.sent_folder if appended else '', filed)
+			except MailError as e:
+				sent += ("\n\nThe send could not be recorded in the "
+							"database:\n%s" % e)
 			show_message(parent, Gtk.MessageType.INFO, sent)
 		else:
 			show_message(parent, Gtk.MessageType.ERROR,
@@ -256,7 +331,7 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 		return False # idle_add: once, never re-armed
 
 	def work ():
-		error, not_filed = None, None
+		error, not_filed, filed, appended = None, None, None, False
 		try:
 			secret = ''
 			if acct.smtp_user != '':
@@ -273,12 +348,13 @@ def send_and_report (parent, to, subject, body, attachments = (), cc = (),
 			# only now: filing a copy of a message that never went would be a
 			# record of something that did not happen
 			try:
-				append_to_sent(acct, message)
+				filed = append_to_sent(acct, message)
+				appended = True
 			except (MailError, credentials.CredentialError) as e:
 				not_filed = e
 			except Exception as e:
 				not_filed = e
-		GLib.idle_add(report, error, not_filed)
+		GLib.idle_add(report, error, not_filed, filed, appended)
 
 	threading.Thread(target = work, daemon = True).start()
 	return True

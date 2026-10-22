@@ -4,11 +4,11 @@
 # the shared harness, where every inventory test paid for it and nobody
 # reading the harness could tell who it was for.
 #
-# The blocks are the DDL of --0.7.35 and --0.7.36, applied inside the test
-# transaction so the suite runs against a copy that has not had the upgrade
-# yet and the database is left as it was. Each is asked for separately
-# because the upgrades land one at a time: a copy can have the account table
-# and not the messages one.
+# The three blocks are the DDL of --0.7.35, --0.7.36 and --0.7.37, applied
+# inside the test transaction so the suite runs against a copy that has not
+# had the upgrade yet and the database is left as it was. Each is asked for
+# separately because the three upgrades land one at a time: a copy can have
+# the account table and not the messages one.
 #
 # Unlike the harness's own probes, these are asked from inside the test
 # transaction on the first test that wants them, not at import. The harness
@@ -29,7 +29,9 @@ PROBE = """
 SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 			(table_schema, table_name) = ('settings', 'mail_accounts')),
 	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
-			(table_schema, table_name) = ('settings', 'email_messages'))
+			(table_schema, table_name) = ('settings', 'email_messages')),
+	NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
+			(table_schema, table_name) = ('public', 'mail_messages'))
 """
 
 # 0.7.35, the mail account the Settings page edits and emailing.account () reads.
@@ -39,10 +41,10 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE
 # leak it.
 #
 # The CHECK and the one-active index the migration carries are kept, unlike
-# the harness's own blocks, which drop the constraints they can: both tables
-# here are new, so validating a constraint on one scans nothing and locks
-# nothing any other test wants, and both of these are what the settings page
-# is tested against
+# the harness's own blocks, which drop the constraints they can: all three
+# tables here are new, so validating a constraint on one scans nothing and
+# locks nothing any other test wants, and both of these are what the settings
+# page is tested against
 PENDING_MAIL_SCHEMA = """
 CREATE TABLE IF NOT EXISTS settings.mail_accounts (
 	id serial PRIMARY KEY,
@@ -84,6 +86,43 @@ CREATE TABLE IF NOT EXISTS settings.email_messages (
 );
 """
 
+# 0.7.37, the row saying a message went. The indexes come with it: the
+# partial unique one on the server copy is the whole reason the sync can
+# insert a slice twice, so a copy of the table without it would be a
+# different table from the one that ships. ShippedSchemaTest asserts this
+# block and the migration's really do agree
+PENDING_MAIL_RECORD_SCHEMA = """
+CREATE TABLE IF NOT EXISTS public.mail_messages (
+	id bigserial PRIMARY KEY,
+	message_id varchar NOT NULL DEFAULT '',
+	account_id integer REFERENCES settings.mail_accounts(id)
+		ON UPDATE RESTRICT ON DELETE SET NULL,
+	folder varchar NOT NULL DEFAULT '',
+	uid bigint,
+	uidvalidity bigint,
+	date_sent timestamptz,
+	subject varchar NOT NULL DEFAULT '',
+	from_address varchar NOT NULL DEFAULT '',
+	from_name varchar NOT NULL DEFAULT '',
+	to_addresses varchar NOT NULL DEFAULT '',
+	cc_addresses varchar NOT NULL DEFAULT '',
+	outgoing boolean NOT NULL DEFAULT False,
+	has_attachments boolean NOT NULL DEFAULT False,
+	raw_message bytea,
+	body_text varchar NOT NULL DEFAULT '',
+	date_inserted timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS mail_messages_server_copy
+	ON public.mail_messages (account_id, folder, uidvalidity, uid)
+	WHERE uid IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_messages_message_id
+	ON public.mail_messages (message_id);
+CREATE INDEX IF NOT EXISTS mail_messages_from_address
+	ON public.mail_messages (from_address);
+CREATE INDEX IF NOT EXISTS mail_messages_date_sent
+	ON public.mail_messages (date_sent DESC);
+"""
+
 _pending = None # asked once, by the first test that needs these tables
 
 
@@ -95,7 +134,8 @@ def apply (case):
 	if _pending is None:
 		case.cursor.execute(PROBE)
 		_pending = case.cursor.fetchone()
-	blocks = (PENDING_MAIL_SCHEMA, PENDING_MAIL_MESSAGE_SCHEMA)
+	blocks = (PENDING_MAIL_SCHEMA, PENDING_MAIL_MESSAGE_SCHEMA,
+				PENDING_MAIL_RECORD_SCHEMA)
 	for needed, sql in zip(_pending, blocks):
 		if needed:
 			case.cursor.execute(sql)

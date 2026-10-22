@@ -1549,3 +1549,78 @@ BEGIN
 	END IF;
 END
 $$;
+
+--0.7.37
+/* A row for every message Posting sends, so that what went out to a customer
+   is answerable from the database instead of from whichever workstation the
+   person who sent it was sitting at. Until now the only trace of a sent
+   invoice was the copy filed in the server's Sent folder, which nobody else
+   in the company can see and nothing in Posting can show.
+
+   This is the table the correspondence window reads and the IMAP sync will
+   write into, which is why it carries columns nothing fills in yet: an
+   incoming message has a folder, a uid and a uidvalidity, and a sent one has
+   those too once the copy has been filed in Sent. Written now rather than
+   added later so the sync is an insert into a shape already proven by the
+   send path.
+
+   message_id is indexed and deliberately NOT unique. The same message
+   legitimately sits in two folders at once, in INBOX and in Sent for anything
+   self addressed, so a unique index would make the second folder's row a
+   constraint violation and abort the sync transaction on every pass. It is
+   also not a header a sender is obliged to set, so it can be ''.
+
+   The idempotency key is the partial unique index on (account_id, folder,
+   uidvalidity, uid), which is what lets the sync insert a slice with ON
+   CONFLICT DO NOTHING and re enumerate a folder as often as it likes.
+   Partial because a message composed here has no server uid until the copy is
+   filed, and because NULLs are distinct to a plain unique index: a plain one
+   would admit the duplicates it claimed to prevent.
+
+   raw_message is left empty by the send path. The document that went out is
+   already in the database, in invoices.pdf_data or documents.pdf_data, on the
+   record the message is about, and the server's Sent copy holds the message
+   itself; keeping a second copy of every attachment here would put the whole
+   mailbox in Postgres and in every pg_dump of it. The column is here for the
+   one case that needs it, an incoming message deliberately attached to a
+   record, where the bytes must survive the server's copy being deleted.
+
+   There is deliberately no NOTIFY trigger, unlike the twelve tables that have
+   one. The initial sync inserts around 12,000 rows, and a trigger firing per
+   row with a distinct payload is 12,000 notifies Postgres cannot collapse,
+   which floods process_notifies. The sync issues one pg_notify per committed
+   slice instead. Please do not add the trigger here for consistency.
+
+   account_id goes to NULL rather than refusing the delete when an account is
+   removed. The correspondence is the point of the table and outlives the
+   account it was sent through; a RESTRICT here would mean an account row that
+   can never be deleted once anything has been sent from it. */
+CREATE TABLE IF NOT EXISTS public.mail_messages (
+	id bigserial PRIMARY KEY,
+	message_id varchar NOT NULL DEFAULT '',
+	account_id integer REFERENCES settings.mail_accounts(id)
+		ON UPDATE RESTRICT ON DELETE SET NULL,
+	folder varchar NOT NULL DEFAULT '',
+	uid bigint,
+	uidvalidity bigint,
+	date_sent timestamptz,
+	subject varchar NOT NULL DEFAULT '',
+	from_address varchar NOT NULL DEFAULT '',
+	from_name varchar NOT NULL DEFAULT '',
+	to_addresses varchar NOT NULL DEFAULT '',
+	cc_addresses varchar NOT NULL DEFAULT '',
+	outgoing boolean NOT NULL DEFAULT False,
+	has_attachments boolean NOT NULL DEFAULT False,
+	raw_message bytea,
+	body_text varchar NOT NULL DEFAULT '',
+	date_inserted timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS mail_messages_server_copy
+	ON public.mail_messages (account_id, folder, uidvalidity, uid)
+	WHERE uid IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_messages_message_id
+	ON public.mail_messages (message_id);
+CREATE INDEX IF NOT EXISTS mail_messages_from_address
+	ON public.mail_messages (from_address);
+CREATE INDEX IF NOT EXISTS mail_messages_date_sent
+	ON public.mail_messages (date_sent DESC);
