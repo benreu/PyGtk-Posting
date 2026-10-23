@@ -744,6 +744,10 @@ class MainGUI :
 		from admin import data_import
 		data_import.DataImportUI()
 
+	def mail_archive_import_activated (self, widget):
+		import mbox_import_window
+		mbox_import_window.MboxImportGUI()
+
 	def data_export_activated (self, widget):
 		from admin import data_export
 		data_export.DataExportUI()

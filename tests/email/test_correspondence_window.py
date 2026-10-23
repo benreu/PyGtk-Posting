@@ -162,6 +162,21 @@ class TheListTest (CorrespondenceTestCase):
 		gui.start_calendar.set_date(datetime.today() - timedelta(days = 500))
 		self.assertIn(old, self.listed(gui))
 
+	def test_an_end_date_of_today_means_up_to_now (self):
+		# a window left open overnight would otherwise stop showing mail at
+		# midnight, and go on refreshing itself for messages it had decided
+		# not to show. Real mail also carries clocks that are ahead
+		later = self.message('Clock is fast', 'From the future', days = -1,
+								links = [('contact_id', self.customer_id)])
+		self.DB.commit()
+		self.assertIn(later, self.listed(self.open(self.customer_id)))
+
+	def test_an_end_date_in_the_past_is_still_a_cut (self):
+		gui = self.open(self.customer_id)
+		from datetime import datetime, timedelta
+		gui.end_calendar.set_date(datetime.today() - timedelta(days = 2))
+		self.assertNotIn(self.invoice_message, self.listed(gui))
+
 	def test_the_contact_is_named_rather_than_addressed (self):
 		gui = self.open(self.customer_id)
 		shown = [row[4] for row in gui.get_object('message_sort')]
@@ -190,6 +205,23 @@ class TheListTest (CorrespondenceTestCase):
 		gui.populate_messages()
 		self.assertIn('Nothing has been emailed',
 						gui.get_object('status_label').get_label())
+
+	def test_an_empty_list_with_older_mail_says_to_widen_the_dates (self):
+		# the window opens on the last year, and an imported archive is
+		# mostly older than that: without this the whole of it looks like
+		# nothing at all
+		self.message('From the archive', 'Long ago', days = 4000,
+						links = [('contact_id', self.customer_id)])
+		self.DB.commit()
+		gui = self.open(self.customer_id)
+		from datetime import datetime, timedelta
+		# a window with nothing in it: the fixtures are one to three days old
+		# and the archived one is far older
+		gui.start_calendar.set_date(datetime.today() - timedelta(days = 200))
+		gui.end_calendar.set_date(datetime.today() - timedelta(days = 100))
+		said = gui.get_object('status_label').get_label()
+		self.assertIn('oldest message here', said)
+		self.assertIn('widen the dates', said)
 
 
 class SearchTest (CorrespondenceTestCase):

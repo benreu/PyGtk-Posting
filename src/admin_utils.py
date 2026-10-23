@@ -35,6 +35,7 @@ def set_admin (value):
 	main_class.builder.get_object('menuitem67').set_sensitive(value)
 	main_class.builder.get_object('menuitem21').set_sensitive(value)
 	main_class.builder.get_object('menuitem45').set_sensitive(value)
+	main_class.builder.get_object('mail_archive_import_menuitem').set_sensitive(value)
 	main_class.builder.get_object('menuitem55').set_sensitive(value)
 	main_class.builder.get_object('menuitem50').set_sensitive(value)
 	main_class.builder.get_object('menuitem74').set_sensitive(value)

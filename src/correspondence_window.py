@@ -34,7 +34,7 @@ invoices.pdf_data on the record the message is linked to, so Open goes and
 gets it from there: what opens is provably the bytes that were attached.'''
 
 from gi.repository import Gtk, GLib
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import os, subprocess, tempfile
 from db_connection import DB, broadcaster
 from constants import ui_directory
@@ -270,9 +270,16 @@ class CorrespondenceGUI (Gtk.Builder):
 		# no usable Date still belongs somewhere, and when it was recorded is
 		# the honest answer. string_agg rather than a join to contacts, so a
 		# message linked to two contacts is one row and not two
-		where = ["COALESCE(m.date_sent, m.date_inserted)::date "
-					"BETWEEN %s AND %s"]
-		args = [self.start_calendar.get_date(), self.end_calendar.get_date()]
+		where = ["COALESCE(m.date_sent, m.date_inserted)::date >= %s"]
+		args = [self.start_calendar.get_date()]
+		end = self.end_calendar.get_date()
+		if end != None and end < date.today():
+			where.append("COALESCE(m.date_sent, m.date_inserted)::date <= %s")
+			args.append(end)
+		# an end date of today means up to now, and is left off the query
+		# rather than fixed at the date the window opened. One left open
+		# overnight would otherwise stop showing mail at midnight, and go on
+		# refreshing itself for messages it had decided not to show
 		if self.contact_id != None:
 			where.append("EXISTS (SELECT 1 FROM mail_links "
 							"WHERE mail_messages_id = m.id "
@@ -316,11 +323,34 @@ class CorrespondenceGUI (Gtk.Builder):
 		self.reselect(selected)
 
 	def said (self, count):
-		if count == 0 and self.contact_id != None:
-			return "Nothing has been emailed to this contact yet."
-		if count == 0:
-			return "Nothing has been emailed from Posting in this period."
-		return "%s message%s" % (count, '' if count == 1 else 's')
+		if count > 0:
+			return "%s message%s" % (count, '' if count == 1 else 's')
+		# an empty list has two quite different meanings, and the window
+		# opened on the last year. An imported archive is mostly older than
+		# that, so without this the whole of it looks like nothing at all
+		oldest = self.oldest()
+		if oldest != None and oldest < self.start_calendar.get_date():
+			return ("Nothing in this period. The oldest message here is from "
+					"%s - widen the dates to see it." % oldest)
+		if self.contact_id != None:
+			return "Nothing has been emailed to or from this contact."
+		return "Nothing has been emailed in this period."
+
+	def oldest (self):
+		"the date of the oldest message there is, whatever the dates say"
+		where, args = '', []
+		if self.contact_id != None:
+			where = ("WHERE EXISTS (SELECT 1 FROM mail_links "
+						"WHERE mail_messages_id = m.id AND contact_id = %s)")
+			args.append(self.contact_id)
+		cursor = DB.cursor()
+		cursor.execute("SELECT min(COALESCE(m.date_sent, "
+										"m.date_inserted))::date "
+						"FROM mail_messages AS m " + where, args)
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		return row[0] if row else None
 
 	def reselect (self, message_id):
 		'''Put the cursor back on the message that was selected. A refresh
