@@ -30,7 +30,7 @@ transmission report, so nothing here can say that a fax arrived.'''
 import gi
 gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
-import re, subprocess
+import re, subprocess, traceback
 
 FAX_QUEUE = "BRFAX"
 # the driver's own number check passes digits and commas (a comma is a pause)
@@ -83,10 +83,13 @@ def send (pdf_path, number, title):
 	# the title travels through Brother's shell scripts unquoted in places
 	title = re.sub(r'[^A-Za-z0-9_.-]+', '_', title)
 	try:
+		# no-hold: the queue holds every job that arrives without a number so
+		# that fax_queue can ask for one, and this one already has it
 		result = subprocess.run(["lp", "-d", FAX_QUEUE, "-t", title,
 								"-o", "fax-number=" + number,
 								"-o", "Quality=FINE",
 								"-o", "PageSize=Letter",
+								"-o", "job-hold-until=no-hold",
 								pdf_path],
 								capture_output = True, text = True, timeout = 60)
 	except (OSError, subprocess.SubprocessError) as e:
@@ -95,6 +98,25 @@ def send (pdf_path, number, title):
 		raise FaxError(result.stderr.strip() or result.stdout.strip())
 	match = re.search(r'request id is (\S+)', result.stdout)
 	return match.group(1) if match else ''
+
+def cancel_jobs (job_ids):
+	'''Cancel held print jobs whose pages have been faxed or discarded. One
+	already gone - canceled from the print queue, say - is not an error, and
+	nothing here may raise: it runs after a fax has been sent, and a failure
+	must not leave the window looking unsent.'''
+	if not job_ids:
+		return
+	try:
+		import cups
+		conn = cups.Connection()
+	except Exception:
+		traceback.print_exc()
+		return
+	for job_id in job_ids:
+		try:
+			conn.cancelJob(job_id)
+		except Exception:
+			traceback.print_exc()
 
 def missing_queue_message ():
 	return ("There is no fax queue named %s on this computer.\n\n"

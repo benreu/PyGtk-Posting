@@ -108,6 +108,22 @@ class MainGUI :
 			broadcaster.connect("loans_changed", self.loans_changed)
 			broadcaster.connect("resources_changed", self.resources_changed)
 			GLib.timeout_add_seconds(3600, self.check_date_reminders_timer)
+			self.start_fax_watcher ()
+
+	def start_fax_watcher (self):
+		'''jobs printed to the fax queue from any program are held there, and
+		this collects them into a Send fax window; see fax_queue'''
+		import faxing
+		if not faxing.queue_available ():
+			return # no fax on this computer
+		try:
+			import fax_queue
+		except ImportError as e: # python3-cups
+			print ("fax jobs printed from other programs will not be "
+					"collected: %s" % e)
+			return
+		self.fax_watcher = fax_queue.Watcher()
+		self.fax_watcher.start()
 
 	def sql_window_activated (self, menuitem):
 		from db import sql_window

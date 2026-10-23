@@ -1,0 +1,89 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="fax">
+
+  <info>
+  <link type="guide" xref="index"/>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Faxing</title>
+
+  <p>PyGtk Posting faxes through the Brother fax machine's <em>BRFAX</em> print
+  queue on this computer. The queue needs Brother's fax driver
+  (brmfcfaxdrv). Every fax carries its number with it, so the number is always
+  asked for before anything is dialed.</p>
+
+  <section id="number">
+  <title>The number to dial</title>
+  <p>The fax driver takes digits and commas only. A comma is a pause, so
+  <code>9,13155551234</code> dials 9 for an outside line first. Long distance
+  numbers start with 1. When a contact has a fax number on file it is offered
+  already cleaned up, with the number as it was typed shown beside it.</p>
+  </section>
+
+  <section id="send_fax">
+  <title>Sending any document</title>
+  <steps>
+    <item><p>Open General > Send fax.</p></item>
+    <item><p>Choose a contact, or type the number to dial.</p></item>
+    <item><p>Click Add PDFs to choose the documents. They are faxed in the
+    order listed.</p></item>
+    <item><p>Leave Cover sheet checked to send a cover page with a subject and
+    a note, or uncheck it to send only the documents.</p></item>
+    <item><p>Click Preview to see exactly what will be sent, then Send
+    fax.</p></item>
+  </steps>
+  </section>
+
+  <section id="invoice">
+  <title>Faxing an invoice</title>
+  <p>In the invoice window choose Fax invoice... before posting, and check the
+  number against the invoice. The menu item then shows the number, and the
+  invoice is faxed to it as soon as it is posted. Choose Fax invoice... again to
+  change the number, or click Don't fax.</p>
+  <p>An invoice already posted can be faxed again from the Unpaid Invoices
+  window: right click it and choose Fax invoice.</p>
+  </section>
+
+  <section id="other_programs">
+  <title>Faxing from other programs</title>
+  <p>Brother's fax driver never asks for a number, so a document printed to
+  BRFAX from another program normally disappears without being faxed. To fax
+  from any program, have the queue hold what is printed to it, by running this
+  once in a terminal:</p>
+  <screen>sudo lpadmin -p BRFAX -o job-hold-until-default=indefinite</screen>
+  <p>After that, while PyGtk Posting is open, anything printed to BRFAX opens
+  the Send fax window within a few seconds, with the pages printed. Print more,
+  from the same program or another, and they are added to the same fax: print
+  only the pages you need from a manual, then the next pages, then the
+  invoice, and send them all as one fax. Pages chosen in the print dialog are
+  the pages faxed.</p>
+  <list>
+    <item><p>Remove takes a printed document out of the fax and cancels it in
+    the print queue.</p></item>
+    <item><p>Closing the window asks before canceling the printed documents
+    still waiting.</p></item>
+    <item><p>Anything printed while PyGtk Posting is closed waits in the print
+    queue, and opens the Send fax window the next time PyGtk Posting
+    starts.</p></item>
+  </list>
+  <p>To stop holding, run:</p>
+  <screen>sudo lpadmin -p BRFAX -o job-hold-until-default=no-hold</screen>
+  <note><p>Only run one copy of PyGtk Posting while faxing from other programs.
+  Each copy opens its own Send fax window for the same pages.</p></note>
+  </section>
+
+  <section id="report">
+  <title>Did the fax go through?</title>
+  <p>PyGtk Posting can only tell you the fax machine took the fax into its
+  memory. Busy lines, redials and failed calls are known to the fax machine
+  alone. Its transmission report says whether the fax went through; set the
+  machine to print one for every fax while you are getting used to faxing from
+  PyGtk Posting.</p>
+  </section>
+
+</page>
