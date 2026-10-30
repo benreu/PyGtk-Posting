@@ -68,8 +68,9 @@
     name</gui> and click <gui>Save</gui>.</p></item>
     <item><p>To rename one, double click it, change the name and click
     <gui>Save</gui>.</p></item>
-    <item><p><gui>Delete</gui> marks the selected type as deleted, but it is
-    still listed, here and on the job sheet.</p></item>
+    <item><p><gui>Delete</gui> removes the selected type from this list and
+    from the job sheet's <gui>Job</gui> list. Jobs already made with it keep
+    it.</p></item>
   </list>
   </section>
 

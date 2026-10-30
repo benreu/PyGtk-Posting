@@ -235,7 +235,7 @@ class JobSheetGUI(Gtk.Builder):
 		model.clear()
 		cursor = DB.cursor()
 		cursor.execute("SELECT id::text, name "
-							"FROM job_types ORDER BY name")
+							"FROM job_types WHERE deleted = False ORDER BY name")
 		for row in cursor.fetchall():
 			model.append(row)
 		cursor.close()

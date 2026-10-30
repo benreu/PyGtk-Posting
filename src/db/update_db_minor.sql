@@ -1773,3 +1773,11 @@ ALTER TABLE public.payments_incoming
    to 0.7.39. Only a version above both makes either of them run this file
    again, and every block in it is guarded, so running it again is what applies
    the half each one is missing. */
+
+--0.7.42
+/* Job types' Delete set a deleted column that was never created, so it raised
+   and left the connection in an aborted transaction. A deleted type leaves the
+   Job Types list and the job sheet's Job list; jobs already made with it keep
+   it, which is why it is not a real DELETE (job_sheets references it). */
+ALTER TABLE public.job_types
+	ADD COLUMN IF NOT EXISTS deleted boolean NOT NULL DEFAULT False;

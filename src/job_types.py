@@ -56,7 +56,7 @@ class GUI (Gtk.Builder):
 		self.job_store.clear()
 		cursor = DB.cursor()
 		cursor.execute("SELECT id, name, current_serial_number "
-							"FROM job_types ORDER BY name")
+							"FROM job_types WHERE deleted = False ORDER BY name")
 		for row in cursor.fetchall():
 			self.job_store.append(row)
 		cursor.close()
@@ -87,6 +87,8 @@ class GUI (Gtk.Builder):
 			cursor.close()
 			DB.commit()
 			self.job_treeview_populate ()
+			if job_id == self.job_id: # Save would rename the hidden type
+				self.new(self.get_object('entry1'))
 
 	def new(self, widget):
 		widget.set_text("New job type")

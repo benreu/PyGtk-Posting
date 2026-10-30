@@ -612,7 +612,8 @@ CREATE TABLE public.purchase_order_items (
 CREATE TABLE public.job_types (
     id serial primary key,
     name character varying NOT NULL,
-    current_serial_number int NOT NULL DEFAULT 0
+    current_serial_number int NOT NULL DEFAULT 0,
+    deleted boolean NOT NULL DEFAULT false
 );
 --CREATE TABLE public.job_sheets
 CREATE TABLE public.job_sheets (

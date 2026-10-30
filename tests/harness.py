@@ -229,11 +229,19 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
 	('public', 'payments_incoming', 'discount_cash_back'))
 """
 
+# And again
+JOB_TYPE_SCHEMA_PROBE = """
+SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
+	(table_schema, table_name, column_name) =
+	('public', 'job_types', 'deleted'))
+"""
+
 _conn = None
 _schema_pending = True # until asked; a copy that is behind pays the DDL per test
 _settings_schema_pending = True
 _gl_source_schema_pending = True
 _payment_adjustment_schema_pending = True
+_job_type_schema_pending = True
 try:
 	_conn = connect()
 	# asked here, before FakeDB opens the savepoint every test rolls back to, so
@@ -247,6 +255,8 @@ try:
 	_gl_source_schema_pending = _probe.fetchone()[0]
 	_probe.execute(PAYMENT_ADJUSTMENT_SCHEMA_PROBE)
 	_payment_adjustment_schema_pending = _probe.fetchone()[0]
+	_probe.execute(JOB_TYPE_SCHEMA_PROBE)
+	_job_type_schema_pending = _probe.fetchone()[0]
 	_probe.close()
 	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
@@ -558,6 +568,14 @@ ALTER TABLE public.payments_incoming
 	ADD COLUMN IF NOT EXISTS gl_entries_discount_cash_back_id bigint;
 """
 
+# 0.7.42, the job types' deleted flag. Its own block, see JOB_TYPE_SCHEMA_PROBE.
+# Needed because the job sheet's Job list filters on it, so any test that opens
+# a job sheet fails on a copy that has not had the upgrade
+PENDING_JOB_TYPE_SCHEMA = """
+ALTER TABLE public.job_types
+	ADD COLUMN IF NOT EXISTS deleted boolean NOT NULL DEFAULT False;
+"""
+
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
@@ -585,9 +603,12 @@ class DBTestCase(unittest.TestCase):
 			self.cursor.execute(PENDING_GL_SOURCE_SCHEMA)
 		if _payment_adjustment_schema_pending:
 			self.cursor.execute(PENDING_PAYMENT_ADJUSTMENT_SCHEMA)
+		if _job_type_schema_pending:
+			self.cursor.execute(PENDING_JOB_TYPE_SCHEMA)
 		if _schema_pending or _settings_schema_pending \
 							or _gl_source_schema_pending \
-							or _payment_adjustment_schema_pending:
+							or _payment_adjustment_schema_pending \
+							or _job_type_schema_pending:
 			# move the savepoint past the DDL. FakeDB.rollback () returns to
 			# test_sp, which was taken at import, so a window doing the usual
 			# DB.rollback () after a read would otherwise undo the columns just
