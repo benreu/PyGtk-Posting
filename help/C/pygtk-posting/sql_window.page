@@ -20,7 +20,8 @@
 
   <steps>
     <item><p>Type the query and click <gui>Run SQL</gui>. The time it took is
-    shown; an error is shown in place of the table.</p></item>
+    shown; an error is shown in place of the table. A blank cell in the table
+    is a NULL, and a true/false column shows a NULL unticked.</p></item>
     <item><p>To keep what a query changes, tick <gui>Commit</gui> before
     clicking <gui>Run SQL</gui>.</p></item>
     <item><p>To keep a query, type a name for it in the box at the top and

@@ -24,7 +24,8 @@
     <item><p>The results list each <gui>Table</gui> and <gui>Column</gui>
     where it was <gui>Found</gui>, and how many results there are.</p></item>
     <item><p>Double click a result to see the whole record it was found
-    in.</p></item>
+    in. A blank cell there has no value, and a tick box with no value shows
+    unticked.</p></item>
   </steps>
 
   <section id="generator">

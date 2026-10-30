@@ -22,6 +22,7 @@ import time
 from db_connection import DB
 from constants import ui_directory
 import user_manual
+import query_results
 
 UI_FILE = ui_directory + "/db/sql_window.ui"
 
@@ -164,38 +165,9 @@ class SQLWindowGUI(Gtk.Builder):
 		cursor.close()
 		if self.end_transaction() == None:
 			return
-		#create treeview columns and a liststore to store the info
 		self.get_object('textview2').set_visible(False)
 		self.get_object('scrolledwindow2').set_visible(True)
-		type_list = list()
-		for index, row in enumerate(description):
-			column_name = row.name
-			type_ = row.type_code
-			if type_ == 23:
-				type_list.append(int)
-				renderer = Gtk.CellRendererText()
-				column = Gtk.TreeViewColumn(column_name, renderer, text=index)
-			elif type_ == 16:
-				type_list.append(bool)
-				renderer = Gtk.CellRendererToggle()
-				column = Gtk.TreeViewColumn(column_name, renderer, active=index)
-			else:
-				type_list.append(str)
-				renderer = Gtk.CellRendererText()
-				column = Gtk.TreeViewColumn(column_name, renderer, text=index)
-			treeview.append_column(column)
-			column.set_sort_column_id(index)
-			column.set_reorderable(True)
-			column.set_resizable(True)
-		store = Gtk.ListStore()
-		store.set_column_types(type_list)
-		treeview.set_model(store)
-		for row in rows:
-			# do a convert, cell by cell, to make sure types are correct
-			store_row = list()
-			for index, element in enumerate(row):
-				store_row.append(type_list[index](element))
-			store.append (store_row)
+		query_results.fill_treeview(treeview, description, rows)
 		self.save_current_sql(string)
 
 	def show_message (self, text):

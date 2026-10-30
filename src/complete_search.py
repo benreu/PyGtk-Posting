@@ -21,6 +21,7 @@ import threading
 from db_connection import DB, background_connection
 from constants import ui_directory
 import user_manual
+import query_results
 
 UI_FILE = ui_directory + "/complete_search.ui"
 
@@ -96,42 +97,14 @@ class CompleteSearchGUI(Gtk.Builder):
 		cursor = DB.cursor()
 		cursor.execute("SELECT * FROM %s.%s WHERE ctid = '%s'"%
 							(schema, table, ctid))
+		rows = cursor.fetchall()
+		description = cursor.description
+		cursor.close()
+		DB.rollback()
 		record_treeview = self.get_object('record_treeview')
 		for column in record_treeview.get_columns():
 			record_treeview.remove_column(column)
-		type_list = list()
-		for index, row in enumerate(cursor.description):
-			column_name = row.name
-			type_ = row.type_code
-			if type_ == 23:
-				type_list.append(int)
-				renderer = Gtk.CellRendererText()
-				column = Gtk.TreeViewColumn(column_name, renderer, text=index)
-			elif type_ == 16:
-				type_list.append(bool)
-				renderer = Gtk.CellRendererToggle()
-				column = Gtk.TreeViewColumn(column_name, renderer, active=index)
-			else:
-				type_list.append(str)
-				renderer = Gtk.CellRendererText()
-				column = Gtk.TreeViewColumn(column_name, renderer, text=index)
-			record_treeview.append_column(column)
-			column.set_sort_column_id(index)
-			column.set_reorderable(True)
-			column.set_resizable(True)
-		store = Gtk.ListStore()
-		store.set_column_types(type_list)
-		for row in cursor.fetchall():
-			# do a convert, cell by cell, to make sure types are correct
-			store_row = list()
-			for index, value in enumerate(row):
-				if value == None and type_list[index] == int:
-					value = 0
-				store_row.append(type_list[index](value))
-			store.append (store_row)
-		cursor.close()
-		DB.rollback()
-		record_treeview.set_model(store)
+		query_results.fill_treeview(record_treeview, description, rows)
 		record_treeview.show_all()
 
 	def search_generator_clicked (self, button):
