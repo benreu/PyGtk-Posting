@@ -16,14 +16,18 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib, GObject
+import subprocess, printing
 from check_writing import get_written_check_amount_text, get_check_number
 from dateutils import DateTimeCalendar
-from db import transactor 
+from db import transactor
 from db_connection import DB
-from constants import ui_directory
+from constants import ui_directory, template_dir
 import user_manual
 
 UI_FILE = ui_directory + "/loan_payment.ui"
+
+class Item(object):#this is used by py3o library see their example for more info
+	pass
 
 class LoanPaymentGUI:
 	def __init__(self, loan_id = None):
@@ -117,9 +121,11 @@ class LoanPaymentGUI:
 		check_button = self.builder.get_object('button3')
 		transfer_button = self.builder.get_object('button4')
 		cash_button = self.builder.get_object('button5')
+		post_check_button = self.builder.get_object('button6')
 		check_button.set_sensitive(False)
 		transfer_button.set_sensitive(False)
 		cash_button.set_sensitive(False)
+		post_check_button.set_sensitive(False)
 		if self.loan_id == None:
 			self.set_button_message('No contact selected')
 			return # no contact selected
@@ -166,7 +172,8 @@ class LoanPaymentGUI:
 			else:
 				self.builder.get_object('button4').set_label('No transfer number')
 			self.builder.get_object('button3').set_sensitive(True)
-			self.builder.get_object('button3').set_label('Check payment')
+			self.builder.get_object('button3').set_label('Print check')
+			self.builder.get_object('button6').set_sensitive(True)
 		else:
 			self.builder.get_object('button3').set_label('No bank account selected')
 			self.builder.get_object('button4').set_label('No bank account selected')
@@ -193,7 +200,69 @@ class LoanPaymentGUI:
 		DB.commit()
 		self.window.destroy()
 
-	def check_payment_clicked (self, button):
+	def print_check_clicked (self, button):
+		result = self.print_check ()
+		if result != "user canceled":
+			self.post_check ()
+
+	def post_check_without_printing_clicked (self, button):
+		self.post_check ()
+
+	def print_check (self):
+		check_number = self.builder.get_object('entry7').get_text()
+		bank_account = self.builder.get_object('combobox4').get_active_id()
+		active = self.builder.get_object('combobox1').get_active()
+		loan_description = self.loan_store[active][1]
+		cursor = DB.cursor()
+		cursor.execute("SELECT "
+								"name, "
+								"checks_payable_to, "
+								"address, "
+								"city, "
+								"state, "
+								"zip, "
+								"phone "
+							"FROM contacts WHERE id = %s", (self.contact_id,))
+		lender = Item()
+		for line in cursor.fetchall():
+			lender.name = line[0]
+			lender.pay_to = line[1] or line[0] # checks_payable_to defaults to ''
+			lender.street = line[2]
+			lender.city = line[3]
+			lender.state = line[4]
+			lender.zip = line[5]
+			lender.phone = line[6]
+		cursor.close()
+		items = list()
+		for part, spinbutton in (('principal', 'spinbutton1'),
+									('interest', 'spinbutton2')):
+			item = Item()
+			item.po_number = loan_description + ' ' + part
+			value = self.builder.get_object(spinbutton).get_value()
+			item.amount = '{:,.2f}'.format(value)
+			item.date = self.date
+			items.append(item)
+		# format first: the float total can be a hair under the cents it shows
+		amount = '{:,.2f}'.format(self.total)
+		check = Item()
+		check.check_number = check_number
+		check.checking_account = bank_account
+		check.date = self.date
+		check.amount = amount
+		check.amount_text = get_written_check_amount_text (amount)
+		from py3o.template import Template
+		data = dict(contact = lender, check = check, items = items)
+		self.tmp_file = "/tmp/loan_check" + self.loan_id + ".odt"
+		self.tmp_file_pdf = "/tmp/loan_check" + self.loan_id + ".pdf"
+		t = Template(template_dir+"/vendor_check_template.odt", self.tmp_file, True)
+		t.render(data)
+		subprocess.call(["odt2pdf", self.tmp_file])
+		p = printing.Operation(settings_file = 'Vendor_check')
+		p.set_file_to_print(self.tmp_file_pdf)
+		p.set_parent(self.window)
+		return p.print_dialog()
+
+	def post_check (self):
 		self.principal_and_interest_payment ()
 		bank_account = self.builder.get_object('combobox4').get_active_id()
 		check_number = self.builder.get_object('entry7').get_text()
@@ -259,9 +328,9 @@ class LoanPaymentGUI:
 		principal = self.builder.get_object('spinbutton1').get_value()
 		interest = self.builder.get_object('spinbutton2').get_value()
 		self.total = principal + interest
-		money_text = get_written_check_amount_text (self.total)
-		self.builder.get_object('label15').set_label(money_text)
 		formatted_total = '{:,.2f}'.format(self.total)
+		money_text = get_written_check_amount_text (formatted_total)
+		self.builder.get_object('label15').set_label(money_text)
 		self.builder.get_object('entry4').set_text(formatted_total)
 		self.builder.get_object('entry5').set_text(formatted_total)
 		self.builder.get_object('entry6').set_text(formatted_total)

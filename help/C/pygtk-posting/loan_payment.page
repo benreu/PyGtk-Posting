@@ -32,9 +32,11 @@
     <gui>from</gui> and click <gui>Cash payment</gui>.</p></item>
     <item><p><gui>Pay from bank account</gui>: choose the bank account. For a
     transfer, type the <gui>Transaction number</gui> and click
-    <gui>Transfer</gui>. For a check, type its number and click
-    <gui>Print</gui>; this records the check payment, it does not print a
-    check.</p></item>
+    <gui>Transfer</gui>. For a check, type the <gui>Check number</gui> and
+    click <gui>Print check</gui>. The check prints on your check form and the
+    payment is posted. Checking <gui>Cancel printing and posting</gui> in the
+    print dialog stops both. <gui>Post check without printing</gui> posts a
+    check written by hand.</p></item>
   </list>
 
   <p>The loan's next payment reminder moves on from today.</p>
