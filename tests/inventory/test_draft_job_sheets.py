@@ -46,6 +46,10 @@ class DraftJobSheetsTest(DBTestCase):
 		self.cursor.execute("INSERT INTO products_markup_prices "
 							"(product_id, markup_id, price) VALUES (%s, %s, %s)",
 							(self.product_id, markup_id, PRICE))
+		# taxed at the product's rate: real customers here carry exemptions,
+		# which test_tax_exemption_lines covers
+		self.cursor.execute("DELETE FROM customer_tax_exemptions "
+							"WHERE customer_id = %s", (self.customer_id,))
 		job_type_id = self.one("INSERT INTO job_types (name) "
 								"VALUES ('Test job type') RETURNING id")
 		self.job_id = self.one("INSERT INTO job_sheets (contact_id, "

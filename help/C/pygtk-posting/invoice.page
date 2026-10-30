@@ -114,9 +114,9 @@
   exemption</gui> button opens <link xref="tax_exemptions"/> to give the
   customer another one.</p>
   <p>The box starts on the customer's newest exemption. Products posted from a
-  <link xref="job_sheet">job sheet</link> take that exemption too. A product
-  with <gui>Tax exemptible</gui> unchecked is taxed at its own rate whatever is
-  chosen.</p>
+  <link xref="job_sheet">job sheet</link> or <link xref="draft_job_sheets"/>
+  take that exemption too. A product with <gui>Tax exemptible</gui> unchecked
+  is taxed at its own rate whatever is chosen.</p>
   </section>
 
   <section id="post">

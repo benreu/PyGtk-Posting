@@ -14,10 +14,11 @@ PRICE = Decimal('7.25') # the customer's price for the product, set in setUp
 APPEND_ITEMS = 2 # show_invoice_exists_message's "Append items" response
 
 class TaxExemptionLinesTest(DBTestCase):
-	'''Lines posted to an invoice from the job sheet window took the product's
-	own tax rate, so a tax exempt customer was charged tax until the invoice's
-	exemption was chosen again. They now take the customer's newest exemption,
-	which is also what the invoice window starts on'''
+	'''Lines posted to an invoice from the job sheet window and Draft job sheets
+	took the product's own tax rate, so a tax exempt customer was charged tax
+	until the invoice's exemption was chosen again. They now take the
+	customer's newest exemption, which is also what the invoice window starts
+	on'''
 	def setUp(self):
 		super().setUp()
 		# a customer with a markup row and no draft invoice to be asked about
@@ -128,6 +129,22 @@ class TaxExemptionLinesTest(DBTestCase):
 		gui, invoice_id = self.open_invoice()
 		combo = gui.builder.get_object('tax_exemption_combo')
 		self.assertEqual(combo.get_active_id(), str(self.exemption_id))
+
+	def test_draft_job_sheets_uses_the_newest_exemption(self):
+		import draft_job_sheets
+		job_id = self.new_job()
+		gui = draft_job_sheets.DraftJobSheetsGUI()
+		for row in gui.jobs_store:
+			if row[0] == job_id:
+				gui.get_object('treeview-selection1').select_path(row.path)
+				break
+		else:
+			self.fail('the test job is not listed')
+		with mock.patch.object(gui, 'show_invoice_exists_message',
+								return_value = APPEND_ITEMS):
+			gui.post_job_to_invoice_clicked(None)
+		self.assertEqual(self.invoice_lines(self.draft_invoice()),
+						[(self.exemption_id, PRICE * 2, Decimal('0.00'))])
 
 if __name__ == '__main__':
 	unittest.main()
