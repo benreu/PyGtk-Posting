@@ -113,6 +113,10 @@
   exemption</gui>, and every line is taxed with it. The <gui>Tax
   exemption</gui> button opens <link xref="tax_exemptions"/> to give the
   customer another one.</p>
+  <p>The box starts on the customer's newest exemption. Products posted from a
+  <link xref="job_sheet">job sheet</link> take that exemption too. A product
+  with <gui>Tax exemptible</gui> unchecked is taxed at its own rate whatever is
+  chosen.</p>
   </section>
 
   <section id="post">

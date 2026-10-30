@@ -950,7 +950,10 @@ class InvoiceGUI:
 							"JOIN tax_rates "
 							"ON customer_tax_exemptions.tax_rate_id = "
 							"tax_rates.id "
-							"WHERE customer_tax_exemptions.customer_id = (%s)",
+							"WHERE customer_tax_exemptions.customer_id = (%s) "
+							# the last is chosen: the newest, as posting a job or
+							# a document picks
+							"ORDER BY customer_tax_exemptions.id",
 							(self.customer_id,))
 		for row in cursor.fetchall():
 			exemption_combo.append(str(row[0]), row[1])

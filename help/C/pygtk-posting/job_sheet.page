@@ -51,7 +51,8 @@
   <section id="finish">
   <title>Finishing a job</title>
   <p>Click <gui>Post job to invoice</gui>. The products are added to the
-  customer's draft invoice at the customer's prices; if they already have one
+  customer's draft invoice at the customer's prices, taxed with their <link
+  xref="invoice#tax">tax exemption</link>; if they already have one
   you are asked whether to add them to it. The job is closed and leaves the
   time clock.</p>
   <p><gui>Delete job</gui> deletes the chosen job.</p>
