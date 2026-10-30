@@ -359,6 +359,7 @@ Must be printed Check</property>
             <property name="receives_default">True</property>
             <property name="margin_top">3</property>
             <property name="margin_bottom">6</property>
+            <signal name="clicked" handler="help_clicked" swapped="no"/>
           </object>
           <packing>
             <property name="left_attach">0</property>
@@ -737,6 +738,7 @@ of each: Dividends,Deductions,
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="help_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

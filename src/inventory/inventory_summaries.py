@@ -19,6 +19,7 @@ from decimal import Decimal
 from pricing import product_retail_price
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/inventory/inventory_summaries.ui"
 
@@ -38,6 +39,7 @@ class InventorySummariesGUI(Gtk.Builder):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "inventory_summaries")
 		self.window.show_all()
 		self.check_info_validity()
 	

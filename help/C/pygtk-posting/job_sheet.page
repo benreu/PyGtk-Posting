@@ -1,0 +1,76 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="job_sheet">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="draft_job_sheets"/>
+  <link type="seealso" xref="time_clock"/>
+  <desc>Collect the products used on a job, then invoice them.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Job sheet</title>
+
+  <p>A job sheet collects the products used on a customer's job while the
+  work goes on, and puts them on an invoice when the job is done. Open it with
+  <guiseq><gui>Customer</gui><gui>Job sheet</gui></guiseq> or the <gui>Job
+  Sheet</gui> button of the main window. Everything is saved as you
+  go.</p>
+
+  <section id="new">
+  <title>Starting a job</title>
+  <steps>
+    <item><p>Choose the <gui>Customer</gui>.</p></item>
+    <item><p>Choose the kind of job beside <gui>Job</gui>.</p></item>
+    <item><p>Type a <gui>Description</gui>, or click <gui>Generate serial
+    number</gui> to use the job type's next number as the description. The
+    number is also opened as a label in LibreOffice, to print and stick on the
+    job.</p></item>
+    <item><p>Check <gui>Job available in Time Clock</gui> if employees should
+    be able to punch in on this job.</p></item>
+    <item><p>Click <gui>Create</gui>, or press <key>Enter</key> in the
+    description.</p></item>
+  </steps>
+  </section>
+
+  <section id="items">
+  <title>Adding products</title>
+  <p>Choose the job under <gui>Existing jobs</gui>. Click <gui>New</gui>, or
+  press <key>F2</key>, for a new line, then type the <gui>Qty</gui>, choose the
+  <gui>Product</gui> and add a <gui>Remark</gui>. Press <key>Tab</key> to move
+  across the line. Right click a line to delete it.</p>
+  <p>Checking or unchecking <gui>Job available in Time Clock</gui> on an
+  existing job opens or closes it in the time clock.</p>
+  </section>
+
+  <section id="finish">
+  <title>Finishing a job</title>
+  <p>Click <gui>Post job to invoice</gui>. The products are added to the
+  customer's draft invoice; if they already have one you are asked whether
+  to add them to it. The job is closed and leaves the time clock.</p>
+  <note><p>Products posted from this window arrive on the invoice at a price
+  of 0.00. Open the invoice and choose <gui>Refresh all prices</gui> from its
+  menu. Posting from <link xref="draft_job_sheets"/> sets the prices.</p></note>
+  <p><gui>Delete job</gui> deletes the chosen job.</p>
+  </section>
+
+  <section id="job_types">
+  <title>Job types</title>
+  <p>Click <gui>Job</gui> to open the <gui>Job Types</gui> window. Each type
+  keeps its own <gui>Current serial number</gui>, which <gui>Generate serial
+  number</gui> counts up from.</p>
+  <list>
+    <item><p>To add a type, click <gui>New</gui>, type the <gui>Job type
+    name</gui> and click <gui>Save</gui>.</p></item>
+    <item><p>To rename one, double click it, change the name and click
+    <gui>Save</gui>.</p></item>
+    <item><p><gui>Delete</gui> marks the selected type as deleted, but it is
+    still listed, here and on the job sheet.</p></item>
+  </list>
+  </section>
+
+</page>

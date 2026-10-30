@@ -1,0 +1,104 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="manufacturing">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="assembled_products"/>
+  <link type="seealso" xref="manufacturing_history"/>
+  <desc>Build products from their parts, and put them in stock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Manufacturing</title>
+
+  <p><guiseq><gui>General</gui><gui>Manufacturing</gui></guiseq> opens the
+  <gui>Manufacturing Overview</gui>, which lists the projects being built. A
+  project builds a number of one manufactured product from the parts in its
+  <link xref="assembled_products">assembled product</link> list. Posting the
+  project takes the parts out of stock and puts the finished products
+  in.</p>
+
+  <section id="new">
+  <title>Starting a project</title>
+  <steps>
+    <item><p>Click <gui>New</gui>.</p></item>
+    <item><p>Choose the <gui>Product</gui> and the <gui>Version</gui> of its
+    parts list, and how many to <gui>Manufacture</gui>. The
+    <gui>Manufacturing name / description</gui> is filled in; change it if you
+    like.</p></item>
+    <item><p>Choose the <gui>Stock destination</gui>, the location the
+    finished products go to.</p></item>
+    <item><p>Check <gui>Available in Time Clock</gui> to let employees punch
+    in on the project.</p></item>
+    <item><p>Click <gui>Create project</gui>. The parts needed are listed
+    below.</p></item>
+  </steps>
+  <p>To change a project later, select it in the overview and click
+  <gui>Edit</gui>. Change its fields and click <gui>Update project</gui>, or
+  <gui>Save</gui> to keep the changes and close the window. <gui>Batch
+  notes</gui> are kept with the project.</p>
+  </section>
+
+  <section id="parts">
+  <title>Parts needed</title>
+  <p>Each part shows the <gui>Needed qty</gui>, how many are <gui>On
+  hand</gui> at its <gui>Source</gui> location, and in <gui>All
+  locations</gui>. Only stock at the source counts: stock elsewhere has to be
+  moved there first. <gui>Order qty</gui> is the shortfall.</p>
+  <list>
+    <item><p>Click a part's <gui>Part</gui> to use a substitute, its
+    <gui>Source</gui> to take it from another location, or its
+    <gui>Vendor</gui> to order it from someone else. Type the vendor's
+    <gui>Order #</gui> if it is not filled in.</p></item>
+    <item><p>Select parts and click <gui>Add to PO</gui> to add their order
+    quantities to each vendor's open <link xref="purchase_order"/>. If the
+    part is already on that order you are asked whether to raise its
+    quantity. The <gui>Status</gui> then reads Added; right click and choose
+    <gui>View PO</gui> to see the order.</p></item>
+    <item><p>Scan a barcode or type an order number into <gui>Add part by
+    barcode or order #</gui>, or click <gui>Add part</gui>, to add a part the
+    list does not have. Right click a part to delete it, or to open its
+    <gui>Product hub</gui>.</p></item>
+  </list>
+  <p>If the parts list was changed after the project was created, <gui>Sync
+  from BOM</gui> adds and removes parts to match it, keeping the
+  substitutions and vendors already chosen. <gui>Reload from BOM</gui>, in the
+  window menu, throws the whole list away and starts again from the parts
+  list, after asking.</p>
+  </section>
+
+  <section id="serial_numbers">
+  <title>Serial numbers</title>
+  <p>For a product sold by serial number, select the project in the overview
+  and click <gui>Serial numbers</gui>.</p>
+  <steps>
+    <item><p>Choose the label <gui>Printer</gui> and <gui>Template</gui> under
+    <gui>Print options for this window</gui>.</p></item>
+    <item><p>Check the first number under <gui>Generate serial number(s)</gui>;
+    the last one is shown after <gui>to</gui>. Set how many labels to
+    <gui>Print</gui> of each.</p></item>
+    <item><p>Click <gui>Generate</gui>. A serial number is made for each
+    unit still without one, and its labels print.</p></item>
+  </steps>
+  <p>To print a label again, choose the <gui>Serial number</gui> and click
+  <gui>Reprint</gui>, or right click it in the list and choose
+  <gui>Print</gui>. Only one person can work on a project's serial numbers at
+  a time.</p>
+  </section>
+
+  <section id="post">
+  <title>Posting a project</title>
+  <p>When the products are built, select the project in the overview and
+  click <gui>Post project</gui>. The parts come out of stock at their source
+  locations, the finished products go into stock, and the project leaves the
+  time clock and the list.</p>
+  <p>Posting is refused while a serial numbered product is missing serial
+  numbers. If the parts take stock below zero, you are told which and asked
+  whether to post anyway.</p>
+  </section>
+
+</page>

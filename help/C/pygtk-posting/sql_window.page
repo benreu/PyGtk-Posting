@@ -1,0 +1,37 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="sql_window">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="complete_search"/>
+  <desc>Run SQL queries against the books, and save the useful ones.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>SQL window</title>
+
+  <p><guiseq><gui>Administration</gui><gui>SQL window</gui></guiseq> runs a
+  query typed in SQL and shows the result as a table, for questions no report
+  answers.</p>
+
+  <steps>
+    <item><p>Type the query and click <gui>Run SQL</gui>. The time it took is
+    shown; an error is shown in place of the table.</p></item>
+    <item><p>To keep a query, type a name for it in the box at the top and
+    click <gui>Save SQL</gui>. Choose a saved query from the box to load it
+    again; right click the box and choose <gui>Delete</gui> to remove
+    one.</p></item>
+  </steps>
+
+  <note><p>Everything run here is rolled back afterwards. A query that
+  changes data reports how many rows it would have affected, but changes
+  nothing.</p></note>
+
+  <p><gui>Report hub</gui> exports the result; see <link
+  xref="report_hub"/>. The last query run is kept as <gui>Current</gui>.</p>
+
+</page>

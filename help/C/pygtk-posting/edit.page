@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="edit">
+
+  <info>
+  <link type="guide" xref="index#menus" group="edit"/>
+  <desc>Contacts, products, units, mailing lists and settings.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Edit menu</title>
+
+  <p>The <gui>Edit</gui> menu holds the lists everything else is built from: the people and businesses you deal with, the products you buy, make and sell, and the settings of this company.</p>
+
+</page>

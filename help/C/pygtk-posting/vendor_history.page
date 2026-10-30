@@ -1,0 +1,51 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="vendor_history">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="purchase_order_hub"/>
+  <desc>Find any purchase order, and what was on it.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Vendor history</title>
+
+  <p><guiseq><gui>Vendor</gui><gui>Vendor history</gui></guiseq> lists
+  purchase orders and their lines.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Vendor</gui>, or check <gui>All vendors</gui>.
+    <gui>Total</gui> adds up the orders listed.</p></item>
+    <item><p>Select an order to see its lines below, or check <gui>All
+    products</gui> for the lines of every order.</p></item>
+    <item><p>Type into the search boxes to narrow the lines down by product,
+    ext name, remark or order number.</p></item>
+  </steps>
+
+  <list>
+    <item><p>Double click an order to open it as it was printed.</p></item>
+    <item><p>Right click an order for its <link xref="purchase_order_hub">PO
+    hub</link>, or <gui>View attachment</gui> to see the vendor's invoice.
+    If none is attached yet, <gui>View attachment</gui> lets you attach one;
+    see <link xref="pdf_attachment"/>.</p></item>
+    <item><p>Right click a line for its <gui>Product hub</gui>.</p></item>
+    <item><p>Drag a line onto an open <link xref="purchase_order"/> to order
+    the same product again.</p></item>
+    <item><p><gui>Refresh vendors</gui> and <gui>Refresh POs</gui> load the
+    lists again.</p></item>
+  </list>
+
+  <section id="edit">
+  <title>Edit mode</title>
+  <p>Check <gui>Edit mode</gui> in the window menu to rename orders and change
+  their descriptions in the list, and to replace an order's attachment with
+  <gui>Edit attachment</gui>. It asks for the administrator password; see
+  <link xref="main_window#admin"/>. <gui>Save window layout</gui> remembers
+  the window's size and column widths on this computer.</p>
+  </section>
+
+</page>

@@ -20,6 +20,7 @@ from dateutils import DateTimeCalendar
 from db import transactor
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/loans.ui"
 
@@ -51,6 +52,7 @@ class LoanGUI :
 		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "loans")
 		self.window.show_all()
 
 	def window_destroy (self, window):

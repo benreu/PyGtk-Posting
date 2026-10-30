@@ -1,0 +1,48 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="receive_orders">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="unprocessed_po"/>
+  <link type="seealso" xref="locations"/>
+  <desc>Count in what arrived from a vendor and put it in stock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Receive orders</title>
+
+  <p>The <gui>Receive Orders</gui> button of the main window counts in a
+  shipment. A purchase order is listed here once the vendor's invoice for it
+  has been entered in <link xref="unprocessed_po"/>, until all of it has
+  arrived. <gui>Reload</gui> refreshes the list.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Purchase Order</gui>, and the location the
+    products go to in the box beside <gui>Location</gui>.</p></item>
+    <item><p>Select each line and set <gui>Received</gui> to how many arrived.
+    Or click <gui>Receive all products</gui> if everything ordered
+    came.</p></item>
+    <item><p>For a product sold by serial number, type or scan each one into
+    <gui>Serial numbers</gui> and press <key>Enter</key>. The count beside the
+    list shows how many of the received ones are identified. <gui>Remove</gui>
+    deletes a serial number entered by mistake, unless it has since been sold
+    or has events recorded.</p></item>
+    <item><p>Click <gui>Close Purchase Order</gui>. It reads <gui>Post Partial
+    Receipt</gui> when not everything has arrived.</p></item>
+  </steps>
+
+  <p>Posting puts the received products in stock at the chosen location. A
+  partly received order stays on the list, so the rest can be counted in when
+  it comes. If some serial numbered products have no serial numbers entered,
+  you are told which and asked whether to post anyway.</p>
+
+  <p>Check <gui>Print labels when receiving</gui> to print a shelf label, with
+  price, barcode and shelf location, for each product as it is counted in.
+  The <gui>Location</gui> button opens <link xref="locations"/>. Right click a
+  line for its <gui>Product hub</gui>.</p>
+
+</page>

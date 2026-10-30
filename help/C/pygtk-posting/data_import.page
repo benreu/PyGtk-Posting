@@ -1,0 +1,50 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="data_import">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="data_export"/>
+  <link type="seealso" xref="mailing_lists"/>
+  <desc>Bring contacts or products in from a spreadsheet.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Data import</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Data</gui><gui>Data
+  import</gui></guiseq> reads contacts or products from an .xls spreadsheet.
+  The file must have the columns, in the order, that <link
+  xref="data_export"/> writes; export a few first and use that file as the
+  pattern. Choose the file under <gui>Import contacts</gui> or <gui>Import
+  products</gui>. If its columns do not match, a message says so.</p>
+
+  <section id="contacts">
+  <title>Importing contacts</title>
+  <p>The contacts in the file are listed. Check or clear
+  <gui>Customer</gui>, <gui>Vendor</gui>, <gui>Employee</gui> and
+  <gui>Service provider</gui> on each, and right click any you do not want
+  and choose <gui>Delete contact</gui>. Choose the <gui>Markup :</gui> and
+  <gui>Terms :</gui> they all get, and click <gui>Import</gui>. Each contact is
+  also added to every <link xref="mailing_lists">mailing list</link> marked
+  <gui>Auto add</gui>.</p>
+  </section>
+
+  <section id="products">
+  <title>Importing products</title>
+  <p>The products in the file are listed. Check or clear <gui>Sellable</gui>,
+  <gui>Purchasable</gui>, <gui>Manufactured</gui>, <gui>Job</gui> and
+  <gui>Stock</gui> on each, and right click any you do not want and choose
+  <gui>Delete product</gui>. Choose the <gui>Revenue account :</gui>,
+  <gui>Expense account :</gui> and <gui>Tax rate :</gui> they all get, and
+  click <gui>Import</gui>.</p>
+  <p>Barcodes from another program often clash with the ones PyGtk Posting
+  makes. <gui>Barcode tool</gui> can put letters in front of every imported
+  barcode with <gui>Prepend</gui>, or <gui>Just generate the barcodes when
+  importing</gui>.</p>
+  </section>
+
+</page>

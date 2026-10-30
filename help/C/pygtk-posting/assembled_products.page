@@ -1,0 +1,65 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="assembled_products">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="manufacturing"/>
+  <desc>The parts list of each product you make, in versions.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Assembled products</title>
+
+  <p><guiseq><gui>Edit</gui><gui>Assembled products</gui></guiseq> keeps the
+  bill of materials of each manufactured product: the parts, and how many of
+  each, that go into one. Manufacturing uses it to take the parts out of
+  stock. Changes are saved as you make them.</p>
+
+  <steps>
+    <item><p>Choose the manufactured product. <gui>Manufactured products</gui>
+    opens the products window showing them, to add a new one.</p></item>
+    <item><p>Choose the <gui>Version</gui> of its parts list.</p></item>
+    <item><p>Click <gui>New Item</gui>, or press <key>F2</key>, and type the
+    <gui>Qty</gui>, choose the <gui>Product</gui> and add a
+    <gui>Remark</gui>. If the part is already on the list you are asked
+    whether to update its quantity or add it again.</p></item>
+    <item><p><gui>Delete Item</gui>, or <key>F3</key>, removes the selected
+    part.</p></item>
+  </steps>
+
+  <p><gui>Total items :</gui> and <gui>Total Cost :</gui> add up the list at
+  the parts' current costs. <gui>Notes</gui> are kept with the version.
+  Right click a part for its <gui>Product hub</gui>. You can also drag
+  products onto the list.</p>
+
+  <section id="versions">
+  <title>Versions</title>
+  <p>When a product's design changes, make a new version of its parts list
+  rather than changing the old one, so what was made before still shows what
+  it used. Click <gui>Version</gui> to open the <gui>Product Assembly
+  Version</gui> window:</p>
+  <list>
+    <item><p>Type the <gui>Name</gui> of the new version. Check <gui>Use
+    assembly items from version</gui> and choose one to start from a copy of
+    its parts and notes. Click <gui>Create version</gui>.</p></item>
+    <item><p>Click a version's name to rename it. Uncheck <gui>Active</gui> to
+    retire it.</p></item>
+  </list>
+  </section>
+
+  <section id="menu">
+  <title>The window menu</title>
+  <terms>
+    <item><title><gui>Export list to CSV file</gui></title>
+    <p>Saves the parts list to a spreadsheet file, with each part's order
+    number from the vendor you choose, for ordering the parts.</p></item>
+    <item><title><gui>Products</gui></title>
+    <p>Opens the <link xref="products">products</link> window.</p></item>
+  </terms>
+  </section>
+
+</page>

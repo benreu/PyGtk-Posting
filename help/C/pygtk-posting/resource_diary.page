@@ -1,0 +1,26 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="resource_diary">
+
+  <info>
+  <link type="guide" xref="resources"/>
+  <link type="seealso" xref="resource_search"/>
+  <desc>A daily diary, beside the same day in earlier years.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resource diary</title>
+
+  <p><guiseq><gui>Resources</gui><gui>Resource diary</gui></guiseq> is a
+  diary: one entry per day. It shows the chosen day and the same day in each
+  of the four years before it, side by side, so you can see what was happening
+  this time last year. Type into a day's box; it is saved as you type.</p>
+
+  <p><gui>Previous day</gui> and <gui>Next day</gui> step through the days, or
+  click the icon in the date box to choose one. To find an entry by its words,
+  use <link xref="resource_search"/>.</p>
+
+</page>

@@ -1,0 +1,74 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="documents_window">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="documents_to_invoice"/>
+  <link type="seealso" xref="document_history"/>
+  <link type="seealso" xref="settings#document_types"/>
+  <desc>Make a quote, order or other document to invoice later.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Documents</title>
+
+  <p><guiseq><gui>General</gui><gui>Create document</gui></guiseq> makes a
+  document for a customer, of one of the types set up in <link
+  xref="settings#document_types">the settings</link>. A posted document waits
+  in <link xref="documents_to_invoice"/> until its products are invoiced.
+  Lines are saved as you type them.</p>
+
+  <steps>
+    <item><p>Choose the document type in the box beside <gui>Document
+    types</gui>. The window and its post button take its name. <gui>Document
+    types</gui> opens the settings to add one.</p></item>
+    <item><p>Choose the customer. <gui>Customer</gui> opens the contacts
+    window.</p></item>
+    <item><p>Click <gui>New document</gui>, or <gui>Existing documents</gui>
+    to carry on with one of this customer's unposted documents of this
+    type. The button shows how many there are.</p></item>
+    <item><p>Click <gui>New Item</gui>, or press <key>F2</key>, for each line,
+    and fill in the <gui>Qty</gui>, <gui>Product</gui> and <gui>Price</gui>.
+    <gui>Delete Item</gui>, or <key>F3</key>, removes the selected line. You
+    can also scan or type a barcode into <gui>Scan or Type in + Enter</gui>,
+    or drag products onto the list.</p></item>
+    <item><p>Check the date and <gui>Comments</gui>, and click the post
+    button.</p></item>
+  </steps>
+
+  <p><gui>Minimum</gui>, <gui>Maximum</gui>, <gui>Retailer</gui>,
+  <gui>Freeze</gui>, <gui>Priority</gui> and <gui>S Price</gui> are extra
+  fields that print on the document, for document types whose template uses
+  them. Right click a line and choose <gui>Set retailer to None</gui> to clear
+  its retailer. Which columns are shown is set in <link
+  xref="settings#columns">the settings</link>.</p>
+
+  <note><p>The document is posted even if the print dialog is cancelled.
+  Use <gui>View document</gui> to check it first. <gui>Delete document</gui>
+  deletes the current document at once, without asking.</p></note>
+
+  <section id="menu">
+  <title>The window menu</title>
+  <terms>
+    <item><title><gui>Cancel</gui></title>
+    <p>Closes the window. The document stays unposted.</p></item>
+    <item><title><gui>Email invoice</gui></title>
+    <p>When checked, posting also opens an email to the customer with the
+    document attached.</p></item>
+    <item><title><gui>Import items from history</gui></title>
+    <p>Opens <link xref="document_history"/>; choose a past document and
+    click <gui>Import items from document history</gui> to copy its lines
+    into this one.</p></item>
+    <item><title><gui>Print without confirming</gui></title>
+    <p>Prints straight to the printer when posting, with no print
+    dialog.</p></item>
+    <item><title><gui>View document</gui></title>
+    <p>Shows the document as it will print.</p></item>
+  </terms>
+  </section>
+
+</page>

@@ -31,6 +31,7 @@ import gi
 gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GLib, Poppler
 import re, subprocess, traceback
+import user_manual
 
 FAX_QUEUE = "BRFAX"
 # the driver's own number check passes digits and commas (a comma is a pause)
@@ -160,6 +161,7 @@ class FaxDialog (Gtk.Dialog):
 		self.add_button("Cancel", Gtk.ResponseType.CANCEL)
 		self.send_button = self.add_button(send_label, Gtk.ResponseType.OK)
 		self.set_default_response(Gtk.ResponseType.OK)
+		user_manual.bind_f1(self, "fax")
 
 		grid = Gtk.Grid(row_spacing = 6, column_spacing = 12, border_width = 10)
 		self.get_content_area().pack_start(grid, True, True, 0)

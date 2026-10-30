@@ -1,0 +1,34 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="resource_calendar">
+
+  <info>
+  <link type="guide" xref="resources"/>
+  <link type="seealso" xref="resource_management"/>
+  <desc>Resources laid out on a month calendar.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resource calendar</title>
+
+  <p><guiseq><gui>Resources</gui><gui>Resource calendar</gui></guiseq>, or the
+  <gui>Resource Calendar</gui> button of the main window, shows a month with
+  each day's entries in it. Move between months with the arrows beside the
+  month's name, or scroll on the calendar. Narrow it by <gui>Type</gui>,
+  <gui>Contact</gui> and <gui>Category</gui>.</p>
+
+  <p>Click a day to list its entries below the calendar, with their
+  <gui>Subject</gui>, <gui>Qty</gui>, <gui>Type</gui>, <gui>Contact</gui> and
+  <gui>Category</gui>. Right click a day to open it in a small window of its
+  own, where entries can be changed, added with <gui>New</gui> or removed with
+  <gui>Delete</gui>.</p>
+
+  <p>The window menu sets the <gui>Row width</gui> and <gui>Row height</gui>
+  of the days, whether to <gui>Show details</gui>, and has <gui>Save window
+  layout</gui>. It also opens <link xref="resource_categories"/> and <link
+  xref="resource_management"/>.</p>
+
+</page>

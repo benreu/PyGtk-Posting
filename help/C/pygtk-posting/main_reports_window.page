@@ -1,0 +1,26 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="main_reports_window">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <desc>One window with a button for each report.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Main report window</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Main report window</gui></guiseq> gathers
+  the reports as buttons, grouped into <gui>Customers</gui>,
+  <gui>Vendors</gui>, <gui>Products</gui>, <gui>Financial</gui>,
+  <gui>Other</gui> and <gui>Accounting</gui>. Each opens the same window as its
+  menu item; see <link xref="reports"/>.</p>
+
+  <note><p><gui>Product transactions</gui> and <gui>Inventory history</gui>
+  do not work from here yet. Use <guiseq><gui>Reports</gui><gui>Products</gui>
+  <gui>Inventory history</gui></guiseq> instead.</p></note>
+
+</page>

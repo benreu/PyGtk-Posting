@@ -1,0 +1,37 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="duplicate_contact">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="contacts"/>
+  <desc>Find contacts entered twice and merge them into one.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Duplicate contact finder</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Duplicate contact
+  finder</gui></guiseq> lists contacts that share a name, address, phone or
+  other field, and merges duplicates.</p>
+
+  <steps>
+    <item><p>Under <gui>Column to sort</gui>, select the field to look for
+    duplicates in, such as the phone number. Every contact sharing that field
+    with another is listed, sorted by it.</p></item>
+    <item><p>Type into the <gui>Filter text</gui> beside a field to narrow the
+    list down.</p></item>
+    <item><p>Select the contacts that are the same (hold <key>Ctrl</key>) and
+    click <gui>Continue</gui>.</p></item>
+    <item><p>Select the contact the others will be merged into, and click
+    <gui>Merge</gui>. <gui>Cancel</gui> goes back.</p></item>
+  </steps>
+
+  <p>Merging moves every invoice, payment, purchase order, job sheet, file
+  and other record of the other contacts onto the one you kept, then deletes
+  the others. It cannot be undone.</p>
+
+</page>

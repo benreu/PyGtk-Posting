@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/job_types.ui"
 
@@ -34,6 +35,7 @@ class GUI (Gtk.Builder):
 		self.job_id = 0
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "job_sheet")
 		self.window.show_all()
 
 	def destroy (self, widget):

@@ -1,0 +1,34 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="payments_received">
+
+  <info>
+  <link type="guide" xref="reports#contacts"/>
+  <link type="seealso" xref="customer_payment"/>
+  <desc>Customer payments, by fiscal year and customer.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Payments received</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Contacts</gui><gui>Payments
+  received</gui></guiseq> lists customer payments. Choose the <gui>Fiscal</gui>
+  year and the <gui>Customer</gui>, or check <gui>All fiscals</gui> and
+  <gui>All customers</gui>. Each payment shows how it was paid and whether it
+  has been <gui>Deposited</gui>. The total is below the list.
+  <gui>Report hub</gui>, in the window menu, exports it; see <link
+  xref="report_hub"/>.</p>
+
+  <section id="edit">
+  <title>Correcting a payment</title>
+  <p>Check <gui>Edit mode</gui> in the window menu to correct a payment's
+  date, amount, type or description in the list. It asks for the
+  administrator password. A payment in a closed <link
+  xref="fiscal_years">fiscal year</link> cannot be changed, and neither can the
+  amount of one already deposited.</p>
+  </section>
+
+</page>

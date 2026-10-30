@@ -21,6 +21,7 @@ import dateutils, psycopg2
 from decimal import Decimal
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/payments_received.ui"
@@ -46,6 +47,7 @@ class PaymentsReceivedGUI:
 			self.handler_ids.append(handler)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "payments_received")
 		self.window.show_all()
 		if customer_id is not None:
 			self.builder.get_object('combobox1').set_active_id(str(customer_id))
@@ -64,6 +66,9 @@ class PaymentsReceivedGUI:
 				self.treeview.get_selection().select_path(path)
 				self.treeview.scroll_to_cell(path, None, True, 0.5, 0.0)
 				break
+
+	def help_clicked (self, menuitem):
+		user_manual.show("payments_received", self.window)
 
 	def edit_mode_checkbutton_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:

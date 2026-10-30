@@ -1,0 +1,39 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="tax_rates">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="tax_exemptions"/>
+  <link type="seealso" xref="sales_tax_report"/>
+  <desc>Sales tax rates, and the exemptions customers can claim.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Tax rates</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Tax rates</gui></guiseq>, or
+  <gui>Tax</gui> on a product, lists the tax rates. Each product is taxed at
+  one of them.</p>
+
+  <steps>
+    <item><p>Click <gui>New</gui>, or double click a rate to change
+    it.</p></item>
+    <item><p>Type its <gui>Name</gui> and <gui>Rate</gui>, the letter that
+    marks taxed lines on an invoice, and choose the <gui>Tax account</gui> the
+    tax collected is posted to.</p></item>
+    <item><p>For a <link xref="tax_exemptions">tax exemption</link>, check
+    <gui>Tax exemption</gui>, usually with a rate of 0, and choose the
+    <gui>Exemption template :</gui>, the form a customer signs. The template
+    must be in the templates folder.</p></item>
+    <item><p>Click <gui>Save</gui>.</p></item>
+  </steps>
+
+  <p>Check <gui>Default</gui> on the rate new products start with.
+  <gui>Delete</gui> deletes the selected rate; if products still use it, you
+  are asked which rate to move them to first.</p>
+
+</page>

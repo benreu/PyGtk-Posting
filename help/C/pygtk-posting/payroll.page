@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="payroll">
+
+  <info>
+  <link type="guide" xref="index#menus" group="payroll"/>
+  <desc>Employee information and pay stubs.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Payroll menu</title>
+
+  <p>The <gui>Payroll</gui> menu is only available after <guiseq><gui>Administration</gui><gui>Admin login</gui></guiseq>. It keeps what is needed to pay employees and the pay stubs written to them.</p>
+
+</page>

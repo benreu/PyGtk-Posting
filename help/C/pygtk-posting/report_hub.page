@@ -1,0 +1,37 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="report_hub">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <desc>Export what a list shows to a PDF or a spreadsheet.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Exporting a list</title>
+
+  <p>Many lists have a <gui>Report hub</gui> button or menu item. It opens the
+  <gui>Export hub</gui>, which saves the list exactly as it is shown, with the
+  same columns, sorting and search.</p>
+
+  <section id="pdf">
+  <title>PDF</title>
+  <p>On the <gui>Pdf</gui> tab, set the <gui>Border width</gui> and the
+  <gui>Font</gui>. The <gui>Layout</gui> is chosen from the list's width:
+  portrait when it fits across a letter page, landscape when it does not. A
+  warning appears when even landscape is too narrow; you can continue, but
+  columns will run off the page, so narrow the window or its columns first.
+  Click <gui>Pdf</gui> to see the result, then <gui>Save pdf</gui> or
+  <gui>Print</gui>.</p>
+  </section>
+
+  <section id="xls">
+  <title>Spreadsheet</title>
+  <p>On the <gui>Xls</gui> tab, click <gui>Xls</gui> and choose where to save
+  the file. It opens in your spreadsheet program.</p>
+  </section>
+
+</page>

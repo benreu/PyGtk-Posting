@@ -1,0 +1,56 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="accounts_configuration">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="accounts_overview"/>
+  <desc>The chart of accounts: add, number and mark the ledger
+  accounts.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Accounts configuration</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Accounts configuration</gui></guiseq>
+  shows the chart of accounts as a tree: assets, equities, expenses, revenue
+  and liabilities, each with the accounts under it. <gui>Expand all</gui> and
+  <gui>Collapse all</gui> open and close the tree, and <gui>Report hub</gui>
+  exports it; see <link xref="report_hub"/>.</p>
+
+  <section id="new">
+  <title>Adding an account</title>
+  <steps>
+    <item><p>Select the account the new one goes under. It is shown as the
+    <gui>Parent Account :</gui>.</p></item>
+    <item><p>Under <gui>Create new account</gui>, type its name and number.
+    The first digit of the number decides its kind: 1 assets, 2 equities, 3
+    expenses, 4 revenue, 5 liabilities.</p></item>
+    <item><p>Click <gui>Save</gui>.</p></item>
+  </steps>
+  <p>Right click an account and choose <gui>Edit account</gui> to change its
+  number or move it under another parent. The top level accounts cannot be
+  changed.</p>
+  </section>
+
+  <section id="selectable">
+  <title>Selectable accounts</title>
+  <p>Select an account and check what it may be used for, so it is offered in
+  the windows concerned: expenses on vendor invoices, inventory, product
+  revenue, writing checks, deposits, bank statements, cash on hand, or credit
+  card payments. Only an account with no accounts under it can be
+  selectable.</p>
+  </section>
+
+  <section id="delete">
+  <title>Deleting an account</title>
+  <p><gui>Delete</gui> removes the selected account. When it cannot, the
+  button says why: <gui>Top level account</gui>, <gui>Has child
+  account</gui>, <gui>Account used in configuration</gui>, or because entries
+  have already been posted to it.</p>
+  </section>
+
+</page>

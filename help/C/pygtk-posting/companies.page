@@ -1,0 +1,37 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="companies">
+
+  <info>
+  <link type="guide" xref="company"/>
+  <link type="seealso" xref="database_tools"/>
+  <desc>Switch to another company's books, or open them alongside.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Companies</title>
+
+  <p><guiseq><gui>Company</gui><gui>Open</gui></guiseq> lists the companies
+  whose databases are set up on this computer (see <link
+  xref="database_tools"/>). Select one, then:</p>
+
+  <terms>
+    <item><title><gui>Switch to company</gui></title>
+    <p>Closes these books and opens the other company's.</p></item>
+    <item><title><gui>Open company</gui></title>
+    <p>Opens the other company's books in a second copy of PyGtk Posting,
+    alongside these.</p></item>
+  </terms>
+
+  <p>With two companies open, it is easy to enter something into the wrong
+  one: the main window's title names the company, but the other windows do
+  not. Group each copy's windows on the taskbar, or move one to another
+  workspace.</p>
+
+  <p><guiseq><gui>Company</gui><gui>Quit</gui></guiseq> closes PyGtk
+  Posting.</p>
+
+</page>

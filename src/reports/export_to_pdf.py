@@ -22,6 +22,7 @@ from gi.repository import Gtk, GLib, Gio
 from gi.repository import EvinceView, EvinceDocument, PangoCairo, Pango
 import cairo
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/export_to_pdf.ui"
 
@@ -41,6 +42,7 @@ class ExportToPdfGUI(Gtk.Builder):
 		self.view = EvinceView.View()
 		self.get_object('pdf_view_scrolled_window').add(self.view)
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "report_hub")
 		self.window.show_all()
 
 	def delete_event (self, window, event):

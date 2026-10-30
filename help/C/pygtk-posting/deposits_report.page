@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="deposits_report">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="deposits"/>
+  <desc>Past bank deposits and the payments in each.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Deposits report</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Deposits</gui></guiseq> lists every bank
+  deposit made in <link xref="deposits"/>, with its date and amount. Open a
+  deposit to see the customer payments that went into it. The window menu has
+  <gui>Expand all</gui>, <gui>Collapse all</gui> and <gui>Export to
+  pdf</gui>.</p>
+
+</page>

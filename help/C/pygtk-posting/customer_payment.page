@@ -1,0 +1,70 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="customer_payment">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="unpaid_invoices"/>
+  <link type="seealso" xref="customer_terms"/>
+  <link type="seealso" xref="deposits"/>
+  <desc>Record a check, card or cash payment against a customer's
+  invoices.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Customer payment</title>
+
+  <p>Open <guiseq><gui>Customer</gui><gui>Customer payment</gui></guiseq>, the
+  <gui>Customer Payment</gui> button of the main window, or <gui>Mark as
+  paid</gui> in <link xref="unpaid_invoices"/>.</p>
+
+  <steps>
+    <item><p>Choose the customer in <gui>Contact</gui>. Their unpaid
+    invoices are listed, oldest first.</p></item>
+    <item><p>Choose how they paid: type the <gui>Check number</gui>, choose
+    the account under <gui>Transfer to</gui> for a card or bank transfer, or
+    choose <gui>Cash</gui>.</p></item>
+    <item><p>Check the <gui>Date</gui> and type the <gui>Payment
+    amount</gui>. Add a <gui>Comment</gui> if you like.</p></item>
+    <item><p>Choose which invoices it pays, as below, and click <gui>Post
+    payment</gui>.</p></item>
+  </steps>
+  <p>A check or cash payment waits in <link xref="deposits"/> until it is
+  taken to the bank.</p>
+
+  <section id="which_invoices">
+  <title>Which invoices are paid</title>
+  <p>With <gui>Apply payment to oldest invoice first</gui> checked, the
+  payment and any earlier credit pay the invoices oldest first, for as many
+  whole invoices as they cover. Selecting an invoice in the list unchecks it:
+  then the selected invoices are the ones paid. Hold <key>Ctrl</key> to select
+  several. <gui>Invoice totals</gui> shows what the selected invoices
+  come to.</p>
+  <p>Depending on <link xref="settings">the settings</link>, the
+  payment either has to match the selected invoices exactly, and <gui>Post
+  payment</gui> reads <gui>Totals do not match</gui> until it does, or it can
+  differ, and <gui>The totals do not match !</gui> only warns you.</p>
+  <p>The button also says what is missing: <gui>No contact selected</gui>,
+  <gui>No check number</gui>, or <gui>No deposit account selected</gui>.
+  Posting a payment of 0.00 asks first, since it is usually a mistake.</p>
+  </section>
+
+  <section id="discount">
+  <title>Early payment discounts</title>
+  <p>When the customer's <link xref="customer_terms">terms</link> give a
+  discount for paying early, selecting one invoice shows the
+  <gui>Discounted amount</gui> and the date it must be paid by. An invoice
+  paid by then has its amount due lowered to the discounted amount; the
+  difference is posted as a discount.</p>
+  <p>To give a discount by hand, right click the invoice and choose
+  <gui>Apply discount</gui>, then type what the invoice should come to. You
+  can also type a lower <gui>Amount due</gui> straight into the list. Neither
+  can raise an invoice above its total.</p>
+  <note><p>The <gui>Discounts / cashback</gui> box is not saved with the
+  payment.</p></note>
+  </section>
+
+</page>

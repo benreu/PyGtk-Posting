@@ -21,6 +21,7 @@ from decimal import Decimal
 from pricing import product_retail_price
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/inventory/inventory_compare.ui"
 
@@ -42,6 +43,7 @@ class InventoryCompareGUI(Gtk.Builder):
 			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "inventory_compare")
 		self.window.show_all()
 
 	def destroy (self, widget):

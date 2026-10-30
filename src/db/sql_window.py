@@ -21,6 +21,7 @@ from gi.repository import Gtk, GtkSource, GObject, Gdk
 import time
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/db/sql_window.ui"
 
@@ -43,6 +44,7 @@ class SQLWindowGUI(Gtk.Builder):
 		completion.add_provider(keyword_provider)
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "sql_window")
 		self.window.show_all()
 
 		self.populate_sql_commands()

@@ -1,0 +1,34 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="documents_to_invoice">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="documents_window"/>
+  <desc>Put the products of posted documents on invoices.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Documents to invoice</title>
+
+  <p>The <gui>Documents To Invoice</gui> button of the main window lists every
+  posted <link xref="documents_window">document</link> whose products have
+  not been invoiced yet.</p>
+
+  <steps>
+    <item><p>Select a document.</p></item>
+    <item><p>Click <gui>Import To Invoice</gui>. Its lines are added to the
+    customer's draft invoice, at the document's prices; if the customer has an
+    unposted invoice you are asked whether to append them to it. The document
+    leaves the list.</p></item>
+    <item><p>Open the invoice from <link xref="draft_invoices"/> to check it
+    and post it.</p></item>
+  </steps>
+
+  <note><p><gui>Use document prices</gui> is remembered, but does not change
+  anything yet: the lines always come in at the document's prices.</p></note>
+
+</page>

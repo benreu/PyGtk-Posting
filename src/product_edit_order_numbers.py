@@ -19,6 +19,7 @@ from gi.repository import Gtk
 import psycopg2
 from db_connection import DB
 from constants import ui_directory, ORDER_NUMBER_LOCK_CLASSID
+import user_manual
 
 UI_FILE = ui_directory + "/product_edit_order_numbers.ui"
 
@@ -40,6 +41,7 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 			vendor_store.append(row)
 		c.close()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "products")
 		self.window.show_all()
 
 	def populate_product_order_numbers(self):

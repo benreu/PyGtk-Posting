@@ -1,0 +1,39 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="trial_balance">
+
+  <info>
+  <link type="guide" xref="reports#financial"/>
+  <link type="seealso" xref="unbalanced_transactions"/>
+  <desc>Every account's opening balance, debits, credits and closing balance
+  for a period, and whether the books foot.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Trial balance</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Financial</gui><gui>Trial
+  balance</gui></guiseq> lists every account with its <gui>Opening</gui>
+  balance, the period's <gui>Debits</gui> and <gui>Credits</gui>, and its
+  <gui>Closing</gui> balance. It starts with the current fiscal year. Choose
+  other dates with the icons in <gui>From :</gui> and <gui>To :</gui>, and click
+  <gui>Reload</gui>.</p>
+
+  <p>Balances are signed: debit balances are positive and credit balances
+  negative, so revenue, liability and equity accounts show negative. There
+  are no year end closing entries, so a revenue or expense account's opening
+  balance is its total since the books began, not zero.</p>
+
+  <p>Under the list, a sentence says whether the books are in balance. When
+  they are not, it says by how much, and whether the difference arose in this
+  period or was already there at its start. To find the entries responsible,
+  use <link xref="unbalanced_transactions"/>.</p>
+
+  <p>Check <gui>Hide accounts with no activity and no balance</gui> to shorten
+  the list; the totals still count every account. <gui>Report hub</gui>
+  exports it; see <link xref="report_hub"/>.</p>
+
+</page>

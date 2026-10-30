@@ -1,0 +1,21 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="accounting">
+
+  <info>
+  <link type="guide" xref="index#menus" group="accounting"/>
+  <desc>Bank and credit card statements, deposits, loans and the ledger.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Accounting menu</title>
+
+  <p>The <gui>Accounting</gui> menu works on the general ledger directly: reconciling the bank and credit cards, depositing payments, paying bills and loans, and entering transactions by hand.</p>
+
+  <note><p><gui>Employee payment</gui> cannot open in this version; pay
+  employees from <link xref="pay_stub"/> instead.</p></note>
+
+</page>

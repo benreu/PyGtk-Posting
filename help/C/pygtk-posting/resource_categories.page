@@ -1,0 +1,30 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="resource_categories">
+
+  <info>
+  <link type="guide" xref="resources"/>
+  <link type="seealso" xref="resource_management"/>
+  <desc>The tags and colours resources are sorted by.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resource categories</title>
+
+  <p><guiseq><gui>Resources</gui><gui>Resource categories</gui></guiseq> keeps
+  the tags given to resources, such as Call back or Quote. Each has a colour,
+  used in the calendar and the main window's to-do list.</p>
+
+  <list>
+    <item><p>To add one, click <gui>New</gui>, type the <gui>Tag name</gui>,
+    choose its colour and click <gui>Save</gui>.</p></item>
+    <item><p>To change one, double click it, change it and click
+    <gui>Save</gui>.</p></item>
+    <item><p>Check <gui>Finished</gui> on a tag no longer in use; the
+    calendar stops offering it.</p></item>
+  </list>
+
+</page>

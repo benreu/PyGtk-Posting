@@ -20,6 +20,7 @@ from gi.repository import Gtk
 import subprocess
 from db_connection import DB
 from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/reports/time_clock_project.ui"
 
@@ -40,6 +41,7 @@ class GUI:
 		completion.set_match_func(self.project_match_func )
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "time_clock_project")
 		self.window.show_all()
 
 	def destroy (self, widget):

@@ -17,6 +17,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/draft_purchase_orders.ui"
 
@@ -30,6 +31,7 @@ class DraftPurchaseOrderGUI:
 		self.populate_store ()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "draft_purchase_orders")
 		self.window.show_all()
 
 	def delete_event (self, window, event):

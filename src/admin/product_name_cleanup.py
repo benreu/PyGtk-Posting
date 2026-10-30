@@ -18,6 +18,7 @@
 from gi.repository import Gtk, Gdk
 from db_connection import DB
 from constants import ui_directory, PRODUCT_LOCK_CLASSID
+import user_manual
 import product_name_rules
 
 UI_FILE = ui_directory + "/admin/product_name_cleanup.ui"
@@ -39,6 +40,7 @@ class ProductNameCleanupGUI ():
 		self.populating = False
 
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "product_name_cleanup")
 		self.window.show_all()
 		self.load()
 

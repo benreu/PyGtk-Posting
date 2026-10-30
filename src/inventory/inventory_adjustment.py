@@ -19,6 +19,7 @@ from datetime import datetime
 from decimal import Decimal
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 from db import transactor
 from inventory import inventorying
 
@@ -43,6 +44,7 @@ class InventoryAdjustmentGUI:
 			self.builder.get_object('combobox1').set_active_id(str(product_id))
 		
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "inventory_adjustment")
 		self.window.show_all()
 
 	def product_match_func(self, completion, key, tree_iter):

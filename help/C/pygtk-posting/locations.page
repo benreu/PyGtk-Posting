@@ -1,0 +1,30 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="locations">
+
+  <info>
+  <link type="guide" xref="inventory"/>
+  <link type="seealso" xref="inventory_transfer"/>
+  <desc>The places stock is kept: shops, warehouses, trucks.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Locations</title>
+
+  <p>Inventory is counted at each location separately. The
+  <gui>Locations</gui> window opens from the <gui>Location</gui> button of
+  <link xref="receive_orders"/> and <link xref="inventory_transfer"/>.</p>
+
+  <list>
+    <item><p>To add one, click <gui>New</gui>, type the <gui>Location
+    name</gui> and click <gui>Save</gui>.</p></item>
+    <item><p>To rename one, double click it, change the name and click
+    <gui>Save</gui>.</p></item>
+    <item><p><gui>Delete</gui> deletes the selected location. A location that
+    has ever held stock cannot be deleted.</p></item>
+  </list>
+
+</page>

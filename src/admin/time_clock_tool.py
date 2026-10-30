@@ -19,6 +19,7 @@ from gi.repository import Gtk, Gdk
 from datetime import datetime, date, timedelta
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/admin/time_clock_tool.ui"
 
@@ -37,6 +38,7 @@ class TimeClockToolGUI(Gtk.Builder):
 		self.populate_stores()
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "time_clock_tool")
 		self.window.show_all()
 
 	def destroy (self, widget):

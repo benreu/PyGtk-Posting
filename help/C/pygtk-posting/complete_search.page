@@ -1,0 +1,40 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="complete_search">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <desc>Search for a word anywhere in the database.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Complete search</title>
+
+  <p><guiseq><gui>General</gui><gui>Complete search</gui></guiseq> looks for
+  text in every column of every table, when you do not know where something
+  was written: a check number, part of a remark, a phone number.</p>
+
+  <steps>
+    <item><p>Type what to look for and press <key>Enter</key>, or click
+    <gui>Search</gui>. Capitals do not matter. Searching every table can take
+    a while.</p></item>
+    <item><p>The results list each <gui>Table</gui> and <gui>Column</gui>
+    where it was <gui>Found</gui>, and how many results there are.</p></item>
+    <item><p>Double click a result to see the whole record it was found
+    in.</p></item>
+  </steps>
+
+  <section id="generator">
+  <title>Searching for several words</title>
+  <p>The search text is a regular expression. To build one without knowing
+  how, click <gui>Search generator</gui>. Click <gui>Add word</gui> for each
+  word and type it into the list, choose the <gui>Type of search :</gui>, such
+  as <gui>find ALL of these partial words</gui>, and click
+  <gui>Generate</gui>. The expression is put in the search box. <gui>Delete
+  word</gui> and <gui>Clear all</gui> remove words.</p>
+  </section>
+
+</page>

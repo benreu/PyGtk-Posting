@@ -19,7 +19,8 @@ from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
 from db_connection import DB
-from constants import ui_directory, help_dir
+from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/customer_tax_exemptions.ui"
 
@@ -47,6 +48,7 @@ class CustomerTaxExemptionsGUI:
 
 		self.dialog = self.builder.get_object('dialog1')
 		self.dialog.set_transient_for(window)
+		user_manual.bind_f1(self.dialog, "tax_exemptions")
 		self.dialog.run()
 		self.dialog.hide()
 
@@ -54,7 +56,7 @@ class CustomerTaxExemptionsGUI:
 		pass
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", help_dir + "/tax_exemptions.page"])
+		user_manual.show("tax_exemptions", self.dialog)
 
 	def populate_treeview (self):
 		self.tax_exemption_store.clear()

@@ -23,6 +23,7 @@ from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 from accounts import expense_list, expense_tree
 import subprocess, printing
 
@@ -76,6 +77,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.expense_percentage_store.append([0, Decimal('1.00'), 0, "", "", ""])
 	
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "incoming_invoice")
 		self.window.show_all()
 		self.file_data = None
 

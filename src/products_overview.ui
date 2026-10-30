@@ -77,6 +77,14 @@
         <signal name="activate" handler="save_window_layout_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Help</property>
+        <signal name="activate" handler="help_button_activated" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="product_store">
     <columns>

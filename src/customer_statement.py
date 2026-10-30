@@ -16,11 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
-import os, sys, subprocess
+import os, sys
 from datetime import datetime
 import customer_payment, statementing
 from db_connection import DB
-from constants import ui_directory, help_dir
+from constants import ui_directory
+import user_manual
 from dateutils import DateTimeCalendar
 
 UI_FILE = ui_directory + "/customer_statement.ui"
@@ -46,6 +47,7 @@ class GUI (Gtk.Builder):
 		self.statement_end_date = None
 				
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "statement")
 		self.window.show_all()
 		self.calendar.show()
 
@@ -65,7 +67,7 @@ class GUI (Gtk.Builder):
 		dialog.hide()
 
 	def help_button_clicked (self, widget):
-		subprocess.Popen(["yelp", help_dir + "/statement.page"])
+		user_manual.show("statement", self.window)
 
 	def payment_window(self, widget):
 		customer_payment.GUI(customer_id = self.customer_id )

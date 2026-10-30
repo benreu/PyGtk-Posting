@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk, GObject
 from constants import ui_directory, log_file
+import user_manual
 
 UI_FILE = ui_directory + "/view_log.ui"
 
@@ -38,6 +39,7 @@ class ViewLogGUI:
 		builder.connect_signals(self)
 		
 		self.window = builder.get_object('window1')
+		user_manual.bind_f1(self.window, "view_log")
 		self.window.show_all()
 
 

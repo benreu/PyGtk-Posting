@@ -22,6 +22,7 @@ import subprocess
 from invoice_window import create_new_invoice 
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 import printing
 
 UI_FILE = ui_directory + "/job_sheet.ui"
@@ -69,6 +70,7 @@ class JobSheetGUI(Gtk.Builder):
 		qty_column.set_cell_data_func(qty_renderer, self.qty_cell_func)
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "job_sheet")
 		self.window.show_all()
 
 	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
@@ -175,6 +177,9 @@ class JobSheetGUI(Gtk.Builder):
 	def contacts_window (self, widget):
 		import contacts_overview
 		contacts_overview.ContactsOverviewGUI()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("job_sheet", self.window)
 
 	def product_window_activated (self, menuitem):
 		import products_overview
@@ -517,9 +522,7 @@ class JobSheetGUI(Gtk.Builder):
 
 	def window_key_release_event_ (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
-		if keyname == 'F1':
-			pass # self.help_clicked ()
-		elif keyname == 'F2':
+		if keyname == 'F2':
 			self.new_line ()
 		elif keyname == 'F3':
 			self.delete_line ()

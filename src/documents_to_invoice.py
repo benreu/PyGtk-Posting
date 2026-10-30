@@ -21,6 +21,7 @@ import psycopg2
 import invoice_window
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/documents_to_invoice.ui"
 
@@ -41,6 +42,7 @@ class DocumentsToInvoiceGUI:
 		self.populate_document_store ()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "documents_to_invoice")
 		self.window.show_all()
 
 	def destroy (self, widget):

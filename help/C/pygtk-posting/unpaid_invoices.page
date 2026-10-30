@@ -1,55 +1,76 @@
 <page xmlns="http://projectmallard.org/1.0/"
-      type="guide"
+      type="topic"
       id="unpaid_invoices">
 
   <info>
-  <link type="guide" xref="index"/>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="customer_payment"/>
+  <link type="seealso" xref="invoice#posted"/>
+  <desc>Every posted invoice not yet paid: view, reprint, fax, cancel or
+  take payment.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>
     </credit>
   </info>
 
-  <title>Unpaid Invoices</title>
+  <title>Unpaid invoices</title>
 
-  <section >
-  <title>Applying a payment to an invoice</title>
-  <steps>
-    <item>
-      <p>Select an invoice in the Unpaid Invoices window.</p>
-    </item>
-    <item>
-      <p>Click Mark as paid, which will open the Payment Options window with the customer and invoice selected.</p>
-    </item>
-    <item>
-      <p>Select the payment type.</p>
-    </item>
-    <item>
-      <p>Enter any information like check numbers, credit card confirmation, etc.</p>
-    </item>
-    <item>
-      <p>Click Post payment.</p>
-    </item>
-  </steps>
+  <p><guiseq><gui>Customer</gui><gui>Unpaid invoices</gui></guiseq>, or the
+  <gui>Unpaid Invoices</gui> button of the main window, lists every posted
+  invoice that is not yet paid. Below the list, <gui>Unpaid invoices</gui> is
+  their total and <gui>A/R balance</gui> is what all customers owe after their
+  payments and credit memos.</p>
+
+  <p>Double click an invoice to choose it. The buttons below the list then
+  work on that invoice:</p>
+  <terms>
+    <item><title><gui>Mark as paid</gui></title>
+    <p>Opens <link xref="customer_payment"/> for the invoice's
+    customer.</p></item>
+    <item><title><gui>View invoice</gui></title>
+    <p>Opens the invoice as it was printed when it was posted.</p></item>
+    <item><title><gui>Edit invoice</gui></title>
+    <p>Opens the invoice to change it; see <link xref="invoice#posted"/>.
+    An invoice created more than 30 days ago opens with its date locked.</p></item>
+    <item><title><gui>Cancel invoice</gui></title>
+    <p>Asks for the date of the cancellation, then cancels the invoice: it is
+    taken out of the books on that date, its stock goes back, and its serial
+    numbers are freed. This cannot be undone.</p></item>
+    <item><title><gui>Chart</gui></title>
+    <p>A pie chart of what each customer owes.</p></item>
+  </terms>
+
+  <section id="right_click">
+  <title>Right click an invoice</title>
+  <terms>
+    <item><title><gui>Contact hub</gui></title>
+    <p>Everything about the invoice's customer; see <link
+    xref="contact_hub"/>.</p></item>
+    <item><title><gui>Fax invoice</gui></title>
+    <p>Faxes the invoice exactly as it was printed when posted, after you
+    confirm the number; see <link xref="fax"/>.</p></item>
+    <item><title><gui>Reprint invoice</gui></title>
+    <p>Prints the invoice as it was posted. Each reprint is counted in the
+    <gui>Reprints</gui> column and kept.</p></item>
+    <item><title><gui>Show reprint history</gui></title>
+    <p>Lists the reprints of this customer's unpaid invoices, newest first.
+    <gui>View PDF</gui> opens the selected reprint.</p></item>
+  </terms>
   </section>
 
-  <section id="unpaid_invoice_tips">
-  <title>Editing an existing invoice</title>
-  <steps>
-    <item>
-      <p>Select an invoice in the Unpaid Invoices window.</p>
-    </item>
-    <item>
-      <p>Click Edit as new, which will open the New Invoice window with the invoice information.</p>
-    </item>
-    <item>
-      <p>Apply the changes.</p>
-    </item>
-    <item>
-      <p>Click Post invoice, which will cancel the imported invoice.</p>
-    </item>
-  </steps>
-
+  <section id="menu">
+  <title>The window menu</title>
+  <terms>
+    <item><title><gui>Customer invoices PDF</gui></title>
+    <p>Puts the first page of each of the chosen customer's unpaid invoices
+    into one PDF, four to a page, to send with a reminder. When it is built,
+    <gui>View PDF</gui> opens it and <gui>Send via email</gui> starts an email
+    to the customer in Thunderbird with it attached.</p></item>
+    <item><title><gui>Save window layout</gui></title>
+    <p>Remembers the window's size, column widths and sorting, on this
+    computer.</p></item>
+  </terms>
   </section>
 
 </page>

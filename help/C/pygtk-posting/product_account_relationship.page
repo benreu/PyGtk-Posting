@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_account_relationship">
+
+  <info>
+  <link type="guide" xref="reports#products"/>
+  <link type="seealso" xref="product_edit_main#accounts"/>
+  <desc>Which accounts each product posts to.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Product / Account relationship</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Products</gui><gui>Product / Account
+  relationship</gui></guiseq> lists every product with its expense, revenue
+  and inventory account, to check that each sale and purchase lands in the
+  right place.</p>
+
+  <p>Type into <gui>Product</gui>, <gui>Expense</gui>, <gui>Revenue</gui> or
+  <gui>Inventory</gui> to narrow the list, for instance to every product
+  posting to one revenue account. <gui>Reload</gui> reads the products
+  again.</p>
+
+  <p>To correct a product, check <gui>Load product selection in external
+  product window</gui> and double click it: it is selected in <link
+  xref="products"/>, where it can be edited. Right click a product for its
+  <gui>Product hub</gui>.</p>
+
+</page>

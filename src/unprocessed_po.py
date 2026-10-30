@@ -33,6 +33,7 @@ from db.transactor import move_purchase_order_item_blocked
 from db.transactor import create_draft_purchase_order
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/unprocessed_po.ui"
 
@@ -97,6 +98,7 @@ class GUI(Gtk.Builder):
 		self.populate_terms_listbox()
 		self.populate_expense_products ()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "unprocessed_po")
 		self.window.show_all()
 
 	def spinbutton_focus_in_event (self, entry, event):
@@ -163,6 +165,9 @@ class GUI(Gtk.Builder):
 		else:
 			self.correction_blocked = "Somebody else is still accessing this PO"
 		self.check_all_entries_completed ()
+
+	def help_clicked (self, button):
+		user_manual.show("unprocessed_po", self.window)
 
 	def show_message (self, message,
 						message_type = Gtk.MessageType.ERROR):

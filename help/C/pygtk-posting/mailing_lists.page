@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="mailing_lists">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="mailing_list_printing"/>
+  <link type="seealso" xref="data_import"/>
+  <desc>The mailing lists contacts can be on.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Mailing lists</title>
+
+  <p><guiseq><gui>Edit</gui><gui>Mailing lists</gui></guiseq> keeps the names
+  of your mailing lists. Changes are saved as you make them.</p>
+
+  <list>
+    <item><p><gui>Add</gui> makes a list called <gui>New mailing list</gui>;
+    click its <gui>Name</gui> to rename it.</p></item>
+    <item><p><gui>Deactivate</gui> retires the selected list.</p></item>
+    <item><p>Check <gui>Auto add</gui> to put every contact brought in with
+    <link xref="data_import">contact import</link> on that list.</p></item>
+  </list>
+
+  <p>To print a list's addresses, use <link
+  xref="mailing_list_printing"/>.</p>
+
+</page>

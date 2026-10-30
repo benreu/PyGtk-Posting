@@ -22,6 +22,7 @@ from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCan
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/charts.ui"
 
@@ -46,6 +47,7 @@ class ChartsGUI (Gtk.Builder):
 		product_completion.set_match_func(self.product_match_func)
 
 		window = self.get_object('window')
+		user_manual.bind_f1(window, "charts")
 		window.show_all()
 
 	def product_combo_changed (self, combobox):

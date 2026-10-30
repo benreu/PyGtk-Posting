@@ -29,6 +29,14 @@
         <signal name="activate" handler="refresh_clicked" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Help</property>
+        <signal name="activate" handler="help_clicked" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkMenu" id="right_click_menu">
     <property name="visible">True</property>

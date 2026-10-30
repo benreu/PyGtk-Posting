@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory, PRODUCT_LOCATION_LOCK_CLASSID
+import user_manual
 
 UI_FILE = ui_directory + "/product_edit_location.ui"
 
@@ -29,6 +30,7 @@ class ProductEditLocationGUI (Gtk.Builder):
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "products")
 		self.window.show_all()
 		self.product_id = product_id
 		c = DB.cursor()

@@ -21,6 +21,7 @@ from gi.repository import Gtk, Gdk
 from pricing import product_retail_price
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/product_search.ui"
@@ -54,6 +55,7 @@ class ProductSearchGUI:
 			self.handler_ids.append(handler)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "product_search")
 		self.load_window_layout ()
 		self.window.show_all()
 		self.populate_product_treeview_store()
@@ -97,6 +99,9 @@ class ProductSearchGUI:
 				column.set_fixed_width(width)
 		sqlite.close()
 	
+	def help_clicked (self, menuitem):
+		user_manual.show("product_search", self.window)
+
 	def save_window_layout_activated (self, menuitem):
 		sqlite = get_apsw_connection()
 		c = sqlite.cursor()

@@ -1,0 +1,31 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="profit_loss_report">
+
+  <info>
+  <link type="guide" xref="reports#financial"/>
+  <link type="seealso" xref="fiscal_years"/>
+  <desc>Income and expenses for a fiscal year.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Profit / loss</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Financial</gui><gui>Profit /
+  loss</gui></guiseq> lists every revenue account on one side and every
+  expense account on the other, for the chosen <gui>Fiscal year</gui> (see
+  <link xref="fiscal_years"/>). <gui>Income :</gui> is revenue less expenses.
+  <gui>Refresh profit/loss</gui> reads the books again.</p>
+
+  <p>Check <gui>Total</gui> on accounts to add up just those, in the total
+  under each list: for instance, all sales accounts together. Checking a parent
+  account counts it with everything under it.</p>
+
+  <p>Each side has its own <gui>Report hub</gui>; see <link
+  xref="report_hub"/>. Right click a list and choose <gui>Export to CSV</gui>
+  to save it as a spreadsheet file.</p>
+
+</page>

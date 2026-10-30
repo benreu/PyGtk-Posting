@@ -21,6 +21,7 @@ import subprocess, decimal, tempfile, os, shutil, psycopg2
 
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/unpaid_invoices.ui"
@@ -34,6 +35,7 @@ class GUI (Gtk.Builder):
 
 		self.store = self.get_object('unpaid_invoice_store')
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "unpaid_invoices")
 		self.set_window_layout_from_settings()
 		self.window.show_all()
 		self.populate_unpaid_invoices()
@@ -111,6 +113,9 @@ class GUI (Gtk.Builder):
 			c.execute("REPLACE INTO unpaid_invoices (widget_id, value) "
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("unpaid_invoices", self.window)
 
 	def present (self):
 		self.window.present()

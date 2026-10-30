@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/product_account_relationship.ui"
 
@@ -37,6 +38,7 @@ class ProductAccountRelationshipGUI:
 		self.filtered_store = self.builder.get_object('product_account_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "product_account_relationship")
 		self.window.show_all()
 		self.populate_product_account_store ()
 

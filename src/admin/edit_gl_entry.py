@@ -20,6 +20,7 @@ from gi.repository import Gtk, GLib
 from decimal import Decimal
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from accounts import all_accounts_tree
 
 UI_FILE = ui_directory + "/admin/edit_gl_entry.ui"
@@ -37,6 +38,7 @@ class EditGlEntryGUI(Gtk.Builder):
 		self.populate_gl_entry()
 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "edit_gl_entry")
 		self.window.show_all()
 
 	def populate_gl_entry(self):

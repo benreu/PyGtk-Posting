@@ -22,6 +22,7 @@ import admin_utils
 from db_connection import DB
 from db import ledger
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/unbalanced_transactions.ui"
 
@@ -69,6 +70,7 @@ class UnbalancedTransactionsGUI (Gtk.Builder):
 		self.entries = []
 
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "unbalanced_transactions")
 		self.populate_unbalanced_store ()
 		self.window.show_all()
 

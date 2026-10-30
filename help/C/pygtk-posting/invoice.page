@@ -1,52 +1,223 @@
 <page xmlns="http://projectmallard.org/1.0/"
-      type="guide"
+      type="topic"
       id="invoice">
 
   <info>
+  <link type="guide" xref="customer"/>
   <link type="seealso" xref="tax_exemptions"/>
-  <link type="seealso" xref="products"/>
-  <link type="guide" xref="index"/>
+  <link type="seealso" xref="draft_invoices"/>
+  <link type="seealso" xref="unpaid_invoices"/>
+  <link type="seealso" xref="fax"/>
+  <desc>Write, print and post an invoice.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>
     </credit>
   </info>
+
   <title>Invoice</title>
 
-  <section id="invoice_add_product">
-  <title>Adding a product to the invoice</title>
-   <steps>
-     <item>
-       <p>Click <gui style="button">New Item</gui> to add a new line item, or press F2 on your keyboard.</p>
-     </item>
-     <item>
-       <p>Edit the qty and press Tab to move to the product.</p>
-     </item>
-     <item>
-       <p>Select your product with the dropdown or type into the entry to search for a product.</p>
-     </item>
-   </steps>
+  <p>Open a new invoice with <guiseq><gui>Customer</gui><gui>New
+  invoice</gui></guiseq>, the <gui>New Invoice</gui> button of the main
+  window, or <keyseq><key>Ctrl</key><key>I</key></keyseq>. Everything typed on
+  an invoice is saved as you go, so you can close the window and finish the
+  invoice later: it waits under <link xref="draft_invoices">Draft
+  invoices</link> until it is posted.</p>
+
+  <section id="customer">
+  <title>Choosing the customer</title>
+  <p>Pick the customer from the list, or type part of the name. The address,
+  phone, email and <gui>Unpaid</gui> balance are filled in. If the customer
+  already has an invoice that was never posted, it is opened instead of a new
+  one. If there are several, the <link xref="#document_list">document
+  list</link> opens so you can choose.</p>
+  <list>
+    <item><p><gui>Customer</gui> opens the contacts window. Right click in the
+    customer box and choose <gui>Contact hub</gui> to see everything about
+    this customer.</p></item>
+    <item><p><gui>Email</gui> starts a new message to the customer in
+    Thunderbird.</p></item>
+    <item><p>The shipping box chooses which of the customer's shipping
+    addresses goes on the invoice.</p></item>
+    <item><p><gui>Location :</gui> is where the stock is taken from when the
+    invoice is posted.</p></item>
+  </list>
   </section>
 
-  <section>
-   <title>Deleting a product from the invoice</title>
-   <steps>
-    <item>
-      <p>Click Delete Item to delete the selected line item, or press F3 on your keyboard.</p>
-    </item>
-   </steps>
+  <section id="lines">
+  <title>Adding products</title>
+  <steps>
+    <item><p>Click <gui>New Item</gui>, or press <key>F2</key>.</p></item>
+    <item><p>Type the quantity and press <key>Tab</key> to move to the
+    product.</p></item>
+    <item><p>Pick the product from the list, or type part of its name. Only
+    products marked as sellable are listed. The price is the customer's price
+    for that product.</p></item>
+    <item><p>Press <key>Tab</key> to move on to <gui>Remark</gui> and
+    <gui>Price</gui> if they need changing.</p></item>
+  </steps>
+  <p>Products counted in inventory, and products with serial numbers, can only
+  be sold in whole units. A fraction is refused with a message.</p>
+  <p>Right click a line for more:</p>
+  <terms>
+    <item><title><gui>Delete item</gui> (<key>F3</key>)</title>
+    <p>Removes the line.</p></item>
+    <item><title><gui>Move up</gui>, <gui>Move down</gui>
+    (<keyseq><key>Ctrl</key><key>Up</key></keyseq>,
+    <keyseq><key>Ctrl</key><key>Down</key></keyseq>)</title>
+    <p>Change the order the lines print in.</p></item>
+    <item><title><gui>Product hub</gui>
+    (<keyseq><key>Ctrl</key><key>H</key></keyseq>)</title>
+    <p>Opens the <link xref="product_hub">product hub</link> for the line's
+    product.</p></item>
+    <item><title><gui>Refresh price</gui></title>
+    <p>Puts the customer's current price back on the line, undoing a typed
+    price.</p></item>
+    <item><title><gui>Cancel time clock import</gui></title>
+    <p>Only shown on a line imported from the time clock. The hours become
+    available to import again; the line itself stays until you delete
+    it.</p></item>
+  </terms>
   </section>
 
-  <section id="invoice_tips">
-  <title>Tips</title>
-  <p>To open the Product window click the Product header (the place above the top line item that says Product).</p>
-  <p>Reselect the customer after adding an exemption.</p>
+  <section id="barcode">
+  <title>Scanning barcodes</title>
+  <p>Scan into the <gui>Scan barcode</gui> box below the lines. Each scan adds
+  one of the product, on its existing line if it already has one. Barcodes
+  that match no product are collected in the <gui>Barcode error!</gui>
+  window, with how many times each was scanned.</p>
+  <list>
+    <item><p><keyseq><key>Shift</key><key>Enter</key></keyseq> after a scan
+    takes one off that product's line instead.</p></item>
+    <item><p><keyseq><key>Ctrl</key><key>Enter</key></keyseq> after a scan
+    changes the selected line to that product.</p></item>
+  </list>
   </section>
 
-  <section id="keyboard_shortcuts">
-  <title>Keyboard Shortcuts</title>
-  <p>Press Tab to move through the entries when entering product information.</p>
-  <p>Select a contact from the dropdown or type into the entry to search.</p>
+  <section id="serial_numbers">
+  <title>Serial numbers</title>
+  <p>When a product needs serial numbers on its invoice, the serial number
+  box opens beside the lines. Select the line, type or scan each serial number
+  into <gui>Serial number</gui> and press <key>Enter</key>. Until each line
+  has as many serial numbers as its quantity, the post button reads
+  <gui>Qty/serial number mismatch</gui> and cannot be clicked.</p>
+  <p>A serial number is refused if it is already on another invoice, or if it
+  was never made or received. To add one by hand, use
+  <guiseq><gui>General</gui><gui>Serial numbers</gui></guiseq>. <gui>Remove
+  serial number</gui> takes the selected one off the line.</p>
+  </section>
+
+  <section id="tax">
+  <title>Tax exemptions</title>
+  <p>Choose the customer's exemption from the box beside <gui>Tax
+  exemption</gui>, and every line is taxed with it. The <gui>Tax
+  exemption</gui> button opens <link xref="tax_exemptions"/> to give the
+  customer another one.</p>
+  </section>
+
+  <section id="post">
+  <title>Posting</title>
+  <steps>
+    <item><p>Check the <gui>Invoice Date</gui>. Click the icon in it to choose
+    another date from the calendar.</p></item>
+    <item><p>Click <gui>Post Invoice</gui>. The print dialog opens.</p></item>
+    <item><p>Print, and the invoice is posted: the stock leaves the chosen
+    location, the sale goes into the books and the window closes.</p></item>
+  </steps>
+  <p>To change your mind, check <gui>Cancel printing and posting</gui> on the
+  <gui>PyGtk Posting</gui> tab of the print dialog, then click
+  <gui>Print</gui>. Nothing is printed or posted. Closing the print dialog
+  with <gui>Cancel</gui> instead still posts the invoice, without printing
+  it.</p>
+  <p>Posting is refused if the invoice has no lines or no location is chosen.
+  If the sale takes a product's stock below zero, you are asked whether to
+  post anyway.</p>
+  </section>
+
+  <section id="menu">
+  <title>The invoice menu</title>
+  <terms>
+    <item><title><gui>Cancel</gui></title>
+    <p>Closes the window. The invoice is kept as a draft.</p></item>
+    <item><title><gui>Document list</gui></title>
+    <p>Opens the <link xref="#document_list">document list</link>.</p></item>
+    <item><title><gui>Email invoice</gui></title>
+    <p>When checked, posting opens an email to the customer's address with
+    the invoice attached. The setting in
+    <guiseq><gui>Edit</gui><gui>Settings</gui></guiseq> decides whether it
+    starts checked.</p></item>
+    <item><title><gui>Fax invoice...</gui></title>
+    <p>Confirms a fax number before posting; the invoice is faxed as soon as
+    it is posted. See <link xref="fax#invoice"/>.</p></item>
+    <item><title><gui>Import time clock</gui></title>
+    <p>See <link xref="#time_clock"/>.</p></item>
+    <item><title><gui>Packing list</gui></title>
+    <p>Shows a pick sheet of the lines, without prices. It does not post or
+    print the invoice.</p></item>
+    <item><title><gui>Print without confirming</gui></title>
+    <p>When checked, posting prints straight to the printer with no print
+    dialog, so there is no chance to cancel. The setting in
+    <guiseq><gui>Edit</gui><gui>Settings</gui></guiseq> decides whether it
+    starts checked.</p></item>
+    <item><title><gui>Products</gui></title>
+    <p>Opens the <link xref="products">products</link> window.</p></item>
+    <item><title><gui>Refresh all prices</gui></title>
+    <p>Puts the customer's current price back on every line.</p></item>
+    <item><title><gui>Transfer invoice</gui></title>
+    <p>Moves this invoice to another customer. The shipping address is
+    cleared, because it belonged to the first customer.</p></item>
+    <item><title><gui>View invoice</gui></title>
+    <p>Shows the invoice as it would print, without posting it.</p></item>
+  </terms>
+  </section>
+
+  <section id="document_list">
+  <title>The document list</title>
+  <p>A customer can have several unposted invoices at once, for instance a
+  quote and an invoice. The <gui>Document list</gui> window beside the
+  invoice lists them. Double click one to work on it.</p>
+  <list>
+    <item><p>Click the <gui>Type</gui> to rename the kind of document, for
+    instance to Quote. The first three letters start the document's
+    name.</p></item>
+    <item><p>Uncheck <gui>Active</gui> to keep a document but leave it off
+    the main window's draft count.</p></item>
+    <item><p><gui>New Invoice</gui> starts another invoice for the same
+    customer.</p></item>
+    <item><p><gui>Delete Invoice</gui> deletes the selected document after
+    asking. A posted invoice cannot be deleted here.</p></item>
+  </list>
+  </section>
+
+  <section id="time_clock">
+  <title>Importing time clock hours</title>
+  <p><gui>Import time clock</gui> lists the hours punched on this customer's
+  job sheets that have not been invoiced.</p>
+  <steps>
+    <item><p>Check <gui>Import</gui> on the entries to bill. <gui>Select
+    all</gui> and <gui>Unselect all</gui> check or clear them all. The total
+    is rounded up to the next tenth of an hour.</p></item>
+    <item><p>Choose the product to bill the hours as in <gui>Import as</gui>,
+    and change the <gui>Description</gui> if needed.</p></item>
+    <item><p>Click <gui>Post to Invoice</gui>. One line is added for the
+    rounded hours, at the customer's price for that product.</p></item>
+  </steps>
+  </section>
+
+  <section id="posted">
+  <title>Changing a posted invoice</title>
+  <p>A posted invoice opened again, for instance from <link
+  xref="unpaid_invoices"/>, can still be changed. Each change is saved at once
+  and followed into the stock and the books. If the change takes stock below
+  zero you are told, but the change is already saved.</p>
+  </section>
+
+  <section id="others">
+  <title>Changes made on another computer</title>
+  <p>If someone else changes the invoice you have open, a bar says
+  <gui>There are changes on this Invoice</gui>. Click <gui>Reload</gui> to see
+  them. If the invoice is deleted or posted on the other computer, you are
+  told and the window closes.</p>
   </section>
 
 </page>

@@ -19,6 +19,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/accounts_configuration.ui"
 
@@ -39,6 +40,7 @@ class GUI():
 		account_completion.set_match_func(self.account_match_func)
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "accounts_configuration")
 		self.window.show_all()
 		GLib.timeout_add(5, self.select_account_path, 0)
 

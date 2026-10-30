@@ -1,0 +1,69 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="database_tools">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="companies"/>
+  <desc>Connect to company databases, create them, back them up and restore
+  them.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Database tools</title>
+
+  <p>Each company's books are a PostgreSQL database.
+  <guiseq><gui>Administration</gui><gui>Database tools</gui></guiseq> keeps
+  the list of them on this computer. It also opens by itself when PyGtk
+  Posting starts and cannot connect.</p>
+
+  <section id="databases">
+  <title>Databases</title>
+  <p>The <gui>Databases</gui> tab lists the connections saved on this
+  computer. Click a name to rename it.</p>
+  <terms>
+    <item><title><gui>Open</gui></title>
+    <p>Opens the selected company in a second copy of PyGtk Posting.</p></item>
+    <item><title><gui>Set as default</gui></title>
+    <p>Makes it the company PyGtk Posting opens when it starts.</p></item>
+    <item><title><gui>Delete</gui></title>
+    <p>Removes the connection from the list. The database itself is
+    kept.</p></item>
+  </terms>
+  </section>
+
+  <section id="connection">
+  <title>Adding a connection</title>
+  <steps>
+    <item><p>On the <gui>Connection</gui> tab, type the <gui>Server</gui>,
+    <gui>Port</gui>, <gui>Username</gui> and <gui>Password</gui> of the
+    PostgreSQL server, and click <gui>Test connection</gui>.</p></item>
+    <item><p>To use a company that already exists, choose it under
+    <gui>Existing database</gui> and click <gui>Save connection</gui>. To start
+    new books, type a name under <gui>New database</gui> and click
+    <gui>Create</gui>.</p></item>
+  </steps>
+  <p>Check <gui>Mobile</gui> for a connection over a slow link: less data is
+  loaded, so some windows show less.</p>
+  </section>
+
+  <section id="backup">
+  <title>Backup and restore</title>
+  <p>On the <gui>Backup / restore</gui> tab, check the <gui>Server</gui>,
+  <gui>Port</gui> and <gui>Username</gui>.</p>
+  <list>
+    <item><p>Choose the database and click <gui>Backup database</gui>. The
+    backup is saved to the default backup path. The main window reminds you
+    when a backup is due; see <link xref="settings#general"/>.</p></item>
+    <item><p>To restore, type a <gui>Database name for restore</gui>, a new
+    name so nothing is overwritten, and click <gui>Restore from file</gui> to
+    choose the backup.</p></item>
+  </list>
+  <p>The <gui>Postgres path(s)</gui> tab sets where the PostgreSQL backup and
+  restore programs are, and the default backup path.</p>
+  </section>
+
+</page>

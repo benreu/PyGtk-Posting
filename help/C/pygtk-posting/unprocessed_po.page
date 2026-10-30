@@ -1,0 +1,95 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="unprocessed_po">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="purchase_order"/>
+  <link type="seealso" xref="vendor_payment"/>
+  <link type="seealso" xref="receive_orders"/>
+  <desc>Enter the vendor's invoice for a posted purchase order.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Unprocessed orders</title>
+
+  <p>When the vendor's invoice arrives for a <link
+  xref="purchase_order">purchase order</link>, check it against the order
+  here and save it as a bill to pay. Open
+  <guiseq><gui>Vendor</gui><gui>Unprocessed orders</gui></guiseq>, or the
+  <gui>Unprocessed Orders</gui> button of the main window. Every posted
+  purchase order without an invoice is listed.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Purchase Order</gui>.</p></item>
+    <item><p>Type the vendor's <gui>Invoice number</gui>, or another
+    description of their invoice.</p></item>
+    <item><p>Change each line's <gui>Qty</gui> and <gui>Price</gui> to what
+    the vendor actually invoiced.</p></item>
+    <item><p>Choose an <gui>Expense Account</gui> for any line that has none.
+    Until every line has one, the save button reads <gui>Missing expense
+    account</gui>.</p></item>
+    <item><p>Add freight and other charges, as below.</p></item>
+    <item><p>Click <gui>Save as invoice</gui>. The bill now waits in <link
+    xref="vendor_payment"/>, and the order in <link
+    xref="receive_orders"/>.</p></item>
+  </steps>
+
+  <note><p><gui>Save and pay ...</gui> does not work yet. Click <gui>Save as
+  invoice</gui>, then pay in <link xref="vendor_payment"/>.</p></note>
+
+  <section id="attachment">
+  <title>The vendor's invoice as a file</title>
+  <p><gui>Attach...</gui> keeps a scan or PDF of the vendor's invoice with the
+  order; see <link xref="pdf_attachment"/>. <gui>View attachment</gui> opens
+  it. If <link xref="settings">the settings</link> ask for an attachment,
+  saving without one asks whether to attach it first or go on without
+  it.</p>
+  </section>
+
+  <section id="expenses">
+  <title>Freight and other charges</title>
+  <p>Choose an expense product, such as freight, under the lines, type its
+  amount, and click <gui>Add to Invoice</gui>. <gui>Expense products</gui>
+  opens the list of expense products to add one; see <link
+  xref="expense_products"/>.</p>
+  <p><gui>Calculate cost</gui> spreads the expense lines evenly over every
+  unit ordered, into <gui>Calculated cost</gui>.
+  Or type a <gui>Surcharge</gui> on a line, as an amount per unit or a
+  percent such as <input>5%</input>.</p>
+  </section>
+
+  <section id="cost">
+  <title>Updating product costs</title>
+  <p>When a line's cost is higher than the product's current cost, or lower
+  by more than the cost decrease alert in <link xref="settings"/>, the
+  <gui>Cost update</gui> window asks whether to update the product's cost.
+  It also shows each price term's <gui>Markup %</gui> and <gui>Selling
+  price</gui>; change either one and the other follows. Click
+  <gui>Update</gui> to save them, or <gui>Cancel</gui> to leave the product as
+  it was.</p>
+  </section>
+
+  <section id="lines">
+  <title>Changing the order</title>
+  <p>Right click a line to open its <gui>Product hub</gui>, move it up or
+  down, or <gui>Move line to another PO</gui> of the same vendor, including a
+  new one, when it was not on this invoice. <gui>Edit PO</gui> opens the order
+  in the <link xref="purchase_order"/> window. <gui>Load items from
+  file</gui> fills the order from a spreadsheet; see <link
+  xref="purchase_order_import"/>.</p>
+  </section>
+
+  <section id="correct">
+  <title>Correcting an invoiced order</title>
+  <p>To correct a bill already saved, open it from <link
+  xref="vendor_payment"/>. The window opens as <gui>Correct Purchase
+  Order</gui>: change the lines, right click a line to <gui>Cancel this
+  line</gui>, and click <gui>Save corrections</gui>. The books are posted
+  again to match. Only one person can correct an order at a time.</p>
+  </section>
+
+</page>

@@ -21,6 +21,7 @@ from decimal import Decimal
 import subprocess
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/product_history.ui"
 
@@ -47,6 +48,7 @@ class ProductHistoryGUI (Gtk.Builder):
 		cursor.close()
 		DB.rollback()
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "product_history")
 		self.window.show_all()
 
 	def product_hub_clicked (self, button):

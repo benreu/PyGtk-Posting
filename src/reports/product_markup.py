@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/product_markup.ui"
 
@@ -32,6 +33,7 @@ class ProductMarkupGUI (Gtk.Builder):
 		self.store = self.get_object("product_markup_store")
 		self.populate_markup_store ()
 		window = self.get_object("window")
+		user_manual.bind_f1(window, "product_markup")
 		window.show_all()
 
 	def populate_markup_store (self):

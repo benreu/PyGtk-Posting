@@ -1,0 +1,48 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_name_cleanup">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="product_edit_main#general"/>
+  <desc>Make product names follow one pattern.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Product name cleanup</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Product name cleanup</gui></guiseq>
+  checks every product name against your naming rules, such as how units are
+  spelled and capitalised, and fixes the names you choose. The same rules flag
+  a name as it is typed in <link xref="product_edit_main"/>.</p>
+
+  <p>The first time, click <gui>Set up name rules</gui>. This adds a starting
+  set of rules for you to edit. Nothing is renamed until you apply a fix.</p>
+
+  <terms>
+    <item><title><gui>Fixes</gui></title>
+    <p>Each name that breaks a rule, the <gui>Problem</gui>, and the
+    <gui>Suggested name</gui>. Check <gui>Fix</gui> on those to rename, or
+    <gui>Select all</gui>, and click <gui>Apply selected fixes</gui>.
+    <gui>Refresh</gui> reads the rules again and scans every name, clearing
+    the checks.</p></item>
+    <item><title><gui>Word order</gui></title>
+    <p>Names with the brand somewhere other than the front, where the rest
+    lead with it. These are for you to fix by hand; right click one for its
+    <gui>Product hub</gui>.</p></item>
+    <item><title><gui>Duplicates</gui></title>
+    <p>Names that are the same once capitals and spacing are ignored, and so
+    probably one part entered twice. They are not merged here, because
+    invoices and orders point at a particular product.</p></item>
+    <item><title><gui>Rules</gui></title>
+    <p>The rules themselves. <gui>Variants</gui> are the spellings to replace,
+    separated by commas; <gui>Canonical</gui> is what they become. Changing a
+    rule rescans the <gui>Fixes</gui> tab. <gui>New rule</gui> adds one;
+    <gui>Remove rule</gui>, or unchecking <gui>On</gui>, turns one off and
+    keeps it off.</p></item>
+  </terms>
+
+</page>

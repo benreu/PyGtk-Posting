@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/contact_hub.ui"
 
@@ -45,6 +46,7 @@ class ContactHubGUI:
 		DB.rollback()
 		self.builder.get_object('label1').set_label(self.name)
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "contact_hub")
 		self.window.show_all()
 
 	def destroy (self, window):

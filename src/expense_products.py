@@ -19,6 +19,7 @@ from gi.repository import Gtk, GObject
 from db_connection import DB
 import product_name_rules
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/expense_products.ui"
 
@@ -38,6 +39,7 @@ class GUI(Gtk.Builder):
 		self.populate_expense_products_store()
 		self.populate_expense_account_store ()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "expense_products")
 		self.window.show_all()
 
 	def populate_expense_account_store (self):

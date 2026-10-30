@@ -1,0 +1,26 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="customer_statements">
+
+  <info>
+  <link type="guide" xref="reports#contacts"/>
+  <link type="seealso" xref="statement"/>
+  <desc>Statements already sent, and what was on each.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Customer statements</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Contacts</gui><gui>Customer
+  statements</gui></guiseq>, or <guiseq><gui>Reports</gui><gui>Statements</gui></guiseq>,
+  lists the <link xref="statement">statements</link> already made. Choose the
+  <gui>Customer</gui>, or check <gui>View all</gui> for every customer's.</p>
+
+  <p>Select a statement to see the invoices, credit memos and payments it
+  closed, below. Double click it to open the statement as it was
+  printed.</p>
+
+</page>

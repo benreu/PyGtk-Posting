@@ -1,53 +1,119 @@
 <page xmlns="http://projectmallard.org/1.0/"
-      type="guide"
+      type="topic"
       id="contacts">
 
   <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="contact_hub"/>
   <link type="seealso" xref="tax_exemptions"/>
-  <link type="guide" xref="index"/>
+  <link type="seealso" xref="duplicate_contact"/>
+  <desc>Customers, vendors, employees and service providers.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
   </info>
 
   <title>Contacts</title>
 
-  <section>
-  <title>Adding a contact</title>
-  <steps>
-    <item>
-      <p>Click New.</p>
-    </item>
-    <item>
-      <p>Fill in all the fields that pertain to the new contact.</p>
-    </item>
-    <item>
-      <p>Select whether the contact is a vendor, customer, employee, or combination of the three. Vendors will be available for Purchase orders. Customers will be available when creating Invoices. Employees will be available in the Time Clock.</p>
-    </item>
-    <item>
-      <p>Click Save to save the contact.</p>
-    </item>
-    <item>
-      <p>Click New to start a new contact.</p>
-    </item>
-  </steps>
+  <p>Every customer, vendor, employee and service provider is a contact. Open
+  the list with <guiseq><gui>Edit</gui><gui>Contacts</gui></guiseq>, or the
+  <gui>Customer</gui> or <gui>Vendors</gui> button of an invoice or purchase
+  order.</p>
+
+  <section id="overview">
+  <title>Finding a contact</title>
+  <p>Choose <gui>Customer</gui>, <gui>Vendor</gui>, <gui>Employee</gui>,
+  <gui>Service provider</gui> or <gui>All contacts</gui> above the list, and
+  type part of the name in the search box. When a contact is changed in
+  another window or on another computer, <gui>Refresh</gui> appears; click it
+  to reload the list.</p>
+  <terms>
+    <item><title><gui>New</gui> (<keyseq><key>Ctrl</key><key>N</key></keyseq>)</title>
+    <p>Adds a contact.</p></item>
+    <item><title><gui>Edit</gui> (<keyseq><key>Ctrl</key><key>E</key></keyseq>),
+    or double click</title>
+    <p>Changes the selected contact.</p></item>
+    <item><title><gui>Contact exemptions</gui> (<keyseq><key>Ctrl</key><key>X</key></keyseq>)</title>
+    <p>Its tax exemptions and their signed forms; see <link
+    xref="tax_exemptions#contact"/>.</p></item>
+    <item><title><gui>Contact files</gui> (<keyseq><key>Ctrl</key><key>F</key></keyseq>)</title>
+    <p>Files kept with the contact; see <link xref="#files"/>.</p></item>
+    <item><title><gui>Contact individuals</gui></title>
+    <p>The people at a business; see <link xref="#individuals"/>.</p></item>
+    <item><title><gui>Shipping addresses</gui></title>
+    <p>Where to ship to; see <link xref="#shipping"/>.</p></item>
+  </terms>
   </section>
 
-  <section>
-  <title>Editing a contact</title>
+  <section id="edit">
+  <title>Adding or changing a contact</title>
   <steps>
-    <item>
-      <p>Select an existing contact.</p>
-    </item>
-    <item>
-      <p>Edit the fields.</p>
-    </item>
-    <item>
-      <p>Click Save to save the changes.</p>
-    </item>
+    <item><p>Fill in the <gui>Main</gui> tab. Type the <gui>Zip</gui> and press
+    <key>Enter</key> to fill in the city and state, or pick a zip code from the
+    list as you type.</p></item>
+    <item><p>Check what the contact is: <gui>Customer</gui> to invoice them,
+    <gui>Vendor</gui> to order from them, <gui>Employee</gui> for the time clock
+    and payroll, <gui>Service provider</gui> for the bills you pay them. A
+    contact can be several at once.</p></item>
+    <item><p>For a customer, choose their <gui>Term</gui>, which sets when
+    payment is due and any early payment discount (see <link
+    xref="customer_terms"/>), and their <gui>Markup percent</gui> (see <link
+    xref="customer_markup_percent"/>).</p></item>
+    <item><p>For a vendor, fill in <gui>Checks payable to</gui> if their
+    checks are written to another name.</p></item>
+    <item><p>Click <gui>Save</gui>.</p></item>
   </steps>
+  <p>The <gui>Custom information</gui> tab has four fields of your own and
+  <gui>Notes</gui>. When you leave the <gui>Name</gui> of a new contact, a
+  warning icon appears if a contact by that name already exists; click it to
+  see them.</p>
+  <p>Only one person can edit a contact at a time. Anyone else who opens it
+  is told somebody else is editing it.</p>
   </section>
 
-  <section id="contacts_tips">
-  <title>Tips</title>
-  <p>Tax exemptions are only available for contacts that are already saved in <app>PyGtk Posting</app>.</p>
+  <section id="individuals">
+  <title>Contact individuals</title>
+  <p>A business can have several people you deal with. Select the business,
+  click <gui>Contact individuals</gui>, then <gui>New</gui> or <gui>Edit</gui>
+  to keep each one's phone, email and address. <gui>Contacts</gui> goes back
+  to the list.</p>
+  </section>
+
+  <section id="shipping">
+  <title>Shipping addresses</title>
+  <p>Select the contact and click <gui>Shipping addresses</gui>, then
+  <gui>New</gui> or <gui>Edit</gui>. Give the address a
+  <gui>Description</gui>, or click <gui>Copy billing address</gui> to start
+  from the contact's own address, and choose the <gui>Carrier</gui>. Check
+  <gui>Standard (default) address</gui> for the one invoices use unless
+  another is chosen; only one address can be the standard.</p>
+  </section>
+
+  <section id="files">
+  <title>Contact files</title>
+  <p><gui>Add file</gui> keeps any file with the contact, such as a signed
+  agreement. <gui>View file</gui> opens the selected one and <gui>Delete
+  file</gui> deletes it after asking. Changes are saved at once. Files are
+  kept in the database, so large ones make it grow quickly.</p>
+  </section>
+
+  <section id="menu">
+  <title>The window menu</title>
+  <terms>
+    <item><title><gui>Copy mode</gui></title>
+    <p>Lets you click into a cell of the list to select and copy its text.
+    Nothing typed there is saved.</p></item>
+    <item><title><gui>New individual</gui></title>
+    <p>Adds a person to the selected business.</p></item>
+    <item><title><gui>Open company letter head</gui>, <gui>Print mailing
+    envelope</gui>, <gui>Print shipping label</gui></title>
+    <p>Open a letter, envelope or label addressed to the selected contact in
+    LibreOffice, to print.</p></item>
+    <item><title><gui>Save window layout</gui></title>
+    <p>Remembers the window's size and column widths on this
+    computer.</p></item>
+  </terms>
   </section>
 
 </page>

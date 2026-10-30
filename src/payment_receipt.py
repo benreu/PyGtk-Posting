@@ -20,6 +20,7 @@ import subprocess, psycopg2
 import printing
 from db_connection import DB
 from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/payment_receipt.ui"
 
@@ -41,6 +42,7 @@ class PaymentReceiptGUI:
 		completion.set_match_func(self.customer_match_func)
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "payment_receipt")
 		self.window.show_all()
 
 	def destroy (self, widget):

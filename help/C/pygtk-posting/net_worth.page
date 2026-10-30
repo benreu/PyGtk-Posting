@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="net_worth">
+
+  <info>
+  <link type="guide" xref="reports#financial"/>
+  <desc>What the business owns, owes, and is worth.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Net worth</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Financial</gui><gui>Net
+  worth</gui></guiseq> lists the balance of every asset, liability and equity
+  account today, as a tree of accounts and their sub-accounts. <gui>Net Worth
+  :</gui> is the total. <gui>Expand all</gui> and <gui>Collapse all</gui> open
+  and close the tree. <gui>Report hub</gui> exports it; see <link
+  xref="report_hub"/>.</p>
+
+</page>

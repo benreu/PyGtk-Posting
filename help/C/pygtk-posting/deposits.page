@@ -1,0 +1,37 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="deposits">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="deposits_report"/>
+  <link type="seealso" xref="customer_payment"/>
+  <desc>Take checks and cash to the bank.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Process deposits</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Process deposits</gui></guiseq> lists
+  every check received that has not been deposited.</p>
+
+  <steps>
+    <item><p>Under <gui>Cheques</gui>, check <gui>Deposit</gui> on each check
+    going to the bank. The count and total are shown below.</p></item>
+    <item><p>Under <gui>Cash</gui>, type any cash going in, and the cash
+    account it comes <gui>from</gui>.</p></item>
+    <item><p>Under <gui>Deposit</gui>, choose the date it is deposited
+    <gui>on</gui> and the bank account it goes <gui>in</gui>.</p></item>
+    <item><p>Click <gui>Process &amp; close window</gui>, or <gui>Process
+    &amp; new deposit</gui> to make another deposit slip.</p></item>
+  </steps>
+
+  <p>Until the deposit can be processed, a message says what is missing, for
+  instance <gui>Bank account not selected</gui>. The deposit then shows as one
+  amount in <link xref="bank_statement"/>, matching the bank's statement, and
+  in <link xref="deposits_report"/>.</p>
+
+</page>

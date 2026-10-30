@@ -1,0 +1,30 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="expense_products">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="unprocessed_po#expenses"/>
+  <desc>Freight and other charges that can be added to a vendor's
+  invoice.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Expense products</title>
+
+  <p>Expense products are the extra charges on a vendor's invoice, such as
+  freight, fuel surcharge or handling. The <gui>Expense products</gui> button
+  of <link xref="unprocessed_po"/> lists them.</p>
+
+  <list>
+    <item><p><gui>New</gui> adds one; click its <gui>Product</gui> to name
+    it, its <gui>Price</gui> for a usual amount, and choose the
+    <gui>Expense account</gui> it posts to.</p></item>
+    <item><p><gui>Delete</gui> removes the selected one, or marks it deleted
+    if it has already been used.</p></item>
+  </list>
+
+</page>

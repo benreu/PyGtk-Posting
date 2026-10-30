@@ -1,0 +1,30 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="inventory_summaries">
+
+  <info>
+  <link type="guide" xref="inventory"/>
+  <link type="seealso" xref="inventory_count"/>
+  <desc>Start a stock count for a location and fiscal year.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Inventory summaries</title>
+
+  <p>Each stock count is kept in a summary. The <gui>Inventory
+  summaries</gui> button of <link xref="inventory_count"/> and <link
+  xref="inventory_compare"/> lists them, with whether each is still
+  <gui>Active</gui>, that is, not yet closed.</p>
+
+  <list>
+    <item><p>To start a count, click <gui>New</gui>, type its
+    <gui>Name</gui>, choose the <gui>Fiscal year</gui> and the
+    <gui>Location</gui> being counted, and click <gui>Save</gui>.</p></item>
+    <item><p>To change one, double click it, change it and click
+    <gui>Save</gui>.</p></item>
+  </list>
+
+</page>

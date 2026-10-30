@@ -19,6 +19,7 @@ from gi.repository import Gtk
 from invoice_window import create_new_invoice 
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/draft_job_sheets.ui"
 
@@ -36,6 +37,7 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		self.populate_contact_store ()
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "draft_job_sheets")
 		self.window.show_all()
 
 	def destroy (self, widget):

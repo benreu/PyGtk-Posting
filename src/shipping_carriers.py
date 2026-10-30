@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/shipping_carriers.ui"
 
@@ -32,6 +33,7 @@ class ShippingCarriersGUI:
 		self.populate_carrier_store ()
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "shipping_carriers")
 		self.window.show_all()
 
 	def destroy (self, widget):

@@ -1,0 +1,102 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="keyboard_shortcuts">
+
+  <info>
+  <link type="guide" xref="index#basics"/>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="quick_command"/>
+  <desc>F1 for help, the keys each window knows, and shortcuts of your
+  own.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Keyboard shortcuts</title>
+
+  <p>Press <key>F1</key> in any window to open its page of this manual.</p>
+
+  <section id="own">
+  <title>Shortcuts of your own</title>
+  <p><guiseq><gui>Edit</gui><gui>Keyboard shortcuts</gui></guiseq> lists every
+  item of the main window's menus, and <gui>Main window</gui>, which brings the
+  main window to the front. To give one a shortcut, click its
+  <gui>Accel</gui> and press the keys. A shortcut needs <key>Ctrl</key>,
+  <key>Alt</key> or another modifier key, except the function keys
+  <key>F1</key> to <key>F12</key>. Press <key>Backspace</key> while setting
+  one to clear it.</p>
+  <p>These shortcuts work from anywhere on the desktop, even while another
+  program is in front, so choose keys no other program uses: PyGtk Posting
+  cannot tell when one is already taken. New shortcuts take effect the next
+  time PyGtk Posting starts.</p>
+  </section>
+
+  <section id="windows">
+  <title>Keys in each window</title>
+  <terms>
+    <item><title><link xref="main_window"/></title>
+    <p><keyseq><key>Ctrl</key><key>I</key></keyseq> new invoice,
+    <keyseq><key>Ctrl</key><key>P</key></keyseq> new purchase order.</p></item>
+    <item><title><link xref="invoice"/></title>
+    <p><key>F2</key> new line, <key>F3</key> delete line,
+    <keyseq><key>Ctrl</key><key>Up</key></keyseq> and
+    <keyseq><key>Ctrl</key><key>Down</key></keyseq> move a line,
+    <keyseq><key>Ctrl</key><key>H</key></keyseq> product hub.</p></item>
+    <item><title><link xref="purchase_order"/></title>
+    <p><key>F2</key> new line, <keyseq><key>Ctrl</key><key>Up</key></keyseq>
+    and <keyseq><key>Ctrl</key><key>Down</key></keyseq> move a line,
+    <keyseq><key>Ctrl</key><key>H</key></keyseq> product hub,
+    <keyseq><key>Ctrl</key><key>Enter</key></keyseq> in an order number to
+    search every order number.</p></item>
+    <item><title><link xref="unprocessed_po"/></title>
+    <p><keyseq><key>Ctrl</key><key>Up</key></keyseq> and
+    <keyseq><key>Ctrl</key><key>Down</key></keyseq> move a line,
+    <keyseq><key>Ctrl</key><key>H</key></keyseq> product hub.</p></item>
+    <item><title><link xref="documents_window"/>, <link
+    xref="assembled_products"/></title>
+    <p><key>F2</key> new line, <key>F3</key> delete line.</p></item>
+    <item><title><link xref="job_sheet"/></title>
+    <p><key>F2</key> new line.</p></item>
+    <item><title><link xref="contacts"/></title>
+    <p><keyseq><key>Ctrl</key><key>N</key></keyseq> new,
+    <keyseq><key>Ctrl</key><key>E</key></keyseq> edit,
+    <keyseq><key>Ctrl</key><key>X</key></keyseq> exemptions,
+    <keyseq><key>Ctrl</key><key>F</key></keyseq> files.</p></item>
+    <item><title><link xref="products"/></title>
+    <p><keyseq><key>Ctrl</key><key>N</key></keyseq> new,
+    <keyseq><key>Ctrl</key><key>E</key></keyseq> edit,
+    <keyseq><key>Ctrl</key><key>O</key></keyseq> order numbers,
+    <keyseq><key>Ctrl</key><key>L</key></keyseq> location,
+    <keyseq><key>Ctrl</key><key>H</key></keyseq> product hub,
+    <keyseq><key>Ctrl</key><key>Q</key></keyseq> close.</p></item>
+    <item><title><link xref="product_edit_main"/>, <link
+    xref="products#location">product location</link></title>
+    <p><keyseq><key>Ctrl</key><key>S</key></keyseq> save,
+    <keyseq><key>Ctrl</key><key>Q</key></keyseq> close without
+    saving.</p></item>
+    <item><title><link xref="product_print_label"/></title>
+    <p><keyseq><key>Ctrl</key><key>P</key></keyseq> print label.</p></item>
+    <item><title><link xref="customer_terms"/></title>
+    <p><keyseq><key>Ctrl</key><key>N</key></keyseq> new,
+    <keyseq><key>Ctrl</key><key>S</key></keyseq> save,
+    <keyseq><key>Ctrl</key><key>D</key></keyseq> delete.</p></item>
+    <item><title><link xref="account_transactions"/></title>
+    <p><keyseq><key>Ctrl</key><key>N</key></keyseq> accounts
+    summary.</p></item>
+    <item><title><link xref="time_clock"/></title>
+    <p><key>I</key> punch in, <key>O</key> punch out, <key>C</key>
+    cancel.</p></item>
+    <item><title><link xref="quick_command"/></title>
+    <p><key>Esc</key> close.</p></item>
+    <item><title><link xref="zebra_designer"/></title>
+    <p><keyseq><key>Ctrl</key><key>Shift</key><key>O</key></keyseq> open a
+    stored template, <keyseq><key>Ctrl</key><key>S</key></keyseq>
+    save.</p></item>
+  </terms>
+  <p>In lists you can type into, <key>Tab</key> moves to the next column of
+  the line.</p>
+  </section>
+
+</page>

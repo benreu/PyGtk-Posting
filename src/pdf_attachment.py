@@ -24,6 +24,7 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from subprocess import call
 import os, sane
+import user_manual
 
 UI_FILE = "src/pdf_attachment.ui"
 
@@ -78,6 +79,7 @@ class PdfAttachmentWindow (Gtk.Builder):
 		self.get_object('pdf_view_scrolled_window').add(self.view)
 		
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "pdf_attachment")
 		self.window.set_transient_for(parent_window)
 		self.window.show_all()
 

@@ -25,7 +25,8 @@ from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
 from db_connection import DB, broadcaster
-from constants import ui_directory, help_dir
+from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/invoice_window.ui"
 
@@ -65,6 +66,9 @@ class InvoiceGUI:
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "invoice")
+		user_manual.bind_f1(self.builder.get_object('document_list_window'),
+							"invoice")
 		self.edited_renderer_text = 1
 		self.qty_renderer_value = 1
 
@@ -1628,8 +1632,7 @@ class InvoiceGUI:
 		return True # don't let Tab move the focus to the next widget
 
 	def help_clicked (self, widget):
-		import subprocess
-		subprocess.Popen(["yelp", help_dir + "/invoice.page"])
+		user_manual.show("invoice", self.window)
 
 	def window_key_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -1640,8 +1643,6 @@ class InvoiceGUI:
 				self.move_down_activated (None)
 			elif keyname == "Up":
 				self.move_up_activated (None)
-		elif keyname == 'F1':
-			self.help_clicked (None)
 		elif keyname == 'F2':
 			self.new_item_clicked (None)
 		elif keyname == 'F3':

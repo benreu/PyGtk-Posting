@@ -1,0 +1,27 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="inventory_history">
+
+  <info>
+  <link type="guide" xref="reports#products"/>
+  <link type="guide" xref="inventory"/>
+  <link type="seealso" xref="product_history"/>
+  <desc>Every movement of a product's stock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Inventory history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Products</gui><gui>Inventory
+  history</gui></guiseq> lists each time a stocked product came in or went
+  out: received, sold, made, used in manufacturing, counted, adjusted or
+  transferred, with the date, quantity and location.</p>
+
+  <p>Choose the product, and the location in the box beside it. Check
+  <gui>View all</gui> to see the movements of every product at that
+  location.</p>
+
+</page>

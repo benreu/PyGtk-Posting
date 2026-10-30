@@ -20,6 +20,7 @@ from dateutils import DateTimeCalendar
 from db import transactor
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/shipping_info.ui"
 
@@ -74,6 +75,7 @@ class ShippingInfoGUI(Gtk.Builder):
 			self.get_object('freight_product_combo').set_active_id(freight_product_id)
 		
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "shipping_info")
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -81,7 +83,7 @@ class ShippingInfoGUI(Gtk.Builder):
 			self.incoming_invoice.get_object('window1').destroy()
 
 	def help_clicked (self, button):
-		print ('please add help to shipping info')
+		user_manual.show("shipping_info", self.window)
 
 	def contact_match_func(self, completion, key, iter_):
 		split_search_text = key.split()

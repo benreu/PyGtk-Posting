@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="customer">
+
+  <info>
+  <link type="guide" xref="index#menus" group="customer"/>
+  <desc>Invoices, payments, statements and credit memos.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Customer menu</title>
+
+  <p>The <gui>Customer</gui> menu is for selling: writing invoices, taking payments, sending statements and charging or crediting a customer's account.</p>
+
+</page>

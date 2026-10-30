@@ -1,0 +1,36 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="draft_invoices">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="invoice"/>
+  <desc>Invoices started but not yet posted.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Draft invoices</title>
+
+  <p>The <gui>Draft Invoices</gui> button of the main window lists every
+  invoice that has at least one line but has not been posted. Documents
+  unchecked as <gui>Active</gui> in an invoice's <link
+  xref="invoice#document_list">document list</link> are left out. The list
+  updates by itself as invoices change.</p>
+
+  <list>
+    <item><p>Double click an invoice, or select it and click <gui>Open invoice
+    in invoice window</gui>, to finish it. Check <gui>Hide when opening
+    invoice</gui> to have this window step out of the way when you
+    do.</p></item>
+    <item><p><gui>New invoice</gui> opens a blank <link
+    xref="invoice"/>.</p></item>
+    <item><p>Right click an invoice and choose <gui>Contact hub</gui> to see
+    everything about its customer.</p></item>
+    <item><p><gui>Save window layout</gui>, in the window menu, remembers the
+    window's size, column widths and sorting, on this computer.</p></item>
+  </list>
+
+</page>

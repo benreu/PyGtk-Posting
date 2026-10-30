@@ -18,12 +18,13 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
-import subprocess, re, os, psycopg2
+import re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
 from db_connection import DB, broadcaster
 from db.transactor import create_draft_purchase_order
-from constants import ui_directory, help_dir
+from constants import ui_directory
+import user_manual
 
 items = list()
 
@@ -205,6 +206,10 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor.close()
 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "purchase_order")
+		for window in ('duplicate_product_window',
+						'extended_order_number_window'):
+			user_manual.bind_f1(self.get_object(window), "purchase_order")
 		self.window.show_all()
 		
 		GLib.idle_add(self.load_settings)
@@ -294,7 +299,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cellrenderer.set_property("text" , str(line))
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", help_dir + "/purchase_order.page"])
+		user_manual.show("purchase_order", self.window)
 
 	def view_all_toggled (self, checkbutton):
 		self.populate_purchase_order_items ()
@@ -1342,8 +1347,6 @@ class PurchaseOrderGUI(Gtk.Builder):
 				self.move_down_activated (None)
 			elif keyname == "Up":
 				self.move_up_activated (None)
-		elif keyname == 'F1':
-			self.help_clicked (None)
 		elif keyname == 'F2':
 			self.add_entry()
 		elif keyname == 'F3':

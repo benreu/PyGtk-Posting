@@ -1,0 +1,40 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_print_label">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="zebra_designer"/>
+  <link type="seealso" xref="products#location"/>
+  <desc>Print a shelf or product label with barcode and location.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Print product label</title>
+
+  <p>Open it with <gui>Print label</gui> in the menu of <link
+  xref="products"/> or in the <link xref="product_hub"/>.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Printer</gui>: a Zebra label printer, or
+    <gui>System</gui> to print a LibreOffice label template on an ordinary
+    printer.</p></item>
+    <item><p>Choose the label <gui>Template</gui>.</p></item>
+    <item><p>Choose the <gui>Product</gui>, or scan or type its
+    <gui>Barcode</gui> and press <key>Enter</key>. Choose the
+    <gui>Location</gui>; the product's shelf location there is filled in, and
+    can be changed for this label.</p></item>
+    <item><p>Click <gui>Print label</gui>, or press
+    <keyseq><key>Ctrl</key><key>P</key></keyseq>.</p></item>
+  </steps>
+
+  <p>To print many labels quickly, check <gui>Print label</gui> beside the
+  barcode: a label then prints each time a product is chosen or a barcode is
+  found. For a system template, <gui>View label</gui> opens it in LibreOffice
+  instead of printing. <gui>Edit</gui> opens a Zebra template in the <link
+  xref="zebra_designer"/>; it asks for the administrator password.</p>
+
+</page>

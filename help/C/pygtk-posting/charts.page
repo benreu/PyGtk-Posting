@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="charts">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <desc>Sales and purchases over time, as charts.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Charts</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Charts</gui></guiseq> draws a chart over
+  time. Choose how to <gui>Group by</gui>: by day, week, month, quarter or
+  year.</p>
+
+  <terms>
+    <item><title><gui>Invoice amounts</gui></title>
+    <p><gui>Invoice chart</gui> draws the total invoiced in each
+    period.</p></item>
+    <item><title><gui>Products</gui></title>
+    <p>Choose a product, then <gui>Sold</gui> for how many were invoiced in
+    each period, or <gui>Purchased</gui> for how many were ordered.</p></item>
+  </terms>
+
+  <p>Each chart opens in a window of its own, with buttons to zoom, move
+  around and save it as a picture.</p>
+
+</page>

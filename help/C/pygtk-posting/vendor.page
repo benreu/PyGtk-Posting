@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="vendor">
+
+  <info>
+  <link type="guide" xref="index#menus" group="vendor"/>
+  <desc>Purchase orders, receiving and paying vendors.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Vendor menu</title>
+
+  <p>The <gui>Vendor</gui> menu is for buying: ordering from vendors, receiving what arrives and paying for it.</p>
+
+</page>

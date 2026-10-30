@@ -19,7 +19,8 @@ from gi.repository import Gtk, GLib
 from datetime import date
 import os, shutil, subprocess, tempfile
 from db_connection import DB
-from constants import ui_directory, template_dir, help_dir
+from constants import ui_directory, template_dir
+import user_manual
 import faxing
 
 UI_FILE = ui_directory + "/fax_window.ui"
@@ -44,6 +45,7 @@ class FaxGUI (Gtk.Builder):
 		completion.set_match_func(self.contact_match_func)
 		self.populate_contact_store()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "fax")
 		self.window.show_all()
 		self.update_pages()
 		self.show_hold_notice()
@@ -69,7 +71,7 @@ class FaxGUI (Gtk.Builder):
 		self.help_clicked(None)
 
 	def help_clicked (self, button):
-		subprocess.Popen(["yelp", help_dir + "/fax.page"])
+		user_manual.show("fax", self.window)
 
 	def populate_contact_store (self):
 		cursor = DB.cursor()

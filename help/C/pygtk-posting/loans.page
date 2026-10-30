@@ -1,0 +1,37 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="loans">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="loan_payment"/>
+  <link type="seealso" xref="loan_payments"/>
+  <desc>Record money the business has borrowed.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Loans</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Loans</gui></guiseq> lists the loans
+  recorded, and adds a new one under <gui>New loan</gui>:</p>
+
+  <steps>
+    <item><p>Choose the <gui>Date started</gui> and the <gui>Contact</gui> who
+    lent the money, and type a <gui>Description</gui> and the
+    <gui>Amount</gui>.</p></item>
+    <item><p>Choose the <gui>Payment period</gui>: how many days, weeks,
+    months or years between payments. The main window's to-do list reminds you
+    when a payment is due.</p></item>
+    <item><p>Choose the <gui>Liability account</gui> the loan is owed on, and
+    the account the money was <gui>Deposited to</gui>. <gui>Refresh</gui>
+    reloads the accounts.</p></item>
+    <item><p>Click <gui>Save</gui>.</p></item>
+  </steps>
+
+  <p>Payments are made in <link xref="loan_payment"/>, and the loan's history
+  is in <link xref="loan_payments"/>.</p>
+
+</page>

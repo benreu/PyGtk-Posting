@@ -3,7 +3,8 @@
       id="fax">
 
   <info>
-  <link type="guide" xref="index"/>
+  <link type="guide" xref="general"/>
+  <desc>Fax any document, or an invoice as it is posted.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>

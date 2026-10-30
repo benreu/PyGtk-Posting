@@ -19,6 +19,7 @@ from gi.repository import Gtk
 from decimal import Decimal
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 from decimal import Decimal
 
 UI_FILE = ui_directory + "/reports/net_worth.ui"
@@ -34,6 +35,7 @@ class NetWorthGUI(Gtk.Builder):
 		self.populate_net_worth ()
 
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "net_worth")
 		self.window.show_all()
 
 	def destroy (self, widget):

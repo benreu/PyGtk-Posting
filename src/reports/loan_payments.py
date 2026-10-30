@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/loan_payments.ui"
@@ -50,6 +51,7 @@ class LoanPaymentsGUI(Gtk.Builder):
 		column.set_cell_data_func(renderer, self.cell_func, 4)
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "loan_payments")
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -153,6 +155,9 @@ class LoanPaymentsGUI(Gtk.Builder):
 			self.get_object('interest_paid_entry').set_text(row[8])
 
 ### admin section
+
+	def help_clicked (self, menuitem):
+		user_manual.show("loan_payments", self.window)
 
 	def edit_mode_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:

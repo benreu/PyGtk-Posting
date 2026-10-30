@@ -21,6 +21,7 @@ from dateutils import DateTimeCalendar
 import spell_check
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/resources/resource_management.ui"
 
@@ -108,6 +109,7 @@ class ResourceManagementGUI:
 			cursor.close()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "resource_management")
 		self.window.show_all()
 		self.older_than_calendar.set_today()
 		self.populate_stores()

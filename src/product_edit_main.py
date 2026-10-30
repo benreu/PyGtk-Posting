@@ -16,9 +16,9 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
-import subprocess
 from db_connection import broadcaster, DB
-from constants import ui_directory, is_admin, help_dir, template_dir, PRODUCT_LOCK_CLASSID
+from constants import ui_directory, is_admin, template_dir, PRODUCT_LOCK_CLASSID
+import user_manual
 import product_name_rules
 from inventory import inventorying
 from accounts import 	product_revenue_tree, \
@@ -87,6 +87,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		self.populate_unit_combo ()
 		self.set_window_layout_from_settings ()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "product_edit_main")
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
 
@@ -157,7 +158,7 @@ class ProductEditMainGUI (Gtk.Builder):
 		DB.rollback()
 
 	def help_button_activated (self, menuitem):
-		subprocess.Popen(["yelp", help_dir + "/products.page"])
+		user_manual.show("product_edit_main", self.window)
 	
 	def widget_focus_in (self, widget, event):
 		GLib.idle_add(widget.select_region, 0, -1)

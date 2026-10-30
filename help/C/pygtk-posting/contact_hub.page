@@ -1,0 +1,34 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="contact_hub">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="contacts"/>
+  <desc>Jump to any window about one contact.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Contact hub</title>
+
+  <p>The contact hub opens from a right click on a customer or vendor in most
+  lists, such as <link xref="unpaid_invoices"/> or the customer box of an
+  invoice. Each button opens another window already showing this
+  contact:</p>
+
+  <list>
+    <item><p><gui>Edit Contact</gui>: <link xref="contacts#edit"/></p></item>
+    <item><p><gui>Contact history</gui>: <link xref="contact_history"/></p></item>
+    <item><p><gui>Customer invoices</gui>: <link xref="invoice_history"/></p></item>
+    <item><p><gui>Customer payments received</gui>: <link
+    xref="payments_received"/></p></item>
+    <item><p><gui>Invoice to payment matching</gui>: <link
+    xref="invoice_to_payment_matching"/></p></item>
+    <item><p><gui>Job sheet history</gui>: <link xref="job_sheet_history"/></p></item>
+    <item><p><gui>Vendor purchase orders</gui>: <link xref="vendor_history"/></p></item>
+  </list>
+
+</page>

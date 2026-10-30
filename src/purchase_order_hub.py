@@ -22,6 +22,7 @@ from gi.repository import Gtk
 import subprocess, tempfile
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/purchase_order_hub.ui"
 
@@ -39,6 +40,7 @@ class PurchaseOrderHubGUI(Gtk.Builder):
 		self.attachment_view = EvinceView.View()
 		self.get_object('attachment_scrolled_window').add(self.attachment_view)
 		window = self.get_object('window')
+		user_manual.bind_f1(window, "purchase_order_hub")
 		window.show_all()
 		window.set_title("PO hub (%s)" % po_id)
 		self.populate_items()

@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory, CONTACT_LOCK_CLASSID
+import user_manual
 import zip_completion
 
 UI_FILE = ui_directory + "/contact_edit_main.ui"
@@ -31,6 +32,7 @@ class ContactEditMainGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "contacts")
 		self.window.show_all()
 		self.populate_combos()
 		self.populate_zip_codes ()
@@ -268,6 +270,9 @@ class ContactEditMainGUI(Gtk.Builder):
 	def name_entry_icon_release (self, entry, pos, event):
 		self.get_object('duplicate_popover').show()
 		self.get_object('treeview-selection3').unselect_all()
+
+	def help_clicked (self, widget):
+		user_manual.show("contacts", self.window)
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

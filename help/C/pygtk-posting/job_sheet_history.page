@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="job_sheet_history">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="job_sheet"/>
+  <desc>Past job sheets and the products used on them.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Job sheet history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Job sheet history</gui></guiseq> lists
+  every <link xref="job_sheet">job sheet</link>, with its customer, date, job
+  and description. Type into the search boxes to find one by customer, ext.
+  name, job or description. Double click a job to see the products used on it.
+  <gui>Refresh</gui> reloads the list.</p>
+
+</page>

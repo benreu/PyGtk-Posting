@@ -23,6 +23,7 @@ from queue import Empty
 import sane, psycopg2, subprocess
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/payroll/employee_info.ui"
 
@@ -50,6 +51,7 @@ class EmployeeInfoGUI(Gtk.Builder):
 								self.on_payroll_since_calendar_date_selected)
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "employee_info")
 		self.window.show_all()
 		broadcaster.connect("shutdown", self.main_shutdown)
 		

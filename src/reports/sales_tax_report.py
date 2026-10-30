@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from dateutils import DateTimeCalendar
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/sales_tax_report.ui"
 
@@ -48,6 +49,7 @@ class SalesTaxReportGUI:
 		self.end_calendar.set_today ()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "sales_tax_report")
 		self.window.show_all()
 
 	def destroy (self, widget):

@@ -23,6 +23,7 @@ from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as Navigatio
 import numpy as np
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/manufacturing_history.ui"
 
@@ -39,6 +40,7 @@ class ManufacturingHistoryGUI(Gtk.Builder):
 		self.filtered_store = self.get_object('manufacturing_jobs_filter')
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "manufacturing_history")
 		self.window.show_all()
 		self.populate_jobs_store()
 		self.populate_summary_store()

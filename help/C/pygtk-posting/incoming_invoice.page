@@ -1,0 +1,61 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="incoming_invoice">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="incoming_invoices_report"/>
+  <link type="seealso" xref="incoming_invoice_edit"/>
+  <desc>Enter and pay a bill that has no purchase order: rent, utilities,
+  repairs.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Incoming invoices</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Incoming invoices</gui></guiseq>
+  records a bill from a service provider and pays it in one step. Bills for
+  goods ordered on a purchase order go through <link xref="unprocessed_po"/>
+  instead. The same window is the <gui>Payment</gui> tab of <link
+  xref="shipping_info"/>.</p>
+
+  <steps>
+    <item><p>Choose the service provider. Only contacts marked as a service
+    provider are listed; <gui>Service Provider</gui> opens the contacts window
+    to mark one.</p></item>
+    <item><p>Type the <gui>Invoice number / description</gui>, the
+    <gui>Amount</gui>, and choose the <gui>Date</gui>. <gui>Attach</gui> keeps
+    a scan of the bill; see <link xref="pdf_attachment"/>.</p></item>
+    <item><p>Split the amount over the expense accounts it belongs to. Add a
+    row with the add button beside the list, type its <gui>Percent</gui> or
+    <gui>Amount</gui>, choose its <gui>Expense Account</gui> and add a
+    <gui>Remark</gui>. The equalize button splits the amount evenly over the
+    rows; right click a row and choose <gui>Balance this row</gui> to give it
+    whatever the other rows leave.</p></item>
+    <item><p>Pay it, as below.</p></item>
+  </steps>
+
+  <section id="pay">
+  <title>Paying</title>
+  <list>
+    <item><p><gui>Pay with cash / credit card</gui>: choose the account
+    <gui>from cash account</gui> and click <gui>Cash payment</gui>, or choose
+    the card <gui>from credit card</gui> and click <gui>Credit card
+    payment</gui>.</p></item>
+    <item><p><gui>Pay from bank account</gui>: choose the bank account. For a
+    transfer or debit, type the <gui>Transaction number</gui> and click
+    <gui>Transfer payment</gui>. To pay by check, type the <gui>Check
+    number</gui> and click <gui>Print cheque &amp; post payment</gui>, or
+    <gui>Post cheque payment</gui> for a check written by hand. Checking
+    <gui>Cancel printing and posting</gui> in the print dialog stops the
+    payment.</p></item>
+  </list>
+  <p>The pay buttons say what is missing until the bill can be paid, for
+  instance <gui>Invoice amount does not match payment</gui> when the rows do
+  not add up to the amount, or <gui>Missing expense accounts</gui>.</p>
+  </section>
+
+</page>

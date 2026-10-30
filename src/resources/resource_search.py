@@ -20,6 +20,7 @@ import re
 from dateutils import DateTimeCalendar
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/resources/resource_search.ui"
 
@@ -31,6 +32,7 @@ class ResourceSearchGUI:
 		self.builder.connect_signals(self)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "resource_search")
 		self.window.show_all()
 
 	def resource_search_changed (self, entry):

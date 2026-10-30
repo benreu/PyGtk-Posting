@@ -19,7 +19,8 @@ from gi.repository import Gtk
 import subprocess, re
 import printing
 from db_connection import DB
-from constants import ui_directory, help_dir, template_dir
+from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/customer_finance_charge.ui"
 
@@ -42,10 +43,11 @@ class CustomerFinanceChargeGUI:
 		self.customer_combobox_populate()
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "customer_finance_charge")
 		self.window.show_all()
 
 	def help_button_clicked(self, widget):
-		subprocess.Popen(["yelp", help_dir + "/finance_charge.page"])
+		user_manual.show("customer_finance_charge", self.window)
 
 	def payment_window(self, widget):
 		import customer_payment

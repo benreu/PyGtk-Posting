@@ -22,6 +22,7 @@ from dateutils import DateTimeCalendar
 import spell_check
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/resources/resource_diary.ui"
 
@@ -42,6 +43,7 @@ class ResourceDiaryGUI:
 		self.calendar.set_today()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "resource_diary")
 		self.window.show_all()
 
 	def add_day_info (self):

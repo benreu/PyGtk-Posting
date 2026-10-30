@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_markup">
+
+  <info>
+  <link type="guide" xref="reports#products"/>
+  <link type="seealso" xref="product_edit_main#pricing"/>
+  <desc>Each product's markup over cost at the standard price.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Markup rate</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Products</gui><gui>Markup
+  rate</gui></guiseq> lists every product's <gui>Markup</gui>: how far its
+  price at the standard <link xref="customer_markup_percent">markup
+  term</link> is above its cost, in percent. The highest markup comes first,
+  so a product priced far above or below what you meant stands out.</p>
+
+</page>

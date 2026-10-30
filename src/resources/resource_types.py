@@ -20,6 +20,7 @@ from gi.repository import Gtk, GLib, Gdk
 from datetime import datetime, date
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/resources/resource_types.ui"
 
@@ -35,7 +36,11 @@ class ResourceTypesGUI(Gtk.Builder):
 		self.create_new_type ()
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "resource_types")
 		self.window.show_all() 
+
+	def help_clicked (self, button):
+		user_manual.show("resource_types", self.window)
 
 	def destroy (self, widget):
 		pass

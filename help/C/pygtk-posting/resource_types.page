@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="resource_types">
+
+  <info>
+  <link type="guide" xref="resources"/>
+  <link type="seealso" xref="resource_calendar"/>
+  <desc>The kinds of resource entries, such as calls or deliveries.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resource types</title>
+
+  <p><guiseq><gui>Resources</gui><gui>Resource types</gui></guiseq> keeps the
+  types an entry in the <link xref="resource_calendar"/> can have. To add one,
+  click <gui>New</gui>, type the <gui>Type name</gui> and click
+  <gui>Save</gui>. To rename one, double click it, change the name and click
+  <gui>Save</gui>.</p>
+
+</page>

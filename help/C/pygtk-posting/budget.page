@@ -1,0 +1,41 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="budget">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="fiscal_years"/>
+  <desc>Set monthly amounts for expense accounts and see what is left.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Budget</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Budget</gui></guiseq>: choose a
+  <gui>Budget</gui>. There is a row for each month of its fiscal year and a
+  column for each budget line, headed with the line's name and monthly amount.
+  Each cell is what is left of that line: its monthly amount is added each
+  month and what was spent from its account is taken off, carried forward from
+  month to month. A negative figure means the line is overspent.
+  <gui>Refresh</gui> reads the books again.</p>
+
+  <section id="configure">
+  <title>Setting up a budget</title>
+  <p>Click <gui>Configure budget</gui>.</p>
+  <steps>
+    <item><p>To make a budget, type its <gui>Name</gui>, choose the
+    <gui>Fiscal</gui> year (see <link xref="fiscal_years"/>) and its
+    <gui>Monthly Total</gui>, and click <gui>Add</gui>.</p></item>
+    <item><p>Choose the <gui>Budget</gui> to fill in. For each line, type a
+    <gui>Name</gui>, the monthly <gui>Amount</gui>, choose the expense
+    <gui>Account</gui> it is spent from, and click <gui>Add</gui>. Click a
+    line's amount to change it, or <gui>Remove</gui> it.</p></item>
+  </steps>
+  <p><gui>Total amount</gui> and <gui>Total percent</gui> show how much of the
+  monthly total the lines account for.</p>
+  </section>
+
+</page>

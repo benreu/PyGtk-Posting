@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/pay_stub_history.ui"
 
@@ -35,6 +36,7 @@ class PayStubHistoryGUI:
 		self.populate_employee_store ()
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "pay_stub_history")
 		self.window.show_all()
 
 	def destroy (self, widget):

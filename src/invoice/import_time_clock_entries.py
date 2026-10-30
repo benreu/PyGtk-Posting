@@ -21,6 +21,7 @@ from datetime import datetime
 from pricing import get_customer_product_price
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/invoice/import_time_clock_entries.ui"
 
@@ -43,6 +44,7 @@ class ImportGUI():
 		completion.set_match_func(self.product_match_string)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "invoice")
 		self.window.set_transient_for(parent_window)
 		self.window.show_all()
 

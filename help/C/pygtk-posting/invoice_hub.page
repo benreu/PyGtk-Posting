@@ -1,0 +1,36 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="invoice_hub">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="invoice_history"/>
+  <desc>Everything about one invoice, without changing it.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Invoice hub</title>
+
+  <p>The invoice hub shows one invoice from every side, and changes nothing.
+  It opens from <link xref="invoice_history"/>, <link
+  xref="product_serial_numbers">serial numbers</link> and the ledger
+  reports, wherever an invoice is listed.</p>
+
+  <terms>
+    <item><title><gui>Metadata</gui></title>
+    <p>Its dates (created, invoice date, printed and paid), its customer,
+    type, totals and comments.</p>
+    <p>Under <gui>Difference between</gui>, choose two of its dates, or two of
+    its amounts, and click <gui>Calculate</gui> to see the difference: for
+    instance how many days passed between printing and payment.</p></item>
+    <item><title><gui>Items</gui></title>
+    <p>Every line, including deleted ones marked <gui>Canceled</gui>, and the
+    serial numbers sold on it.</p></item>
+    <item><title><gui>Preview</gui></title>
+    <p>The invoice as it was printed when posted.</p></item>
+  </terms>
+
+</page>

@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="draft_purchase_orders">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="purchase_order"/>
+  <desc>Purchase orders started but not yet posted.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Draft purchase orders</title>
+
+  <p>The <gui>Draft POs</gui> button of the main window lists every open
+  <link xref="purchase_order">purchase order</link> with at least one line,
+  one per vendor.</p>
+
+  <list>
+    <item><p>Double click an order, or select it and click <gui>Open PO in
+    purchase order window</gui>, to work on it. Check <gui>Hide when opening
+    purchase order</gui> to have this window step out of the way when you
+    do.</p></item>
+    <item><p>Click an order's <gui>Purchase Order name</gui> to rename it. An
+    order open in another window cannot be renamed until it is
+    closed.</p></item>
+    <item><p><gui>New PO</gui> opens a blank purchase order.</p></item>
+  </list>
+
+</page>

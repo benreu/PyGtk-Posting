@@ -19,6 +19,7 @@ from gi.repository import Gtk, GLib, Gdk, GdkPixbuf, Gio
 import subprocess
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/catalog_creator.ui"
 
@@ -54,6 +55,8 @@ class CatalogCreatorGUI(Gtk.Builder):
 		treeview.drag_dest_set_target_list([enforce_target])
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "catalog_creator")
+		user_manual.bind_f1(self.get_object('image_window'), "catalog_creator")
 		self.window.show_all()
 		
 		scale = self.get_object('scale1')

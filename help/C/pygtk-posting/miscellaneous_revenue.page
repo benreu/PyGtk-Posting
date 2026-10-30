@@ -1,0 +1,41 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="miscellaneous_revenue">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="deposits"/>
+  <desc>Record money received that is not an invoice payment.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Miscellaneous revenue</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Miscellaneous revenue</gui></guiseq>
+  records income that no invoice covers, such as a rebate, a refund or a sale
+  of equipment.</p>
+
+  <steps>
+    <item><p>Choose the contact it came from. <gui>Contacts</gui> opens the
+    contacts window.</p></item>
+    <item><p>Type the <gui>Amount</gui>, choose the <gui>Date</gui> and add a
+    <gui>Comment</gui>.</p></item>
+    <item><p>Choose how it was paid: a check number, a transfer to an account,
+    or cash, as in <link xref="customer_payment"/>.</p></item>
+    <item><p>Split it over revenue accounts: click <gui>Add row</gui>, double
+    click a <gui>Revenue Account</gui> and type the row's <gui>Amount</gui>.
+    <gui>Equalize</gui> splits the amount evenly; right click a row and choose
+    <gui>Balance this row</gui> to give it what the others leave. <gui>Delete
+    row</gui> removes one.</p></item>
+    <item><p>Click <gui>Post revenue</gui>, or <gui>Post revenue &amp; clear
+    entries</gui> to enter another.</p></item>
+  </steps>
+
+  <p>Until it can be posted, a message says what is missing, for instance
+  <gui>Amount does not match total</gui>. A check or cash payment then waits
+  in <link xref="deposits"/>.</p>
+
+</page>

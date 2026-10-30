@@ -1,0 +1,29 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="accounts_overview">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="accounts_configuration"/>
+  <desc>A map of which accounts each kind of posting moves money
+  between.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Accounts overview</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Accounts overview</gui></guiseq> draws
+  how money moves through the books: creating and posting an invoice,
+  customer payments and discounts, depositing checks, posting a purchase
+  order and paying a vendor, and cancelling an invoice, for both cash based
+  and accrual based accounting. Each box names the account that step posts
+  to, as set in <link xref="accounts_configuration"/>. Boxes marked
+  selectable, such as <gui>Selectable bank account</gui>, are the accounts
+  you choose each time in the window concerned.</p>
+
+  <p>The window only shows; it changes nothing.</p>
+
+</page>

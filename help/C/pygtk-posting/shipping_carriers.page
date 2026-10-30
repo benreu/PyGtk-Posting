@@ -1,0 +1,31 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="shipping_carriers">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="contacts#shipping"/>
+  <desc>The carriers a shipping address can use.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Shipping carriers</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Shipping carriers</gui></guiseq>
+  lists the carriers, such as UPS or the post office, that can be chosen for a
+  contact's <link xref="contacts#shipping">shipping address</link>.</p>
+
+  <list>
+    <item><p><gui>New</gui> adds one; click its <gui>Name</gui> to name
+    it.</p></item>
+    <item><p>Check <gui>Default</gui> on the carrier new addresses start
+    with.</p></item>
+    <item><p><gui>Delete</gui> deletes the selected carrier; if addresses still
+    use it, you are asked which carrier to move them to, then click
+    <gui>Update and Delete</gui>.</p></item>
+  </list>
+
+</page>

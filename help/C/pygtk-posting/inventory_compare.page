@@ -1,0 +1,41 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="inventory_compare">
+
+  <info>
+  <link type="guide" xref="inventory"/>
+  <link type="seealso" xref="inventory_count"/>
+  <desc>Compare a count with the one before it, and fill in what was
+  missed.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Compare inventory</title>
+
+  <p><guiseq><gui>Inventory</gui><gui>Compare</gui></guiseq> shows a count
+  beside the previous one, for instance last year's, so you can spot products
+  that were missed this time. Choose the current count in the box beside
+  <gui>Inventory summaries</gui>; the one it is compared with is named after
+  <gui>Previous summary :</gui>.</p>
+
+  <p>Select products in the previous count, then:</p>
+  <terms>
+    <item><title><gui>Copy</gui></title>
+    <p>Copies them into the current count with the previous quantity,
+    replacing any quantity already counted.</p></item>
+    <item><title><gui>Update</gui></title>
+    <p>Puts them into the current count with the previous quantity, updating
+    any quantity already counted.</p></item>
+    <item><title><gui>Create</gui></title>
+    <p>Adds them to the current count with a quantity of 0, leaving any
+    already counted alone, so they are not forgotten.</p></item>
+  </terms>
+
+  <p>Right click a product to <gui>Delete</gui> it from the count or open its
+  <gui>Product hub</gui>. A count closed elsewhere while open here is
+  reported.</p>
+
+</page>

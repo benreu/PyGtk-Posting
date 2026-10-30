@@ -1,0 +1,33 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="fiscal_years">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="profit_loss_report"/>
+  <desc>The years the books are reported and closed in.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Fiscal years</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Fiscal years</gui></guiseq> lists
+  the fiscal years. Reports such as <link xref="profit_loss_report"/> and
+  budgets, inventory counts and the trial balance use them.</p>
+
+  <steps>
+    <item><p>Type the new year's <gui>Name</gui>, and choose its <gui>Start
+    date</gui> and <gui>End date</gui> with the icons.</p></item>
+    <item><p>Click <gui>Create new fiscal year</gui>, and confirm. A fiscal
+    year cannot be cancelled or have its dates changed afterwards, so check
+    them first.</p></item>
+  </steps>
+
+  <p>Click a year's name to rename it. Uncheck <gui>Active</gui> to close a
+  year once its books are final: payments in a closed year can no longer be
+  changed in <link xref="payments_received"/>.</p>
+
+</page>

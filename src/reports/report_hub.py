@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/report_hub.ui"
 
@@ -30,6 +31,7 @@ class ReportHubGUI (Gtk.Builder):
 		if treeview.get_allocated_width() > 742:
 			self.get_object("error_label").set_no_show_all(False)
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "report_hub")
 		self.window.show_all()
 		self.treeview = treeview
 		self.calculate_pdf_layout()

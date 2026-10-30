@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="quick_command">
+
+  <info>
+  <link type="guide" xref="index#basics"/>
+  <link type="guide" xref="general"/>
+  <desc>Open any window by typing part of its name.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Quick commands</title>
+
+  <p><guiseq><gui>General</gui><gui>Quick command</gui></guiseq> lists every
+  item of the main window's menus. It is quicker than hunting through the
+  menus for a window you seldom use.</p>
+
+  <steps>
+    <item><p>Type part of the menu item's name. The list shows only the items
+    whose name contains what you typed, with the menu path to each in
+    <gui>Path</gui>.</p></item>
+    <item><p>Double click an item, or select it and press <key>Enter</key>, to
+    open it. The quick command window closes.</p></item>
+  </steps>
+  <p>Press <key>Esc</key> to close the window without opening anything.
+  Menu items that are greyed out, such as the administrator windows before
+  you log in, are not listed until PyGtk Posting is started again.</p>
+
+</page>

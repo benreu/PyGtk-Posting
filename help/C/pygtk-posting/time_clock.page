@@ -1,0 +1,61 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="time_clock">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="job_sheet"/>
+  <link type="seealso" xref="time_clock_history"/>
+  <link type="seealso" xref="settings#time_clock"/>
+  <desc>Employees punch in and out on jobs and projects.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Time clock</title>
+
+  <p><guiseq><gui>General</gui><gui>Time clock</gui></guiseq>, or the
+  <gui>Time Clock</gui> button of the main window, lists the employees, with
+  the time and project of anyone punched in. Leave it open where employees can
+  reach it.</p>
+
+  <section id="in">
+  <title>Punching in</title>
+  <steps>
+    <item><p>Double click your name, or scan or type your employee id into
+    the box above the list and press <key>Enter</key>.</p></item>
+    <item><p>Double click the job or project you are working on, or scan or
+    type its id. The list holds the <link xref="job_sheet">job sheets</link>
+    and <link xref="manufacturing">manufacturing projects</link> made
+    available in the time clock, and the permanent projects from <link
+    xref="settings#time_clock">the settings</link>.</p></item>
+    <item><p>Click <gui>Punch in</gui>, or press <key>I</key>.</p></item>
+  </steps>
+  </section>
+
+  <section id="out">
+  <title>Punching out</title>
+  <p>Double click your name, or scan your id, and click <gui>Punch out</gui>,
+  or press <key>O</key>. <gui>Cancel</gui>, or <key>C</key>, goes back to the
+  list without punching.</p>
+  <p>Double click the <gui>Time</gui> of someone punched in to see how long
+  they have been in.</p>
+  </section>
+
+  <section id="manual">
+  <title>Forgot to punch?</title>
+  <p>Under <gui>Manual punchin</gui> or <gui>Manual punchout</gui>, use the
+  arrow buttons to move the day, hour and minute to when you really came in or
+  left, then click its <gui>Punch in</gui> or <gui>Punch out</gui>. To help
+  you remember, the window shows how long ago you last punched in and out on
+  that job, and how many times you have punched in on it.</p>
+  </section>
+
+  <p>Hours punched on a customer's job sheet can be billed with <link
+  xref="invoice#time_clock">Import time clock</link> on their invoice.
+  Corrections to punches already made are done in <link
+  xref="time_clock_tool"/>.</p>
+
+</page>

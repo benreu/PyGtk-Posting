@@ -23,6 +23,7 @@ from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db_connection import DB
 from constants import ui_directory, sql_dir
+import user_manual
 from constants import log_file as LOG_FILE
 from sqlite_utils import get_apsw_connection
 
@@ -47,6 +48,7 @@ class GUI:
 		self.populate_databases()
 	
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "database_tools")
 		self.window.show_all()
 
 	def status_update (self, message):

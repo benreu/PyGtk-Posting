@@ -1,0 +1,34 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="document_history">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="documents_window"/>
+  <desc>Find any document, and what was on it.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Document history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Document history</gui></guiseq> lists
+  <link xref="documents_window">documents</link> and their lines, the way
+  <link xref="invoice_history"/> lists invoices.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Customer</gui>, or check <gui>All
+    customers</gui>. <gui>Total</gui> adds up the documents listed.</p></item>
+    <item><p>Select a document to see its lines below. Check <gui>Select all
+    documents</gui> or <gui>All products</gui> to see more at once, and type
+    into the search boxes to narrow the lines down.</p></item>
+  </steps>
+
+  <p>Double click a document to open it as it was printed. Right click a
+  line for its <gui>Product hub</gui>, or <gui>View invoice</gui> to see the
+  document. The <link xref="documents_window"/> window also opens this one to
+  copy a past document's lines.</p>
+
+</page>

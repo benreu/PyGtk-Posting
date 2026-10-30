@@ -1,0 +1,64 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="resource_management">
+
+  <info>
+  <link type="guide" xref="resources"/>
+  <link type="seealso" xref="resource_categories"/>
+  <link type="seealso" xref="main_window#to_do"/>
+  <desc>Notes, calls and to-do items, each with a contact, date and
+  tags.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resource management</title>
+
+  <p><guiseq><gui>Resources</gui><gui>Resource management</gui></guiseq> keeps
+  short entries: a phone call to return, a note about a customer, a job to do.
+  Each has a <gui>Subject</gui>, a <gui>Contact</gui>, a <gui>Dated for</gui>
+  date, tags, and notes of any length. Changes are saved as you make
+  them.</p>
+
+  <steps>
+    <item><p>Click <gui>New entry</gui>.</p></item>
+    <item><p>Click its <gui>Subject</gui> to type it, and its
+    <gui>Contact</gui> to choose one. Click <gui>Dated for</gui> to choose a
+    date, or <gui>No date</gui>.</p></item>
+    <item><p>Click its <gui>Tag</gui> to give it a category; see <link
+    xref="resource_categories"/>.</p></item>
+    <item><p>Double click the entry and type notes in the box beside the
+    list.</p></item>
+    <item><p>Check <gui>To Do</gui> to put it on the main window's to-do
+    list, in its tag's colour.</p></item>
+  </steps>
+
+  <p>When it is dealt with, select it and click <gui>Post entry</gui>. It
+  leaves the to-do list and the time clock.</p>
+
+  <section id="list">
+  <title>Finding entries</title>
+  <p>Narrow the list by <gui>With tag</gui> and <gui>Older than</gui>, choose
+  how to <gui>Sort by</gui>, and set the <gui>Row limit</gui>. The up and down
+  buttons move the selected entry to sort the list by hand; <gui>Remove manual
+  sort</gui> in the window menu undoes that.</p>
+  </section>
+
+  <section id="more">
+  <title>More</title>
+  <list>
+    <item><p><gui>Time clock project</gui> makes the selected entry a project
+    in the <link xref="time_clock"/>, so time spent on it can be punched; check
+    <gui>Open time clock</gui> to open it as well.</p></item>
+    <item><p>Right click an entry for its <gui>Contact hub</gui>, to
+    <gui>Delete</gui> it, or to <gui>Block number</gui>, which adds its phone
+    number to the list of blocked callers.</p></item>
+    <item><p>The window menu has <gui>Tags</gui>, to apply several tags to
+    the selected entry, and <gui>Report hub</gui>; see <link
+    xref="report_hub"/>.</p></item>
+  </list>
+  </section>
+
+</page>

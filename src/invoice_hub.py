@@ -22,6 +22,7 @@ from gi.repository import Gtk
 import subprocess, tempfile
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/invoice_hub.ui"
 
@@ -37,6 +38,7 @@ class InvoiceHubGUI(Gtk.Builder):
 		self.view = EvinceView.View()
 		self.get_object('pdf_view_scrolled_window').add(self.view)
 		window = self.get_object('window')
+		user_manual.bind_f1(window, "invoice_hub")
 		window.show_all()
 		window.set_title("Invoice hub (%s)" % invoice_id)
 		self.populate_items()

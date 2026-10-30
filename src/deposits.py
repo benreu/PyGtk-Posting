@@ -21,6 +21,7 @@ from dateutils import DateTimeCalendar
 from db import transactor
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/deposits.ui"
 
@@ -42,6 +43,7 @@ class GUI:
 		self.populate_account_stores ()
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "deposits")
 		self.window.show_all()
 		self.check_if_all_entries_valid()
 

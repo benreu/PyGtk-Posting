@@ -19,6 +19,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/budget_configuration.ui"
 
@@ -33,6 +34,7 @@ class BudgetConfigurationGUI:
 		self.populate_accounts()
 		DB.rollback()
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "budget")
 		self.window.show_all()
 
 	def destroy (self, widget):

@@ -18,12 +18,13 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime, timedelta
-import subprocess, re, psycopg2
+import re, psycopg2
 import documenting
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 from db_connection import DB, broadcaster
-from constants import ui_directory, help_dir
+from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/documents_window.ui"
 
@@ -73,6 +74,7 @@ class DocumentGUI:
 		self.load_settings()
 		
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "documents_window")
 		self.window.show_all()
 
 	def load_settings (self):
@@ -806,12 +808,10 @@ class DocumentGUI:
 		dh.window.destroy()
 
 	def help_clicked (self, widget):
-		subprocess.Popen(["yelp", help_dir + "/document.page"])
+		user_manual.show("documents_window", self.window)
 
 	def window_key_event (self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
-		if keyname == 'F1':
-			self.help_clicked(None)
 		if keyname == 'F2':
 			self.add_entry(None)
 		if keyname == 'F3':

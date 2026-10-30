@@ -20,6 +20,7 @@ from dateutils import DateTimeCalendar
 from datetime import datetime, timedelta
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/fiscal_years.ui"
 
@@ -40,6 +41,7 @@ class FiscalYearGUI:
 
 		self.fiscal_year_store = self.builder.get_object('fiscal_year_store')
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "fiscal_years")
 		self.window.show_all()
 		self.populate_fiscal_years()
 

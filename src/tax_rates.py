@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/tax_rates.ui"
 
@@ -31,6 +32,7 @@ class TaxRateGUI:
 		self.account_store = self.builder.get_object("tax_received_account_store")
 		
 		window = self.builder.get_object('window1')
+		user_manual.bind_f1(window, "tax_rates")
 		window.show_all()
 		
 		self.populate_tax_rates_store()

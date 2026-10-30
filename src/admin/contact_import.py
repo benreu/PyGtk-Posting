@@ -20,6 +20,7 @@ import xlrd
 from xlrd.biffh import XLRDError
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/admin/contact_import.ui"
 
@@ -33,6 +34,7 @@ class ContactsImportGUI:
 		self.builder.connect_signals(self)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "data_import")
 		self.window.show_all()
 		self.populate_combos()
 
@@ -56,6 +58,9 @@ class ContactsImportGUI:
 		DB.rollback()
 
 ####### start import to treeview
+
+	def help_clicked (self, button):
+		user_manual.show("data_import", self.window)
 
 	def load_xls (self, filename):
 		store = self.builder.get_object('xls_import_store')

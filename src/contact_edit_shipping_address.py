@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 import zip_completion
 
 UI_FILE = ui_directory + "/contact_edit_shipping_address.ui"
@@ -32,6 +33,7 @@ class ContactEditShippingAddressGUI:
 		self.shipping_address_id = shipping_address_id
 		self.contact_id = None
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "contacts")
 		self.window.set_transient_for(overview_class.window)
 		self.populate_carrier_combo ()
 		self.populate_zip_codes ()

@@ -1,0 +1,30 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="view_log">
+
+  <info>
+  <link type="guide" xref="index#basics"/>
+  <desc>What PyGtk Posting has printed while running.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>The log</title>
+
+  <p><guiseq><gui>Help</gui><gui>View log</gui></guiseq> shows the log of this
+  session: the messages and errors PyGtk Posting has printed since it started.
+  When something goes wrong, the log is what to send to whoever looks after
+  PyGtk Posting. The log is read again each time you click into the
+  window.</p>
+
+  <note><p>The log is only kept when PyGtk Posting is started with
+  <cmd>run.sh</cmd> or from the installed program. Otherwise the window says
+  the log file was not found.</p></note>
+
+  <p>Every session's log is kept in <file>~/.config/posting/logs</file>,
+  named by the date and time PyGtk Posting was started, so the log of a
+  session that has ended can still be read there.</p>
+
+</page>

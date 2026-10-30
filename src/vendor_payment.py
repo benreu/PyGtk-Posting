@@ -24,6 +24,7 @@ from db.transactor import VendorPayment, post_purchase_order_accounts
 from db.transactor import purchase_order_correction_blocked
 from db_connection import DB
 from constants import ui_directory, template_dir
+import user_manual
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass
@@ -62,6 +63,7 @@ class GUI:
 		
 		self.populate_vendor_liststore ()
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "vendor_payment")
 		self.window.show_all()
 
 	def refresh_clicked (self, button):

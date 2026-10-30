@@ -1,0 +1,66 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="bank_statement">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="bank_statements"/>
+  <link type="seealso" xref="deposits"/>
+  <desc>Reconcile a bank account against its monthly statement.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Bank statement</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Bank statement</gui></guiseq> checks a
+  bank account's transactions against the statement the bank sends, so the
+  books and the bank agree.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Bank Account</gui>. Its balance in the books is
+    shown beside it, and every transaction not yet reconciled is
+    listed.</p></item>
+    <item><p>Click the icon in <gui>Reconcile date</gui> and choose the
+    statement's closing date. A date already used for another statement is
+    refused.</p></item>
+    <item><p>Type the bank's closing balance into <gui>Statement
+    Balance</gui>.</p></item>
+    <item><p>Check <gui>Reconciled</gui> on each transaction that appears on
+    the statement. <gui>Reconciled Balance</gui> and <gui>Difference</gui>
+    follow along.</p></item>
+    <item><p>When the difference is zero, click <gui>Save reconciled
+    items</gui>. Until then the button reads <gui>Reconciled amount does not
+    match</gui>, or <gui>No reconcile date</gui>.</p></item>
+  </steps>
+
+  <p>Checks are saved as you click them, so a reconciliation can be finished
+  later. The checked transactions are only stamped with the reconcile date,
+  and leave the list, when they are saved. <gui>Refresh</gui> reloads the
+  list. Click a transaction's number, description or date to correct it.</p>
+
+  <section id="missing">
+  <title>Transactions the books are missing</title>
+  <p>Bank fees and other charges the books do not have yet can be added
+  without leaving the window. <gui>Add bank charge</gui> asks for the
+  <gui>Amount</gui>, a <gui>Description</gui>, the <gui>Date</gui> and the
+  expense account, and posts it. The window menu also opens <link
+  xref="double_entry_transaction"/>, <link xref="credit_card_statements">Credit
+  card statement</link>, <link xref="incoming_invoice">Incoming
+  invoices</link>, <link xref="loan_payment"/> and <link
+  xref="miscellaneous_revenue"/>.</p>
+  <p><gui>Voided check</gui> in the window menu records a check number that
+  was voided: choose the <gui>Bank account</gui>, the <gui>Date</gui> and the
+  <gui>Check number</gui>, and click <gui>Apply voided check</gui>.</p>
+  </section>
+
+  <section id="edit">
+  <title>Edit mode</title>
+  <p>Check <gui>Edit mode</gui> in the window menu, which asks for the
+  administrator password, to right click a transaction and <link
+  xref="edit_gl_entry">Edit GL entry</link>.</p>
+  </section>
+
+</page>

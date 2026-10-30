@@ -1,53 +1,120 @@
 <page xmlns="http://projectmallard.org/1.0/"
-      type="guide"
+      type="topic"
       id="purchase_order">
 
   <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="draft_purchase_orders"/>
+  <link type="seealso" xref="unprocessed_po"/>
   <link type="seealso" xref="products"/>
-  <link type="guide" xref="index"/>
+  <desc>Order products from a vendor.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>
     </credit>
   </info>
 
-  <title>Purchase Order</title>
+  <title>Purchase order</title>
 
-  <section id="purchase_order_add_product">
-  <title>Adding a product to the purchase order</title>
+  <p>Open a purchase order with <guiseq><gui>Vendor</gui><gui>New purchase
+  order</gui></guiseq>, the <gui>New Purchase Order</gui> button of the main
+  window, or <keyseq><key>Ctrl</key><key>P</key></keyseq>. A vendor has one
+  open purchase order at a time: choosing the vendor opens it, or starts one
+  with the first line. Everything is saved as you go, so the order can be
+  built up over days and posted when it is ready to send.</p>
+
+  <section id="lines">
+  <title>Adding products</title>
   <steps>
-    <item>
-      <p>Click New Item to add a new line item, or press F2 on your keyboard.</p>
-    </item>
-    <item>
-      <p>Edit the qty and press Tab to move to the product.</p>
-    </item>
-    <item>
-      <p>Select your product with the dropdown or type into the entry to search for a product.</p>
-      <p>You can also type in a custom product number and then press enter to save it. This custom number will not be saved as a permanent product however.</p>
-    </item>
+    <item><p>Choose the vendor.</p></item>
+    <item><p>Click <gui>New</gui>, or press <key>F2</key>.</p></item>
+    <item><p>Type the quantity and press <key>Tab</key>.</p></item>
+    <item><p>Choose the product from the list or by typing part of its name.
+    Its vendor order number, <gui>Stock</gui> and cost are filled
+    in.</p></item>
   </steps>
+  <p>If you choose a product already on the order, you are asked whether to
+  <gui>Update qty</gui> of the existing line, <gui>Add again</gui> as a second
+  line, or <gui>Cancel</gui>.</p>
+  <p>You can also scan a product's barcode into <gui>Scan barcode</gui>.
+  Barcodes that match no product are collected in the <gui>Barcode
+  error!</gui> window. Scanning a product already on the order does not work
+  yet; change its <gui>Qty</gui> instead.</p>
+  <p>Right click a line to <gui>Delete item</gui>, <gui>Move up</gui> or
+  <gui>Move down</gui> (<keyseq><key>Ctrl</key><key>Up</key></keyseq>,
+  <keyseq><key>Ctrl</key><key>Down</key></keyseq>), or open its <gui>Product
+  hub</gui> (<keyseq><key>Ctrl</key><key>H</key></keyseq>).</p>
   </section>
 
-  <section>
-  <title>Deleting a product from the purchase order</title>
-  <steps>
-    <item>
-      <p>Click Delete Item to delete the selected line item, or press F3 on your keyboard.</p>
-    </item>
-  </steps>
+  <section id="order_number">
+  <title>Order numbers</title>
+  <p>The <gui>Order number</gui> is the vendor's number for the product. Type
+  part of one to pick a product by it. If nothing matches, click the icon in
+  the box, or press <keyseq><key>Ctrl</key><key>Enter</key></keyseq>, to
+  search every order number ever used; double click a result to use that
+  product.</p>
+  <p>Changing a line's order number asks whether the change is
+  <gui>Permanent</gui>, for this and every later order from this vendor, or
+  <gui>Temporary</gui>, for this order only. Check <gui>Remember selection for
+  the rest of this purchase order</gui> to stop being asked.</p>
   </section>
 
-  <section id="purchase_order_tips">
-  <title>Tips</title>
-  <p>To open the Product window click the Product header (the place above the top line item that says Product).</p>
-  <p>Purchase orders are saved automatically, therefore you can close the New Purchase Order window and add/edit the purchase order later. A Purchase Order will always be attached to a specific vendor.</p>
-  <p>When a product is selected that has a vendor order number, the vendor order number will be put in the product column. The product name will then be put in the remarks column.</p>
+  <section id="non_stock">
+  <title>Products you have never ordered</title>
+  <p>Type a product name that is not in the list and press <key>Enter</key>.
+  The <gui>Create non stock product</gui> window offers to make it: give it
+  the vendor's <gui>Order number</gui>, a <gui>Default expense account</gui>
+  and an <gui>Income account</gui>. It warns if the name or order number is
+  already in use.</p>
   </section>
 
-  <section id="keyboard_shortcuts">
-  <title>Keyboard Shortcuts</title>
-  <p>Press Tab to move through the entries when entering product information.</p>
+  <section id="vendors">
+  <title>Several vendors at once</title>
+  <p>Check <gui>View all</gui> to see the open purchase orders of every
+  vendor in one list, with a <gui>Vendor</gui> column. Choose another vendor
+  for a line to move it onto that vendor's open order.</p>
+  <p>Check <gui>Hold</gui> on a line to leave it out of this order. When the
+  order is posted, the held lines stay behind on a new open order for the same
+  vendor.</p>
+  </section>
+
+  <section id="post">
+  <title>Posting</title>
+  <p>Click <gui>Post Purchase Order</gui>. It prints, through the print dialog
+  or straight to the printer if <gui>Direct print</gui> is checked in the
+  window menu, and is closed. It then waits in <link xref="unprocessed_po"/>
+  for the vendor's invoice. <gui>Post and process</gui> in the window menu
+  posts it and opens that window at once.</p>
+  <note><p>Cancelling the print dialog does not stop the posting, even with
+  <gui>Cancel printing and posting</gui> checked. Use <gui>View purchase
+  order</gui> to check it first.</p></note>
+  <p>An order already invoiced cannot be posted again from here; correct it
+  in <link xref="vendor_payment"/>.</p>
+  </section>
+
+  <section id="menu">
+  <title>The window menu</title>
+  <terms>
+    <item><title><gui>Cancel</gui></title>
+    <p>Closes the window. The order stays open.</p></item>
+    <item><title><gui>Export to CSV</gui></title>
+    <p>Saves the lines not on hold to a spreadsheet file, to send to a vendor
+    who takes orders that way.</p></item>
+    <item><title><gui>Products</gui></title>
+    <p>Opens the <link xref="products">products</link> window.</p></item>
+    <item><title><gui>View purchase order</gui></title>
+    <p>Shows the order as it would print.</p></item>
+  </terms>
+  <p>Type a new <gui>PO name</gui> and click the icon in the box to rename the
+  order. Drag a line from <link xref="invoice_history"/> or another list onto
+  the order to add that product.</p>
+  </section>
+
+  <section id="others">
+  <title>Changes made on another computer</title>
+  <p>If someone else changes the order you have open, a bar says <gui>There
+  are changes on this PO</gui>; click <gui>Refresh</gui> to see them. A line
+  someone else is editing cannot be changed until they finish.</p>
   </section>
 
 </page>

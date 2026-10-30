@@ -59,6 +59,7 @@ from zplcore import fonts as zpl_fonts
 
 from db_connection import DB
 import zebra
+import user_manual
 
 # The window, if any, that has each stored template open. Two windows editing
 # one template would be last-save-wins with no warning; the label windows go
@@ -86,6 +87,7 @@ class ZebraDesignerGUI (ZPLViewerWindow):
 		self.database_accels = Gtk.AccelGroup()
 		self.add_accel_group(self.database_accels)
 		self.build_database_menu()
+		user_manual.bind_f1(self, "zebra_designer")
 		self.connect('destroy', self.forget)
 		self._update_title()
 		if self.dpi_note != None:

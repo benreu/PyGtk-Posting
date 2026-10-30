@@ -1,0 +1,27 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="invoice_to_payment_matching">
+
+  <info>
+  <link type="guide" xref="reports#contacts"/>
+  <link type="seealso" xref="contact_hub"/>
+  <desc>A picture of a customer's invoices beside their payments.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Invoice to payment matching</title>
+
+  <p>Opened from the <link xref="contact_hub"/>, this window draws a
+  customer's invoices in one column and their payments and credit memos in
+  the other, each as tall as its amount, oldest at the top. Where an invoice
+  lines up with a payment, the payment covered it; where the columns drift
+  apart, something was paid short or not at all.</p>
+
+  <p>Choose the <gui>Customer</gui>. Use the slider to zoom. Right click an
+  invoice to open its <link xref="invoice_hub"/>, or a payment to see it in
+  <link xref="payments_received"/>.</p>
+
+</page>

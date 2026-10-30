@@ -1,0 +1,76 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="vendor_payment">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="unprocessed_po"/>
+  <link type="seealso" xref="incoming_invoice"/>
+  <desc>Pay vendors' invoices by check, debit, cash or credit card.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Vendor payment</title>
+
+  <p><guiseq><gui>Vendor</gui><gui>Vendor payment</gui></guiseq>, or the
+  <gui>Vendor Payment</gui> button of the main window, pays the vendor
+  invoices saved in <link xref="unprocessed_po"/>.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Vendor</gui>, or check <gui>View all</gui> to
+    list every vendor's unpaid invoices.</p></item>
+    <item><p>Check the <gui>Date</gui> of the payment.</p></item>
+    <item><p>Select the invoices to pay. Hold <key>Ctrl</key> to select
+    several and pay them together.</p></item>
+    <item><p>Pay on one of the two tabs below, as described next.</p></item>
+  </steps>
+
+  <section id="check">
+  <title>Pay with check / debit</title>
+  <p>Choose the bank account under <gui>from bank account</gui>. Then
+  either:</p>
+  <list>
+    <item><p>Type the <gui>Check number</gui> and click <gui>Print
+    check</gui>. The check prints on your check form and the payment is
+    posted. As with an invoice, checking <gui>Cancel printing and
+    posting</gui> in the print dialog stops both. <gui>Post check without
+    printing</gui> posts a check written by hand.</p></item>
+    <item><p>For a bank debit or transfer, type the <gui>Transaction
+    number</gui> and click <gui>Debit</gui>.</p></item>
+  </list>
+  </section>
+
+  <section id="cash_card">
+  <title>Pay with cash / credit card</title>
+  <p>The <gui>Description</gui> is what the payment is called on the credit
+  card statement; it starts as the invoice's name.</p>
+  <list>
+    <item><p>To pay cash, choose the account <gui>from cash account</gui>
+    and click <gui>Pay</gui>.</p></item>
+    <item><p>To pay by card, choose the card <gui>from credit card</gui> and
+    click its <gui>Pay</gui>. A payment can be split into several card
+    charges on different dates: the add and delete buttons beside the list
+    (<gui>Add split payment entry</gui>, <gui>Remove split payment
+    entry</gui>) add and remove charges, and you type each one's amount and
+    date. The charges must add up to the invoices selected.</p></item>
+  </list>
+  <p>Each <gui>Pay</gui> button says what is missing until it can be used,
+  for instance <gui>No invoice selected</gui> or <gui>Invoice and payment do
+  not match</gui>.</p>
+  </section>
+
+  <section id="right_click">
+  <title>Right click an invoice</title>
+  <terms>
+    <item><title><gui>View attachment</gui></title>
+    <p>Opens the scan of the vendor's invoice, if one was attached.</p></item>
+    <item><title><gui>Correct purchase order</gui></title>
+    <p>Opens the order to correct what was invoiced; see <link
+    xref="unprocessed_po#correct"/>.</p></item>
+  </terms>
+  </section>
+
+</page>

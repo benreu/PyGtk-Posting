@@ -24,6 +24,7 @@ from decimal import Decimal
 from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from accounts import expense_tree
 import admin_utils
 
@@ -66,6 +67,7 @@ class GUI(Gtk.Builder):
 			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "bank_statement")
 		self.window.show_all()
 
 
@@ -85,6 +87,9 @@ class GUI(Gtk.Builder):
 
 	def admin_changed (self, broadcast_object, value):
 		self.get_object('edit_mode_checkbutton').set_active(False)
+
+	def help_clicked (self, menuitem):
+		user_manual.show("bank_statement", self.window)
 
 	def edit_mode_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:

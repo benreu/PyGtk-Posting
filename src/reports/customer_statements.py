@@ -20,6 +20,7 @@ from gi.repository import Gtk, GdkPixbuf, Gdk
 import subprocess
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/customer_statements.ui"
 
@@ -39,6 +40,7 @@ class StatementsGUI:
 		customer_completion.set_match_func(self.customer_match_func)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "customer_statements")
 		self.window.show_all()
 
 	def populate_customer_store (self):

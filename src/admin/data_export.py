@@ -19,6 +19,7 @@ from gi.repository import Gtk
 import xlsxwriter, subprocess
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/admin/data_export.ui"
 
@@ -31,6 +32,7 @@ class DataExportUI:
 		self.builder.connect_signals(self)
 
 		window = self.builder.get_object('window1')
+		user_manual.bind_f1(window, "data_export")
 		window.show_all()
 
 	def contacts_page_clicked (self, button):

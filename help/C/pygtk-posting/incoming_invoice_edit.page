@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="incoming_invoice_edit">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="incoming_invoice"/>
+  <desc>Correct a bill that has already been entered and paid.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Edit incoming invoice</title>
+
+  <p>The <gui>Edit Incoming Invoice</gui> window opens from the edit mode of
+  <link xref="incoming_invoices_report"/>, <link
+  xref="credit_card_statements"/> and <link xref="shipping_history"/>, which
+  ask for the administrator password.</p>
+
+  <p>Change the service provider, date, amount, description or attachment,
+  and the split over expense accounts, as in <link xref="incoming_invoice"/>.
+  Under <gui>Pay</gui>, change the account it was paid <gui>with</gui>, the
+  <gui>Cheque number</gui> and the <gui>Transaction description</gui>. Click
+  <gui>Save edits</gui>.</p>
+
+  <p>If you replace the attachment you are asked whether to keep the original.
+  If the payment has already been reconciled on a bank or card statement, you
+  are warned that saving changes that statement's totals.</p>
+
+</page>

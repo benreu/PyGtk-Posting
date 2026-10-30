@@ -18,6 +18,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/customer_terms.ui"
 
@@ -35,6 +36,7 @@ class CustomerTermsGUI:
 		GLib.idle_add(unselect)
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "customer_terms")
 		self.window.show_all()
 
 	def destroy (self, widget):

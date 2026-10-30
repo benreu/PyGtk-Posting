@@ -21,6 +21,7 @@ from decimal import Decimal
 import subprocess
 from db_connection import DB, broadcaster
 from constants import ui_directory, is_admin
+import user_manual
 
 UI_FILE = ui_directory + "/reports/invoice_history.ui"
 
@@ -70,6 +71,7 @@ class InvoiceHistoryGUI(Gtk.Builder):
 		self.filter.set_visible_func(self.filter_func)
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "invoice_history")
 		self.window.show_all()
 
 	def destroy (self, window):

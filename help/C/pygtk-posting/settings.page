@@ -1,0 +1,112 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="settings">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <desc>How this company's books behave: accounting method, reminders,
+  columns, printers.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Settings</title>
+
+  <p><guiseq><gui>Edit</gui><gui>Settings</gui></guiseq> holds the settings
+  of the company whose books are open. They apply on every computer. Most are
+  saved as soon as they are changed; the company information and the number
+  precision have <gui>Save</gui> buttons of their own.</p>
+
+  <section id="accounting">
+  <title>Accounting</title>
+  <terms>
+    <item><title><gui>Enforce exact matches</gui></title>
+    <p>A customer payment can only be posted when it matches the invoices it
+    pays exactly; see <link xref="customer_payment#which_invoices"/>.</p></item>
+    <item><title><gui>Finance fee rate</gui></title>
+    <p>The yearly interest rate <link xref="customer_finance_charge">finance
+    charges</link> are worked out at.</p></item>
+    <item><title><gui>Accounting method</gui></title>
+    <p><gui>Cash based</gui> books income and expenses when they are paid;
+    <gui>Accrual based</gui> books them when they are invoiced. Switching to
+    accrual asks first and cannot be switched back. Ask your accountant before
+    changing it.</p></item>
+    <item><title><gui>PO number precision</gui></title>
+    <p>How many decimal places purchase order quantities and prices keep.
+    Precision can be raised but never lowered, so <gui>Save
+    precision</gui> asks first.</p></item>
+    <item><title><gui>Cost decrease alert</gui></title>
+    <p>How far, in percent, a vendor's price may drop below a product's cost
+    before <link xref="unprocessed_po#cost">unprocessed orders</link> offers
+    to update the cost. Any rise is always offered.</p></item>
+  </terms>
+  </section>
+
+  <section id="company">
+  <title>Company</title>
+  <p>Your company's name, address, phone, email, website and tax number, as
+  they print on invoices, statements and other documents. Click
+  <gui>Save</gui>.</p>
+  </section>
+
+  <section id="document_types">
+  <title>Document types</title>
+  <p>The kinds of <link xref="documents_window">document</link> you make,
+  each with up to twelve fields of fixed text that fill its template. Type
+  the name and the fields and click <gui>Add document type</gui>. Double
+  click a type to see and change its fields. <gui>Delete document type</gui>
+  does nothing yet.</p>
+  </section>
+
+  <section id="general">
+  <title>General</title>
+  <terms>
+    <item><title><gui>Print without confirming when posting an invoice</gui></title>
+    <p>Whether new invoices start with <gui>Print without confirming</gui>
+    checked; see <link xref="invoice#menu"/>.</p></item>
+    <item><title><gui>Email invoice when email address is available</gui></title>
+    <p>Whether new invoices start with <gui>Email invoice</gui>
+    checked.</p></item>
+    <item><title><gui>Request attachment when processing a PO</gui></title>
+    <p>Saving a vendor's invoice in <link xref="unprocessed_po"/> asks for
+    its scan if none is attached.</p></item>
+    <item><title><gui>Statements</gui></title>
+    <p>The day of the month <gui>Print statements</gui> appears in the main
+    window's to-do list.</p></item>
+    <item><title><gui>Backups</gui></title>
+    <p>How many days between <gui>Backup database</gui> reminders.</p></item>
+    <item><title><gui>Time Format</gui></title>
+    <p>How dates, and dates with times, are written everywhere. The example
+    beside each box shows today in that format, or <gui>#Error</gui> if the
+    format cannot be used.</p></item>
+  </terms>
+  </section>
+
+  <section id="time_clock">
+  <title>Time clock</title>
+  <p>Permanent projects are always offered in the <link
+  xref="time_clock"/>, for work that is not on a job sheet, such as shop
+  cleanup. Type a name and click <gui>Add project</gui>. <gui>End
+  project</gui> takes the selected one out of the time clock.</p>
+  </section>
+
+  <section id="columns">
+  <title>Window columns</title>
+  <p>Choose which columns the invoice, purchase order and document windows
+  show, with <gui>Visible</gui>. Windows already open keep their columns
+  until they are closed and opened again.</p>
+  </section>
+
+  <section id="zebra">
+  <title>Zebra printers</title>
+  <p>The Zebra label printers on your network. Click <gui>New</gui>, type its
+  <gui>Name</gui>, <gui>Host</gui> (its network address) and <gui>Port</gui>,
+  and click <gui>Save</gui>. <gui>Test print</gui> prints a test label to the
+  address typed, before or after saving. <gui>Delete</gui> removes the
+  selected printer. Label windows already open keep the list they started
+  with.</p>
+  </section>
+
+</page>

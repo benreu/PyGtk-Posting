@@ -1,0 +1,39 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="bank_statements">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="bank_statement"/>
+  <desc>Look back over a bank account's transactions and
+  reconciliations.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Bank statements</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Bank statements</gui></guiseq> lists a
+  bank account's transactions, and whether and when each was reconciled in
+  <link xref="bank_statement"/>.</p>
+
+  <steps>
+    <item><p>Choose the bank account.</p></item>
+    <item><p>Choose a reconcile date in <gui>Filter by reconcile date</gui>
+    to see one statement's transactions.</p></item>
+    <item><p>Choose how to list them: <gui>Single</gui> lines,
+    <gui>Grouped</gui> by the date they were reconciled, or <gui>Linked</gui>,
+    each with the other lines of its transaction beneath it.</p></item>
+  </steps>
+
+  <p>A bar above the list says how many rows were loaded and how long it took.
+  The window menu has <gui>Expand all</gui>, <gui>Collapse all</gui> and
+  <gui>Report hub</gui> (see <link xref="report_hub"/>).</p>
+
+  <p>Check <gui>Edit mode</gui> in the window menu, which asks for the
+  administrator password, to right click a line and <link
+  xref="edit_gl_entry">Edit GL entry</link>.</p>
+
+</page>

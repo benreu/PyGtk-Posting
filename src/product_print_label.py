@@ -20,6 +20,7 @@ from gi.repository import Gtk, GLib
 import subprocess, os
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 import barcode_generator, pricing, zebra, admin_utils
 
 UI_FILE = ui_directory + "/product_print_label.ui"
@@ -42,6 +43,7 @@ class ProductPrintLabelGUI (Gtk.Builder):
 		if product_id != None: # triggers load_product
 			self.get_object('product_combo').set_active_id(str(product_id)) 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "product_print_label")
 		self.window.show_all()
 
 	def destroy (self, widget, event):

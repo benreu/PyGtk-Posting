@@ -1,0 +1,48 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="unbalanced_transactions">
+
+  <info>
+  <link type="guide" xref="reports#financial"/>
+  <link type="seealso" xref="trial_balance"/>
+  <desc>Ledger transactions whose debits and credits do not match.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Unbalanced transactions</title>
+
+  <p>Every transaction in the books should have equal debits and credits.
+  <guiseq><gui>Reports</gui><gui>Financial</gui><gui>Unbalanced
+  transactions</gui></guiseq> lists those that do not, so they can be found
+  and repaired. Each transaction opens to show its lines. Under the list are
+  how many there are, and their gross and net imbalance.</p>
+
+  <p>The <gui>Safety</gui> column says how risky a repair is: whether the
+  lines belong to a posted document such as an invoice or payment. They are
+  listed safest first:</p>
+  <terms>
+    <item><title>Orphan</title>
+    <p>No document claims any of its lines. The safest to repair in the
+    ledger.</p></item>
+    <item><title>Header claimed</title>
+    <p>A document points to the transaction, but not to its lines.</p></item>
+    <item><title>Mixed</title>
+    <p>Some lines belong to a document and some do not.</p></item>
+    <item><title>Attached</title>
+    <p>Every line belongs to a document. Repair the document instead of the
+    ledger.</p></item>
+    <item><title>Empty header</title>
+    <p>A transaction with no lines at all.</p></item>
+  </terms>
+  <p><gui>Dates</gui> flags lines dated apart from each other, and
+  <gui>Reconciled</gui> those already on a bank statement.</p>
+
+  <p>Right click a line and choose <gui>Edit GL entry</gui> to correct its
+  transaction; see <link xref="edit_gl_entry"/>. <gui>Reload</gui> reads the books
+  again. <gui>Report hub</gui> exports the list; see <link
+  xref="report_hub"/>.</p>
+
+</page>

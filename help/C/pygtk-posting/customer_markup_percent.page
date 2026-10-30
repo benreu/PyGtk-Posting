@@ -1,0 +1,35 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="customer_markup_percent">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="product_edit_main#pricing"/>
+  <desc>Price levels: how far above cost each kind of customer pays.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Customer markup</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Customer markup</gui></guiseq>
+  keeps the price levels, such as retail, contractor or wholesale. Each
+  customer is given one in <link xref="contacts#edit">their contact</link>,
+  and each product has a selling price for each level on its <link
+  xref="product_edit_main#pricing">Pricing</link> tab.</p>
+
+  <list>
+    <item><p><gui>New</gui> adds a level; click its <gui>Name</gui> to rename
+    it, and its <gui>Markup</gui> for the usual percent above cost, which new
+    product prices start from.</p></item>
+    <item><p>Check <gui>Default</gui> on the level new contacts start with. The
+    default level's prices are also the ones on shelf labels and reports of
+    retail price.</p></item>
+    <item><p><gui>Delete</gui> deletes the selected level; if customers still
+    use it, you are asked which level to move them to, then click
+    <gui>Update and Delete</gui>.</p></item>
+  </list>
+
+</page>

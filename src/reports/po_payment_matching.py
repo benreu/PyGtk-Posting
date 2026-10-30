@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/po_payment_matching.ui"
 
@@ -31,6 +32,7 @@ class PoPaymentMatchingGUI(Gtk.Builder):
 		self.vendor_id = None
 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "po_payment_matching")
 		self.window.show_all()
 
 	def populate_vendor_store (self):

@@ -1,0 +1,35 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="purchase_order_hub">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="vendor_history"/>
+  <desc>Everything about one purchase order, without changing it.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>PO hub</title>
+
+  <p>The PO hub shows one purchase order from every side, and changes
+  nothing. It opens from <link xref="vendor_history"/> and the ledger
+  reports.</p>
+
+  <terms>
+    <item><title><gui>Metadata</gui></title>
+    <p>Its dates, vendor, totals, description and comments, and whether it
+    has been posted, received and invoiced. Under <gui>Difference
+    between</gui>, choose two of its dates and click <gui>Calculate</gui> to
+    see how many days passed between them.</p></item>
+    <item><title><gui>Items</gui></title>
+    <p>Every line, including cancelled ones.</p></item>
+    <item><title><gui>Preview</gui></title>
+    <p>The order as it was printed.</p></item>
+    <item><title><gui>Attachment</gui></title>
+    <p>The scan of the vendor's invoice, if one was attached.</p></item>
+  </terms>
+
+</page>

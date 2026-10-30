@@ -17,11 +17,12 @@
 
 import gi
 from gi.repository import Gtk, GLib, GObject, Gdk
-import os, subprocess, re, psycopg2
+import os, re, psycopg2
 from db_connection import DB, db_name, broadcaster, mobile
-from constants import ui_directory, dev_mode, modules_dir, help_dir
+from constants import ui_directory, dev_mode, modules_dir
 from sqlite_utils import get_apsw_connection
 import admin_utils
+import user_manual
 
 UI_FILE = ui_directory + "/main_window.ui"
 
@@ -42,6 +43,7 @@ class MainGUI :
 		self.builder.add_from_file(UI_FILE)
 		self.builder.connect_signals(self)
 		self.window = self.builder.get_object('main_window')
+		user_manual.bind_f1(self.window, "index")
 		name = '%s - PyGtk Posting' % db_name
 		self.window.set_title(name)
 		GLib.set_application_name(name)
@@ -244,10 +246,7 @@ class MainGUI :
 		shipping_info.ShippingInfoGUI()
 
 	def module_help_activated (self, menuitem):
-		module_help_dialog = self.builder.get_object('module_help_dialog')
-		module_help_dialog.set_keep_above(True)
-		module_help_dialog.run()
-		module_help_dialog.hide()
+		user_manual.show("modules", self.window)
 
 	def contact_history (self, menuitem):
 		from reports import contact_history
@@ -350,7 +349,7 @@ class MainGUI :
 		inventory_transfer.InventoryTransferGUI()
 
 	def user_manual_help (self, widget):
-		subprocess.Popen(["yelp", help_dir + "/index.page"])
+		user_manual.show("index", self.window)
 
 	def create_document_clicked (self, widget):
 		import documents_window

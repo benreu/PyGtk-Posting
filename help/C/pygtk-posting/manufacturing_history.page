@@ -1,0 +1,40 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="manufacturing_history">
+
+  <info>
+  <link type="guide" xref="reports#products"/>
+  <link type="seealso" xref="manufacturing"/>
+  <desc>What was made, how long it took, and what it earned.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Manufacturing history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Products</gui><gui>Manufacturing
+  history</gui></guiseq> looks back over <link
+  xref="manufacturing">manufacturing projects</link>, with the time punched
+  on each in the time clock.</p>
+
+  <terms>
+    <item><title><gui>Jobs</gui></title>
+    <p>Every project, with its quantity, the time it took in total and per
+    piece, and the employees who worked on it. Type into <gui>Name</gui> or
+    <gui>Product</gui> to narrow the list. Double click a project to see its
+    batch notes, and its serial numbers with the customer each was sold
+    to.</p></item>
+    <item><title><gui>Summary</gui></title>
+    <p>Each product made, with the total pieces and time, and the average,
+    shortest and longest time per piece.</p>
+    <p>Choose a price level in <gui>Use price level</gui> to compare each
+    finished product's minutes per piece with its profit, the price at that
+    level less its cost. <gui>Chart</gui> draws the comparison.</p></item>
+  </terms>
+
+  <p>Each tab has its own <gui>Refresh</gui> and <gui>Export hub</gui>; see
+  <link xref="report_hub"/>.</p>
+
+</page>

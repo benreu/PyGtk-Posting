@@ -19,6 +19,7 @@ from gi.repository import Gtk, GLib
 from datetime import datetime
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/time_clock.ui"
 
@@ -42,6 +43,7 @@ class TimeClockGUI(Gtk.Builder):
 		self.project_store = self.get_object('project_store')
 		self.populate_employees ()
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "time_clock")
 		self.window.show_all()
 
 	def delete_event (self, window, event):

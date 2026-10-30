@@ -21,6 +21,7 @@ from db.transactor import MiscRevenueTransaction
 from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from accounts import revenue_account, revenue_list
 from payment_entry_panel import PaymentMethodEntry
 
@@ -53,6 +54,7 @@ class MiscellaneousRevenueGUI:
 		self.builder.get_object('check_credit_cash_placeholder').pack_start(self.payment_method.box, True, True, 0)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "miscellaneous_revenue")
 		self.window.show_all()
 		self.check_if_all_entries_valid ()
 
@@ -99,6 +101,9 @@ class MiscellaneousRevenueGUI:
 
 	def payment_method_changed (self, payment_method):
 		self.check_if_all_entries_valid ()
+
+	def help_clicked (self, button):
+		user_manual.show("miscellaneous_revenue", self.window)
 
 	def check_if_all_entries_valid (self):
 		label = self.builder.get_object('info_label')

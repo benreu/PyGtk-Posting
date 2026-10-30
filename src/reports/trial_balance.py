@@ -23,6 +23,7 @@ from dateutils import DateTimeCalendar
 from db_connection import DB
 from db import ledger
 from constants import ui_directory, ACCOUNT_TYPES
+import user_manual
 
 UI_FILE = ui_directory + "/reports/trial_balance.ui"
 
@@ -62,6 +63,7 @@ class TrialBalanceGUI (Gtk.Builder):
 		# before the set_date calls below: they reach the date handlers, which
 		# populate, and a failure there puts a dialog transient for this window
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "trial_balance")
 
 		start_date, end_date, dated_by_fiscal_year = self.default_dates ()
 		self.start_calendar.set_date(start_date)

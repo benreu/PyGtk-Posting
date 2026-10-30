@@ -20,6 +20,7 @@ import os, subprocess
 import barcode_generator, zebra, admin_utils
 from db_connection import DB
 from constants import ui_directory, template_dir, MANUFACTURING_SERIAL_LOCK_CLASSID
+import user_manual
 
 UI_FILE = ui_directory + "/manufacturing/serial_numbers.ui"
 
@@ -38,6 +39,7 @@ class SerialNumbersGUI(Gtk.Builder):
 		self.manufacturing_id = manufacturing_id
 		self.serials_required = serials_required
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "manufacturing")
 		cursor = DB.cursor()
 		cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",
 							(MANUFACTURING_SERIAL_LOCK_CLASSID, manufacturing_id))

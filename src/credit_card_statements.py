@@ -21,6 +21,7 @@ from db import transactor
 from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 import admin_utils
 
 UI_FILE = ui_directory + "/credit_card_statements.ui"
@@ -51,6 +52,7 @@ class CreditCardStatementGUI:
 		self.populate_accounts_combo ()
 				
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "credit_card_statements")
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -365,6 +367,9 @@ class CreditCardStatementGUI:
 		self.builder.get_object('button2').set_sensitive(False)
 		self.builder.get_object('comboboxtext4').set_sensitive(False)
 		DB.commit()
+
+	def help_clicked (self, widget):
+		user_manual.show("credit_card_statements", self.window)
 
 	def edit_mode_checkbutton_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:

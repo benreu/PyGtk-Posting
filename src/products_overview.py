@@ -15,9 +15,9 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, Gdk, GLib
-import subprocess
 from db_connection import broadcaster, DB
 from constants import ui_directory
+import user_manual
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/products_overview.ui"
@@ -49,6 +49,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "products")
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
@@ -138,7 +139,7 @@ class ProductsOverviewGUI (Gtk.Builder):
 		data.set_text(string, -1)
 
 	def help_button_activated (self, menuitem):
-		subprocess.Popen(["yelp", help_dir + "/products.page"])
+		user_manual.show("products", self.window)
 
 	def filter_func(self, model, tree_iter, r):
 		for text in self.filter_list:

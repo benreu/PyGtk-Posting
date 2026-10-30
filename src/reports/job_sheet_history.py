@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory, is_admin
+import user_manual
 
 UI_FILE = ui_directory + "/reports/job_sheet_history.ui"
 
@@ -45,6 +46,7 @@ class JobSheetHistoryGUI(Gtk.Builder):
 			self.get_object ('treeview1').set_tooltip_column(0)
 			self.get_object ('treeview2').set_tooltip_column(0)
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "job_sheet_history")
 		self.window.show_all()
 
 	def destroy (self, widget):

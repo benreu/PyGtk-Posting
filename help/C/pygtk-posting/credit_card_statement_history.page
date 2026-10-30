@@ -1,0 +1,29 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="credit_card_statement_history">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="credit_card_statements"/>
+  <desc>Look back over a credit card's charges and reconciliations.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Credit card statement history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Credit card statements</gui></guiseq>
+  works like <link xref="bank_statements"/>, for a credit card account:
+  choose the card, filter by reconcile date, and list the transactions
+  <gui>Single</gui>, <gui>Grouped</gui> or <gui>Linked (Beta)</gui>. The window
+  menu has <gui>Expand all</gui>, <gui>Collapse all</gui> and <gui>Report
+  hub</gui>.</p>
+
+  <p>With <gui>Edit mode</gui> checked in the window menu, which asks for the
+  administrator password, unchecking <gui>Reconciled</gui> on a line takes it
+  back off its statement. Reconciling is only done in <link
+  xref="credit_card_statements"/>.</p>
+
+</page>

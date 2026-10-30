@@ -1,0 +1,38 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="inventory_adjustment">
+
+  <info>
+  <link type="guide" xref="inventory"/>
+  <link type="seealso" xref="product_edit_main#inventory"/>
+  <desc>Correct one product's stock, with a reason.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Adjust inventory</title>
+
+  <p>Click <gui>Adjust inventory</gui> on a product's <link
+  xref="product_edit_main#inventory">Inventory</link> tab to correct its stock
+  at one location, outside a full count.</p>
+
+  <steps>
+    <item><p>Check the <gui>Product</gui> and choose the
+    <gui>Location</gui>. <gui>Current inventory</gui> shows how many the books
+    have there; <gui>History</gui> opens <link
+    xref="inventory_history"/>.</p></item>
+    <item><p>Under <gui>Adjust inventory</gui>, type how many to add, or a
+    negative number to take away. <gui>Adjusted inventory</gui> shows the
+    result.</p></item>
+    <item><p>Choose the <gui>Adjustment reason</gui>, such as Broken, Lost, or
+    Lost and found.</p></item>
+    <item><p>Click <gui>Apply</gui>.</p></item>
+  </steps>
+
+  <p>The value of the stock added or taken away is posted between the
+  product's inventory account and an expense account, so the product needs an
+  inventory account; a message says so if it has none.</p>
+
+</page>

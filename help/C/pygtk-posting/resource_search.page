@@ -1,0 +1,21 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="resource_search">
+
+  <info>
+  <link type="guide" xref="resources"/>
+  <link type="seealso" xref="resource_diary"/>
+  <desc>Find a diary entry by its words.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resource search</title>
+
+  <p><guiseq><gui>Resources</gui><gui>Resource search</gui></guiseq> searches
+  the <link xref="resource_diary"/>. Type into the search box and every diary
+  entry containing it is listed with its date.</p>
+
+</page>

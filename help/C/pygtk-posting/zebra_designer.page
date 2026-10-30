@@ -1,0 +1,55 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="zebra_designer">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="product_print_label"/>
+  <link type="seealso" xref="settings#zebra"/>
+  <desc>Design the labels printed on a Zebra label printer.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Zebra label designer</title>
+
+  <p><guiseq><gui>Edit</gui><gui>Zebra label designer</gui></guiseq> draws the
+  label templates that product and serial number labels print with on a Zebra
+  label printer. It asks for the administrator password first. The
+  <gui>Edit</gui> button beside a template in the label windows opens the
+  same designer on that template.</p>
+
+  <p>The designer is the LinuxZPL program, built into PyGtk Posting. Its own
+  menus draw, align and preview the label. PyGtk Posting adds the
+  <gui>Database</gui> menu, which keeps the templates every computer prints
+  from:</p>
+
+  <terms>
+    <item><title><gui>Open template…</gui>
+    (<keyseq><key>Ctrl</key><key>Shift</key><key>O</key></keyseq>)</title>
+    <p>Opens a stored template. When templates exist, the designer offers
+    this as soon as it opens.</p></item>
+    <item><title><gui>Save template</gui></title>
+    <p>Saves the open template.</p></item>
+    <item><title><gui>Save template as…</gui></title>
+    <p>Saves it as a new template; give it a name and say whether it is a
+    product or a serial number label. Only that kind of label window lists
+    it.</p></item>
+    <item><title><gui>Rename template…</gui>, <gui>Delete template…</gui></title>
+    <p>Rename or delete the open template, for every computer.</p></item>
+  </terms>
+
+  <p>The window title shows the template's name, with a <gui>*</gui> when
+  there are unsaved changes; beneath it, whether the label lives in the
+  database or in a file. <keyseq><key>Ctrl</key><key>S</key></keyseq> saves to
+  wherever it lives. The <gui>File</gui> menu works on .zpl files on this
+  computer instead.</p>
+
+  <note><p>The designer asks the label printer set in <link
+  xref="settings#zebra">the settings</link> for its resolution. If it cannot
+  reach the printer it falls back to the last resolution it found; a template
+  designed at the wrong resolution prints the wrong size.</p></note>
+
+</page>

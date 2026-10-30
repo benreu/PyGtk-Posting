@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/shipping_history.ui"
@@ -43,6 +44,7 @@ class ShippingHistoryGUI (Gtk.Builder):
 			self.handler_ids.append(handler)
 		
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "shipping_history")
 		self.window.show_all()
 
 	def destroy(self, window):
@@ -51,6 +53,9 @@ class ShippingHistoryGUI (Gtk.Builder):
 
 	def admin_changed (self, broadcast_object, value):
 		self.get_object('edit_mode_checkbutton').set_active(False)
+
+	def help_clicked (self, menuitem):
+		user_manual.show("shipping_history", self.window)
 
 	def edit_mode_checkbutton_toggled (self, checkmenuitem):
 		if checkmenuitem.get_active() == False:

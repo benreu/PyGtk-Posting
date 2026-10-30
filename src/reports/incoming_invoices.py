@@ -21,6 +21,7 @@ import subprocess, psycopg2
 from decimal import Decimal
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from accounts import expense_tree
 import admin_utils
 
@@ -57,7 +58,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 			self.handler_ids.append(handler)
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "incoming_invoices_report")
 		self.window.show_all()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("incoming_invoices_report", self.window)
 
 	def destroy (self, widget):
 		for handler in self.handler_ids:

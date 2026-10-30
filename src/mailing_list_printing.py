@@ -20,6 +20,7 @@ from gi.repository import Gtk
 import subprocess, os
 from db_connection import DB
 from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/mailing_list_printing.ui"
 
@@ -35,6 +36,7 @@ class MailingListPrintingGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "mailing_list_printing")
 		self.window.show_all()
 		self.populate_mailing_list_store ()
 

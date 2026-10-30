@@ -1,0 +1,47 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="pay_stub">
+
+  <info>
+  <link type="guide" xref="payroll"/>
+  <link type="seealso" xref="employee_info"/>
+  <link type="seealso" xref="pay_stub_history"/>
+  <link type="seealso" xref="time_clock"/>
+  <desc>Pay employees for the hours on the time clock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Pay stub</title>
+
+  <p><guiseq><gui>Payroll</gui><gui>Manage payments</gui></guiseq> pays
+  employees for the time punched in the <link xref="time_clock"/> and not yet
+  paid, using what is kept in <link xref="employee_info"/>.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Pay Period ending</gui> date. The employees with
+    unpaid time up to that date are listed under <gui>Employee</gui>, with
+    <gui>Print All</gui> to do every one in turn.</p></item>
+    <item><p>Choose the bank account the checks are drawn on. The next check
+    number is filled in.</p></item>
+    <item><p>Click <gui>Step #1 Credit Dividends and Deductions</gui> to enter
+    any extra pay or deductions for the employee: add a row for each, choose
+    its <gui>Type</gui>, and type the <gui>Description</gui> and
+    <gui>Amount</gui>. Check <gui>View Paid Entries</gui> to see ones already
+    paid. Click <gui>Save</gui>.</p></item>
+    <item><p>Click <gui>View Trial</gui> to print the time sheet and check it
+    before paying.</p></item>
+    <item><p>Click <gui>Pay &amp; Close</gui>. The pay check prints and the
+    pay is posted.</p></item>
+  </steps>
+
+  <p>The check template has room for only 10 lines each of dividends,
+  deductions and cash advance payments.</p>
+
+  <note><p>This window is not finished. <gui>Cash Advance</gui> does nothing
+  yet, the items of the <gui>File</gui> and <gui>Edit</gui> menus do nothing,
+  and the pay is posted even if the print dialog is cancelled.</p></note>
+
+</page>

@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/products_to_reorder.ui"
 
@@ -32,6 +33,7 @@ class ProductsToReorderGUI (Gtk.Builder):
 		self.store = self.get_object("products_to_reorder_store")
 		self.populate_reorder_store ()
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "products_to_reorder")
 		self.window.show_all()
 
 	def populate_reorder_store (self):

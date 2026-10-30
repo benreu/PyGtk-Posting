@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_hub">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="products"/>
+  <desc>Jump to any window about one product.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Product hub</title>
+
+  <p>The product hub opens from <gui>Product hub</gui> in most windows that
+  list products, such as the right click menu of an invoice line, or with
+  <keyseq><key>Ctrl</key><key>H</key></keyseq>. It shows how many are
+  <gui>On hand (all locations)</gui>, and each button opens another window
+  already showing this product:</p>
+
+  <list>
+    <item><p><gui>Edit Product</gui>: <link xref="product_edit_main"/></p></item>
+    <item><p><gui>Product location</gui>: <link xref="products#location"/></p></item>
+    <item><p><gui>Product search</gui>: <link xref="product_search"/></p></item>
+    <item><p><gui>Product history</gui>: <link xref="product_history"/></p></item>
+    <item><p><gui>Product overview</gui>: <link xref="products"/></p></item>
+    <item><p><gui>Print label</gui>: <link xref="product_print_label"/></p></item>
+  </list>
+
+</page>

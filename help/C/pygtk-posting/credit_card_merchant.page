@@ -1,0 +1,38 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="credit_card_merchant">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="credit_card_statements"/>
+  <desc>Record a card processor's fee, or a card refund, between two
+  accounts.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Credit card merchant</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Credit card merchant</gui></guiseq>
+  records money the card processor takes out of, or puts back into, what it
+  pays you: its fees, or a refund to a customer's card.</p>
+
+  <steps>
+    <item><p>Type the <gui>Amount</gui> and choose the
+    <gui>Date</gui>.</p></item>
+    <item><p>Double click the account to debit, from the expense accounts on
+    the left, such as card processing fees.</p></item>
+    <item><p>Double click the account to credit, from the revenue accounts on
+    the right.</p></item>
+    <item><p>Click <gui>Post transaction</gui>. Until it can be posted, the
+    button says what is missing, for instance <gui>No debit account
+    selected</gui>. A parent account cannot be chosen, only the accounts under
+    it.</p></item>
+  </steps>
+
+  <p><gui>Refresh accounts</gui> reloads the account lists after accounts are
+  added in <link xref="accounts_configuration"/>.</p>
+
+</page>

@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/budget.ui"
 
@@ -29,6 +30,7 @@ class BudgetGUI:
 
 		self.populate_budgets()
 		self.window = self.builder.get_object('budget_window')
+		user_manual.bind_f1(self.window, "budget")
 		self.window.show_all()
 
 	def populate_budgets (self):

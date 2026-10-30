@@ -23,6 +23,7 @@ import subprocess, os
 import barcode_generator, zebra, admin_utils
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/product_serial_numbers.ui"
 
@@ -65,6 +66,9 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 		self.calendar.set_today()
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "product_serial_numbers")
+		for window in ('add_serial_number_window', 'add_event_window'):
+			user_manual.bind_f1(self.get_object(window), "product_serial_numbers")
 		self.window.show_all()
 
 	def destroy (self, window):
@@ -497,6 +501,9 @@ class ProductSerialNumbersGUI(Gtk.Builder):
 			return
 		serial_number = model[path][4]
 		self.get_object('serial_number_entry').set_text(serial_number)
+
+	def help_clicked (self, menuitem):
+		user_manual.show("product_serial_numbers", self.window)
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

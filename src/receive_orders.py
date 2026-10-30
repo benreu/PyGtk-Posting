@@ -23,6 +23,7 @@ import locations, barcode_generator
 from pricing import product_retail_price
 from db_connection import DB
 from constants import ui_directory, template_dir
+import user_manual
 
 UI_FILE = ui_directory + "/receive_orders.ui"
 
@@ -50,6 +51,7 @@ class ReceiveOrdersGUI:
 		self.populate_location_combo()
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "receive_orders")
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -326,6 +328,9 @@ class ReceiveOrdersGUI:
 		result = dialog.run()
 		dialog.destroy()
 		return result == Gtk.ResponseType.YES
+
+	def help_clicked (self, button):
+		user_manual.show("receive_orders", self.window)
 
 	def show_error_dialog (self, error):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

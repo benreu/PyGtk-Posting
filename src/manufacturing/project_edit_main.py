@@ -19,6 +19,7 @@
 from gi.repository import Gtk, Gdk, GLib
 from db_connection import DB, broadcaster
 from constants import ui_directory, MANUFACTURING_PROJECT_LOCK_CLASSID
+import user_manual
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/manufacturing/project_edit_main.ui"
@@ -55,6 +56,7 @@ class ProjectEditGUI(Gtk.Builder):
 		self.product_id = None
 		self.version_id = None
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "manufacturing")
 		self.window.show_all()
 		if project_id != None:
 			self.load_project()
@@ -304,6 +306,9 @@ class ProjectEditGUI(Gtk.Builder):
 		time_clock_projects_id = cursor.fetchone()[0]
 		cursor.close()
 		return time_clock_projects_id
+
+	def help_clicked (self, widget):
+		user_manual.show("manufacturing", self.window)
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

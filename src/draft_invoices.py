@@ -17,6 +17,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/draft_invoices.ui"
@@ -30,6 +31,7 @@ class DraftInvoicesGUI(Gtk.Builder):
 		self.open_invoice_store = self.get_object('open_invoice_store')
 		self.populate_store ()
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "draft_invoices")
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 
@@ -173,6 +175,9 @@ class DraftInvoicesGUI(Gtk.Builder):
 			c.execute("REPLACE INTO open_invoices (widget_id, value) "
 						"VALUES (?, ?)", (column, width))
 		sqlite.close()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("draft_invoices", self.window)
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

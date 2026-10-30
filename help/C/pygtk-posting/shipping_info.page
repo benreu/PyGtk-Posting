@@ -1,0 +1,58 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="shipping_info">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="shipping_history"/>
+  <link type="seealso" xref="incoming_invoice"/>
+  <link type="seealso" xref="shipping_carriers"/>
+  <desc>Record a shipment, pay the carrier, and bill the freight.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Shipping info</title>
+
+  <p><guiseq><gui>General</gui><gui>Shipping info</gui></guiseq> records a
+  parcel sent to a contact, with its tracking number, pays the carrier for it,
+  and can charge the freight to the customer's invoice, all in one go.</p>
+
+  <steps>
+    <item><p>On the <gui>Shipping</gui> tab, choose the
+    <gui>Contact</gui>. Their earlier shipments are listed under
+    <gui>Customer shipping history</gui>.</p></item>
+    <item><p>Choose the <gui>Invoice</gui> the parcel's goods are on, and/or
+    type a <gui>Description</gui> of what was sent.</p></item>
+    <item><p>Type the <gui>Tracking number</gui> and check the
+    <gui>Date</gui>.</p></item>
+    <item><p>To charge the freight to the invoice, leave <gui>Freight
+    product</gui> checked and choose the product freight is billed as. The
+    product is remembered for next time. Clear the check to record the
+    shipment without charging the customer this time.</p></item>
+    <item><p>Click <gui>Payment</gui>. The <gui>Payment</gui> tab is the
+    carrier's bill; fill it in and pay it as in <link
+    xref="incoming_invoice"/>.</p></item>
+  </steps>
+
+  <p>When the carrier's bill is saved, the shipment is recorded and, if
+  freight is being charged, the amount paid is added to the invoice as one line
+  of the freight product, with the tracking number as its remark. An invoice
+  window open on that invoice reloads.</p>
+
+  <section id="which_invoices">
+  <title>Which invoices can be charged</title>
+  <p>Only invoices that are not paid, not cancelled, not yet on a statement and
+  not already shipped are listed: an invoice carries one shipment. If the
+  invoice has already been posted, you are asked to confirm, because it has
+  probably been sent to the customer. When the chosen invoice cannot take the
+  charge, the <gui>Freight product</gui> row is greyed out. To record a
+  shipment for any other reason, type a <gui>Description</gui> and leave the
+  invoice empty.</p>
+  </section>
+
+  <p><gui>Shipping history</gui> opens <link xref="shipping_history"/>.</p>
+
+</page>

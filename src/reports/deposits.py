@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/deposits.ui"
 
@@ -34,6 +35,7 @@ class DepositsGUI(Gtk.Builder):
 		self.populate_deposits_store ()
 
 		window = self.get_object('window1')
+		user_manual.bind_f1(window, "deposits_report")
 		window.show_all()
 
 	def destroy (self, widget):
@@ -73,6 +75,10 @@ class DepositsGUI(Gtk.Builder):
 				self.deposit_store.append(parent, row)
 		cursor.close()
 		DB.rollback()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("deposits_report",
+							self.get_object('window1'))
 
 	def export_to_pdf_activated (self, menuitem):
 		from reports import export_to_pdf

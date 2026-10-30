@@ -22,6 +22,7 @@ from threading import Thread
 import time
 from db_connection import DB, broadcaster, background_connection
 from constants import ui_directory
+import user_manual
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/credit_card_statement_history.ui"
@@ -44,7 +45,11 @@ class CreditCardHistoryGUI(Gtk.Builder):
 			handler = broadcaster.connect(connection[0], connection[1])
 			self.handler_ids.append(handler)
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "credit_card_statement_history")
 		self.window.show_all()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("credit_card_statement_history", self.window)
 
 	def populate_stores (self):
 		c = DB.cursor()

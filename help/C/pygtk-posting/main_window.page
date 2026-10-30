@@ -1,0 +1,80 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="main_window">
+
+  <info>
+  <link type="guide" xref="index#basics"/>
+  <desc>The buttons, counts and to-do list of the first window.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>The main window</title>
+
+  <p>The main window opens when PyGtk Posting starts. Its title shows the
+  company whose books are open. Every window of the program is in its menus;
+  the buttons below them are shortcuts to the windows used every day.</p>
+
+  <section id="buttons">
+  <title>The buttons</title>
+  <p>The buttons are grouped into <gui>Customer</gui>, <gui>Vendor</gui> and
+  <gui>Misc</gui>. The number under a button is how many are waiting:</p>
+  <terms>
+    <item><title><gui>Draft Invoices</gui></title>
+    <p>Invoices not yet posted that have at least one line.</p></item>
+    <item><title><gui>Unpaid Invoices</gui></title>
+    <p>Posted invoices not yet paid.</p></item>
+    <item><title><gui>Draft POs</gui></title>
+    <p>Purchase orders not yet closed that have at least one line.</p></item>
+    <item><title><gui>Unprocessed Orders</gui></title>
+    <p>Closed purchase orders whose vendor invoice has not been entered.</p></item>
+    <item><title><gui>Receive Orders</gui></title>
+    <p>Purchase orders invoiced but not yet received.</p></item>
+    <item><title><gui>Documents To Invoice</gui></title>
+    <p>Documents marked to be invoiced.</p></item>
+    <item><title><gui>Draft Job Sheets</gui></title>
+    <p>Job sheets neither completed nor invoiced.</p></item>
+  </terms>
+  <p>The numbers change by themselves when an invoice, purchase order, job
+  sheet or document changes, on this computer or another one.</p>
+  </section>
+
+  <section id="to_do">
+  <title>The to-do list</title>
+  <p>The <gui>To Do</gui> list collects what is due. Double click a row to
+  open the window that deals with it.</p>
+  <list>
+    <item><p><gui>Print statements</gui> appears from the statement day set in
+    <guiseq><gui>Edit</gui><gui>Settings</gui></guiseq>, in the month after
+    the last statements were made.</p></item>
+    <item><p><gui>Backup database</gui> appears when the last backup is older
+    than the backup frequency in the settings. Double clicking it starts the
+    backup.</p></item>
+    <item><p>A loan payment appears when a loan's next payment is due.</p></item>
+    <item><p>Resources marked as to-do appear in the colour of their tag,
+    until they are posted.</p></item>
+  </list>
+  </section>
+
+  <section id="admin">
+  <title>Administrator windows</title>
+  <p>The windows that change how the books are set up, and the
+  <gui>Payroll</gui> menu, are greyed out until you choose
+  <guiseq><gui>Administration</gui><gui>Admin login</gui></guiseq> and enter
+  the administrator password. The menu item then reads <gui>Admin
+  logout</gui>. The <link xref="zebra_designer"/>, and the <gui>Edit
+  mode</gui> of several reports, ask for the password when you use
+  them.</p>
+  </section>
+
+  <section id="keys">
+  <title>Keyboard shortcuts</title>
+  <p><keyseq><key>Ctrl</key><key>I</key></keyseq> opens a new invoice and
+  <keyseq><key>Ctrl</key><key>P</key></keyseq> a new purchase order. See
+  <link xref="keyboard_shortcuts"/> to give any menu item a shortcut of its
+  own.</p>
+  </section>
+
+</page>

@@ -1,0 +1,41 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="purchase_order_import">
+
+  <info>
+  <link type="guide" xref="vendor"/>
+  <link type="seealso" xref="unprocessed_po"/>
+  <desc>Fill in a purchase order's quantities and prices from the vendor's
+  spreadsheet.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Import purchase order items</title>
+
+  <p>Some vendors send their invoice as a spreadsheet. <gui>Load items from
+  file</gui> in <link xref="unprocessed_po"/> reads it onto the purchase
+  order, instead of typing each quantity and price.</p>
+
+  <steps>
+    <item><p>Choose the <gui>File</gui>: a .csv or .xls file whose first row
+    holds the column names. Its rows are shown on the right.</p></item>
+    <item><p>Choose which of its columns is the <gui>Qty</gui>, the
+    <gui>Order number</gui> and the <gui>Price</gui>.</p></item>
+    <item><p>Click <gui>Import to PO</gui>. The order's lines on the left take
+    the file's quantities and prices, and each order number is matched to the
+    product with that vendor order number.</p></item>
+    <item><p>Check the lines, then click <gui>Save PO items</gui>.</p></item>
+  </steps>
+
+  <note><p>The file's rows are matched to the order's lines by position: the
+  first row goes to line 1, the second to line 2, and so on. The file must
+  list the products in the same order as the purchase order, with no more
+  rows than it has lines.</p></note>
+
+  <p><gui>Reload PO</gui> shows the order's lines as they are saved, undoing
+  an import that was not saved.</p>
+
+</page>

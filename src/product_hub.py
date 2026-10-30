@@ -19,6 +19,7 @@ from gi.repository import Gtk, Gdk, GLib
 from db_connection import DB
 from inventory import inventorying
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/product_hub.ui"
 
@@ -40,6 +41,7 @@ class ProductHubGUI:
 		self.builder.get_object('label1').set_label(self.name)
 		self.builder.get_object('label_on_hand').set_label("On hand (all locations): %s" % on_hand)
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "product_hub")
 		self.window.show_all()
 
 	def destroy (self, window):

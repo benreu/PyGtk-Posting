@@ -19,6 +19,7 @@ from gi.repository import Gtk, Gdk, GLib
 from decimal import Decimal
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/account_transactions.ui"
 
@@ -57,6 +58,7 @@ class GUI:
 		balance_column.set_cell_data_func(balance_renderer, self.balance_cell_func)
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "account_transactions")
 		self.window.show_all()
 
 	def amount_cell_func(self, column, cellrenderer, model, iter1, data):

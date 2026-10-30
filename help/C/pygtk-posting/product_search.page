@@ -1,0 +1,38 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_search">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="products"/>
+  <desc>Find a product by any of its names, barcodes or order numbers.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Product search</title>
+
+  <p><guiseq><gui>General</gui><gui>Product search</gui></guiseq> lists every
+  product once for each vendor that sells it, with that vendor's
+  <gui>Order number</gui> and <gui>Vendor barcode</gui>. It is the quickest way
+  to find a product from the number on a vendor's box.</p>
+
+  <p>Type into the search boxes above the columns: product name, ext name,
+  barcode, vendor, order number or vendor barcode. Every word typed must be
+  found in its column. The <gui>S</gui>, <gui>S</gui>, <gui>P</gui> and
+  <gui>M</gui> columns show whether a product is stocked, sellable,
+  purchasable and manufactured.</p>
+
+  <list>
+    <item><p>Right click a product for its <gui>Product hub</gui>.</p></item>
+    <item><p>Drag a product onto an invoice or purchase order to add it
+    there.</p></item>
+    <item><p>When a product is changed elsewhere, <gui>Refresh</gui> appears;
+    click it to reload the list.</p></item>
+    <item><p><gui>Save window layout</gui>, in the window menu, remembers the
+    window's size and column widths on this computer.</p></item>
+  </list>
+
+</page>

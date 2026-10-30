@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="resources">
+
+  <info>
+  <link type="guide" xref="index#menus" group="resources"/>
+  <desc>The calendar, diary, to-do items and notes.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Resources menu</title>
+
+  <p>The <gui>Resources</gui> menu keeps notes, phone calls, to-do items and appointments, each with a date, a contact and tags.</p>
+
+</page>

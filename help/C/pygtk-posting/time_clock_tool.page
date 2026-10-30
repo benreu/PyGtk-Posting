@@ -1,0 +1,41 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="time_clock_tool">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="time_clock"/>
+  <link type="seealso" xref="time_clock_history"/>
+  <desc>Correct time clock punches that were made by mistake.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Time clock tool</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Time clock tool</gui></guiseq>
+  corrects punches in the <link xref="time_clock"/>.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Employee</gui> and the <gui>Project</gui>, or
+    check <gui>View all</gui> beside either. Each employee and project is
+    listed with the total time.</p></item>
+    <item><p>Double click one to list its punches, with the
+    <gui>Actual</gui> time and the <gui>Adjusted</gui> time.</p></item>
+    <item><p>Double click a punch, then click <gui>Edit or add
+    entry</gui>.</p></item>
+  </steps>
+
+  <p>In the <gui>Edit entry</gui> window, click the day, hour or minute of the
+  <gui>In Time</gui> or <gui>Out Time</gui>, and move it with its
+  <gui>Offset</gui>. Then click <gui>Save edits to entry</gui>, <gui>Add new
+  entry</gui> to keep the original and add a new punch with these times, or
+  <gui>Delete entry</gui>.</p>
+
+  <note style="warning"><p>Only correct punches that are clearly a mistake,
+  such as a forgotten punch out. Time records may be needed as legal records
+  of hours worked.</p></note>
+
+</page>

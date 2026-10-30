@@ -1,0 +1,39 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="incoming_invoices_report">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="incoming_invoice"/>
+  <desc>Bills paid to service providers, with totals.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Incoming invoices report</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Incoming invoices</gui></guiseq> lists the
+  bills entered in <link xref="incoming_invoice"/>. Narrow it by
+  <gui>Service provider</gui>, <gui>Expense account</gui> and <gui>Fiscal
+  year</gui>, or type into <gui>Search description</gui>. Select a bill to see
+  its lines.</p>
+
+  <p>Beside the list are how many bills are shown, the dates they span, how
+  many service providers, and the smallest, largest, total and average
+  amount.</p>
+
+  <p>Right click a bill and choose <gui>View attachment</gui> to see its scan;
+  if none is attached you can attach one, see <link xref="pdf_attachment"/>.
+  <gui>Refresh</gui> is in the window menu.</p>
+
+  <section id="edit">
+  <title>Edit mode</title>
+  <p>Check <gui>Edit mode</gui> in the window menu, which asks for the
+  administrator password, to change descriptions in the list, to uncheck
+  <gui>Reconciled</gui>, and to right click a bill and choose <gui>Edit
+  incoming invoice</gui>; see <link xref="incoming_invoice_edit"/>.</p>
+  </section>
+
+</page>

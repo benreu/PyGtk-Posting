@@ -1,0 +1,46 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="employee_info">
+
+  <info>
+  <link type="guide" xref="payroll"/>
+  <link type="seealso" xref="pay_stub"/>
+  <desc>Wages, withholding and tax forms for each employee.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Employee info</title>
+
+  <p><guiseq><gui>Payroll</gui><gui>Employee info</gui></guiseq> lists the
+  contacts marked as employees. Select one to see what payroll needs to know
+  about them.</p>
+
+  <steps>
+    <item><p>On the <gui>Employee information</gui> tab, fill in when they
+    were <gui>Born</gui>, <gui>On payroll since</gui>, their <gui>Wage</gui>,
+    <gui>Payments per year</gui> and <gui>Social Security number</gui>, and
+    whether they are <gui>Married</gui>.</p></item>
+    <item><p>Fill in the federal and state credits and extra withholding, and
+    check <gui>Exempt</gui>, <gui>Federal withholding exempt</gui> or
+    <gui>State withholding exempt</gui> where they apply.</p></item>
+    <item><p>Click <gui>Save</gui>. <gui>Cancel</gui> puts back what was
+    saved.</p></item>
+  </steps>
+
+  <p>Each save is kept as a new record; <gui>Last updated</gui> shows when the
+  current one was made.</p>
+
+  <section id="forms">
+  <title>Signed forms</title>
+  <p>The <gui>Social security medicare exemption</gui>, <gui>Federal witholding
+  status</gui> and <gui>State withholding status</gui> buttons keep the
+  employee's signed forms. Click one to see the current form, or to scan one
+  if there is none. Right click it to scan a new form in its place. The list
+  under each button holds the earlier forms; double click one to see
+  it.</p>
+  </section>
+
+</page>

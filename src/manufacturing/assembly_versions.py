@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/manufacturing/assembly_versions.ui"
 
@@ -35,6 +36,7 @@ class AssembledVersionsGUI (Gtk.Builder):
 		if product_id != None:
 			self.get_object('product_combo').set_active_id(product_id)
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "assembled_products")
 		self.window.show_all()
 
 	def product_match_func(self, completion, key, iter_):

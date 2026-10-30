@@ -18,6 +18,7 @@
 import gi
 from gi.repository import Gtk, Gdk, GObject
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/quick_command.ui"
 
@@ -33,6 +34,8 @@ class QuickCommand(Gtk.Builder):
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.sorted_store = self.get_object('quick_command_sort')
 		self.sorted_store.set_sort_column_id(0, Gtk.SortType.ASCENDING)
+		user_manual.bind_f1(self.get_object('quick_command_window'),
+							"quick_command")
 
 	def show_all (self):
 		window = self.get_object('quick_command_window')

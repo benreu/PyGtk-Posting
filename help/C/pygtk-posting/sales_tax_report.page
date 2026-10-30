@@ -1,0 +1,24 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="sales_tax_report">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="tax_rates"/>
+  <desc>Sales tax collected over a period, by tax rate.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Sales tax collected</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Sales tax collected</gui></guiseq> adds up
+  the tax on posted invoices between the <gui>Start date</gui> and <gui>End
+  date</gui>, for each <link xref="tax_rates">tax rate</link>, with the sales
+  it was charged on. Click the icon in each date to choose it. <gui>Total Tax
+  :</gui> and <gui>Total Sales :</gui> are below the list: what to report on
+  your sales tax return.</p>
+
+</page>

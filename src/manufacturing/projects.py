@@ -19,6 +19,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/manufacturing/projects.ui"
@@ -32,6 +33,7 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "manufacturing")
 		self.window.show_all()
 		self.populate_projects ()
 
@@ -133,6 +135,9 @@ class ManufacturingProjectsGUI(Gtk.Builder):
 		result = dialog.run()
 		dialog.destroy()
 		return result == Gtk.ResponseType.YES
+
+	def help_clicked (self, widget):
+		user_manual.show("manufacturing", self.window)
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

@@ -1,0 +1,33 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="edit_gl_entry">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="unbalanced_transactions"/>
+  <link type="seealso" xref="gl_entry_lookup"/>
+  <desc>Correct a ledger transaction by hand.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Edit GL entry</title>
+
+  <p>The <gui>Edit GL entry</gui> window opens from <gui>Edit GL entry</gui>
+  in <link xref="unbalanced_transactions"/>, <link xref="gl_entry_lookup"/>,
+  <link xref="bank_statement"/> and <link xref="bank_statements"/>. It asks for
+  the administrator password first, and shows every line of the transaction
+  the entry belongs to.</p>
+
+  <p>Change a line's <gui>Amount</gui>, its <gui>Debit</gui> or
+  <gui>Credit</gui> account, its <gui>Description</gui>, or whether it is
+  <gui>Reconciled</gui> and when, then click <gui>Save</gui>. Closing the window
+  without saving changes nothing.</p>
+
+  <note style="warning"><p>This changes the books directly, behind the
+  invoice, payment or other document that made the entry. Only use it when you
+  know what the entry should be.</p></note>
+
+</page>

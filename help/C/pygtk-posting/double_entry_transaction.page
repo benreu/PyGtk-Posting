@@ -1,0 +1,39 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="double_entry_transaction">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="account_transactions"/>
+  <desc>Enter any transaction straight into the ledger.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Double entry transaction</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Double entry transaction</gui></guiseq>
+  posts a transaction that no other window covers, such as moving money
+  between two bank accounts, an owner's investment, or a correction your
+  accountant gives you.</p>
+
+  <steps>
+    <item><p>Type a <gui>Description</gui> and choose the
+    <gui>Date</gui>.</p></item>
+    <item><p>Under <gui>Debit</gui>, click <gui>Add row</gui>, type the
+    <gui>Amount</gui> and choose the <gui>Account</gui>. Add as many rows as
+    the transaction needs.</p></item>
+    <item><p>Do the same under <gui>Credit</gui>.</p></item>
+    <item><p>When the two <gui>Total</gui>s match, click <gui>Post
+    transaction</gui>.</p></item>
+  </steps>
+
+  <p>Until the transaction can be posted, the button says what is wrong, for
+  instance <gui>Credit and debit do not match</gui> or <gui>Debit account not
+  selected</gui>. <gui>Delete row</gui> removes the selected row.
+  <gui>Refresh accounts</gui> reloads the account lists after accounts are
+  added in <link xref="accounts_configuration"/>.</p>
+
+</page>

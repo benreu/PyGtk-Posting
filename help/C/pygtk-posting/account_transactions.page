@@ -1,0 +1,41 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="account_transactions">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="gl_entry_lookup"/>
+  <link type="seealso" xref="trial_balance"/>
+  <desc>Every debit and credit of one account, with its running
+  balance.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Account transactions</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Account transactions</gui></guiseq>, or
+  the <gui>Account Transactions</gui> button of the main window, lists the
+  ledger entries of one account.</p>
+
+  <steps>
+    <item><p>Choose the account. For a parent account, its sub-accounts are
+    included.</p></item>
+    <item><p>Choose the <gui>Fiscal</gui> year, or check <gui>All</gui> for
+    every year.</p></item>
+    <item><p>Show the entries <gui>Monthly</gui> or <gui>Daily</gui>, added up
+    by month or day, or <gui>Individually</gui>, with a running
+    <gui>Balance</gui>.</p></item>
+  </steps>
+
+  <p><gui>Accounts summary</gui> (<keyseq><key>Ctrl</key><key>N</key></keyseq>)
+  lists the totals of every account instead; double click one to see its
+  entries. <gui>Refresh</gui> reloads.</p>
+
+  <p>To find out where entries came from, select several (hold
+  <key>Ctrl</key>) and choose <gui>GL entry lookup</gui> from the menu that
+  appears; see <link xref="gl_entry_lookup"/>.</p>
+
+</page>

@@ -1,0 +1,45 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="customer_terms">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="customer_payment#discount"/>
+  <link type="seealso" xref="customer_finance_charge"/>
+  <desc>When customers must pay, and what discount they get for paying
+  early.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Customer terms</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Customer terms</gui></guiseq> keeps
+  the payment terms a customer can be given in <link
+  xref="contacts#edit">their contact</link>. A customer's terms decide the
+  early payment discount in <link xref="customer_payment"/>, when an invoice
+  becomes overdue for <link xref="customer_finance_charge">finance
+  charges</link>, and the terms printed on their invoices.</p>
+
+  <steps>
+    <item><p>Click <gui>New</gui>
+    (<keyseq><key>Ctrl</key><key>N</key></keyseq>), or double click a term to
+    change it.</p></item>
+    <item><p>Type the <gui>Term / discount name</gui>.</p></item>
+    <item><p>Choose one: a <gui>Discount of</gui> some percent <gui>if paid
+    within</gui> so many days, or <gui>if paid by the</gui> given day of the
+    month, or <gui>Cash only</gui>, for no terms at all.</p></item>
+    <item><p>Fill in the four lines of text and the <gui>Invoice date +</gui>
+    days that print on the invoice, for instance the due date.</p></item>
+    <item><p>Click <gui>Save</gui>
+    (<keyseq><key>Ctrl</key><key>S</key></keyseq>).</p></item>
+  </steps>
+
+  <p>Check <gui>Default</gui> on the term new contacts start with.
+  <gui>Delete</gui> (<keyseq><key>Ctrl</key><key>D</key></keyseq>) deletes the
+  selected term; if customers still use it, you are asked which term to move
+  them to first, then click <gui>Update and Delete</gui>.</p>
+
+</page>

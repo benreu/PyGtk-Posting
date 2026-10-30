@@ -1,0 +1,45 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="credit_memo">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="customer_payment"/>
+  <desc>Credit a customer for goods they returned.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Credit memo</title>
+
+  <p>A credit memo gives a customer credit for products they bought and
+  returned. Open it with <guiseq><gui>Customer</gui><gui>Credit
+  memo</gui></guiseq>. Like an invoice, it is saved as you type, and a
+  customer's unposted credit memo is opened again when you choose them.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Customer</gui>.</p></item>
+    <item><p>Click <gui>New item</gui>. In <gui>Product</gui>, choose what
+    was returned. The list holds every line of the customer's posted invoices,
+    with the invoice number and date beside each, so the credit is at the price
+    they paid and the tax they were charged.</p></item>
+    <item><p>Type the <gui>Qty</gui> returned, and change the <gui>Price</gui>
+    or <gui>Tax</gui> if the credit should differ.</p></item>
+    <item><p>Click in <gui>Date returned</gui> to choose the day it came
+    back.</p></item>
+    <item><p>Check the <gui>Date</gui> of the memo and click <gui>Post Credit
+    Memo</gui>. The print dialog opens; print to post.</p></item>
+  </steps>
+
+  <p>Posting puts the returned products that are counted in inventory back
+  into stock, at the location they were sold from and the cost they left at,
+  and posts the credit to the customer's account. The credit then counts
+  toward their next payment. As with an invoice, check <gui>Cancel printing
+  and posting</gui> in the print dialog to stop without posting.</p>
+
+  <p>The window menu has <gui>Delete item</gui>, for the selected line, and
+  <gui>View Credit Memo</gui>, to see it before posting.</p>
+
+</page>

@@ -1,0 +1,35 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="payment_receipt">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="customer_payment"/>
+  <desc>Print a receipt for a payment a customer made.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Payment receipt</title>
+
+  <p><guiseq><gui>Customer</gui><gui>Payment receipt</gui></guiseq> prints a
+  receipt for a payment already recorded in <link
+  xref="customer_payment"/>.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Customer</gui>, or check <gui>View all</gui> to
+    list every customer's payments. Each payment shows how it was paid and the
+    invoice it paid.</p></item>
+    <item><p>Select the payment.</p></item>
+    <item><p>Click <gui>Generate payment receipt</gui> to open the receipt in
+    LibreOffice, where it can be changed before printing.</p></item>
+    <item><p>Or click <gui>Post payment receipt</gui> to keep a copy of the
+    receipt with the payment and print it.</p></item>
+  </steps>
+
+  <p><gui>View payment receipt</gui> opens the copy kept with the selected
+  payment, if a receipt was posted for it.</p>
+
+</page>

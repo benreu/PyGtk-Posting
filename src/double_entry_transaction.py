@@ -21,6 +21,7 @@ from decimal import Decimal
 from db.transactor import DoubleEntryTransaction
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/double_entry_transaction.ui"
 TWO_PLACES = Decimal('0.01')
@@ -39,6 +40,7 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 		self.populate_stores()
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "double_entry_transaction")
 		self.window.show_all()
 
 	def destroy (self, widget):
@@ -66,6 +68,9 @@ class DoubleEntryTransactionGUI (Gtk.Builder):
 			iter_ = self.account_store.append(parent, [row[0], row[1], path])
 			self.get_child_accounts (row[0], path, iter_)
 		cursor.close()
+
+	def help_clicked (self, widget):
+		user_manual.show("double_entry_transaction", self.window)
 
 	def check_if_all_requirements_valid (self):
 		post_button = self.get_object('button2')

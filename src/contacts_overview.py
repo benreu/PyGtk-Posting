@@ -18,6 +18,7 @@ from gi.repository import Gtk, GLib
 import subprocess
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/contacts_overview.ui"
@@ -43,6 +44,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 			self.handler_ids.append(handler)
 		self.populate_contact_store()
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "contacts")
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
@@ -78,6 +80,9 @@ class ContactsOverviewGUI(Gtk.Builder):
 			else:
 				column.set_fixed_width(width)
 		sqlite.close()
+
+	def help_clicked (self, widget):
+		user_manual.show("contacts", self.window)
 
 	def save_window_layout_activated (self, menuitem):
 		sqlite = get_apsw_connection()

@@ -1,0 +1,40 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="mailing_list_printing">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="mailing_lists"/>
+  <desc>Print a mailing for everyone on a list, and keep track of who got
+  one.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Mailing list printing</title>
+
+  <p><guiseq><gui>General</gui><gui>Mailing list printing</gui></guiseq>
+  prints the mailing template, addressed to each contact, for everyone on a
+  <link xref="mailing_lists">mailing list</link>.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Mailing list</gui>. Its contacts are listed,
+    with how many there are and how many addresses are still to
+    print.</p></item>
+    <item><p>Click <gui>Print mailing list</gui>. A copy prints for each
+    contact not yet marked <gui>Printed</gui>, and each is marked as it
+    prints.</p></item>
+  </steps>
+
+  <p>Check or uncheck <gui>Printed</gui> on a contact to include or leave
+  them out of the next printing. <gui>Set all unprinted</gui> starts a new
+  mailing to the whole list; <gui>Set all printed</gui> marks everyone as done.
+  <gui>Refresh contacts</gui> reloads the list.</p>
+
+  <p>Right click a contact for their <gui>Contact hub</gui>, or <gui>View
+  mailing file</gui> to open their copy in LibreOffice. <gui>Report
+  hub</gui> exports the list; see <link xref="report_hub"/>.</p>
+
+</page>

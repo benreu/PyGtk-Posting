@@ -17,6 +17,7 @@
 
 from gi.repository import Gtk
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/admin/data_import.ui"
 
@@ -29,6 +30,7 @@ class DataImportUI:
 		builder.connect_signals(self)
 
 		self.window = builder.get_object('window1')
+		user_manual.bind_f1(self.window, "data_import")
 		self.window.show_all()
 
 	def import_contacts_file_set (self, filechooser):

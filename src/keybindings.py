@@ -20,6 +20,7 @@ gi.require_version('Keybinder', '3.0')
 from gi.repository import Gtk, Gdk, Keybinder
 from constants import ui_directory
 from sqlite_utils import get_apsw_connection
+import user_manual
 
 UI_FILE = ui_directory + "/keybindings.ui"
 
@@ -33,6 +34,7 @@ class KeybinderInit (Gtk.Builder):
 		self.connect_signals(self)
 		self.store = self.get_object('keybindings_store')
 		self.sqlite_conn = get_apsw_connection() 
+		user_manual.bind_f1(self.get_object('window'), "keyboard_shortcuts")
 
 	def add_menu_keybinding (self, menu_path, menu_item):
 		cursor = self.sqlite_conn.cursor()

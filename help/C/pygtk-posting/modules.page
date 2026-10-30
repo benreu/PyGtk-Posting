@@ -1,0 +1,53 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="modules">
+
+  <info>
+  <link type="guide" xref="index#menus" group="modules"/>
+  <desc>Add windows of your own to PyGtk Posting.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Modules menu</title>
+
+  <p>A module is a Python file that adds a window of your own to PyGtk
+  Posting, for a task the program does not cover. Each module found in the
+  modules folder is listed in the <gui>Modules</gui> menu, under its file name
+  with underscores shown as spaces: <file>stock_letters.py</file> appears as
+  <gui>Stock letters</gui>.</p>
+
+  <section id="folder">
+  <title>The modules folder</title>
+  <p>When PyGtk Posting is installed, the folder is
+  <file>~/.config/posting/modules</file>; it is filled with the example
+  module the first time PyGtk Posting starts. When it is run from its source
+  code, the folder is <file>src/modules</file>. Modules are read when PyGtk
+  Posting starts, so restart it after adding one.</p>
+  </section>
+
+  <section id="writing">
+  <title>Writing a module</title>
+  <p>A module needs a class named <code>GUI</code>. Choosing the module in the
+  menu creates one, passing the menu item that was chosen. The module reaches
+  the books through the same database connection as the rest of the
+  program:</p>
+  <code mime="text/x-python">from gi.repository import Gtk
+from db_connection import DB
+
+class GUI:
+	def __init__(self, menuitem):
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM contacts")
+		...</code>
+  <p>The example module, <file>simple_example.py</file>, with its window in
+  <file>simple_example.ui</file>, is a complete one to start from.</p>
+  <note><p>A module runs with full access to the books. Only add modules you
+  trust.</p></note>
+  <p>A module useful to other businesses can be offered to the PyGtk Posting
+  developers, to be reviewed and made part of the program.</p>
+  </section>
+
+</page>

@@ -1,0 +1,42 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="invoice_history">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="contact_history"/>
+  <link type="seealso" xref="invoice_hub"/>
+  <desc>Find any posted invoice, and what was on it.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Invoice history</title>
+
+  <p><guiseq><gui>Customer</gui><gui>Invoice history</gui></guiseq> opens the
+  <gui>Customer History</gui> window, which lists posted invoices and their
+  lines.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Customer</gui>, or check <gui>All customers</gui>
+    to list every invoice. <gui>Total</gui> adds up the invoices
+    listed.</p></item>
+    <item><p>Select an invoice to see its lines below. Hold <key>Ctrl</key> to
+    select several, or check <gui>Select all invoices</gui>; check <gui>All
+    products</gui> to see the lines of every invoice.</p></item>
+    <item><p>Type into <gui>Search product</gui>, <gui>Search ext name</gui> or
+    <gui>Search remark</gui> to narrow the lines down.</p></item>
+  </steps>
+
+  <list>
+    <item><p>Double click an invoice to open it as it was printed.</p></item>
+    <item><p>Right click a line for the <link xref="invoice_hub"/>, the <link
+    xref="product_hub"/> of its product, or <gui>View invoice
+    pdf</gui>.</p></item>
+    <item><p>Drag a line onto an open <link xref="invoice"/> or <link
+    xref="job_sheet"/> to add the same product and quantity there.</p></item>
+  </list>
+
+</page>

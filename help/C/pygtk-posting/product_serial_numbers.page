@@ -1,0 +1,63 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_serial_numbers">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="invoice#serial_numbers"/>
+  <link type="seealso" xref="manufacturing#serial_numbers"/>
+  <desc>Look up a serial number, record what happened to it, print its
+  label.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Serial numbers</title>
+
+  <p><guiseq><gui>General</gui><gui>Serial numbers</gui></guiseq> lists every
+  serial number: when it was made or received, which invoice sold it and to
+  whom, and how many <gui>Events</gui> have been recorded against it, such as
+  repairs or warranty claims.</p>
+
+  <list>
+    <item><p>Type into the <gui>Product</gui>, <gui>Serial number</gui> and
+    <gui>Contact</gui> search boxes to find one. <gui>Refresh</gui> reloads
+    the list.</p></item>
+    <item><p>Double click a serial number to see its events.</p></item>
+    <item><p>Right click it to <gui>Add event</gui>, open the <gui>Invoice
+    hub</gui> of the invoice that sold it, or <gui>Select serial number</gui>
+    to put it in the print box below.</p></item>
+  </list>
+
+  <section id="add">
+  <title>Adding by hand</title>
+  <p>Serial numbers are normally made when a product is manufactured or
+  received. To add one that was missed, for instance so it can be sold on an
+  invoice, choose <gui>Add serial number entry</gui> from the window menu.
+  Choose the <gui>Product</gui>, type the <gui>Serial number</gui>, set the
+  <gui>Date</gui> and click <gui>Add serial number</gui>. A number the product
+  already has is refused.</p>
+  </section>
+
+  <section id="events">
+  <title>Recording an event</title>
+  <p>Choose <gui>Add serial number event</gui> from the window menu, or
+  <gui>Add event</gui> from the right click menu. Choose the
+  <gui>Contact</gui>, the <gui>Product</gui> and its <gui>Serial number</gui>,
+  set the <gui>Date</gui>, describe what happened in <gui>Description</gui>
+  and click <gui>Add event</gui>. Events also show on the contact's
+  <gui>Warranty</gui> tab in <link xref="contact_history"/>.</p>
+  </section>
+
+  <section id="print">
+  <title>Printing a label</title>
+  <p>Choose the label <gui>Printer</gui> and <gui>Template</gui>, type or scan
+  the <gui>Serial number</gui> and press <key>Enter</key>, or click
+  <gui>Print serial number</gui>. <gui>Edit</gui> opens a Zebra template in
+  the <link xref="zebra_designer"/>; it asks for the administrator
+  password.</p>
+  </section>
+
+</page>

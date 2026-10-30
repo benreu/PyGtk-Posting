@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="pay_stub_history">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="guide" xref="payroll"/>
+  <link type="seealso" xref="pay_stub"/>
+  <desc>Pay stubs already written to employees.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Pay stub history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Pay stub history</gui></guiseq> lists the
+  <link xref="pay_stub">pay stubs</link> written to an employee, with the
+  date, hours, cost sharing, profit sharing and payment. Choose the employee,
+  or check <gui>View all</gui> for everyone.</p>
+
+</page>

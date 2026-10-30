@@ -21,6 +21,7 @@ from dateutils import calendar_to_datetime, \
 						calendar_to_text
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 from sqlite_utils import get_apsw_connection
 try:
 	import holidays
@@ -50,10 +51,12 @@ class ResourceCalendarGUI:
 		self.contact_completion.set_match_func(self.contact_match_func)
 		
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "resource_calendar")
 		self.window.maximize()
 		self.window.show_all()
 
 		self.popover = self.builder.get_object('popover_window')
+		user_manual.bind_f1(self.popover, "resource_calendar")
 		self.populate_stores ()
 		self.calendar = self.builder.get_object('calendar1')
 		self.calendar.set_detail_func(self.calendar_func)

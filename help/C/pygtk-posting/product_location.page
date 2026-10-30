@@ -1,0 +1,35 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_location">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="products#location"/>
+  <link type="seealso" xref="locations"/>
+  <desc>Find where products are kept, shelf by shelf.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Product location</title>
+
+  <p><guiseq><gui>General</gui><gui>Product location</gui></guiseq> lists
+  where each product is kept at one location: its aisle, rack, cart, shelf,
+  cabinet, drawer and bin. Choose the location in the box beside
+  <gui>Location</gui>.</p>
+
+  <list>
+    <item><p>Type into the search boxes above the columns to narrow the list:
+    the product name, or any part of the place, such as every product in aisle
+    3. The button beside them clears every search box.</p></item>
+    <item><p>Double click a product to open it in <link xref="products"/>, where
+    <gui>Product location</gui> changes where it is kept.</p></item>
+    <item><p>Right click a product for its <gui>Product hub</gui>.</p></item>
+  </list>
+
+  <p>When a location is changed elsewhere, <gui>Refresh</gui> appears; click
+  it to reload the list.</p>
+
+</page>

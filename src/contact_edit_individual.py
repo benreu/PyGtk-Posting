@@ -18,6 +18,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory, CONTACT_INDIVIDUALS_LOCK_CLASSID
+import user_manual
 import zip_completion
 
 UI_FILE = ui_directory + "/contact_edit_individual.ui"
@@ -33,6 +34,7 @@ class ContactEditIndividualGUI (Gtk.Builder):
 		self.individual_id = individual_id
 		self.contact_id = None
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "contacts")
 		self.window.set_transient_for(overview_class.window)
 		self.window.show_all()
 		self.populate_zip_codes ()

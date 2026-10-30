@@ -1,0 +1,32 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="products_to_reorder">
+
+  <info>
+  <link type="guide" xref="reports#products"/>
+  <link type="seealso" xref="product_edit_main#inventory"/>
+  <desc>Products at or below their minimum stock, ready to order.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Products to reorder</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Products</gui><gui>Products to
+  reorder</gui></guiseq> lists every product whose stock, over all locations,
+  is at or below the <gui>Minimum</gui> set on the product (see <link
+  xref="product_edit_main#inventory"/>). Products with no minimum set are left
+  out. <gui>Reload</gui> reads the stock again.</p>
+
+  <p>Select products and click <gui>Add to purchase order</gui>. Each one's
+  <gui>Reorder qty</gui> is added to the open purchase order of its
+  <gui>Vendor</gui>, the first vendor in its order numbers, or to a new one.
+  If it is already on that order you are asked whether to raise the quantity.
+  <gui>Ordered</gui> then reads Added. A product with no vendor or no reorder
+  quantity is skipped, with a message saying which.</p>
+
+  <p>Right click a product for its <gui>Product hub</gui>.</p>
+
+</page>

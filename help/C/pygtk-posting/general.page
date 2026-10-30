@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="general">
+
+  <info>
+  <link type="guide" xref="index#menus" group="general"/>
+  <desc>Documents, searching, faxing, shipping and the time clock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>General menu</title>
+
+  <p>The <gui>General</gui> menu holds the windows that are not about one customer or vendor: documents and catalogs, searching, faxing, shipping, manufacturing and the time clock.</p>
+
+</page>

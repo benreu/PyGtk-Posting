@@ -21,6 +21,7 @@ from xlrd.biffh import XLRDError
 from psycopg2 import IntegrityError
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 import product_name_rules
 
 UI_FILE = ui_directory + "/admin/product_import.ui"
@@ -35,6 +36,7 @@ class ProductsImportGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "data_import")
 		self.window.show_all()
 		self.populate_combos()
 
@@ -65,6 +67,9 @@ class ProductsImportGUI(Gtk.Builder):
 		DB.rollback()
 
 ####### start import to treeview
+
+	def help_clicked (self, button):
+		user_manual.show("data_import", self.window)
 
 	def load_xls (self, filename):
 		store = self.get_object('product_import_store')

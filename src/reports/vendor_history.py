@@ -21,6 +21,7 @@ from decimal import Decimal
 import subprocess
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from sqlite_utils import get_apsw_connection
 import admin_utils
 
@@ -65,6 +66,7 @@ class VendorHistoryGUI:
 			self.handler_ids.append(handler)
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "vendor_history")
 		self.set_window_layout_from_settings ()
 		self.window.show_all()
 		GLib.idle_add(self.window.set_position, Gtk.WindowPosition.NONE)
@@ -478,6 +480,9 @@ class VendorHistoryGUI:
 		DB.commit()
 		self.po_store[path][4] = text
 		
+	def help_clicked (self, menuitem):
+		user_manual.show("vendor_history", self.window)
+
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
 									buttons = Gtk.ButtonsType.CLOSE)

@@ -19,6 +19,7 @@ from gi.repository import Gtk
 import subprocess
 from db_connection import DB
 from constants import ui_directory, CONTACT_FILES_LOCK_CLASSID
+import user_manual
 
 UI_FILE = ui_directory + "/contact_edit_files.ui"
 
@@ -31,6 +32,7 @@ class ContactEditFilesGUI(Gtk.Builder):
 		self.connect_signals(self)
 		self.contact_id = contact_id
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "contacts")
 		self.window.set_transient_for(parent_window)
 		self.window.show_all()
 		self.populate_file_store()

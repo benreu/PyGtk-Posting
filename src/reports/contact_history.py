@@ -22,6 +22,7 @@ import subprocess
 import dateutils
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/contact_history.ui"
 
@@ -53,6 +54,7 @@ class ContactHistoryGUI (Gtk.Builder):
 			self.contact_store.append(row)
 		cursor.close()
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "contact_history")
 		self.window.show_all()
 
 	def notebook_create_window (self, notebook, widget, x, y):

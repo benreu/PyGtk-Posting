@@ -1,0 +1,35 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="pdf_attachment">
+
+  <info>
+  <link type="guide" xref="index#basics"/>
+  <desc>Scan a paper, or choose a PDF, to keep with a record.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Attaching a scanned file</title>
+
+  <p>Several windows keep a PDF with a record: a vendor's invoice, a signed
+  tax exemption, a purchase order. They all attach it with the same
+  window.</p>
+
+  <steps>
+    <item><p>Either choose the scanner under <gui>Scan file to attach</gui>
+    and click <gui>Scan</gui>, or choose a PDF under <gui>Attach file from
+    disk</gui>.</p></item>
+    <item><p>PyGtk Posting makes a smaller copy of the file, and shows the
+    size of both beside <gui>Original file</gui> and <gui>Optimized
+    file</gui>. The smaller one is chosen; click the other to see and use it
+    instead.</p></item>
+    <item><p>Check the file in the preview, and click
+    <gui>Attach</gui>.</p></item>
+  </steps>
+
+  <p>If the smaller copy cannot be made, a message says so and the original
+  file is used; it can still be attached.</p>
+
+</page>

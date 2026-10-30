@@ -28,6 +28,7 @@ from decimal import Decimal
 import printing
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = "src/payroll/pay_stub.ui"
 
@@ -52,6 +53,8 @@ class PayStubGUI:
 		
 		self.populate_employee_combobox ()
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "pay_stub")
+		user_manual.bind_f1(self.builder.get_object('window2'), "pay_stub")
 		self.window.show_all()
 		#t = '10/3'
 		#print(get_gcalccmd_result(t))
@@ -359,8 +362,8 @@ class PayStubGUI:
 			else:
 				DB.rollback()
 
-	def help (self, button):
-		pass
+	def help_clicked (self, button):
+		user_manual.show("pay_stub", self.window)
 		
 
 	def print_pay_check(self):

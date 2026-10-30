@@ -1,0 +1,48 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="customer_finance_charge">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="customer_terms"/>
+  <link type="seealso" xref="settings"/>
+  <desc>Charge interest on a customer's overdue invoices.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Finance charges</title>
+
+  <p><guiseq><gui>Customer</gui><gui>Finance charge</gui></guiseq> charges
+  interest on invoices a customer has not paid on time. Only customers who owe
+  something are listed.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Customer</gui>. <gui>Balance</gui> is what they
+    owe.</p></item>
+    <item><p>The list shows each invoice that is past the customer's <link
+    xref="customer_terms">terms</link>, with what is still unpaid and the
+    <gui>Interest</gui> on it. For a cash-only customer every unpaid invoice is
+    overdue. <gui>Finance Charge</gui> is the total interest.</p></item>
+    <item><p>Click <gui>View statement</gui> to see the finance charge
+    statement before posting it.</p></item>
+    <item><p>Click <gui>Post finance charge</gui> and print it.</p></item>
+  </steps>
+
+  <p>The interest on an invoice is a month's interest, at the finance rate in
+  <link xref="settings"/>, for each whole month the invoice is past its terms,
+  and at least one month. Posting adds the finance charge to the customer's
+  account as a charge of its own, which is listed with their unpaid invoices
+  and paid like one. Finance charges are not charged interest
+  themselves.</p>
+
+  <note><p>Unlike an invoice, a finance charge is only posted when it is
+  printed. Clicking <gui>Cancel</gui> in the print dialog posts
+  nothing.</p></note>
+
+  <p><gui>Add payment</gui> opens <link xref="customer_payment"/> for the
+  chosen customer, to record a payment before charging interest.</p>
+
+</page>

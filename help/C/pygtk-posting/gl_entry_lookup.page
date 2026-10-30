@@ -1,0 +1,28 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="gl_entry_lookup">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="account_transactions"/>
+  <desc>Which invoice, payment or other document made a ledger entry.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>GL entry lookup</title>
+
+  <p>Select entries in <link xref="account_transactions"/> and choose
+  <gui>GL entry lookup</gui> from its menu. This window searches every kind of
+  document for the ones that made those entries, and lists each with its
+  <gui>Type</gui>, <gui>Number</gui>, <gui>Contact</gui> and <gui>Date</gui>.</p>
+
+  <p>Double click a document, or right click it and choose <gui>Open source
+  document</gui>, to open it: an invoice in the <link xref="invoice_hub"/>, a
+  purchase order in the <link xref="purchase_order_hub">PO hub</link>, and so
+  on. <gui>Edit GL transaction</gui> opens <link xref="edit_gl_entry"/> after
+  asking for the administrator password.</p>
+
+</page>

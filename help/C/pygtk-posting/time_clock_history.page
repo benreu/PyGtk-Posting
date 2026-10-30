@@ -1,0 +1,28 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="time_clock_history">
+
+  <info>
+  <link type="guide" xref="reports#time_clock"/>
+  <link type="seealso" xref="time_clock"/>
+  <link type="seealso" xref="time_clock_tool"/>
+  <desc>A week of punches, day by day.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Time clock history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Time clock</gui><gui>Time clock
+  history</gui></guiseq> shows one week of finished punches, a column for each
+  day from Sunday to Saturday, with each day's total under it and <gui>Total
+  time for this week :</gui> at the bottom.</p>
+
+  <p>Choose the <gui>Employee</gui> and the <gui>Project</gui>, or check
+  <gui>View all</gui> beside either to include everyone or every project.
+  <gui>Previous Week</gui> and <gui>Next Week</gui> move through the weeks. To
+  correct a punch, use the <link xref="time_clock_tool"/>.</p>
+
+</page>

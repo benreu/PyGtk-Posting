@@ -20,6 +20,7 @@ from dateutils import DateTimeCalendar
 from db.transactor import double_entry_transaction
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/credit_card_merchant.ui"
 
@@ -42,10 +43,14 @@ class CreditCardMerchantGUI:
 		self.populate_stores()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "credit_card_merchant")
 		self.window.show_all()
 
 	def destroy (self, window = None):
 		self.exists = False
+
+	def help_clicked (self, button):
+		user_manual.show("credit_card_merchant", self.window)
 
 	def populate_stores (self):
 		cursor = DB.cursor()

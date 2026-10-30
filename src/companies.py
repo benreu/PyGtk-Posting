@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 import subprocess
 from constants import ui_directory
+import user_manual
 from constants import log_file as LOG_FILE
 from sqlite_utils import get_apsw_connection
 
@@ -31,6 +32,7 @@ class OpenCompanyGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		window = self.get_object('window')
+		user_manual.bind_f1(window, "companies")
 		window.show_all()
 		self.populate_companies()
 

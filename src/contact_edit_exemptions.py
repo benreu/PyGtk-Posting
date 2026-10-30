@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory, CONTACT_TAX_EXEMPTIONS_LOCK_CLASSID
+import user_manual
 
 UI_FILE = ui_directory + "/contact_edit_exemptions.ui"
 
@@ -30,6 +31,7 @@ class ContactEditExemptionsGUI(Gtk.Builder):
 		self.connect_signals(self)
 		self.contact_id = contact_id
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "tax_exemptions")
 		self.window.set_transient_for(parent_window)
 		cursor = DB.cursor()
 		cursor.execute("SELECT name FROM contacts WHERE id = %s",

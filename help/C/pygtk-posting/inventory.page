@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="inventory">
+
+  <info>
+  <link type="guide" xref="index#menus" group="inventory"/>
+  <desc>Counting, comparing and moving stock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Inventory menu</title>
+
+  <p>The <gui>Inventory</gui> menu counts what is on the shelves, compares the count with what the books expect, and moves stock between locations.</p>
+
+</page>

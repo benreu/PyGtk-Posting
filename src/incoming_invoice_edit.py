@@ -23,6 +23,7 @@ from check_writing import get_written_check_amount_text, get_check_number
 from db import transactor
 from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
+import user_manual
 from accounts import expense_list, expense_tree
 import subprocess, printing
 
@@ -72,6 +73,7 @@ class EditIncomingInvoiceGUI(Gtk.Builder):
 		self.populate_service_providers ()
 	
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "incoming_invoice_edit")
 		self.window.show_all()
 		self.file_data = None
 		

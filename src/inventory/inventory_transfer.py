@@ -18,6 +18,7 @@
 from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/inventory/inventory_transfer.ui"
@@ -42,6 +43,7 @@ class InventoryTransferGUI(Gtk.Builder):
 		self.populate_stores ()
 
 		self.window = self.get_object('transfer_window')
+		user_manual.bind_f1(self.window, "inventory_transfer")
 		self.window.show_all()
 		self.set_post_sensitive ()
 

@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/product_invoice_statistics.ui"
 
@@ -28,6 +29,7 @@ class ProductInvoiceStatisticsGUI(Gtk.Builder):
 		Gtk.Builder.__init__(self)
 		self.add_from_file(UI_FILE)
 		self.connect_signals(self)
+		user_manual.bind_f1(self.get_object('window'), "product_history")
 		self.invoice_list = list()
 		self.product_id = product_id
 

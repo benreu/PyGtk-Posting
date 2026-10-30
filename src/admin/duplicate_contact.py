@@ -17,6 +17,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/admin/duplicate_contact.ui"
 
@@ -48,6 +49,7 @@ class DuplicateContactGUI:
 		self.filtered_store.set_visible_func(self.filter_func)
 		self.merging = False
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "duplicate_contact")
 		self.window.show_all()
 
 	def destroy (self, widget):

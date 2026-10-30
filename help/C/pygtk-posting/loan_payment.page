@@ -1,0 +1,42 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="loan_payment">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="loans"/>
+  <link type="seealso" xref="loan_payments"/>
+  <desc>Pay a loan, split into principal and interest.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Loan payment</title>
+
+  <p>Open <guiseq><gui>Accounting</gui><gui>Loan payment</gui></guiseq>, or
+  double click a loan payment in the main window's to-do list.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Loan</gui> and the <gui>Date</gui>.</p></item>
+    <item><p>Type the <gui>Principal</gui> and choose the <gui>Loan
+    account</gui> it pays down.</p></item>
+    <item><p>Type the <gui>Interest</gui> and choose the <gui>Expense</gui>
+    account it is charged to.</p></item>
+    <item><p>Pay the total, as below.</p></item>
+  </steps>
+
+  <list>
+    <item><p><gui>Pay with cash</gui>: choose the account it is paid
+    <gui>from</gui> and click <gui>Cash payment</gui>.</p></item>
+    <item><p><gui>Pay from bank account</gui>: choose the bank account. For a
+    transfer, type the <gui>Transaction number</gui> and click
+    <gui>Transfer</gui>. For a check, type its number and click
+    <gui>Print</gui>; this records the check payment, it does not print a
+    check.</p></item>
+  </list>
+
+  <p>The loan's next payment reminder moves on from today.</p>
+
+</page>

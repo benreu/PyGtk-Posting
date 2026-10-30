@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 import admin_utils
 
 UI_FILE = ui_directory + "/reports/gl_entry_lookup.ui"
@@ -463,6 +464,7 @@ class GlEntryLookupGUI :
 		amount_column.set_cell_data_func(amount_renderer, self.amount_cell_func)
 
 		self.window = self.builder.get_object('window')
+		user_manual.bind_f1(self.window, "gl_entry_lookup")
 		self.populate_lookup_store (entry_ids)
 		self.window.show_all()
 

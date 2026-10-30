@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/accounts_overview.ui"
 
@@ -32,6 +33,7 @@ class AccountsOverviewGUI:
 		self.populate_account_combos()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "accounts_overview")
 		self.window.show_all()
 
 	def populate_account_combos (self):

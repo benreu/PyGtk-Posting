@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/inventory/inventory_history.ui"
 
@@ -44,6 +45,7 @@ class InventoryHistoryGUI:
 			self.builder.get_object('combobox2').set_active_id(str(product_id))
 			self.populate_history_treeview ()
 		window = self.builder.get_object('window1')
+		user_manual.bind_f1(window, "inventory_history")
 		window.show_all()
 
 	def destroy (self, widget):

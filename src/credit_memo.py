@@ -20,6 +20,7 @@ import psycopg2, traceback
 from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/credit_memo.ui"
@@ -54,6 +55,7 @@ class CreditMemoGUI:
 		customer_completion.set_match_func(self.customer_match_func)
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "credit_memo")
 		self.window.show_all()
 
 	def window_destroy (self, window):
@@ -609,6 +611,9 @@ class CreditMemoGUI:
 							(notes,  self.credit_memo_id))
 		cursor.close()
 		DB.commit()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("credit_memo", self.window)
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

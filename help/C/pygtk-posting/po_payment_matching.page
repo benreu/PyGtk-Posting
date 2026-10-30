@@ -1,0 +1,23 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="po_payment_matching">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="vendor_payment"/>
+  <desc>Which payment paid each purchase order.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>PO payment matching</title>
+
+  <p>The <gui>PO payment matching</gui> button of the <link
+  xref="main_reports_window"/> lists purchase orders with the date each was
+  paid, the account it was paid from, and the check number or description of
+  the payment. Choose the <gui>Vendor</gui>, or check <gui>View all</gui>. An
+  order with no date paid has not been paid yet.</p>
+
+</page>

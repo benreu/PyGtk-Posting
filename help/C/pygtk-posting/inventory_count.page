@@ -1,0 +1,52 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="inventory_count">
+
+  <info>
+  <link type="guide" xref="inventory"/>
+  <link type="seealso" xref="inventory_summaries"/>
+  <link type="seealso" xref="inventory_compare"/>
+  <desc>Count what is on the shelves, then correct the books to match.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Count inventory</title>
+
+  <p><guiseq><gui>Inventory</gui><gui>Count</gui></guiseq> records a stock
+  count, product by product, into a count summary: one count of one location
+  in one fiscal year. Several people can count into the same summary at
+  once, on different computers.</p>
+
+  <steps>
+    <item><p>Choose the count summary in the box beside <gui>Inventory
+    summaries</gui>. To start a new count, click <gui>Inventory
+    summaries</gui> first; see <link xref="inventory_summaries"/>.</p></item>
+    <item><p>Scan each item into <gui>Product barcode</gui>: each scan adds one
+    to that product's <gui>Qty</gui>. Or choose a product under
+    <gui>Product</gui> and type its quantity. Click a <gui>Qty</gui> to correct
+    it.</p></item>
+    <item><p>Barcodes that match no product are listed under <gui>Missing
+    barcodes</gui>, with how many times each was scanned, to sort out
+    later.</p></item>
+  </steps>
+
+  <p>Below the list are the <gui>Total products :</gui> counted and their
+  <gui>Total Cost :</gui> and <gui>Total Retail :</gui>. Right click a product
+  to <gui>Delete</gui> it from the count or open its <gui>Product
+  hub</gui>.</p>
+
+  <section id="close">
+  <title>Closing the count</title>
+  <p>When everything is counted, click <gui>Close count</gui>. You are shown
+  how many units were counted, against how many the books have at that
+  location, and asked to confirm. Closing corrects the stock of every product
+  counted to the quantity counted; a product already right is left alone.
+  Any products that cannot be corrected are listed first and skipped.</p>
+  <note><p>A closed count cannot be reopened or counted into again. If
+  someone closes the count while you have it open, you are told.</p></note>
+  </section>
+
+</page>

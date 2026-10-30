@@ -1,0 +1,35 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="draft_job_sheets">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="job_sheet"/>
+  <desc>Every open job, ready to invoice or close.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Draft job sheets</title>
+
+  <p>The <gui>Draft Job Sheets</gui> button of the main window lists every
+  <link xref="job_sheet">job sheet</link> that is neither invoiced nor
+  completed. Double click a job to see its products below.</p>
+
+  <terms>
+    <item><title><gui>Post Job to Invoice</gui></title>
+    <p>Closes the job and adds its products to the customer's draft invoice,
+    at the customer's prices. If the customer already has a draft invoice, you
+    are asked whether to add them to it.</p></item>
+    <item><title><gui>Post Job as Completed</gui></title>
+    <p>Closes the job without invoicing anything.</p></item>
+    <item><title><gui>Open in Job Sheet window</gui></title>
+    <p>Opens the job to change it.</p></item>
+  </terms>
+
+  <p>To move a job to another customer, right click it, choose <gui>Move job
+  to contact</gui>, pick the contact and click <gui>Move</gui>.</p>
+
+</page>

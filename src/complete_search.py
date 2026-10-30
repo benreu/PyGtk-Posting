@@ -20,6 +20,7 @@ from gi.repository import Gtk, GLib
 import threading
 from db_connection import DB, background_connection
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/complete_search.ui"
 
@@ -32,6 +33,9 @@ class CompleteSearchGUI(Gtk.Builder):
 		self.store = self.get_object('search_store')
 		self.treeview = self.get_object('treeview')
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "complete_search")
+		user_manual.bind_f1(self.get_object('search_generator_window'),
+							"complete_search")
 		self.window.show_all()
 
 	def search_activated (self, entry):

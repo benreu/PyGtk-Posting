@@ -1,0 +1,95 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_edit_main">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="products"/>
+  <link type="seealso" xref="units"/>
+  <link type="seealso" xref="customer_markup_percent"/>
+  <desc>Add a product or change one: name, accounts, prices and stock.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Editing a product</title>
+
+  <p>Click <gui>New</gui> or <gui>Edit</gui> in <link xref="products"/>, or
+  <gui>Edit Product</gui> in the <link xref="product_hub"/>. Fill in the tabs
+  and click <gui>Save</gui>, or press
+  <keyseq><key>Ctrl</key><key>S</key></keyseq>.
+  <keyseq><key>Ctrl</key><key>Q</key></keyseq> closes the window without
+  saving. Only one person can edit a product at a time; anyone else who opens
+  it is told somebody else is editing it.</p>
+
+  <section id="general">
+  <title>General</title>
+  <list>
+    <item><p><gui>Name</gui> and <gui>Ext. name</gui> are what invoices and
+    purchase orders show. When you leave the name, a warning icon appears if it
+    does not follow your naming pattern; click it to see what is wrong and
+    <gui>Use suggested name</gui>. The name can be saved either way. See <link
+    xref="product_name_cleanup"/>.</p></item>
+    <item><p><gui>Barcode</gui> is the one you sell under. Vendors' barcodes go
+    in <link xref="products#order_numbers">order numbers</link>.</p></item>
+    <item><p>Choose the unit it is sold in. <gui>Unit</gui> opens <link
+    xref="units"/> to add one.</p></item>
+    <item><p>Choose its tax rate; <gui>Tax</gui> opens <link
+    xref="tax_rates"/>. Uncheck <gui>Tax exemptible</gui> to charge tax on it
+    even to a tax exempt customer.</p></item>
+  </list>
+  </section>
+
+  <section id="kind">
+  <title>What the product is</title>
+  <terms>
+    <item><title><gui>Sellable</gui></title>
+    <p>Listed on invoices.</p></item>
+    <item><title><gui>Purchasable</gui></title>
+    <p>Listed on purchase orders. A product cannot be both purchasable and
+    manufactured.</p></item>
+    <item><title><gui>Manufactured</gui>, <gui>Job</gui></title>
+    <p>Listed for manufacturing.</p></item>
+    <item><title><gui>Invoice serial numbers</gui></title>
+    <p>An invoice cannot be posted until each one sold has its serial
+    number.</p></item>
+    <item><title><gui>Stock</gui></title>
+    <p>A stocked product. Unchecked, it is a non stock product, such as a
+    service or a one-off item.</p></item>
+    <item><title><gui>Track inventory</gui></title>
+    <p>Counts how many are on hand, at each location, as they are bought,
+    sold and made. It needs an inventory account.</p></item>
+  </terms>
+  </section>
+
+  <section id="accounts">
+  <title>GL Accounts</title>
+  <p>Choose the <gui>Expense account</gui> and <gui>Revenue account</gui>
+  that buying and selling it post to, and the <gui>Inventory account</gui> if
+  inventory is tracked. Type part of an account's name to find it. Enter the
+  product's <gui>Cost</gui> here too.</p>
+  </section>
+
+  <section id="pricing">
+  <title>Pricing</title>
+  <p>Each customer markup term (see <link xref="customer_markup_percent"/>)
+  has its own <gui>Markup %</gui> and <gui>Selling price</gui>. Change one and
+  the other follows; changing the cost keeps each markup and recalculates the
+  prices. A selling price cannot be set below cost. A customer is charged the
+  price of their own markup term.</p>
+  </section>
+
+  <section id="inventory">
+  <title>Inventory</title>
+  <p><gui>Minimum stock</gui> and <gui>Reorder qty</gui> drive <link
+  xref="products_to_reorder"/>. <gui>Current inventory (all locations)</gui>
+  is how many are on hand. <gui>Adjust inventory</gui> corrects it; see <link
+  xref="inventory_adjustment"/>.</p>
+  <p>The <gui>Weights</gui> tab keeps the product's weight and tare, for
+  shipping. <gui>Save window layout</gui> in the window menu remembers the
+  window's size on this computer.</p>
+  </section>
+
+</page>

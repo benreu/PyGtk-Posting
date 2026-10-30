@@ -1,9 +1,12 @@
 <page xmlns="http://projectmallard.org/1.0/"
-      type="guide"
-      id="statements">
+      type="topic"
+      id="statement">
 
   <info>
-  <link type="guide" xref="index"/>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="main_window#to_do"/>
+  <link type="seealso" xref="customer_statements"/>
+  <desc>Print each customer's monthly statement.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>
@@ -12,51 +15,35 @@
 
   <title>Statements</title>
 
-  <section >
-  <title>Applying a payment to an invoice</title>
+  <p>A statement shows a customer what they owed at the end of the last
+  statement, and every invoice, credit memo and payment since. Open
+  <guiseq><gui>Customer</gui><gui>Statements</gui></guiseq>, the
+  <gui>Customer Statement</gui> button of the main window, or double click
+  <gui>Print statements</gui> in the main window's to-do list.</p>
+
   <steps>
-    <item>
-      <p>Select a customer from the dropdown.</p>
-    </item>
-    <item>
-      <p>Click Add payment and the Payment Options window will open.</p>
-    </item>
-    <item>
-      <p>Select an invoice from the dropdown.</p>
-    </item>
-    <item>
-      <p>Select the payment type.</p>
-    </item>
-    <item>
-      <p>Enter any information like check numbers, credit card confirmation, etc.</p>
-    </item>
-    <item>
-      <p>Click Post payment. The invoice and payment will not be visible in the Statements window. The invoice will no longer be visible in the Unpaid Invoices window.</p>
-    </item>
+    <item><p>In the calendar beside <gui>Statement to Date</gui>, double click
+    the last day the statements cover, usually the last day of the
+    month.</p></item>
+    <item><p>Choose a customer. Only customers whose account is not at zero
+    are listed. The window shows their balance on the statement date and
+    their whole account balance today.</p></item>
+    <item><p>Check the lines, and click <gui>View statement</gui> to see it
+    before printing.</p></item>
+    <item><p>Click <gui>Print statement</gui>. The customer is taken off the
+    list, and the next customer can be chosen.</p></item>
+    <item><p>When every statement is printed, click <gui>Finish
+    statements</gui>. <gui>Print statements</gui> leaves the main window's
+    to-do list until next month.</p></item>
   </steps>
-  </section>
 
-  <section>
-  <title>Applying a payment that does not match an invoice</title>
-  <steps>
-    <item>
-      <p>Select a customer from the dropdown.</p>
-    </item>
-    <item>
-      <p>Click Add payment and the Payment Options window will open.</p>
-    </item>
-    <item>
-      <p>Enter the amount of the payment in the Payment amount entry. Do not select an invoice or you will have to post that invoice amount.</p>
-    </item>
-    <item>
-      <p>Press the Enter key to validate the payment.</p>
-    </item>
-    <item>
-      <p>Click Post payment. The invoice and payment will be visible in the Statements window.</p>
-    </item>
-   </steps>
-  </section>
+  <note><p><gui>Print statement</gui> closes the statement even if the print
+  dialog is cancelled: its lines will not appear on the next statement,
+  which starts from this one's balance. Use <gui>View statement</gui> to
+  check it first.</p></note>
 
-  <p>To add a payment that does not match an invoice, open Customer Payment from the home screen or Add Payment from the Statements window.</p>
+  <p><gui>Add payment</gui> opens <link xref="customer_payment"/> for the
+  chosen customer, to record a payment before printing. Statements already
+  printed can be found again in <link xref="customer_statements"/>.</p>
 
 </page>

@@ -22,7 +22,8 @@ import subprocess
 from dateutils import DateTimeCalendar
 from db import transactor
 from db_connection import DB
-from constants import ui_directory, help_dir
+from constants import ui_directory
+import user_manual
 from accounts import expense_tree
 from payment_entry_panel import PaymentMethodEntry
 
@@ -68,15 +69,13 @@ class GUI:
 		self.builder.get_object ('combobox1').set_active_id(str(customer_id))
 
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "customer_payment")
 		self.window.show_all()
 
 		self.check_amount_totals_validity ()
 
 	def spinbutton_focus_in_event (self, spinbutton, event):
 		GLib.idle_add(spinbutton.select_region, 0, -1)
-
-	def help_button_clicked (self, button):
-		subprocess.Popen (["yelp", help_dir + "/customer_payment.page"])
 
 	def populate_contacts (self):
 		cursor = DB.cursor()

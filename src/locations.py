@@ -19,6 +19,7 @@ from gi.repository import Gtk, GdkPixbuf, Gdk
 import os, sys
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/locations.ui"
 
@@ -33,6 +34,7 @@ class LocationsGUI:
 		self.location_treeview_populate ()
 		
 		window = self.builder.get_object('window1')
+		user_manual.bind_f1(window, "locations")
 		window.show_all()
 
 	def destroy (self, widget):

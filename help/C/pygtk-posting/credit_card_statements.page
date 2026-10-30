@@ -1,0 +1,67 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="credit_card_statements">
+
+  <info>
+  <link type="guide" xref="accounting"/>
+  <link type="seealso" xref="credit_card_statement_history"/>
+  <link type="seealso" xref="vendor_payment#cash_card"/>
+  <desc>Reconcile a credit card statement, and record its fees, rewards and
+  payment.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Credit card statement</title>
+
+  <p><guiseq><gui>Accounting</gui><gui>Credit card statement</gui></guiseq>
+  checks a credit card account against the card company's statement, the way
+  <link xref="bank_statement"/> does for a bank account.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Credit Card</gui>. Its <gui>Balance</gui> is
+    shown, and every charge not yet reconciled is listed.</p></item>
+    <item><p>Click the icon in the date box and choose the statement's closing
+    date.</p></item>
+    <item><p>Add any interest, fees or rewards the statement shows, and the
+    payment, as below.</p></item>
+    <item><p>Check <gui>R</gui> on each charge on the statement. The window
+    menu has <gui>All reconciled on</gui> and <gui>All reconciled
+    off</gui>.</p></item>
+    <item><p>Click <gui>Reconcile</gui>. If the date was already used for this
+    card you are asked whether to use it again or choose another.</p></item>
+  </steps>
+
+  <p>Click a charge's date or description to correct it.
+  <gui>Refresh</gui> reloads the list, and <gui>Credit card statement
+  history</gui> opens <link xref="credit_card_statement_history"/>.</p>
+
+  <section id="fees">
+  <title>Fees and rewards</title>
+  <p>Under <gui>Fees and Rewards</gui>, type a description and the amount,
+  choose the expense or income <gui>account</gui> it belongs to, and click
+  <gui>Save</gui>. An expense account adds the amount to the card balance, as
+  a fee or interest; an income account takes it off, as a reward.</p>
+  </section>
+
+  <section id="payment">
+  <title>Paying the card</title>
+  <p>Type the <gui>Payment of</gui> amount, choose the bank account it is
+  paid <gui>from</gui>, type the <gui>transaction number</gui> and click
+  <gui>Add</gui>. The payment moves the money from the bank to the
+  card.</p>
+  </section>
+
+  <section id="options">
+  <title>Window menu options</title>
+  <p>Uncheck <gui>Save Reconciled rows to database</gui> to check charges off
+  without saving the checks, for instance to try a total. <gui>Reconcile</gui>
+  is then disabled. With <gui>Edit mode</gui> checked, which asks for the
+  administrator password, right click a charge and choose <gui>Edit</gui> to
+  correct the incoming invoice it came from; see <link
+  xref="incoming_invoice_edit"/>.</p>
+  </section>
+
+</page>

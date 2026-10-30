@@ -19,6 +19,7 @@ from gi.repository import Gtk, Gdk, GLib
 import os, sys
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/manufacturing/assembled_products.ui"
 
@@ -60,6 +61,9 @@ class AssembledProductsGUI:
 		self.populate_stores ()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "assembled_products")
+		user_manual.bind_f1(self.builder.get_object('duplicate_product_window'),
+							"assembled_products")
 		self.window.show_all()
 
 	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
@@ -219,6 +223,9 @@ class AssembledProductsGUI:
 			self.assembled_product_store.append(row)
 		c.close()
 		DB.rollback()
+
+	def help_clicked (self, menuitem):
+		user_manual.show("assembled_products", self.window)
 
 	def products_activated (self, button):
 		import products_overview
@@ -518,9 +525,7 @@ class AssembledProductsGUI:
 
 	def window_key_release_event(self, window, event):
 		keyname = Gdk.keyval_name(event.keyval)
-		if keyname == 'F1':
-			pass # create help file 
-		elif keyname == 'F2':
+		if keyname == 'F2':
 			self.add_entry ()
 		elif keyname == 'F3':
 			self.delete_entry()

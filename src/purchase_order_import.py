@@ -20,6 +20,7 @@ from gi.repository import Gtk, GLib
 import psycopg2, csv
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/purchase_order_import.ui"
 
@@ -39,6 +40,7 @@ class PurchaseOrderImportGUI(Gtk.Builder):
 		self.vendor_id = c.fetchone()[0]
 		c.close()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "purchase_order_import")
 		self.window.show_all()
 
 	def reload_button_clicked (self, button):

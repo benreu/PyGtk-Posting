@@ -1,10 +1,13 @@
 <page xmlns="http://projectmallard.org/1.0/"
-      type="guide"
+      type="topic"
       id="products">
 
   <info>
-  <link type="seealso" xref="invoice"/>
-  <link type="guide" xref="index"/>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="product_edit_main"/>
+  <link type="seealso" xref="product_hub"/>
+  <link type="seealso" xref="product_name_cleanup"/>
+  <desc>Everything you buy, make or sell.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>
@@ -13,48 +16,57 @@
 
   <title>Products</title>
 
-  <section>
-  <title>Adding a product</title>
-  <steps>
-    <item>
-      <p>Click New.</p>
-    </item>
-    <item>
-      <p>Fill in all the fields that pertain to the new product.</p>
-    </item>
-    <item>
-      <p>Select whether the product is Sellable, Purchasable, or Manufactured. Sellable products will be available when creating Invoices. Purchasable products will be available when creating Purchase orders. Manufactured products will be available in the Manufacturing window. A product cannot be Purchasable and Manufactured at the same time.</p>
-    </item>
-    <item>
-      <p>Enter the cost and markup percentages (Press the Enter key to calculate prices).</p>
-    </item>
-    <item>
-      <p>Click Save to save the product.</p>
-    </item>
-    <item>
-      <p>Click New to create a new product.</p>
-    </item>
-   </steps>
+  <p><guiseq><gui>Edit</gui><gui>Products</gui></guiseq>, or
+  <gui>Products</gui> in the menu of an invoice or purchase order, lists the
+  products. Choose which to show above the list: <gui>Sellable</gui>,
+  <gui>Purchasable</gui>, <gui>Manufactured</gui>, <gui>Job</gui>, <gui>Non
+  stock</gui>, <gui>All</gui> or <gui>Deleted</gui>. Type in <gui>Search
+  product name</gui> to narrow the list. When a product is changed elsewhere,
+  <gui>Refresh</gui> appears; click it to reload the list.</p>
+
+  <terms>
+    <item><title><gui>New</gui> (<keyseq><key>Ctrl</key><key>N</key></keyseq>)</title>
+    <p>Adds a product; see <link xref="product_edit_main"/>.</p></item>
+    <item><title><gui>Edit</gui> (<keyseq><key>Ctrl</key><key>E</key></keyseq>),
+    or double click</title>
+    <p>Changes the selected product.</p></item>
+    <item><title><gui>Order numbers</gui> (<keyseq><key>Ctrl</key><key>O</key></keyseq>)</title>
+    <p>Each vendor's number for the product; see <link
+    xref="#order_numbers"/>.</p></item>
+    <item><title><gui>Product location</gui> (<keyseq><key>Ctrl</key><key>L</key></keyseq>)</title>
+    <p>Where it is kept; see <link xref="#location"/>.</p></item>
+    <item><title><gui>Product hub</gui> (<keyseq><key>Ctrl</key><key>H</key></keyseq>)</title>
+    <p>Opens the <link xref="product_hub"/>.</p></item>
+  </terms>
+  <p>The same actions are in the right click menu of the list. The window menu
+  has <gui>Print label</gui> (see <link xref="product_print_label"/>),
+  <gui>Report hub</gui> to export the list (see <link xref="report_hub"/>),
+  and <gui>Save window layout</gui>, which remembers the window's size and
+  column widths on this computer. <keyseq><key>Ctrl</key><key>Q</key></keyseq>
+  closes the window. Drag a product onto an invoice or purchase order to add
+  it there.</p>
+
+  <section id="order_numbers">
+  <title>Order numbers</title>
+  <p>A product can be bought from several vendors, each with its own order
+  number. Click <gui>New row</gui>, choose the <gui>Vendor</gui> and type their
+  <gui>Order number</gui>, the <gui>Barcode</gui> on their package, and any
+  <gui>Buy qty</gui> and <gui>Price</gui>. <gui>Delete row</gui> removes the
+  selected one. <gui>Save</gui> keeps the changes; <gui>Cancel</gui> discards
+  them. Only one person can change a product's order numbers at a time.</p>
+  <p>A purchase order fills in the order number for its vendor, and a
+  number changed on a purchase order can be saved back here; see <link
+  xref="purchase_order#order_number"/>.</p>
   </section>
 
-  <section>
-  <title>Editing a product</title>
-  <steps>
-    <item>
-      <p>Select an existing product.</p>
-    </item>
-    <item>
-      <p>Edit the values.</p>
-    </item>
-    <item>
-      <p>Click Save to save the changes.</p>
-    </item>
-  </steps>
-  </section>
-
-  <section id="products_tips">
-  <title>Tips</title>
-  <p>Marking a product Not Exemptible will force an invoice to charge tax for that product no matter what the customer tax exemption status is.</p>
+  <section id="location">
+  <title>Product location</title>
+  <p>Choose the <gui>Location</gui> and fill in where the product is kept
+  there: <gui>Aisle</gui>, <gui>Rack</gui>, <gui>Cart</gui>, <gui>Shelf</gui>,
+  <gui>Cabinet</gui>, <gui>Drawer</gui> and <gui>Bin</gui>. Click
+  <gui>Save</gui>, or press <keyseq><key>Ctrl</key><key>S</key></keyseq>.
+  The location prints on shelf labels. To see every product's location, use
+  <link xref="product_location"/>.</p>
   </section>
 
 </page>

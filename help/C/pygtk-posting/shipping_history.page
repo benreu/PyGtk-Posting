@@ -1,0 +1,29 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="shipping_history">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="shipping_info"/>
+  <desc>Every shipment, with its tracking number and cost.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Shipping history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Shipping history</gui></guiseq>, or
+  <gui>Shipping history</gui> in <link xref="shipping_info"/>, lists every
+  shipment recorded, with its invoice, contact, what the carrier charged and
+  the date shipped. Type into <gui>Tracking number</gui>, <gui>Invoice</gui>
+  or <gui>Contact</gui> to find one. <gui>Refresh</gui> is in the window
+  menu.</p>
+
+  <p>Check <gui>Edit mode</gui> in the window menu, which asks for the
+  administrator password, to right click a shipment and <gui>Edit Incoming
+  Invoice</gui>, the carrier's bill for it; see <link
+  xref="incoming_invoice_edit"/>.</p>
+
+</page>

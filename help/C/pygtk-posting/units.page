@@ -1,0 +1,46 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="units">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="product_edit_main#general"/>
+  <desc>The units products are counted and sold in, and how they relate.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Units</title>
+
+  <p><guiseq><gui>Edit</gui><gui>Units</gui></guiseq>, or <gui>Unit</gui> on a
+  product, lists the units products can be sold in: each, foot, pound,
+  box. Changes are saved as you make them.</p>
+
+  <steps>
+    <item><p>Click <gui>New</gui> and type the <gui>Name</gui>, and an
+    <gui>Abbr</gui> to print on invoices if you like.</p></item>
+    <item><p>Choose or type its <gui>Category</gui>, what it measures, such as
+    length or weight.</p></item>
+    <item><p>To record how it relates to a smaller unit, choose that unit in
+    <gui>Of unit</gui> and type how many in <gui>Equals</gui>: a yard equals 3
+    of foot.</p></item>
+  </steps>
+
+  <p>The list keeps each category together, smallest unit first, worked out
+  from what each unit equals. A unit cannot be measured in itself, or in a
+  unit that is already measured in it.</p>
+
+  <p>Check <gui>Standard</gui> on the unit new products start with. Only one
+  unit is the standard.</p>
+
+  <section id="delete">
+  <title>Deleting a unit</title>
+  <p><gui>Delete</gui> removes the selected unit. It is refused for the
+  standard unit, and for a unit another one is measured in. If products use
+  the unit, you are asked whether to move them to another unit first: choose
+  it and click <gui>Update and Delete</gui>.</p>
+  </section>
+
+</page>

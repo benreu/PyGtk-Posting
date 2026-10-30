@@ -18,6 +18,7 @@
 from gi.repository import Gtk
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/mailing_lists.ui"
 
@@ -30,6 +31,7 @@ class MailingListsGUI(Gtk.Builder):
 		self.connect_signals(self)
 
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "mailing_lists")
 		self.window.show_all()
 		self.populate_mailing_store ()
 

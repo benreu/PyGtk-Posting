@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="administration">
+
+  <info>
+  <link type="guide" xref="index#menus" group="administration"/>
+  <desc>Setup that only an administrator should change.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Administration menu</title>
+
+  <p>Most of the <gui>Administration</gui> menu is greyed out until you log in with <guiseq><gui>Administration</gui><gui>Admin login</gui></guiseq>. These windows change how the books are set up, so a mistake in one of them reaches every invoice and report.</p>
+
+</page>

@@ -70,6 +70,14 @@
         <signal name="activate" handler="add_serial_event_activated" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Help</property>
+        <signal name="activate" handler="help_clicked" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkListStore" id="printer_store">
     <columns>

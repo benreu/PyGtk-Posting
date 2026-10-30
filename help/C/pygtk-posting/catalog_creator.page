@@ -1,0 +1,40 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="catalog_creator">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <desc>Build a printed product catalog with pictures and prices.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Catalog creator</title>
+
+  <p><guiseq><gui>General</gui><gui>Catalog creator</gui></guiseq> picks the
+  products for your catalog, gives each a picture, and fills in the catalog
+  template in LibreOffice. The products chosen and their order are kept, so
+  the catalog can be updated and printed again later.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Customer markup percent</gui> whose prices the
+    catalog shows, and the <gui>Image size for view</gui>. Check <gui>Load
+    description</gui> to show each product's description. Click <gui>Load
+    catalog</gui>.</p></item>
+    <item><p>Add products by choosing them in the box above the list. They
+    are added to the catalog at once.</p></item>
+    <item><p>Select a product and click <gui>Update image</gui> to choose its
+    picture.</p></item>
+    <item><p>Drag products up and down the list to set the order they
+    print in.</p></item>
+    <item><p>Click <gui>Populate template</gui> to open the finished catalog
+    in LibreOffice.</p></item>
+  </steps>
+
+  <p><gui>Remove product</gui> takes the selected product out of the catalog.
+  Right click a product for its <gui>Product hub</gui> or <gui>Preview
+  image</gui>, which shows its picture full size in a window of its own.</p>
+
+</page>

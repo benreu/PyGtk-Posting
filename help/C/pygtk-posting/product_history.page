@@ -1,0 +1,53 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="product_history">
+
+  <info>
+  <link type="guide" xref="reports#products"/>
+  <link type="seealso" xref="product_hub"/>
+  <link type="seealso" xref="inventory_history"/>
+  <desc>Everywhere one product was sold, bought, made or serviced.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Product history</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Products</gui><gui>Product
+  history</gui></guiseq>: choose the <gui>Product</gui>, and each tab shows one
+  side of its history.</p>
+
+  <terms>
+    <item><title><gui>Invoices</gui></title>
+    <p>Each sale, with the customer, quantity and price. Double click one to
+    open the invoice as it was printed. Right click for its <gui>Invoice
+    history</gui>, or select several sales and choose <gui>Selection
+    statistics</gui>; see <link xref="#statistics"/>.</p></item>
+    <item><title><gui>Purchase Orders</gui></title>
+    <p>Each order for it, with the vendor, price and order number. Right click
+    for <gui>View attachment</gui>, the vendor's invoice.</p></item>
+    <item><title><gui>Warranty</gui></title>
+    <p>Events recorded against its serial numbers; see <link
+    xref="product_serial_numbers"/>.</p></item>
+    <item><title><gui>Manufacturing</gui></title>
+    <p>Each manufacturing project that made it, with the time and employees
+    it took.</p></item>
+  </terms>
+
+  <p><gui>New window</gui> opens a second product history, to compare two
+  products side by side; a tab can also be dragged out into a window of its
+  own. <gui>Product hub</gui> opens the <link xref="product_hub"/>,
+  <gui>Refresh</gui> reloads the tabs, and <gui>Export hub</gui> exports what
+  is shown; see <link xref="report_hub"/>.</p>
+
+  <section id="statistics">
+  <title>Selection statistics</title>
+  <p>The <gui>Invoices product statistics</gui> window works out, over the
+  sales selected: the average, smallest, largest and total invoice amount and
+  the dates they span, and the average, smallest, largest and total quantity,
+  price and extended price of the product's lines.</p>
+  </section>
+
+</page>

@@ -1,0 +1,30 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="loan_payments">
+
+  <info>
+  <link type="guide" xref="reports#other"/>
+  <link type="seealso" xref="loans"/>
+  <link type="seealso" xref="loan_payment"/>
+  <desc>Every payment on a loan, and how much is left.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Loan payments report</title>
+
+  <p>The <gui>Loan payments</gui> button of the <link
+  xref="main_reports_window"/> opens this report. Choose one of the
+  <gui>Loans</gui>, and its payments are listed with how much of each was
+  principal and how much interest. Under <gui>Loan info</gui> are when it
+  started, its payment period, the contact and liability account, the loan
+  total, and the principal paid and unpaid, interest paid and whether it is
+  <gui>Finished</gui>.</p>
+
+  <p>To correct how a payment was split, check <gui>Edit mode</gui> in the
+  window menu, which asks for the administrator password, then right click
+  the payment and choose <gui>Edit principal</gui>.</p>
+
+</page>

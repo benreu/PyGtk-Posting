@@ -1,0 +1,28 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="time_clock_project">
+
+  <info>
+  <link type="guide" xref="reports#time_clock"/>
+  <link type="seealso" xref="time_clock"/>
+  <desc>The time each employee spent on one job or project.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Time clock projects</title>
+
+  <p><guiseq><gui>Reports</gui><gui>Time clock</gui><gui>Time clock
+  projects</gui></guiseq>: choose the job or project, and the employees who
+  worked on it are listed with their <gui>Actual</gui> time punched and their
+  <gui>Adjusted</gui> time after corrections in the <link
+  xref="time_clock_tool"/>. Each punch is listed beside them, with its
+  <gui>Punch in</gui>, <gui>Punch out</gui> and <gui>Time</gui>. A note says
+  when nobody has punched in on it.</p>
+
+  <p>Double click an employee, then click <gui>Report</gui> to open a time
+  report for them in LibreOffice, to print.</p>
+
+</page>

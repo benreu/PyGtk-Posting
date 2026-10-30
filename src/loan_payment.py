@@ -21,6 +21,7 @@ from dateutils import DateTimeCalendar
 from db import transactor 
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/loan_payment.ui"
 
@@ -43,6 +44,7 @@ class LoanPaymentGUI:
 		self.populate_stores()
 		
 		self.window = self.builder.get_object('window1')
+		user_manual.bind_f1(self.window, "loan_payment")
 		self.window.show_all()
 
 		if loan_id != None:

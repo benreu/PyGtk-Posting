@@ -19,6 +19,7 @@ from gi.repository import Gtk
 import os
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 from decimal import Decimal
 
 UI_FILE = ui_directory + "/reports/profit_loss_report.ui"
@@ -33,6 +34,7 @@ class ProfitLossReportGUI(Gtk.Builder):
 		self.fiscal = None
 
 		self.window = self.get_object("window")
+		user_manual.bind_f1(self.window, "profit_loss_report")
 		self.window.show_all()
 
 	def destroy (self, widget):

@@ -1,0 +1,59 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="contact_history">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="guide" xref="reports#contacts"/>
+  <link type="seealso" xref="contact_hub"/>
+  <link type="seealso" xref="invoice_history"/>
+  <desc>Everything a contact has done with you, tab by tab.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Contact history</title>
+
+  <p>Open it with <guiseq><gui>Customer</gui><gui>History
+  overview</gui></guiseq> or <guiseq><gui>Reports</gui><gui>Contacts</gui>
+  <gui>Contact history</gui></guiseq>, and choose the <gui>Contact</gui>. Each
+  tab shows one side of their history:</p>
+
+  <terms>
+    <item><title><gui>Invoices</gui></title>
+    <p>Their posted invoices. Double click one to open it as it was printed;
+    right click and choose <gui>Invoice history</gui> to find it in <link
+    xref="invoice_history"/>.</p></item>
+    <item><title><gui>Payments received</gui></title>
+    <p>Their payments, including miscellaneous revenue.</p></item>
+    <item><title><gui>Products</gui></title>
+    <p>Every product they bought, added up. Select several rows to hide them
+    from the list, or right click for <gui>Product hub</gui>.</p></item>
+    <item><title><gui>Resources</gui></title>
+    <p>Notes, calls and to-do items kept about them, with what is still
+    <gui>To be done</gui>.</p></item>
+    <item><title><gui>Documents</gui></title>
+    <p>Documents made for them.</p></item>
+    <item><title><gui>Statements</gui></title>
+    <p>Their statements. Right click one and choose <gui>View pdf</gui> to see
+    it.</p></item>
+    <item><title><gui>Warranty</gui></title>
+    <p>Events recorded against serial numbers for this contact, such as
+    repairs; see <link xref="product_serial_numbers"/>.</p></item>
+    <item><title><gui>Incoming invoices</gui></title>
+    <p>Bills you received from them, when the contact is also a
+    vendor.</p></item>
+    <item><title><gui>Shipping</gui></title>
+    <p>What was shipped to them, with tracking numbers. Right click for the
+    <gui>Invoice history</gui> of the shipment's invoice.</p></item>
+  </terms>
+
+  <p>A tab with something in it shows how many rows it holds. Drag a tab
+  out of the window to see it in a window of its own beside
+  the others; closing that window puts the tab back. <gui>Contact hub</gui>
+  opens <link xref="contact_hub"/> and <gui>Report hub</gui> exports what is
+  shown; see <link xref="report_hub"/>.</p>
+
+</page>

@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from db_connection import DB, broadcaster
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/product_location.ui"
 
@@ -56,6 +57,7 @@ class ProductLocationGUI(Gtk.Builder):
 			self.handler_ids.append(handler)
 		
 		self.window = self.get_object('window1')
+		user_manual.bind_f1(self.window, "product_location")
 		self.window.show_all()
 
 	def delete_event (self, window, event):

@@ -19,6 +19,7 @@ gi.require_version('GooCanvas', '2.0')
 from gi.repository import Gtk, Gdk, GooCanvas
 from db_connection import DB
 from constants import ui_directory
+import user_manual
 
 UI_FILE = ui_directory + "/reports/invoice_to_payment_matching.ui"
 
@@ -48,6 +49,7 @@ class GUI:
 		customer_completion.set_match_func(self.customer_match_func)
 		
 		window = self.builder.get_object('window')
+		user_manual.bind_f1(window, "invoice_to_payment_matching")
 		window.show_all()
 
 	def populate_invoices (self):

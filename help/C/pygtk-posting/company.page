@@ -1,0 +1,18 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="guide"
+      id="company">
+
+  <info>
+  <link type="guide" xref="index#menus" group="company"/>
+  <desc>Open another company's books.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Company menu</title>
+
+  <p>The <gui>Company</gui> menu switches between the companies whose books are kept on this computer, and quits PyGtk Posting.</p>
+
+</page>

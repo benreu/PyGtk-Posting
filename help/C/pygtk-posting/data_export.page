@@ -1,0 +1,31 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="data_export">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="data_import"/>
+  <desc>Save every contact or product to a spreadsheet.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Data export</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Data</gui><gui>Data
+  export</gui></guiseq> saves contacts or products to an .xls spreadsheet.</p>
+
+  <steps>
+    <item><p>Click <gui>Export contacts</gui> or <gui>Export products</gui>.
+    The list shows what will be saved.</p></item>
+    <item><p>Click <gui>Export contacts</gui> or <gui>Export products</gui>
+    under the list, and choose where to save the file.</p></item>
+  </steps>
+
+  <p><gui>Main page</gui> goes back. A file exported here has the layout
+  <link xref="data_import"/> expects, so it is the best starting point for a
+  file to import.</p>
+
+</page>
