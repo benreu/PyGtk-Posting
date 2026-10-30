@@ -16,9 +16,13 @@
 
   <p><guiseq><gui>Reports</gui><gui>Incoming invoices</gui></guiseq> lists the
   bills entered in <link xref="incoming_invoice"/>. Narrow it by
-  <gui>Service provider</gui>, <gui>Expense account</gui> and <gui>Fiscal
-  year</gui>, or type into <gui>Search description</gui>. Select a bill to see
-  its lines.</p>
+  <gui>Service provider</gui>, <gui>Expense account</gui>, <gui>Fiscal
+  year</gui> and <gui>Paid with</gui>, or type into <gui>Search
+  description</gui>. Select a bill to see its lines.</p>
+
+  <p>The <gui>Paid with</gui> column shows how each bill was paid: by cheque
+  (with its number), transfer, credit card or cash, and from which account. It
+  is blank for bills entered before payments were recorded with them.</p>
 
   <p>Beside the list are how many bills are shown, the dates they span, how
   many service providers, and the smallest, largest, total and average

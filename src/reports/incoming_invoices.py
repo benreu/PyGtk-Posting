@@ -27,6 +27,11 @@ import admin_utils
 
 UI_FILE = ui_directory + "/reports/incoming_invoices.ui"
 
+# the payment is the credit line incoming_invoices.gl_entry_id points at;
+# bills from before payments were recorded have none, hence the LEFT JOIN
+PAYMENT_JOIN = "LEFT JOIN gl_entries AS pe ON pe.id = i.gl_entry_id " \
+				"LEFT JOIN gl_accounts AS pa ON pa.number = pe.credit_account "
+
 class IncomingInvoiceGUI(Gtk.Builder):
 	service_provider_id = None
 	def __init__(self):
@@ -49,9 +54,11 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		self.service_provider_join = 'JOIN contacts AS c ON c.id = i.contact_id '
 		self.expense_account_join = ''
 		self.fiscal_year_join = ''
+		self.payment_join = PAYMENT_JOIN
 
 		self.populate_service_provider_store ()
 		self.populate_fiscal_store ()
+		self.populate_payment_accounts ()
 		self.handler_ids = list()
 		for connection in (("admin_changed", self.admin_changed), ):
 			handler = broadcaster.connect(connection[0], connection[1])
@@ -197,6 +204,21 @@ class IncomingInvoiceGUI(Gtk.Builder):
 				"BETWEEN fy.start_date AND fy.end_date " % (fiscal_year_id,)
 		self.populate_incoming_invoice_store()
 
+	def payment_account_combo_changed (self, combobox):
+		payment_account = combobox.get_active_id()
+		if payment_account == None:
+			self.payment_join = PAYMENT_JOIN
+			return
+		elif payment_account == '0':
+			self.payment_join = PAYMENT_JOIN
+		elif payment_account != None:
+			self.payment_join = \
+				"JOIN gl_entries AS pe ON pe.id = i.gl_entry_id " \
+				"AND pe.credit_account = %s " \
+				"JOIN gl_accounts AS pa ON pa.number = pe.credit_account " \
+				% (payment_account,)
+		self.populate_incoming_invoice_store()
+
 	def refresh_activated (self, button):
 		self.populate_incoming_invoice_store()
 
@@ -222,15 +244,25 @@ class IncomingInvoiceGUI(Gtk.Builder):
 					"i.description, "
 					"i.amount, "
 					"i.amount::text, "
-					"(SELECT reconciled FROM gl_entries WHERE id = i.gl_entry_id)"
+					"pe.reconciled, "
+					"CASE WHEN pe.id IS NULL THEN '' "
+						"WHEN COALESCE(pe.check_number, 0) != 0 "
+							"THEN 'Cheque ' || pe.check_number || ' · ' || pa.name "
+						"WHEN pa.check_writing THEN 'Transfer · ' || pa.name "
+						"WHEN pa.credit_card_account "
+							"THEN 'Credit card · ' || pa.name "
+						"WHEN pa.cash_account THEN 'Cash · ' || pa.name "
+						"ELSE COALESCE(pa.name, '') END "
 					"FROM incoming_invoices AS i "
 					"%s "
 					"%s "
 					"%s "
-					"ORDER BY date_created, i.id" % 
-					(self.service_provider_join, 
-					self.expense_account_join, 
-					self.fiscal_year_join ))
+					"%s "
+					"ORDER BY i.date_created, i.id" %
+					(self.service_provider_join,
+					self.expense_account_join,
+					self.fiscal_year_join,
+					self.payment_join ))
 		for row in c.fetchall():
 			if current_id == row[0]:
 				iter_to_select = self.incoming_invoice_store.append(row)
@@ -365,6 +397,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def populate_payment_accounts (self):
 		model = self.get_object('pay_with_account_store')
 		model.clear()
+		model.append(['0', "All payment accounts"])
 		c = DB.cursor()
 		c.execute("SELECT number::text, name FROM gl_accounts "
 					"WHERE cash_account = True "
