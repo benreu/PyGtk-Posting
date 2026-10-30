@@ -464,17 +464,20 @@ class JobSheetGUI(Gtk.Builder):
 				return # cancel posting to invoice altogether
 		else: # create new invoice
 			invoice_id = create_new_invoice (self.customer_id)
+		# only the job's lines are priced, not those already on the invoice;
+		# the invoice_items triggers fill in tax_rate_id, ext_price and tax
 		c.execute("INSERT INTO invoice_items "
-						"(qty, product_id, remark, invoice_id) "
-					"SELECT qty, product_id, remark, %s "
+						"(qty, product_id, remark, price, invoice_id) "
+					"SELECT qty, product_id, remark, "
+						"customer_product_price(%s, product_id), %s "
 					"FROM job_sheet_items AS jsi "
 						"WHERE jsi.job_sheet_id = %s; "
 					"UPDATE job_sheets SET (invoiced, completed) "
 						"= (True, True) WHERE id = %s; "
 					"UPDATE time_clock_projects "
 					"SET (stop_date, active) = (%s, False) "
-					"WHERE job_sheet_id = %s", 
-					(invoice_id, self.job_id, self.job_id, 
+					"WHERE job_sheet_id = %s",
+					(self.customer_id, invoice_id, self.job_id, self.job_id,
 					datetime.today(), self.job_id))
 		DB.commit()
 		self.job_store.clear()
@@ -497,7 +500,7 @@ class JobSheetGUI(Gtk.Builder):
 		for row in cursor.fetchall():
 			self.job_store.append(row)
 		cursor.close()
-		if path != [] : # a row is selected
+		if path != [] and path[0][0] < len(model): # the selected row is still there
 			tree_iter = model.get_iter(path)
 			treeselection.select_iter(tree_iter)
 		DB.rollback()
@@ -525,7 +528,7 @@ class JobSheetGUI(Gtk.Builder):
 		if keyname == 'F2':
 			self.new_line ()
 		elif keyname == 'F3':
-			self.delete_line ()
+			self.delete_item ()
 
 	def treeview_key_release_event (self, treeview, event):
 		keyname = Gdk.keyval_name(event.keyval)
