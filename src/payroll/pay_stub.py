@@ -30,7 +30,7 @@ from db_connection import DB
 from constants import ui_directory
 import user_manual
 
-UI_FILE = "src/payroll/pay_stub.ui"
+UI_FILE = ui_directory + "/payroll/pay_stub.ui"
 
 class Item(object):#this is used by py3o library see their example for more info
 	pass

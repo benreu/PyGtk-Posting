@@ -118,8 +118,6 @@ class Windows (unittest.TestCase):
 				continue
 			for ui in ui_name.findall(text):
 				ui = ui.lstrip('/') # "//miscellaneous_revenue.ui"
-				if ui.startswith('src/'): # pdf_attachment.py
-					ui = ui[len('src/'):]
 				ui_path = os.path.join(SRC, ui)
 				if not os.path.exists(ui_path):
 					continue

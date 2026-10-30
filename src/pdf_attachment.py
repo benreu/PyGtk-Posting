@@ -24,9 +24,10 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from subprocess import call
 import os, sane
+from constants import ui_directory
 import user_manual
 
-UI_FILE = "src/pdf_attachment.ui"
+UI_FILE = ui_directory + "/pdf_attachment.ui"
 
 def sizeof_file(num, suffix='B'):
 	"https://stackoverflow.com/questions/1094841/"
