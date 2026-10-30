@@ -61,10 +61,6 @@ class MainReportsGUI:
 		from reports import statements
 		statements.StatementsGUI()
 
-	def product_transactions_clicked (self, button):
-		from reports import product_transactions
-		product_transactions.ProductTransactionsGUI()
-
 	def invoice_to_payment_matching (self, button):
 		from reports import invoice_to_payment_matching
 		invoice_to_payment_matching.GUI()
@@ -96,6 +92,10 @@ class MainReportsGUI:
 	def count_inventory_clicked (self, button):
 		from inventory import inventory_count
 		inventory_count.InventoryCountGUI()
+
+	def inventory_history_clicked (self, button):
+		from inventory import inventory_history
+		inventory_history.InventoryHistoryGUI()
 
 	def invoice_amounts_clicked (self, button):
 		from reports import invoice_amounts
