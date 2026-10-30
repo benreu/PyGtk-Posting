@@ -139,23 +139,36 @@ class SQLWindowGUI(Gtk.Builder):
 			query_time = round(time.time() - t, 4)
 			self.get_object('time_label').set_label(str(query_time))
 		except Exception as e:
-			self.get_object('sql_error_buffer').set_text(str(e))
-			self.get_object('textview2').set_visible(True)
-			self.get_object('scrolledwindow2').set_visible(False)
+			self.show_message(str(e))
 			DB.rollback()
+			cursor.close()
+			return
+		if cursor.description == None: #probably an UPDATE, report rows affected
+			row_count = cursor.rowcount
+			cursor.close()
+			committed = self.end_transaction()
+			if committed == None:
+				return
+			if committed:
+				result = "%s row(s) affected and committed" % row_count
+			else:
+				result = ("%s row(s) would be affected; rolled back, "
+							"nothing changed" % row_count)
+			self.show_message(result)
+			self.save_current_sql(string)
+			return
+		# end the transaction before converting cells, so a conversion error
+		# cannot leave it open for some other window's commit to keep
+		rows = cursor.fetchall()
+		description = cursor.description
+		cursor.close()
+		if self.end_transaction() == None:
 			return
 		#create treeview columns and a liststore to store the info
-		if cursor.description == None: #probably an UPDATE, report rows affected
-			result = "%s row(s) affected" % cursor.rowcount
-			self.get_object('sql_error_buffer').set_text(result)
-			self.get_object('textview2').set_visible(True)
-			self.get_object('scrolledwindow2').set_visible(False)
-			DB.rollback()
-			return
 		self.get_object('textview2').set_visible(False)
 		self.get_object('scrolledwindow2').set_visible(True)
 		type_list = list()
-		for index, row in enumerate(cursor.description):
+		for index, row in enumerate(description):
 			column_name = row.name
 			type_ = row.type_code
 			if type_ == 23:
@@ -177,15 +190,31 @@ class SQLWindowGUI(Gtk.Builder):
 		store = Gtk.ListStore()
 		store.set_column_types(type_list)
 		treeview.set_model(store)
-		for row in cursor.fetchall():
+		for row in rows:
 			# do a convert, cell by cell, to make sure types are correct
 			store_row = list()
 			for index, element in enumerate(row):
 				store_row.append(type_list[index](element))
 			store.append (store_row)
-		DB.rollback()
-		cursor.close()
 		self.save_current_sql(string)
+
+	def show_message (self, text):
+		self.get_object('sql_error_buffer').set_text(text)
+		self.get_object('textview2').set_visible(True)
+		self.get_object('scrolledwindow2').set_visible(False)
+
+	def end_transaction (self):
+		"True when committed, False when rolled back, None when the commit failed"
+		if not self.get_object('commit_checkbutton').get_active():
+			DB.rollback()
+			return False
+		try:
+			DB.commit()
+		except Exception as e: # a deferred constraint, say
+			self.show_message(str(e))
+			DB.rollback()
+			return None
+		return True
 
 	def save_current_sql(self, command):
 		cursor = DB.cursor()
