@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk
+from datetime import datetime
 from invoice_window import create_new_invoice 
 from db_connection import DB
 from constants import ui_directory
@@ -164,7 +165,8 @@ class DraftJobSheetsGUI (Gtk.Builder):
 		# They take the customer's newest tax exemption, the one the invoice
 		# window starts on; the invoice_items triggers swap in the product's
 		# own rate when it is not exemptible or there is no exemption, then
-		# fill in ext_price and tax
+		# fill in ext_price and tax.
+		# The job leaves the time clock, as it does posted from the job sheet
 		c.execute("INSERT INTO invoice_items "
 						"(qty, product_id, remark, price, tax_rate_id, "
 						"invoice_id) "
@@ -176,9 +178,12 @@ class DraftJobSheetsGUI (Gtk.Builder):
 					"FROM job_sheet_items AS jsi "
 						"WHERE jsi.job_sheet_id = %s; "
 					"UPDATE job_sheets SET (invoiced, completed) "
-						"= (True, True) WHERE id = %s",
+						"= (True, True) WHERE id = %s; "
+					"UPDATE time_clock_projects "
+					"SET (stop_date, active) = (%s, False) "
+					"WHERE job_sheet_id = %s",
 					(customer_id, customer_id, invoice_id, job_sheet_id,
-					job_sheet_id))
+					job_sheet_id, datetime.today(), job_sheet_id))
 		DB.commit()
 		self.populate_job_store ()
 
@@ -188,8 +193,14 @@ class DraftJobSheetsGUI (Gtk.Builder):
 			return
 		job_sheet_id = model[path][0]
 		cursor = DB.cursor()
+		# a completed job is no longer listed in the job sheet window, where
+		# it could be taken out of the time clock, so it leaves it now
 		cursor.execute("UPDATE job_sheets SET completed = True "
-							"WHERE id = %s", (job_sheet_id,))
+							"WHERE id = %s; "
+							"UPDATE time_clock_projects "
+							"SET (stop_date, active) = (%s, False) "
+							"WHERE job_sheet_id = %s",
+							(job_sheet_id, datetime.today(), job_sheet_id))
 		cursor.close()
 		DB.commit()
 		self.populate_job_store()

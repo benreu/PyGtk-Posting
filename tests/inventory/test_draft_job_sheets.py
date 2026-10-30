@@ -1,4 +1,5 @@
 import unittest
+from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from unittest import mock
 import os, sys
@@ -16,7 +17,8 @@ APPEND_ITEMS = 2 # show_invoice_exists_message's "Append items" response
 class DraftJobSheetsTest(DBTestCase):
 	'''Draft job sheets: Post Job to Invoice priced the job's lines and then
 	every other line on the invoice too, so appending a job overwrote prices
-	already set there'''
+	already set there; and neither it nor Post Job as Completed took the job
+	out of the time clock'''
 	def setUp(self):
 		super().setUp()
 		import draft_job_sheets
@@ -64,16 +66,19 @@ class DraftJobSheetsTest(DBTestCase):
 							(self.job_id, qty, self.product_id, remark))
 		self.DB.commit()
 
-	def post(self):
-		'''Post Job to Invoice with the test job selected; returns the mocked
-		question about an existing draft invoice'''
+	def gui(self):
+		'''the window with the test job selected'''
 		gui = self.draft_job_sheets.DraftJobSheetsGUI()
 		for row in gui.jobs_store:
 			if row[0] == self.job_id:
 				gui.get_object('treeview-selection1').select_path(row.path)
-				break
-		else:
-			self.fail('the test job is not listed')
+				return gui
+		self.fail('the test job is not listed')
+
+	def post(self):
+		'''Post Job to Invoice with the test job selected; returns the mocked
+		question about an existing draft invoice'''
+		gui = self.gui()
 		with mock.patch.object(gui, 'show_invoice_exists_message',
 								return_value = APPEND_ITEMS) as asked:
 			gui.post_job_to_invoice_clicked(None)
@@ -119,6 +124,52 @@ class DraftJobSheetsTest(DBTestCase):
 						self.tax(Decimal('5.00'))),
 						(self.product_id, Decimal('3.00'), '',
 						PRICE, PRICE * 3, self.tax(PRICE * 3))])
+
+	def put_in_time_clock(self, job_id):
+		'''what checking Job available in Time Clock on the job sheet does,
+		a week ago'''
+		project_id = self.one("INSERT INTO time_clock_projects (name, "
+								"start_date, active, permanent, job_sheet_id) "
+								"VALUES ('Test job', %s, True, False, %s) "
+								"RETURNING id",
+								(date.today() - timedelta(days = 7), job_id))
+		self.DB.commit()
+		return project_id
+
+	def time_clock_project(self, project_id):
+		self.cursor.execute("SELECT active, stop_date FROM time_clock_projects "
+							"WHERE id = %s", (project_id,))
+		return self.cursor.fetchone()
+
+	def other_job(self):
+		'''a second job for the customer, which stays in the time clock'''
+		job_id = self.one("INSERT INTO job_sheets (contact_id, job_type_id, "
+							"description) SELECT contact_id, job_type_id, "
+							"'Other job' FROM job_sheets WHERE id = %s "
+							"RETURNING id", (self.job_id,))
+		return self.put_in_time_clock(job_id)
+
+	def test_posting_takes_the_job_out_of_the_time_clock(self):
+		project_id = self.put_in_time_clock(self.job_id)
+		other_project_id = self.other_job()
+		self.add_line(1)
+		self.post()
+		self.assertEqual(self.time_clock_project(project_id),
+						(False, date.today()))
+		self.assertEqual(self.time_clock_project(other_project_id),
+						(True, None))
+
+	def test_completing_takes_the_job_out_of_the_time_clock(self):
+		project_id = self.put_in_time_clock(self.job_id)
+		other_project_id = self.other_job()
+		self.gui().post_job_as_completed_clicked(None)
+		self.assertEqual(self.time_clock_project(project_id),
+						(False, date.today()))
+		self.assertEqual(self.time_clock_project(other_project_id),
+						(True, None))
+		self.cursor.execute("SELECT invoiced, completed FROM job_sheets "
+							"WHERE id = %s", (self.job_id,))
+		self.assertEqual(self.cursor.fetchone(), (False, True))
 
 if __name__ == '__main__':
 	unittest.main()
