@@ -65,6 +65,25 @@ class GUI:
 		self.window = self.builder.get_object('window1')
 		user_manual.bind_f1(self.window, "vendor_payment")
 		self.window.show_all()
+		if po_id != None:
+			self.select_purchase_order (po_id)
+
+	def select_purchase_order (self, po_id):
+		'''open on one bill, as Save and pay in unprocessed orders asks'''
+		cursor = DB.cursor()
+		cursor.execute("SELECT vendor_id::text FROM purchase_orders "
+							"WHERE id = %s", (po_id,))
+		vendor_id = cursor.fetchone()[0]
+		cursor.close()
+		DB.rollback()
+		#filling the invoice list and the totals is left to the signals, so
+		#the window ends up as if the vendor and the bill had been clicked
+		self.builder.get_object('combobox1').set_active_id(vendor_id)
+		selection = self.builder.get_object('treeview-selection1')
+		for row in self.builder.get_object('treeview1').get_model():
+			if row[0] == int(po_id):
+				selection.select_path(row.path)
+				break
 
 	def refresh_clicked (self, button):
 		self.populate_vendor_liststore()

@@ -17,7 +17,8 @@
 
   <p><guiseq><gui>Vendor</gui><gui>Vendor payment</gui></guiseq>, or the
   <gui>Vendor Payment</gui> button of the main window, pays the vendor
-  invoices saved in <link xref="unprocessed_po"/>.</p>
+  invoices saved in <link xref="unprocessed_po"/>. <gui>Save and pay
+  ...</gui> there opens it with the bill just saved already chosen.</p>
 
   <steps>
     <item><p>Choose the <gui>Vendor</gui>, or check <gui>View all</gui> to

@@ -428,17 +428,22 @@ class GUI(Gtk.Builder):
 	def save_invoice_button_clicked (self, button):
 		if self.correction == True:
 			return self.save_corrections_clicked (button)
+		self.save_invoice ()
+
+	def save_invoice (self):
+		'''True once the invoice is saved and the window closed, False when the
+		missing attachment dialog called it off'''
 		if self.request_po_attachment and not self.attachment:
 			dialog = self.get_object('missing_attachment_dialog')
 			result = dialog.run()
 			dialog.hide()
 			if result == Gtk.ResponseType.CANCEL:
-				return 
+				return False
 			elif result == 0:
 				import pdf_attachment
 				paw = pdf_attachment.PdfAttachmentWindow(self.window)
 				paw.connect("pdf_optimized", self.optimized_callback)
-				return
+				return False
 		invoice_number = self.get_object('entry6').get_text()
 		cursor = DB.cursor()
 		cursor.execute("UPDATE purchase_orders "
@@ -455,9 +460,11 @@ class GUI(Gtk.Builder):
 		cursor.close()
 		DB.commit()
 		self.window.destroy()
+		return True
 
 	def save_and_pay_invoice(self, widget):
-		self.save_invoice()
+		if self.save_invoice () == False:
+			return
 		import vendor_payment
 		vendor_payment.GUI(self.purchase_order_id)
 
@@ -546,6 +553,8 @@ class GUI(Gtk.Builder):
 	def check_all_entries_completed (self):
 		button = self.get_object('button5')
 		button.set_sensitive(False)
+		#Save and pay saves too, so it waits on the same checks
+		self.get_object('button2').set_sensitive(False)
 		if self.correction_blocked != None:
 			button.set_label(self.correction_blocked)
 			return
@@ -555,7 +564,6 @@ class GUI(Gtk.Builder):
 		for row in self.purchase_order_items_store:
 			if row[7] == 0 and row[12] == False:
 				button.set_label("Missing expense account")
-				self.get_object('button2').set_sensitive(False)
 				return
 			continue
 		button.set_sensitive(True)

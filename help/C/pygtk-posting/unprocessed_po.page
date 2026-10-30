@@ -38,8 +38,10 @@
     xref="receive_orders"/>.</p></item>
   </steps>
 
-  <note><p><gui>Save and pay ...</gui> does not work yet. Click <gui>Save as
-  invoice</gui>, then pay in <link xref="vendor_payment"/>.</p></note>
+  <p>To pay the bill straight away, click <gui>Save and pay ...</gui>
+  instead. It saves the invoice just as <gui>Save as invoice</gui> does,
+  asking first about a missing attachment, then opens <link
+  xref="vendor_payment"/> with this vendor and bill already chosen.</p>
 
   <section id="attachment">
   <title>The vendor's invoice as a file</title>
