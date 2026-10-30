@@ -1,4 +1,5 @@
 import unittest
+from datetime import date
 from decimal import Decimal
 from unittest import mock
 import os, sys
@@ -14,11 +15,11 @@ PRICE = Decimal('7.25') # the customer's price for the product, set in setUp
 APPEND_ITEMS = 2 # show_invoice_exists_message's "Append items" response
 
 class TaxExemptionLinesTest(DBTestCase):
-	'''Lines posted to an invoice from the job sheet window and Draft job sheets
-	took the product's own tax rate, so a tax exempt customer was charged tax
-	until the invoice's exemption was chosen again. They now take the
-	customer's newest exemption, which is also what the invoice window starts
-	on'''
+	'''Lines posted to an invoice from the job sheet window, Draft job sheets
+	and Documents to invoice took the product's own tax rate, so a tax exempt
+	customer was charged tax until the invoice's exemption was chosen again.
+	They now take the customer's newest exemption, which is also what the
+	invoice window starts on'''
 	def setUp(self):
 		super().setUp()
 		# a customer with a markup row and no draft invoice to be asked about
@@ -144,6 +145,31 @@ class TaxExemptionLinesTest(DBTestCase):
 								return_value = APPEND_ITEMS):
 			gui.post_job_to_invoice_clicked(None)
 		self.assertEqual(self.invoice_lines(self.draft_invoice()),
+						[(self.exemption_id, PRICE * 2, Decimal('0.00'))])
+
+	def test_documents_to_invoice_uses_the_newest_exemption(self):
+		import documents_to_invoice, invoice_window
+		document_type_id = self.one("SELECT id FROM document_types "
+									"ORDER BY id LIMIT 1")
+		if document_type_id == None:
+			document_type_id = self.one("INSERT INTO document_types (name) "
+										"VALUES ('Quote') RETURNING id")
+		document_id = self.one("INSERT INTO documents (contact_id, closed, "
+								"invoiced, canceled, date_created, dated_for, "
+								"document_type_id, pending_invoice, name) "
+								"VALUES (%s, False, False, False, %s, %s, %s, "
+								"True, 'Quo_test') RETURNING id",
+								(self.customer_id, date.today(), date.today(),
+								document_type_id))
+		self.cursor.execute("INSERT INTO document_items (document_id, "
+							"product_id, qty, price, ext_price) "
+							"VALUES (%s, %s, 2, %s, %s)",
+							(document_id, self.product_id, PRICE, PRICE * 2))
+		invoice_id = invoice_window.create_new_invoice(self.customer_id)
+		self.DB.commit()
+		gui = documents_to_invoice.DocumentsToInvoiceGUI()
+		gui.import_document_items_to_invoice(document_id, invoice_id)
+		self.assertEqual(self.invoice_lines(invoice_id),
 						[(self.exemption_id, PRICE * 2, Decimal('0.00'))])
 
 if __name__ == '__main__':
