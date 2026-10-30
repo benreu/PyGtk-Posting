@@ -26,7 +26,7 @@ import user_manual
 UI_FILE = ui_directory + "/invoice/import_time_clock_entries.ui"
 
 class ImportGUI():
-	def __init__(self, parent_window, contact_id, invoice_id):
+	def __init__(self, parent_window, contact_id, invoice_id, tax_rate_id):
 
 		self.builder = Gtk.Builder()
 		self.builder.add_from_file(UI_FILE)
@@ -34,6 +34,7 @@ class ImportGUI():
 
 		self.contact_id = contact_id
 		self.invoice_id = invoice_id
+		self.tax_rate_id = tax_rate_id # the invoice window's exemption choice
 
 		self.import_store = self.builder.get_object('import_store')
 		self.product_store = self.builder.get_object('product_store')
@@ -107,12 +108,12 @@ class ImportGUI():
 		cursor = DB.cursor()
 		cursor.execute("INSERT INTO invoice_items "
 							"(invoice_id, qty, product_id, price, ext_price, "
-							"remark, canceled, imported) "
-							"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
+							"remark, canceled, imported, tax_rate_id) "
+							"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
 							"RETURNING id",
 							(self.invoice_id, self.invoicing_time,
 							self.product_id, price, ext_price, description,
-							False, True))
+							False, True, self.tax_rate_id))
 		line_item_id = cursor.fetchone()[0]
 		for row in self.import_store:
 			if row[6] == True:

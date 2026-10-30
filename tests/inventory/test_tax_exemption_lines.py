@@ -1,6 +1,6 @@
 import unittest
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from unittest import mock
 import os, sys
 # the harness is a directory up, beside the other test folders; its
@@ -15,11 +15,12 @@ PRICE = Decimal('7.25') # the customer's price for the product, set in setUp
 APPEND_ITEMS = 2 # show_invoice_exists_message's "Append items" response
 
 class TaxExemptionLinesTest(DBTestCase):
-	'''Lines posted to an invoice from the job sheet window, Draft job sheets
-	and Documents to invoice took the product's own tax rate, so a tax exempt
-	customer was charged tax until the invoice's exemption was chosen again.
-	They now take the customer's newest exemption, which is also what the
-	invoice window starts on'''
+	'''Lines posted to an invoice from the job sheet window, Draft job sheets,
+	Documents to invoice and the time clock import took the product's own tax
+	rate, so a tax exempt customer was charged tax until the invoice's
+	exemption was chosen again. They now take the customer's newest exemption
+	(the time clock import, the invoice window's choice), which is also what
+	the invoice window starts on'''
 	def setUp(self):
 		super().setUp()
 		# a customer with a markup row and no draft invoice to be asked about
@@ -171,6 +172,30 @@ class TaxExemptionLinesTest(DBTestCase):
 		gui.import_document_items_to_invoice(document_id, invoice_id)
 		self.assertEqual(self.invoice_lines(invoice_id),
 						[(self.exemption_id, PRICE * 2, Decimal('0.00'))])
+
+	def test_the_time_clock_import_uses_the_invoice_windows_choice(self):
+		import invoice_window
+		from invoice import import_time_clock_entries
+		invoice_id = invoice_window.create_new_invoice(self.customer_id)
+		self.DB.commit()
+		gui = import_time_clock_entries.ImportGUI(None, str(self.customer_id),
+										invoice_id, str(self.older_exemption_id))
+		gui.product_id = str(self.product_id)
+		gui.invoicing_time = '2.0'
+		gui.post_to_invoice_clicked(None)
+		self.assertEqual(self.invoice_lines(invoice_id),
+						[(self.older_exemption_id, PRICE * 2,
+						(PRICE * 2 / 100).quantize(Decimal('0.01'),
+												ROUND_HALF_UP))])
+
+	def test_the_invoice_window_hands_its_choice_to_the_time_clock(self):
+		gui, invoice_id = self.open_invoice()
+		gui.builder.get_object('tax_exemption_combo').set_active_id(
+											str(self.older_exemption_id))
+		with mock.patch('invoice.import_time_clock_entries.ImportGUI') as ImportGUI:
+			gui.import_time_clock_window(None)
+		ImportGUI.assert_called_once_with(gui.window, gui.customer_id,
+									invoice_id, str(self.older_exemption_id))
 
 if __name__ == '__main__':
 	unittest.main()
