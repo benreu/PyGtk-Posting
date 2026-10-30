@@ -1,13 +1,19 @@
 # harness.py
 #
-# Shared setup for the inventory tests. They run against the restore copy
+# Shared setup for every test folder beside it: it stands a level above them
+# because it belongs to none of them. They run against the restore copy
 # 'silrep_restore' only, inside one transaction that is rolled back in tearDown,
 # so the database is left unchanged. The password is read from the environment.
+# They log in as posting, the login Posting itself uses (see
+# src/db/posting_role.sql), never as a superuser, so they run with exactly
+# the privileges Posting has; POSTING_TEST_DB_USER overrides that, and
+# POSTING_TEST_DB_HOST the server, for a throwaway cluster. posting owns
+# production too, which is why connect () checks the database it reached.
 
 import os, sys, unittest
 import psycopg2
 
-SRC = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
+SRC = os.path.join(os.path.dirname(__file__), '..', 'src')
 sys.path.insert(0, os.path.abspath(SRC))
 
 import constants
@@ -19,7 +25,8 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 TEST_DB = 'silrep_restore' # never point these tests at another database
-HOST = '192.168.50.120'
+HOST = os.environ.get('POSTING_TEST_DB_HOST', '192.168.50.120')
+TEST_USER = os.environ.get('POSTING_TEST_DB_USER', 'posting')
 
 class FakeDB:
 	'''psycopg2 connection that never really commits: commit() moves a savepoint
@@ -49,7 +56,7 @@ def connect():
 	if password is None:
 		raise unittest.SkipTest('POSTING_TEST_DB_PASSWORD not set')
 	conn = psycopg2.connect(dbname = TEST_DB, host = HOST, port = 5432,
-							user = 'postgres', password = password,
+							user = TEST_USER, password = password,
 							connect_timeout = 5)
 	cursor = conn.cursor()
 	cursor.execute("SELECT current_database()")
@@ -85,6 +92,52 @@ class FakeBroadcaster:
 	def connected(self, signal):
 		return [handler for registered, handler in self.handlers.values()
 				if registered == signal]
+
+class FakeSchemaAttributeType (object):
+	STRING = 'string'
+
+class FakeSecret (object):
+	'''only what credentials.py asks of libsecret, so no test touches the real
+	login keyring. Patched in as credentials.Secret; stored is what a store
+	left behind, keyed on the sorted attributes'''
+	COLLECTION_DEFAULT = 'default'
+	SchemaAttributeType = FakeSchemaAttributeType
+
+	class SchemaFlags (object):
+		NONE = 0
+
+	class ServiceFlags (object):
+		OPEN_SESSION = 2
+
+	class SearchFlags (object):
+		NONE = 0
+		UNLOCK = 2
+		LOAD_SECRETS = 4
+
+	class Schema (object):
+		@staticmethod
+		def new (name, flags, attributes):
+			return {'name': name, 'flags': flags, 'attributes': attributes}
+
+	def __init__ (self):
+		self.stored = {}
+		self.lookup_error = None
+		self.lookup_result = None
+		self.items = []
+		self.searched = []
+
+	def password_lookup_sync (self, schema, attributes, cancellable):
+		if self.lookup_error != None:
+			raise self.lookup_error
+		return self.lookup_result
+
+	def password_store_sync (self, schema, attributes, collection, label,
+								password, cancellable):
+		self.stored[tuple(sorted(attributes.items()))] = (label, password)
+		return True
+
+	def password_clear_sync (self, schema, attributes, cancellable):
+		return self.stored.pop(tuple(sorted(attributes.items())), None) != None
 
 # db_connection.DB is imported by value everywhere, so it has to be replaced
 # before any application module is imported

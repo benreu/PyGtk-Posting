@@ -17,13 +17,16 @@
 
 from gi.repository import GLib, GObject, Gtk
 import time, threading, contextlib, traceback, psycopg2, psycopg2.extensions
-import sqlite_utils
+import sqlite_utils, credentials
 
 DEFAULT_CONNECT_TIMEOUT = 5
 MAX_RECONNECT_ATTEMPTS = 5
 RECONNECT_BACKOFF_SECONDS = 2
 RECONNECT_BACKOFF_CAP = 30
 MIN_DIALOG_VISIBLE_SECONDS = 0.6
+# what libpq says when it is the password that is missing or wrong, rather than
+# the server being out of reach - only then is asking for it again any use
+PASSWORD_REFUSED = ('password authentication failed', 'no password supplied')
 
 DB = None
 DB_PROCESS_ID = 0
@@ -45,7 +48,18 @@ def is_connection_lost(exc, real_conn):
 	return False
 
 
+def unconfigured(database):
+	"the placeholder row a new local_settings starts with, never filled in"
+	return database in (None, 'None')
+
+
 def _fetch_params(sqlite, row_id):
+	'''The connection settings, the mobile flag, and why there is no password
+	when there is none - which is said to the user when they are asked for it.
+
+	The password comes from the login keyring. A plain text one still in
+	local_settings is one move_passwords_to_keyring could not move yet, and is
+	used as it always was. This blocks on a locked keyring: see credentials.py'''
 	cursor = sqlite.cursor()
 	if row_id == None:
 		rows = cursor.execute("SELECT host, port, user, password, db_name, mobile "
@@ -57,6 +71,15 @@ def _fetch_params(sqlite, row_id):
 	for row in rows:
 		host, port, user, password, database, mobile = row
 	cursor.close()
+	missing = None
+	if password in ('', 'None'):
+		password = None
+		if not unconfigured(database):
+			try:
+				password = credentials.password('postgres',
+								credentials.postgres_host(host, port), user)
+			except credentials.CredentialError as e:
+				missing = str(e)
 	params = {
 		'dbname': database,
 		'host': host,
@@ -71,7 +94,7 @@ def _fetch_params(sqlite, row_id):
 		'keepalives_interval': 10,
 		'keepalives_count': 3,
 	}
-	return params, mobile == 'True'
+	return params, mobile == 'True', missing
 
 
 def get_db_params(row_id):
@@ -81,10 +104,49 @@ def get_db_params(row_id):
 		cursor = sqlite.cursor()
 		sqlite_utils.create_apsw_tables(cursor)
 		sqlite_utils.update_apsw_tables(cursor)
+		sqlite_utils.move_passwords_to_keyring(cursor)
 		sqlite.close()  # unlock file after updating
 		sqlite = sqlite_utils.get_apsw_connection()
 		constants.sqlite_connection = sqlite
 	return _fetch_params(constants.sqlite_connection, row_id)
+
+
+def password_refused(exc):
+	message = str(exc)
+	return any(text in message for text in PASSWORD_REFUSED)
+
+
+def ask_password(params, reason):
+	'''The password typed for this connection, or None when the user canceled.
+	dialog.run() is a main loop of its own, so this works at startup, before
+	Gtk.main() has been called.'''
+	dialog = Gtk.Dialog(title = "Database password", modal = True)
+	dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+	dialog.add_button("Connect", Gtk.ResponseType.OK)
+	dialog.set_default_response(Gtk.ResponseType.OK)
+	grid = Gtk.Grid(row_spacing = 6, column_spacing = 12, border_width = 10)
+	dialog.get_content_area().pack_start(grid, True, True, 0)
+	grid.attach(Gtk.Label(label = reason.strip(), xalign = 0, wrap = True,
+							max_width_chars = 50), 0, 0, 2, 1)
+	rows = [("Database", params['dbname']),
+			("Server", credentials.postgres_host(params['host'], params['port'])),
+			("User", params['user'])]
+	for row, (caption, value) in enumerate(rows, 1):
+		grid.attach(Gtk.Label(label = caption, xalign = 1), 0, row, 1, 1)
+		grid.attach(Gtk.Label(label = value, xalign = 0), 1, row, 1, 1)
+	entry = Gtk.Entry(activates_default = True, visibility = False,
+						width_chars = 28)
+	grid.attach(Gtk.Label(label = "Password", xalign = 1), 0, len(rows) + 1, 1, 1)
+	grid.attach(entry, 1, len(rows) + 1, 1, 1)
+	note = Gtk.Label(label = "Kept in this computer's login keyring once the "
+							"server accepts it, never in a file.", xalign = 0)
+	note.get_style_context().add_class('dim-label')
+	grid.attach(note, 0, len(rows) + 2, 2, 1)
+	dialog.show_all()
+	response = dialog.run()
+	password = entry.get_text()
+	dialog.destroy()
+	return password if response == Gtk.ResponseType.OK else None
 
 
 def _active_toplevel():
@@ -189,13 +251,46 @@ class DBConnection:
 		self._connect()
 
 	def _connect(self):
-		params, mobile = get_db_params(self._row_id)
+		if self._params is None:
+			self._first_connect()
+		else:
+			# a reconnect, on the main loop: the settings and the password are
+			# the ones the first connect used, so nothing here can wait on a
+			# keyring prompt
+			self._real = psycopg2.connect(**self._params)
+
+	def _first_connect(self):
+		# no password given - none stored, or the keyring would not give it up -
+		# or a wrong one is asked for. psycopg2 leaves out a password of None, so
+		# a server that needs none, or a ~/.pgpass, is tried before asking
+		params, mobile, missing = get_db_params(self._row_id)
+		typed = None
+		while True:
+			try:
+				self._real = psycopg2.connect(**params)
+				break
+			except psycopg2.OperationalError as e:
+				if unconfigured(params['dbname']) or not password_refused(e):
+					raise
+				typed = ask_password(params, missing or str(e))
+				missing = None
+				if typed is None:
+					raise psycopg2.OperationalError("no password was given for %s"
+													% params['dbname'])
+				params['password'] = typed
+		if typed:
+			try:
+				credentials.store_password('postgres',
+						credentials.postgres_host(params['host'], params['port']),
+						params['user'], typed)
+			except credentials.CredentialError as e:
+				print("db_connection: %s\nThe password is kept for this session "
+						"only, and asked for again next time." % e)
 		self.db_name = params['dbname']
 		self.mobile = mobile
-		# kept so background_connection() can dial the same server without
-		# re-reading the sqlite settings file from a worker thread
+		# kept so a reconnect, and background_connection(), dial the same server
+		# without re-reading the sqlite settings file or the keyring
 		self._params = params
-		self._real = psycopg2.connect(**params)
 
 	def _is_alive(self):
 		# libpq's own view of the socket first - closed is 2 when the server dropped

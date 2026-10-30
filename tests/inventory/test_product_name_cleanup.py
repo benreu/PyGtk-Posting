@@ -16,7 +16,14 @@ import os
 import unittest
 from unittest import mock
 import psycopg2
-from harness import DBTestCase, HOST, TEST_DB
+import os, sys
+# the harness is a directory up, beside the other test folders; its
+# own directory is here as well, for the fixtures a folder shares
+sys.path[:0] = [os.path.dirname(os.path.abspath(__file__)),
+				os.path.join(os.path.dirname(os.path.abspath(__file__)),
+								'..')]
+
+from harness import DBTestCase, HOST, TEST_DB, TEST_USER
 
 import product_name_rules
 
@@ -497,7 +504,7 @@ class CleanupWindowTest(RulesTestCase):
 						(self.auto_id,))
 		#a second session holds the same advisory lock product_edit_main takes
 		other = psycopg2.connect(host = HOST, database = TEST_DB,
-								user = 'postgres',
+								user = TEST_USER,
 								password = os.environ['POSTING_TEST_DB_PASSWORD'])
 		other_cursor = other.cursor()
 		other_cursor.execute("SELECT pg_try_advisory_lock(%s, %s)",

@@ -34,6 +34,35 @@ And then:
 This will restart postgresql and you should be ready to fire up PyGtk Posting and enter the proper credentials. At this point Postgresql will still not be network ready (it will only be accessible by the computer it runs on). Networking Postgresql will be covered in an other tutorial when motivation, time or money find me. And not neccesarily in that order.
 
 
+A login of its own for Posting
+
+Once a database exists, Posting should stop logging in as postgres. postgres is a superuser: it can reach every database on the server, and through the SQL window it can even run programs on the server itself. Posting should log in as posting instead: a login that owns the Posting databases and everything in them, and nothing else. It can do everything Posting does, upgrades included.
+
+src/db/posting_role.sql sets this up. Close Posting on every computer first, then run it as postgres, once for each database:
+
+psql -h your_server -U postgres -d silrep -f src/db/posting_role.sql
+
+It asks for the postgres password. The first time, it also asks for a password for posting, twice. When it finishes it lists anything still owned by another login. That list should be empty.
+
+Then, on each computer, open the database tools window and enter the server, the user posting and its password. Test, pick the database, Save connection, select it and press Set default. Delete the old postgres connection, which also removes the postgres password from that computer. Keep the postgres password for yourself, and do not save it on any computer that runs Posting.
+
+The script does not stop anyone logging in as postgres. A superuser ignores who owns a database and who may connect to it, so a computer that still uses postgres keeps working, and nothing inside a database can change that. Make it the last step. Once every database has been converted and every computer uses posting, change the postgres password, because every computer that ever used postgres has the old one saved:
+
+psql -h your_server -U postgres -d postgres -c '\password postgres'
+
+Before you do, check that nothing still logs in as postgres. This lists every Posting connection, with its login and the computer it comes from:
+
+psql -h your_server -U postgres -d postgres -c "SELECT datname, usename, client_addr FROM pg_stat_activity WHERE usename IS NOT NULL ORDER BY 1, 2"
+
+Changing the password does not close connections that are already open; they fail the next time they reconnect.
+
+Backups and restores: a login belongs to the server, not to a database, so no backup carries posting or its password. When you press Restore in the database tools window, Posting asks which user to restore as, usually postgres, and that user's password. Neither is saved. Posting creates the database, restores the backup into it, and then runs posting_role.sql on it with the same login, so the restored database belongs to posting. On a server that has never had the posting login, the script creates it and asks for its password in the restore window.
+
+A database made with Create database in the same window still belongs to whoever created it, so run posting_role.sql on it by hand. Do the same for any database restored some other way. Run the script again whenever its list is not empty. Running it twice does no harm, and it leaves the password alone. The script needs PostgreSQL 11 or later.
+
+If your server's pg_hba.conf names users one by one rather than "all", add a line for posting.
+
+
 Should you like these instructions or find an error, my email is pygtk.posting@gmail.com
 
 

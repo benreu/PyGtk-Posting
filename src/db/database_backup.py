@@ -25,6 +25,21 @@ from sqlite_utils import get_apsw_connection
 
 UI_FILE = ui_directory + "/db/database_backup.ui"
 
+def connection_url (user, host, port, db_name):
+	'''for pg_dump, psql and pg_restore, and without the password: a command
+	line is readable by every account on the machine, through ps'''
+	return "postgresql://%s@%s:%s/%s" % (user, host, port, db_name)
+
+def password_environment (password):
+	'''this process's environment with the password in it for libpq. Unlike a
+	command line, a process's environment is readable by its own user only'''
+	if not password:
+		return ["%s=%s" % item for item in os.environ.items()]
+	envv = ["%s=%s" % (name, value) for name, value in os.environ.items()
+				if name != 'PGPASSWORD']
+	envv.append("PGPASSWORD=%s" % password)
+	return envv
+
 def get_postgres_bin_path ():
 	sqlite = get_apsw_connection()
 	cursor = sqlite.cursor()
@@ -123,12 +138,12 @@ class BackupGUI(Gtk.Builder):
 		self.terminal.set_pty(pty)
 		backup_command = ["%s/pg_dump" % self.bin_path, 
 							"-Cwv", "-F", "c",
-							"--dbname=postgresql://%s:%s@%s:%s/%s" % 
-							(self.user, self.password, self.server, self.port, self.db_name),
+							"--dbname=%s" % connection_url(self.user, self.server,
+															self.port, self.db_name),
 							"-f", filename]
 		pty.spawn_async(None,
 						backup_command,
-						None,
+						password_environment(self.password),
 						GLib.SpawnFlags.DEFAULT,
 						None,
 						None,

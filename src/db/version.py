@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from gi.repository import Gtk, GLib
+from psycopg2 import sql
 from db_connection import DB
 from constants import ui_directory
 
@@ -23,6 +24,22 @@ UI_FILE = ui_directory + "/db/version.ui"
 
 VERSION_MAJOR = 7
 VERSION_MINOR = 40
+
+def run_as_database_owner (cursor):
+	'''Make what an upgrade creates belong to the database's owner, whoever
+	runs it. Posting logs in as that owner (see posting_role.sql), and every
+	upgrade ALTERs what earlier ones made - so a table left behind by a
+	workstation still logging in as postgres would stop the next upgrade at
+	"must be owner of table". SET LOCAL, so it ends with the transaction that
+	run_updates commits or rolls back. Returns the role switched to, or None.'''
+	cursor.execute("SELECT pg_get_userbyid(datdba), current_user, "
+					"pg_has_role(datdba, 'MEMBER') "
+					"FROM pg_database WHERE datname = current_database()")
+	owner, user, member = cursor.fetchone()
+	if owner == user or not member:
+		return None
+	cursor.execute(sql.SQL("SET LOCAL ROLE {}").format(sql.Identifier(owner)))
+	return owner
 
 class CheckVersion :
 	def __init__ (self, main):
@@ -104,6 +121,7 @@ class CheckVersion :
 
 	def run_updates (self, d, major_db_version, minor_db_version):
 		c = DB.cursor()
+		run_as_database_owner(c)
 		if int(major_db_version) < VERSION_MAJOR:  # major version upgrade 
 			dialog = self.builder.get_object('db_major_upgrade')
 			result = dialog.run()

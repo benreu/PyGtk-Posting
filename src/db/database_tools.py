@@ -18,7 +18,7 @@
 import gi
 gi.require_version('Vte', '2.91')
 from gi.repository import Gtk, GLib, Vte
-import subprocess, psycopg2, re, os
+import subprocess, psycopg2, re, os, threading
 from subprocess import Popen, PIPE
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from db_connection import DB
@@ -26,6 +26,7 @@ from constants import ui_directory, sql_dir
 import user_manual
 from constants import log_file as LOG_FILE
 from sqlite_utils import get_apsw_connection
+import credentials
 
 UI_FILE = ui_directory + "/db/database_tools.ui"
 
@@ -80,14 +81,18 @@ class GUI:
 	def restore_database_clicked(self, widget):
 		host = self.builder.get_object('server_entry').get_text()
 		port = self.builder.get_object('port_entry').get_text()
-		user = self.builder.get_object('username_entry').get_text()
-		password = self.builder.get_object('password_entry').get_text()
 		db_name = self.builder.get_object('entry6').get_text()
 		if db_name == "":
 			self.status_update("Database name is blank!")
-		else:
-			from db.database_restore import RestoreGUI
-			RestoreGUI(host, port, user, password, db_name)
+			return
+		from db.database_restore import RestoreGUI, ask_restore_login
+		# asked for, not taken from the form above: that is the login Posting
+		# runs as, and it may not create the database a restore needs
+		login = ask_restore_login(self.window, host, port, db_name)
+		if login == None:
+			return
+		user, password = login
+		RestoreGUI(host, port, user, password, db_name)
 			
 	def restore_name_changed(self, widget):
 		restore_database_name = widget.get_text()
@@ -180,10 +185,32 @@ class GUI:
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("INSERT INTO db_connections "
 								"(server, port, user, password, db_name, standard, mobile) "
-								"VALUES (?, ?, ?, ?, ?, 'False', ?) ", 
-								(host, port, user, password, db_name, mobile))
+								"VALUES (?, ?, ?, '', ?, 'False', ?) ",
+								(host, port, user, db_name, mobile))
+		self.keep_password(host, port, user, password)
 		self.populate_databases()
 		self.builder.get_object('notebook1').set_current_page(0)
+
+	def keep_password (self, host, port, user, password):
+		'''Into the login keyring, never into local_settings. On a worker
+		thread, because a locked keyring holds the call until its prompt has
+		been answered (see credentials.py).'''
+		if password == '':
+			return
+		def work ():
+			try:
+				credentials.store_password('postgres',
+								credentials.postgres_host(host, port), user,
+								password)
+				message = ("Connection saved. Its password is in this "
+							"computer's login keyring.")
+			except credentials.CredentialError as e:
+				print(e)
+				message = ("Connection saved. The login keyring would not take "
+							"the password, so Posting will ask for it when it "
+							"connects.")
+			GLib.idle_add(self.status_update, message)
+		threading.Thread(target = work, daemon = True).start()
 
 	def delete_connection_clicked (self, button):
 		model, row = self.builder.get_object('database_selection').get_selected()
@@ -191,10 +218,33 @@ class GUI:
 			return
 		row_id = model[row][0]
 		sqlite = get_apsw_connection()
-		sqlite.cursor().execute("DELETE FROM db_connections WHERE id = ? ",
-								(row_id,))
+		cursor = sqlite.cursor()
+		deleted = cursor.execute("SELECT server, port, user FROM db_connections "
+									"WHERE id = ?", (row_id,)).fetchall()
+		cursor.execute("DELETE FROM db_connections WHERE id = ? ", (row_id,))
+		for host, port, user in deleted:
+			# the keyring item is per server and user, so it stays while any
+			# other connection - the default one included - still logs in with it
+			still_used = cursor.execute("SELECT "
+							"(SELECT COUNT(*) FROM db_connections "
+								"WHERE server = ? AND port = ? AND user = ?) + "
+							"(SELECT COUNT(*) FROM postgres_conn "
+								"WHERE host = ? AND port = ? AND user = ?)",
+							(host, port, user) * 2).fetchone()[0]
+			if still_used == 0:
+				self.forget_password(host, port, user)
 		sqlite.close()
 		self.populate_databases()
+
+	def forget_password (self, host, port, user):
+		"worker thread, for the same reason as keep_password"
+		def work ():
+			try:
+				credentials.clear_password('postgres',
+								credentials.postgres_host(host, port), user)
+			except credentials.CredentialError as e:
+				print(e)
+		threading.Thread(target = work, daemon = True).start()
 
 	def create_new_database_clicked (self, button):
 		self.status_update("Creating database...")
@@ -258,8 +308,9 @@ class GUI:
 		sqlite = get_apsw_connection()
 		sqlite.cursor().execute("INSERT INTO db_connections "
 								"(server, port, user, password, db_name, standard, mobile) "
-								"VALUES (?, ?, ?, ?, ?, 'False', ?)", 
-								(host, port, user, password, db_name, mobile))
+								"VALUES (?, ?, ?, '', ?, 'False', ?)",
+								(host, port, user, db_name, mobile))
+		self.keep_password(host, port, user, password)
 		self.populate_databases()
 		self.builder.get_object('notebook1').set_current_page(0)
 
