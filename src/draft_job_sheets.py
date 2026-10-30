@@ -160,20 +160,17 @@ class DraftJobSheetsGUI (Gtk.Builder):
 			invoice_id = create_new_invoice (customer_id)
 		cursor.close()
 		c = DB.cursor()
+		# only the job's lines are priced, not those already on the invoice;
+		# the invoice_items triggers fill in tax_rate_id, ext_price and tax
 		c.execute("INSERT INTO invoice_items "
-						"(qty, product_id, remark, invoice_id) "
-					"SELECT qty, product_id, remark, %s "
+						"(qty, product_id, remark, price, invoice_id) "
+					"SELECT qty, product_id, remark, "
+						"customer_product_price(%s, product_id), %s "
 					"FROM job_sheet_items AS jsi "
 						"WHERE jsi.job_sheet_id = %s; "
-					"UPDATE invoice_items AS ii SET price = "
-					"customer_product_price(%s, ii.product_id) "
-					"WHERE ii.invoice_id = %s; "
-					"UPDATE invoice_items AS ii SET ext_price = (price * qty) "
-					"WHERE ii.invoice_id = %s; "
 					"UPDATE job_sheets SET (invoiced, completed) "
-						"= (True, True) WHERE id = %s", 
-					(invoice_id, job_sheet_id, customer_id, invoice_id, 
-					invoice_id, job_sheet_id))
+						"= (True, True) WHERE id = %s",
+					(customer_id, invoice_id, job_sheet_id, job_sheet_id))
 		DB.commit()
 		self.populate_job_store ()
 
