@@ -22,7 +22,8 @@
     <item><title><gui>Post Job to Invoice</gui></title>
     <p>Closes the job and adds its products to the customer's draft invoice,
     at the customer's prices. If the customer already has a draft invoice, you
-    are asked whether to add them to it.</p></item>
+    are asked whether to add them to it; the lines already on it keep their
+    prices.</p></item>
     <item><title><gui>Post Job as Completed</gui></title>
     <p>Closes the job without invoicing anything.</p></item>
     <item><title><gui>Open in Job Sheet window</gui></title>
