@@ -35,8 +35,8 @@
     <item><p><gui>Customer</gui> opens the contacts window. Right click in the
     customer box and choose <gui>Contact hub</gui> to see everything about
     this customer.</p></item>
-    <item><p><gui>Email</gui> starts a new message to the customer in
-    Thunderbird.</p></item>
+    <item><p><gui>Email</gui> opens <link xref="send_email"/> with a new
+    message to the customer.</p></item>
     <item><p>The shipping box chooses which of the customer's shipping
     addresses goes on the invoice.</p></item>
     <item><p><gui>Location :</gui> is where the stock is taken from when the
@@ -142,10 +142,11 @@
     <item><title><gui>Document list</gui></title>
     <p>Opens the <link xref="#document_list">document list</link>.</p></item>
     <item><title><gui>Email invoice</gui></title>
-    <p>When checked, posting opens an email to the customer's address with
-    the invoice attached. The setting in
-    <guiseq><gui>Edit</gui><gui>Settings</gui></guiseq> decides whether it
-    starts checked.</p></item>
+    <p>When checked, posting opens <link xref="send_email"/> addressed to
+    the customer, with the invoice attached and the message set in <link
+    xref="email_message"/>. It is greyed out for a customer with no email
+    address. The setting in <guiseq><gui>Edit</gui><gui>Settings</gui></guiseq>
+    decides whether it starts checked.</p></item>
     <item><title><gui>Fax invoice...</gui></title>
     <p>Confirms a fax number before posting; the invoice is faxed as soon as
     it is posted. See <link xref="fax#invoice"/>.</p></item>

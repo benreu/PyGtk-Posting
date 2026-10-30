@@ -29,6 +29,7 @@
     xref="invoice_to_payment_matching"/></p></item>
     <item><p><gui>Job sheet history</gui>: <link xref="job_sheet_history"/></p></item>
     <item><p><gui>Vendor purchase orders</gui>: <link xref="vendor_history"/></p></item>
+    <item><p><gui>Correspondence</gui>: <link xref="correspondence"/></p></item>
   </list>
 
 </page>

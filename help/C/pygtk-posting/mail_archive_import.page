@@ -1,0 +1,56 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="mail_archive_import">
+
+  <info>
+  <link type="guide" xref="administration"/>
+  <link type="seealso" xref="correspondence"/>
+  <desc>Bring old mail from a Thunderbird folder into the correspondence
+  window.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Import a mail archive</title>
+
+  <p><guiseq><gui>Administration</gui><gui>Data</gui><gui>Mail archive
+  import</gui></guiseq> reads the messages in a Thunderbird mail file into
+  <link xref="correspondence"/>. It is for mail the server no longer has,
+  such as mail that was downloaded and removed from the server. Nothing is
+  written to the file, and mail already in the database is left alone, so
+  importing the same file twice does no harm.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Mail file</gui> with <gui>Browse</gui>, which
+    starts in Thunderbird's own folder. A Thunderbird mail file has the name
+    of its folder, such as <file>Inbox</file> or <file>Sent</file>, with no
+    extension.</p></item>
+    <item><p><gui>Call it</gui> is the folder name stored with each message.
+    It starts as the file's name.</p></item>
+    <item><p>Check <gui>These are messages this company sent</gui> for a Sent
+    folder, so they count as sent rather than received.</p></item>
+    <item><p>Leave <gui>File each message under the contact it was with</gui>
+    checked to file received mail under whoever sent it, and sent mail under
+    whoever it went to.</p></item>
+    <item><p>Click <gui>Look at the file</gui>. It counts the messages and
+    gives the dates they cover, writing nothing, so you can tell it is the
+    right file.</p></item>
+    <item><p>Click <gui>Import</gui>.</p></item>
+  </steps>
+
+  <p>A large file takes a while; the bar shows how many messages have been
+  read and stored. When it finishes it says how many were stored, how many
+  were already there, how many were filed under a contact, and how many could
+  not be. Closing the window stops the import; what was stored so far is
+  kept, and importing the file again picks up the rest.</p>
+
+  <p>Messages are matched to contacts by email address, the only thing an
+  old message has to go on. An address belonging to more than one contact
+  is filed under none of them, and deleted contacts are not matched.</p>
+
+  <note><p>The correspondence window does not show the name given in
+  <gui>Call it</gui> yet.</p></note>
+
+</page>

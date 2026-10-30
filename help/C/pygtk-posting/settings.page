@@ -5,7 +5,7 @@
   <info>
   <link type="guide" xref="edit"/>
   <desc>How this company's books behave: accounting method, reminders,
-  columns, printers.</desc>
+  mail, columns, printers.</desc>
     <credit type="author">
       <name>Reuben Rissler</name>
       <email>pygtk.posting@gmail.com</email>
@@ -82,6 +82,46 @@
     beside each box shows today in that format, or <gui>#Error</gui> if the
     format cannot be used.</p></item>
   </terms>
+  </section>
+
+  <section id="mail_accounts">
+  <title>Mail accounts</title>
+  <p>The mail account PyGtk Posting sends from, see <link
+  xref="send_email"/>. Several can be kept, but only the one marked <gui>In
+  use</gui> sends; saving an account puts it in use.</p>
+  <steps>
+    <item><p>Click <gui>New</gui> and type a <gui>Name</gui> for the account,
+    and the <gui>From name</gui> and <gui>From address</gui> the mail is sent
+    as.</p></item>
+    <item><p>Fill in the <gui>SMTP server</gui>, <gui>Security</gui> and
+    <gui>SMTP user</gui> your mail provider gives for sending. Choosing the
+    <gui>Security</gui> moves the <gui>SMTP port</gui> to the one that
+    goes with it: 587 for STARTTLS, 465 for TLS.</p></item>
+    <item><p>To keep a copy of sent mail in the account's Sent folder, and to
+    read mail into <link xref="correspondence"/>, also fill in the <gui>IMAP
+    server</gui>, <gui>IMAP port</gui> and <gui>IMAP user</gui>.</p></item>
+    <item><p>Click <gui>Save</gui>, then <gui>Set password...</gui>. The
+    password is checked with the server first. One the server refuses is not
+    kept; if the server cannot be reached, you are asked whether to keep it
+    anyway.</p></item>
+    <item><p>Click <gui>Test</gui>. It logs in with this computer's password
+    and lists the server's folders, so the <gui>Sent folder</gui> can be
+    chosen from them.</p></item>
+  </steps>
+  <p>The password is kept in this computer's login keyring, not in the
+  database, so <gui>Set password...</gui> has to be done once on every
+  computer that sends mail. <gui>Forget password</gui> removes it from this
+  computer. If you change the user name or server later, set the password
+  again. <gui>Delete</gui> removes the account but leaves its password in
+  the keyring.</p>
+  <p>Tick a folder under <gui>Read folders</gui> to have its mail read into
+  <link xref="correspondence"/> every five minutes, on each computer that
+  has the password. The first time, every message in the folder is read,
+  which can take a few minutes. Nothing on the server is changed or marked
+  read. Clearing the tick stops reading that folder and keeps what was
+  already read.</p>
+  <p><gui>Invoice message...</gui> opens <link xref="email_message"/>, the
+  wording invoices are emailed with.</p>
   </section>
 
   <section id="time_clock">

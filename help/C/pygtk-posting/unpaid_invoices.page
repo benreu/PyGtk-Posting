@@ -65,8 +65,8 @@
     <item><title><gui>Customer invoices PDF</gui></title>
     <p>Puts the first page of each of the chosen customer's unpaid invoices
     into one PDF, four to a page, to send with a reminder. When it is built,
-    <gui>View PDF</gui> opens it and <gui>Send via email</gui> starts an email
-    to the customer in Thunderbird with it attached.</p></item>
+    <gui>View PDF</gui> opens it and <gui>Send via email</gui> opens <link
+    xref="send_email"/> to the customer with it attached.</p></item>
     <item><title><gui>Save window layout</gui></title>
     <p>Remembers the window's size, column widths and sorting, on this
     computer.</p></item>

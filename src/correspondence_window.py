@@ -40,6 +40,7 @@ from db_connection import DB, broadcaster
 from constants import ui_directory
 from sqlite_utils import get_apsw_connection
 from dateutils import DateTimeCalendar
+import user_manual
 
 UI_FILE = ui_directory + "/correspondence_window.ui"
 
@@ -94,6 +95,7 @@ class CorrespondenceGUI (Gtk.Builder):
 		# before the set_date calls: they reach the date handlers, and
 		# anything those put on screen is transient for this window
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "correspondence")
 		self.start_calendar.set_date(datetime.today() - timedelta(days = 365))
 		self.end_calendar.set_today()
 		self.loading = False

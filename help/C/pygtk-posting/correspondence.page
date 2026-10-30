@@ -1,0 +1,78 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="correspondence">
+
+  <info>
+  <link type="guide" xref="general"/>
+  <link type="seealso" xref="send_email"/>
+  <link type="seealso" xref="mail_archive_import"/>
+  <link type="seealso" xref="contact_history"/>
+  <desc>Read the mail sent to and received from your contacts, on any
+  computer.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Correspondence</title>
+
+  <p><guiseq><gui>General</gui><gui>Correspondence</gui></guiseq> lists the
+  mail kept in the database, newest first. The <gui>Correspondence</gui>
+  button of the <link xref="contact_hub"/>, and a double click on the
+  <gui>Correspondence</gui> tab of <link xref="contact_history"/>, open it
+  already showing one contact.</p>
+
+  <p>The mail comes from three places:</p>
+  <list>
+    <item><p>Every message sent from PyGtk Posting, see <link
+    xref="send_email"/>. It is filed under the contact it went to and, when
+    it carried an invoice, under the invoice too.</p></item>
+    <item><p>The folders ticked under <gui>Read folders</gui> in <link
+    xref="settings#mail_accounts"/>, read from the mail server every five
+    minutes.</p></item>
+    <item><p>Old mail brought in with <link
+    xref="mail_archive_import"/>.</p></item>
+  </list>
+
+  <section id="finding">
+  <title>Finding a message</title>
+  <terms>
+    <item><title><gui>Contact</gui></title>
+    <p>Shows only the mail filed under that contact. <gui>Clear</gui> shows
+    everyone's mail again.</p></item>
+    <item><title><gui>From</gui> and <gui>to</gui></title>
+    <p>The dates to show. The window opens on the last year. When nothing is
+    found but older mail exists, the line at the bottom gives the date of the
+    oldest message, so you know to widen the dates.</p></item>
+    <item><title><gui>Both ways</gui>, <gui>Sent</gui>, <gui>Received</gui></title>
+    <p>Which way the messages went. Mail in the account's Sent folder counts
+    as sent.</p></item>
+    <item><title><gui>Search the subject</gui></title>
+    <p>Narrows the list to messages whose subject or contact contains what
+    you type.</p></item>
+  </terms>
+  <p>The list updates itself when mail is sent or read from the server, on
+  any computer. The <gui>Contact</gui> column shows the contacts a message is
+  filed under, or the address it came from or went to when it is filed under
+  none. <gui>Attached</gui> says whether it had attachments.</p>
+  <note><p>Mail read from the server is not filed under a contact, so it is
+  listed only while no contact is chosen.</p></note>
+  </section>
+
+  <section id="reading">
+  <title>Reading a message</title>
+  <p>Select a message to read it below the list. <gui>This message is
+  about</gui> lists what it is filed under: its contacts, and the invoice
+  when it carried one. Select the invoice and click <gui>Open</gui>, or
+  double click it, to open its PDF. The PDF comes from the invoice itself, so
+  it is the copy that was posted.</p>
+  <p>Only the text of each message is kept, not its attachments, and mail
+  read from the server or an archive keeps the first 64 KB of its text. The
+  server still has the whole message.</p>
+  <p><gui>Save window layout</gui>, in the window menu, remembers the
+  window's size, where the list and the message divide, and the column
+  widths, on this computer.</p>
+  </section>
+
+</page>

@@ -32,6 +32,7 @@ import os, threading
 from db_connection import DB, background_connection
 from constants import ui_directory
 import emailing, mbox_import
+import user_manual
 
 UI_FILE = ui_directory + "/mbox_import_window.ui"
 
@@ -45,6 +46,7 @@ class MboxImportGUI (Gtk.Builder):
 		self.importer = None
 		self.working = False
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "mail_archive_import")
 		self.window.show_all()
 
 	def destroy (self, window):

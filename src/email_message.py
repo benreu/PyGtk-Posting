@@ -30,6 +30,7 @@ from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory
 import emailing
+import user_manual
 
 UI_FILE = ui_directory + "/email_message.ui"
 
@@ -52,6 +53,7 @@ class EmailMessageGUI (Gtk.Builder):
 							for token, meaning in emailing.TOKEN_HELP))
 		self.load()
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "email_message")
 		self.window.show_all()
 
 	def load (self):

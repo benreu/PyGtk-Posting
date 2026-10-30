@@ -1,0 +1,67 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="send_email">
+
+  <info>
+  <link type="guide" xref="customer"/>
+  <link type="seealso" xref="correspondence"/>
+  <link type="seealso" xref="email_message"/>
+  <link type="seealso" xref="settings#mail_accounts"/>
+  <desc>Write a message to a contact and send it, with files attached,
+  through the company's mail account.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Send email</title>
+
+  <p>PyGtk Posting sends mail itself, through the account set up in <link
+  xref="settings#mail_accounts"/>. The <gui>Send email</gui> window opens
+  from:</p>
+  <list>
+    <item><p>the <gui>Email</gui> button of an <link xref="invoice"/>, with
+    an empty message to the customer;</p></item>
+    <item><p>posting an invoice with <gui>Email invoice</gui> checked. The
+    invoice is attached, and the subject and message are the ones set in
+    <link xref="email_message"/>;</p></item>
+    <item><p>posting a document with <gui>Email invoice</gui> checked, in
+    <link xref="documents_window"/>, with the document attached;</p></item>
+    <item><p><gui>Send via email</gui> in <link
+    xref="unpaid_invoices#menu"/>, with the summary of the customer's unpaid
+    invoices attached.</p></item>
+  </list>
+  <p>Nothing is sent until you click <gui>Send</gui>, so a message can always
+  be read and changed first.</p>
+
+  <steps>
+    <item><p>Choose the <gui>Contact</gui>, or type an address in
+    <gui>To</gui>. Only contacts with an email address are listed, and
+    choosing one fills in <gui>To</gui>.</p></item>
+    <item><p>Type the <gui>Subject</gui> and the message.</p></item>
+    <item><p>Under <gui>Attachments</gui>, <gui>Add</gui> attaches files from
+    the computer and <gui>Remove</gui> takes the selected one
+    off.</p></item>
+    <item><p>Click <gui>Send</gui>. It stays greyed out until <gui>To</gui>
+    holds an email address.</p></item>
+  </steps>
+
+  <p>The line at the bottom says which address the mail goes out from, or
+  that no mail account is set up. The message is sent in the background. A
+  message then says it was sent and the window closes; if it could not be
+  sent, the message says why and the window stays as it was, so you can put
+  it right and send again. Attachments that come to more than 20 MB are
+  refused before anything is sent.</p>
+
+  <p>A sent message is kept in the database, filed under the contact chosen
+  and under the invoice it carried, and can be read in <link
+  xref="correspondence"/> on any computer. When the account has an IMAP
+  server, a copy is also put in its Sent folder, so it shows in other mail
+  programs too.</p>
+
+  <note><p>The password is kept in the login keyring of each computer, not in
+  the database, so it has to be set once on every computer that sends mail;
+  see <link xref="settings#mail_accounts"/>.</p></note>
+
+</page>

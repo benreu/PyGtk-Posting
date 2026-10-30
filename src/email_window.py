@@ -29,6 +29,7 @@ import os
 from db_connection import DB
 from constants import ui_directory
 import emailing
+import user_manual
 
 UI_FILE = ui_directory + "/email_window.ui"
 
@@ -58,6 +59,7 @@ class EmailGUI (Gtk.Builder):
 		if contact_id != None:
 			self.get_object('contact_combo').set_active_id(str(contact_id))
 		self.window = self.get_object('window')
+		user_manual.bind_f1(self.window, "send_email")
 		self.window.show_all()
 		self.show_account()
 		self.update_buttons()

@@ -57,8 +57,9 @@
     <item><title><gui>Cancel</gui></title>
     <p>Closes the window. The document stays unposted.</p></item>
     <item><title><gui>Email invoice</gui></title>
-    <p>When checked, posting also opens an email to the customer with the
-    document attached.</p></item>
+    <p>When checked, posting also opens <link xref="send_email"/> to the
+    customer with the document attached. If they have no email address, a
+    message says the document was posted but not emailed.</p></item>
     <item><title><gui>Import items from history</gui></title>
     <p>Opens <link xref="document_history"/>; choose a past document and
     click <gui>Import items from document history</gui> to copy its lines

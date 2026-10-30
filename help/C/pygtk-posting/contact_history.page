@@ -48,6 +48,9 @@
     <item><title><gui>Shipping</gui></title>
     <p>What was shipped to them, with tracking numbers. Right click for the
     <gui>Invoice history</gui> of the shipment's invoice.</p></item>
+    <item><title><gui>Correspondence</gui></title>
+    <p>Mail filed under them, sent and received. Double click a message to
+    read it in <link xref="correspondence"/>.</p></item>
   </terms>
 
   <p>A tab with something in it shows how many rows it holds. Drag a tab

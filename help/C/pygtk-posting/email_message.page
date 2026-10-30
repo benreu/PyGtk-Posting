@@ -1,0 +1,52 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="email_message">
+
+  <info>
+  <link type="guide" xref="edit"/>
+  <link type="seealso" xref="send_email"/>
+  <link type="seealso" xref="settings#mail_accounts"/>
+  <desc>Change the subject and message that invoices are emailed
+  with.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Default email message</title>
+
+  <p>When an invoice is posted with <gui>Email invoice</gui> checked, the
+  <link xref="send_email"/> window opens with this subject and message
+  already filled in. It can still be changed there before it is sent; this
+  window sets what every invoice starts with. Open it with <gui>Invoice
+  message...</gui> in <link xref="settings#mail_accounts"/>.</p>
+
+  <p>Type the <gui>Subject</gui> and the message. These words are replaced
+  for each invoice, as listed under <gui>Filled in for each
+  invoice</gui>:</p>
+  <terms>
+    <item><title><code>{customer}</code></title>
+    <p>The name of the customer it is going to.</p></item>
+    <item><title><code>{invoice}</code></title>
+    <p>The invoice number.</p></item>
+    <item><title><code>{total}</code></title>
+    <p>The amount, such as $1,234.56.</p></item>
+    <item><title><code>{company}</code></title>
+    <p>Your company's name.</p></item>
+  </terms>
+  <p>The line under that list shows the subject as a real invoice would
+  carry it. A
+  word in braces that is not one of these, such as a misspelt
+  <code>{custmer}</code>, is sent exactly as typed, and the preview shows it
+  that way so it can be caught here.</p>
+
+  <p>Click <gui>Save</gui> to keep the message for every computer.
+  <gui>Restore the standard message</gui> puts back the wording PyGtk
+  Posting started with; it is not kept until you click <gui>Save</gui>.</p>
+
+  <note><p>Only invoices use this message. Documents and the unpaid invoices
+  summary are sent with a fixed message, which can be changed in the <link
+  xref="send_email"/> window before sending.</p></note>
+
+</page>
