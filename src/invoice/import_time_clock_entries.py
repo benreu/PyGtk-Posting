@@ -148,10 +148,9 @@ class ImportGUI():
 			import_row = row[6]
 			if import_row is True:
 				total_seconds += row[2]
-		time, hours, minutes, seconds = self.convert_seconds(total_seconds)
-		fractional_hours = int(minutes/6)
-		if minutes % 6 != 0 or seconds % 60 != 0 :
-			fractional_hours += 1 #round to the next .1 hour
+		time = self.convert_seconds(total_seconds)[0]
+		tenths = -(-total_seconds // 360) # round up to the next .1 hour
+		hours, fractional_hours = divmod(tenths, 10)
 		self.invoicing_time = str(hours) + "." + str(fractional_hours)
 		self.builder.get_object('label2').set_label(time)
 		self.builder.get_object('label4').set_label(self.invoicing_time)
