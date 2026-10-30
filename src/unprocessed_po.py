@@ -527,7 +527,7 @@ class GUI(Gtk.Builder):
 						"remark, "
 						"price, "
 						"ext_price, "
-						"a.expense_account, "
+						"poli.expense_account, "
 						"a.name, "
 						"CASE WHEN expense = TRUE THEN 0.00 ELSE price END, "
 						"expense, "
