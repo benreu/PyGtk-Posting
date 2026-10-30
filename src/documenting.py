@@ -134,7 +134,7 @@ class Setup():
 		p = printing.Operation(settings_file = "document")
 		p.set_parent(window)
 		p.set_file_to_print ("/tmp/" + self.document_pdf)
-		p.print_dialog ()
+		return p.print_dialog ()
 		
 	def print_directly(self):
 		from py3o.template import Template #import for every purchase order or there is an error about invalid magic header numbers

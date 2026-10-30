@@ -72,6 +72,8 @@ class DocumentsToInvoiceGUI:
 
 	def import_to_invoice_clicked(self, button):
 		model, path = self.builder.get_object('treeview-selection1').get_selected_rows()
+		if path == []:
+			return
 		document_id = model[path][0]
 		customer_id = model[path][1]
 		customer_name = model[path][2]
@@ -93,10 +95,22 @@ Do you want to append the document items?" % customer_name)
 		cursor.close()
 
 	def import_document_items_to_invoice(self, document_id, invoice_id):
+		refresh_prices = self.builder.get_object('togglebutton1').get_active()
 		cursor = DB.cursor()
-		cursor.execute("SELECT document_type_id "
-							"FROM documents WHERE id = %s",(document_id,))
-		cursor.execute("SELECT qty, product_id, remark, price FROM document_items WHERE document_id = %s", (document_id,))
+		# priced in SQL: pricing.get_customer_product_price rolls back, which
+		# would undo the lines inserted so far and a new invoice with them
+		cursor.execute("SELECT "
+								"di.qty, "
+								"di.product_id, "
+								"di.remark, "
+								"CASE WHEN %s "
+									"THEN customer_product_price"
+										"(d.contact_id, di.product_id) "
+									"ELSE di.price END "
+							"FROM document_items AS di "
+							"JOIN documents AS d ON d.id = di.document_id "
+							"WHERE di.document_id = %s ORDER BY di.id",
+							(refresh_prices, document_id))
 		for row in cursor.fetchall():
 			qty = row[0]
 			product_id = row[1]

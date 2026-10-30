@@ -112,15 +112,10 @@ class DocumentGUI:
 		_list_ = data.get_text().split(' ')
 		if len(_list_) != 2:
 			return
-		table, _id_ = _list_[0], _list_[1]
-		cursor = DB.cursor()
-		cursor.execute("SELECT product, remark, price FROM %s WHERE id = %s" % (table, _id_))
-		for row in cursor.fetchall():
-			product = row[0]
-			remark = row[1]
-			price = row[2]
-		cursor.close()
-		print ("please implement me") #FIXME
+		if self.document_id == 0:
+			return
+		qty, product_id = _list_[0], _list_[1] # products_overview, product_search
+		self.add_product (int(product_id), qty)
 
 	def destroy(self, window):
 		for handler in self.handler_ids:
@@ -164,10 +159,14 @@ class DocumentGUI:
 		d = documenting.Setup( self.documents_store,  self.contact_id, 
 								comment, self.date, self.document_type_id, 
 								self.document_name )
+		# the print dialog is where the user can choose not to post, so it comes first
 		if self.builder.get_object('menuitem1').get_active() == True:
 			d.print_directly()
 		else:
-			d.print_dialog(self.window)
+			result = d.print_dialog(self.window)
+			if result == "user canceled":
+				DB.rollback()
+				return # "Cancel printing and posting" was checked
 		d.post(self.document_id)
 		DB.commit()
 		if self.builder.get_object('menuitem4').get_active() == True:
@@ -485,10 +484,21 @@ class DocumentGUI:
 		iter_ = self.documents_store.get_iter(path)
 		row_id = self.documents_store[iter_][0]
 		cursor = DB.cursor()
+		# the price is saved, not only shown: the total and an import to an
+		# invoice both read it from document_items
 		cursor.execute("UPDATE document_items "
-							"SET product_id = %s WHERE id = %s;"
-							"SELECT name, ext_name FROM products "
-							"WHERE id = %s", (product_id, row_id, product_id))
+							"SET (product_id, price) = "
+							"(%s, customer_product_price(%s, %s)) "
+							"WHERE id = %s; "
+						"UPDATE document_items SET ext_price = qty * price "
+							"WHERE id = %s; "
+						"SELECT p.name, p.ext_name, di.price::text, "
+							"di.ext_price::text "
+						"FROM document_items AS di "
+						"JOIN products AS p ON p.id = di.product_id "
+						"WHERE di.id = %s",
+						(product_id, self.contact_id, product_id, row_id,
+						row_id, row_id))
 		tupl = cursor.fetchone()
 		cursor.close()
 		DB.commit()
@@ -496,8 +506,8 @@ class DocumentGUI:
 		self.documents_store[iter_][2] = int(product_id)
 		self.documents_store[iter_][3] = product_name
 		self.documents_store[iter_][4] = product_ext_name
-		price = get_customer_product_price(self.contact_id, product_id)
-		self.documents_store[iter_][12] = str(price)
+		self.documents_store[iter_][12] = tupl[2]
+		self.documents_store[iter_][14] = tupl[3]
 		self.calculate_totals()
 		# retrieve path again after all sorting has happened for the updates
 		path = self.documents_store.get_path(iter_)
@@ -641,10 +651,33 @@ class DocumentGUI:
 		DB.commit()
 
 	def delete_document_clicked (self, widget):
+		if self.document_id == 0:
+			return # the button is on as soon as a customer is chosen
+		dialog = Gtk.MessageDialog(message_type = Gtk.MessageType.QUESTION,
+									buttons = Gtk.ButtonsType.YES_NO,
+									text = "Delete %s and its lines?" %
+									self.document_name)
+		dialog.format_secondary_text("This cannot be undone.")
+		dialog.set_transient_for(self.window)
+		response = dialog.run()
+		dialog.destroy()
+		if response != Gtk.ResponseType.YES:
+			return
 		cursor = DB.cursor()
+		# document_items restricts the delete of a document that has lines
+		cursor.execute("DELETE FROM document_items WHERE document_id = %s",
+							(self.document_id,))
 		cursor.execute("DELETE FROM documents WHERE id = %s", (self.document_id,))
 		cursor.close()
 		DB.commit()
+		self.document_id = 0 # first, so clearing the name saves nothing
+		self.documents_store.clear()
+		self.builder.get_object('entry5').set_text('')
+		self.builder.get_object('button13').set_sensitive(False)
+		self.builder.get_object('button14').set_sensitive(False)
+		self.builder.get_object('button15').set_sensitive(False)
+		self.builder.get_object('import_from_history').set_sensitive(False)
+		self.calculate_totals ()
 		self.builder.get_object('entry3').set_text('')
 		self.populate_existing_store ()
 
@@ -887,32 +920,58 @@ class DocumentGUI:
 	def barcode_entry_activated (self, entry2):
 		barcode = entry2.get_text()
 		entry2.set_text('')
-		cursor = DB.cursor()
-		cursor.execute("SELECT id, name, 1.00, ext_name "
-								"FROM products WHERE barcode = %s",(barcode, ))
-		rows = cursor.fetchall()
-		cursor.close()
-		for i in rows:
-			product_id = i[0]
-			for index, row in enumerate(self.documents_store):
-				if row[2] == product_id:
-					row[1] += 1.0 # increase the qty by one
-					treeview = self.builder.get_object('treeview2')
-					c = treeview.get_column(0)
-					treeview.set_cursor(index , c, False)	#set the cursor to the last appended item
-					return
-			product_name = i[1]
-			price = i[2]
-			ext_name = i[3]
-			self.documents_store.append([0, 1.0, product_id, product_name, ext_name, 0.0, 100.00, int(self.contact_id), self.customer_name_default_label, False, "", "1", price, 0.00, 1]) #FIXME
-			last = self.documents_store.iter_n_children() - 1
-			treeview = self.builder.get_object('treeview2')
-			c = treeview.get_column(0)
-			treeview.set_cursor(last , c, False)	#set the cursor to the last appended item
+		if barcode == "":
+			return # blank barcode
+		if self.document_id == 0:
+			self.show_message ("Click New document, or open an existing one, "
+								"before scanning.")
 			return
-		else:
-			raise Exception ("please make a window to alert the user that the barcode does not exist!")
+		cursor = DB.cursor()
+		cursor.execute("SELECT id FROM products "
+							"WHERE (barcode, deleted) = (%s, False)", (barcode, ))
+		row = cursor.fetchone()
+		cursor.close()
 		DB.rollback()
+		if row == None:
+			self.show_message ("No product has the barcode %s." %
+								GLib.markup_escape_text(barcode))
+			return
+		self.add_product (row[0], 1)
+
+	def add_product (self, product_id, qty):
+		'''a scan or a drop: qty more on the product's first line, or a new
+		line at the customer's price when it is not on the document yet'''
+		cursor = DB.cursor()
+		cursor.execute("UPDATE document_items "
+							"SET (qty, ext_price) = (qty + %s, (qty + %s) * price) "
+							"WHERE id = (SELECT id FROM document_items "
+								"WHERE (document_id, product_id) = (%s, %s) "
+								"ORDER BY id LIMIT 1) "
+							"RETURNING id",
+							(qty, qty, self.document_id, product_id))
+		row = cursor.fetchone()
+		if row != None:
+			row_id = row[0]
+		else:
+			cursor.execute("INSERT INTO document_items "
+								"(document_id, product_id, retailer_id, qty, price) "
+							"VALUES (%s, %s, %s, %s, customer_product_price(%s, %s)) "
+							"RETURNING id",
+							(self.document_id, product_id, self.contact_id, qty,
+							self.contact_id, product_id))
+			row_id = cursor.fetchone()[0]
+			cursor.execute("UPDATE document_items SET ext_price = qty * price "
+								"WHERE id = %s", (row_id,))
+		cursor.close()
+		DB.commit() # populate_document_store rolls back, so save first
+		self.populate_document_store ()
+		self.builder.get_object('button15').set_sensitive(True)
+		for row in self.documents_store: # select the line
+			if row[0] == row_id:
+				treeview = self.builder.get_object('treeview2')
+				c = treeview.get_column(0)
+				treeview.set_cursor(row.path, c, False)
+				break
 
 	def show_message (self, message):
 		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,

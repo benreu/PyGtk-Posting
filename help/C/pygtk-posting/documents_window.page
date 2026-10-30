@@ -32,10 +32,14 @@
     to carry on with one of this customer's unposted documents of this
     type. The button shows how many there are.</p></item>
     <item><p>Click <gui>New Item</gui>, or press <key>F2</key>, for each line,
-    and fill in the <gui>Qty</gui>, <gui>Product</gui> and <gui>Price</gui>.
-    <gui>Delete Item</gui>, or <key>F3</key>, removes the selected line. You
-    can also scan or type a barcode into <gui>Scan or Type in + Enter</gui>,
-    or drag products onto the list.</p></item>
+    and fill in the <gui>Qty</gui> and <gui>Product</gui>. Choosing the product
+    fills in the customer's <gui>Price</gui> for it, which you can change.
+    <gui>Delete Item</gui>, or <key>F3</key>, removes the selected line.</p>
+    <p>You can also scan or type a barcode into <gui>Scan or Type in +
+    Enter</gui>, or drag a product onto the list from <link xref="products"/>
+    or <link xref="product_search"/>. A product already on the document adds
+    to its line's <gui>Qty</gui>; any other gets a new line at the customer's
+    price. A barcode no product has is reported.</p></item>
     <item><p>Check the date and <gui>Comments</gui>, and click the post
     button.</p></item>
   </steps>
@@ -47,9 +51,15 @@
   its retailer. Which columns are shown is set in <link
   xref="settings#columns">the settings</link>.</p>
 
-  <note><p>The document is posted even if the print dialog is cancelled.
-  Use <gui>View document</gui> to check it first. <gui>Delete document</gui>
-  deletes the current document at once, without asking.</p></note>
+  <p>To change your mind when posting, check <gui>Cancel printing and
+  posting</gui> on the <gui>PyGtk Posting</gui> tab of the print dialog, then
+  click <gui>Print</gui>. Nothing is printed or posted, and the document stays
+  open. Closing the print dialog with <gui>Cancel</gui> instead still posts the
+  document, without printing it. Use <gui>View document</gui> to check it
+  first.</p>
+
+  <p><gui>Delete document</gui> asks first, then deletes the current document
+  and all its lines.</p>
 
   <section id="menu">
   <title>The window menu</title>

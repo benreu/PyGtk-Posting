@@ -21,14 +21,17 @@
   <steps>
     <item><p>Select a document.</p></item>
     <item><p>Click <gui>Import To Invoice</gui>. Its lines are added to the
-    customer's draft invoice, at the document's prices; if the customer has an
-    unposted invoice you are asked whether to append them to it. The document
-    leaves the list.</p></item>
+    customer's draft invoice, at the prices chosen by the button beside it; if
+    the customer has an unposted invoice you are asked whether to append them
+    to it. The document leaves the list.</p></item>
     <item><p>Open the invoice from <link xref="draft_invoices"/> to check it
     and post it.</p></item>
   </steps>
 
-  <note><p><gui>Use document prices</gui> is remembered, but does not change
-  anything yet: the lines always come in at the document's prices.</p></note>
+  <p>The button beside <gui>Import To Invoice</gui> chooses the prices.
+  <gui>Use document prices</gui> brings each line in at the price on the
+  document. Click it to switch to <gui>Refresh prices</gui>, which brings each
+  line in at the customer's current price for the product, the price a new
+  invoice line would get. The choice is remembered.</p>
 
 </page>
