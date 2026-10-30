@@ -454,8 +454,8 @@
             </child>
             <child>
               <object class="GtkExpander" id="expander1">
+                <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="no-show-all">True</property>
                 <property name="margin-left">10</property>
                 <property name="label-fill">True</property>
                 <property name="resize-toplevel">True</property>
@@ -480,6 +480,8 @@
                       <object class="GtkSpinButton" id="spinbutton2">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Below zero: a discount, charged to an expense account.
+Above zero: cash handed back, paid from a cash account.</property>
                         <property name="xalign">1</property>
                         <property name="adjustment">adjustment2</property>
                         <property name="digits">2</property>

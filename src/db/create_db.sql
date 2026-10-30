@@ -381,7 +381,9 @@ CREATE TABLE public.payments_incoming (
     misc_income boolean DEFAULT false NOT NULL,
     gl_entries_deposit_id bigint REFERENCES public.gl_entries(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     payment_receipt_pdf bytea,
-    statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+    statement_id bigint REFERENCES public.statements(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    discount_cash_back numeric(12,2) DEFAULT 0.00 NOT NULL,
+    gl_entries_discount_cash_back_id bigint REFERENCES public.gl_entries(id) ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 --CREATE TABLE public.invoices
 CREATE TABLE public.invoices (

@@ -1003,7 +1003,7 @@ class InvoiceGUI:
 							"FROM invoices "
 							"WHERE (canceled, posted, customer_id) = "
 							"(False, True, %s)) - "
-							"(( SELECT COALESCE(SUM(amount), 0.00) "
+							"(( SELECT COALESCE(SUM(amount - discount_cash_back), 0.00) "
 							"FROM payments_incoming "
 							"WHERE (customer_id, misc_income) = "
 							"(%s, False)) + "

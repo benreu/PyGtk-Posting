@@ -463,7 +463,8 @@ class GUI (Gtk.Builder):
 					"COALESCE(i.amount_due - (pi.amount + cm.amount), 0.00)::money "
 					"FROM (SELECT SUM(amount_due) AS amount_due FROM invoices "
 					"WHERE (posted, canceled, active) = (True, False, True)) i, "
-					"(SELECT SUM(amount) AS amount FROM payments_incoming "
+					"(SELECT SUM(amount - discount_cash_back) AS amount "
+					"FROM payments_incoming "
 					"WHERE misc_income = False) pi, "
 					"(SELECT SUM(amount_owed) AS amount FROM credit_memos "
 					"WHERE posted = True) cm ")

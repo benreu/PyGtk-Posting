@@ -94,15 +94,21 @@ class CustomerInvoicePayment:
 		self.transaction_id = c.fetchone()[0]
 		c.close()
 
+	# every line passes date_inserted rather than leaving it to its default,
+	# see post_invoice_accounts: the column is NOT NULL DEFAULT now (), so a
+	# back dated payment filed its lines the day it was written while the
+	# header carried the payment date
+
 	def bank_check (self, payment_id):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(debit_account, credit_account, amount, gl_transaction_id) "
+					"(debit_account, credit_account, amount, gl_transaction_id, "
+					"date_inserted) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'check_payment'), "
 					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total, self.transaction_id))
+					"WHERE function = 'post_invoice'), %s, %s, %s) RETURNING id", 
+					(self.total, self.transaction_id, self.date))
 		pi_id = c.fetchone()[0]
 		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
@@ -112,12 +118,13 @@ class CustomerInvoicePayment:
 	def cash (self, payment_id):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(debit_account, credit_account, amount, gl_transaction_id) "
+					"(debit_account, credit_account, amount, gl_transaction_id, "
+					"date_inserted) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 					"WHERE function = 'cash_payment'), "
 					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'post_invoice'), %s, %s) RETURNING id", 
-					(self.total, self.transaction_id)) 
+					"WHERE function = 'post_invoice'), %s, %s, %s) RETURNING id", 
+					(self.total, self.transaction_id, self.date)) 
 		pi_id = c.fetchone()[0]
 		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
@@ -127,35 +134,64 @@ class CustomerInvoicePayment:
 	def credit_card (self, payment_id, account_number):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(debit_account, credit_account, amount, gl_transaction_id) "
+					"(debit_account, credit_account, amount, gl_transaction_id, "
+					"date_inserted) "
 					"VALUES (%s, "
 					"(SELECT account FROM gl_account_flow "
-					"WHERE function = 'post_invoice'), %s, %s) RETURNING id",
-					(account_number, self.total, self.transaction_id))
+					"WHERE function = 'post_invoice'), %s, %s, %s) RETURNING id",
+					(account_number, self.total, self.transaction_id, self.date))
 		pi_id = c.fetchone()[0]
 		c.execute("UPDATE payments_incoming "
 					"SET gl_entries_id = %s "
 					"WHERE id = %s", (pi_id, payment_id))
 		c.close()
 
+	def discount_cash_back (self, payment_id, account_number, amount):
+		'''the Discounts / cashback box, signed as typed: below zero a discount
+		charged to an expense account, above zero cash handed back from a cash
+		account. Either way the receivable moves by the opposite of what the
+		payment did, so the payment takes amount - discount_cash_back off it'''
+		receivable = ("(SELECT account FROM gl_account_flow "
+						"WHERE function = 'post_invoice')")
+		if amount > 0:
+			debit, credit = receivable, "%(account)s"
+		else:
+			debit, credit = "%(account)s", receivable
+		c = DB.cursor()
+		c.execute("INSERT INTO gl_entries "
+					"(debit_account, credit_account, amount, gl_transaction_id, "
+					"date_inserted) "
+					"VALUES (" + debit + ", " + credit + ", %(amount)s, "
+					"%(transaction)s, %(date)s) RETURNING id",
+					{'account': account_number, 'amount': abs(amount),
+					'transaction': self.transaction_id, 'date': self.date})
+		entry_id = c.fetchone()[0]
+		c.execute("UPDATE payments_incoming "
+					"SET (discount_cash_back, gl_entries_discount_cash_back_id) "
+					"= (%s, %s) WHERE id = %s",
+					(amount, entry_id, payment_id))
+		c.close()
+
 	def post_offset (self, account_number, amount):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(debit_account, credit_account, amount, gl_transaction_id) "
+					"(debit_account, credit_account, amount, gl_transaction_id, "
+					"date_inserted) "
 					"VALUES (%s, (SELECT account FROM gl_account_flow "
-					"WHERE function = 'post_invoice'), %s, %s)", 
-					(account_number, amount, self.transaction_id))
+					"WHERE function = 'post_invoice'), %s, %s, %s)", 
+					(account_number, amount, self.transaction_id, self.date))
 		c.close()
 
 	def customer_discount (self, discount):
 		c = DB.cursor()
 		c.execute("INSERT INTO gl_entries "
-					"(credit_account, debit_account, amount, gl_transaction_id) "
+					"(credit_account, debit_account, amount, gl_transaction_id, "
+					"date_inserted) "
 					"VALUES ((SELECT account FROM gl_account_flow "
 						"WHERE function = 'post_invoice'), "
 						"(SELECT account FROM gl_account_flow "
-						"WHERE function = 'customer_discount'), %s, %s)", 
-					(discount, self.transaction_id))
+						"WHERE function = 'customer_discount'), %s, %s, %s)", 
+					(discount, self.transaction_id, self.date))
 		c.close()
 
 class ServiceProviderPayment :

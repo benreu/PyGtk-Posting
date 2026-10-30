@@ -1427,3 +1427,23 @@ UPDATE public.gl_entries SET source_type = 'voided_check'
    transactions report, which no longer classifies a loan's entries as the
    document's own and so can repair them one at a time with the account chosen
    each time. */
+
+--0.7.40
+/* Customer payment's Discounts / cashback box, which was never posted. Below
+   zero it is a discount charged to an expense account; above zero it is cash
+   handed back from a cash account. Signed as the user typed it, so what the
+   payment takes off the customer's receivable is amount - discount_cash_back,
+   and every customer balance reads it that way. amount itself stays the money
+   received, because deposits bank the check at its face value.
+
+   The pointer is the payment's claim on the adjustment's ledger line, the same
+   way gl_entries_id claims the line the payment itself posts. 0.7.35 to 0.7.39
+   are taken by the mail work, which has not merged yet; skipping them keeps the
+   markers unique whichever lands first. */
+ALTER TABLE public.payments_incoming
+	ADD COLUMN IF NOT EXISTS discount_cash_back numeric(12,2)
+		DEFAULT 0.00 NOT NULL;
+ALTER TABLE public.payments_incoming
+	ADD COLUMN IF NOT EXISTS gl_entries_discount_cash_back_id bigint
+		REFERENCES public.gl_entries(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;

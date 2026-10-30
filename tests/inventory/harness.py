@@ -169,10 +169,18 @@ SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
 	('public', 'gl_entries', 'source_type'))
 """
 
+# Asked separately for the same reason again
+PAYMENT_ADJUSTMENT_SCHEMA_PROBE = """
+SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE
+	(table_schema, table_name, column_name) =
+	('public', 'payments_incoming', 'discount_cash_back'))
+"""
+
 _conn = None
 _schema_pending = True # until asked; a copy that is behind pays the DDL per test
 _settings_schema_pending = True
 _gl_source_schema_pending = True
+_payment_adjustment_schema_pending = True
 try:
 	_conn = connect()
 	# asked here, before FakeDB opens the savepoint every test rolls back to, so
@@ -184,6 +192,8 @@ try:
 	_settings_schema_pending = _probe.fetchone()[0]
 	_probe.execute(GL_SOURCE_SCHEMA_PROBE)
 	_gl_source_schema_pending = _probe.fetchone()[0]
+	_probe.execute(PAYMENT_ADJUSTMENT_SCHEMA_PROBE)
+	_payment_adjustment_schema_pending = _probe.fetchone()[0]
 	_probe.close()
 	_conn.rollback()
 	db_connection.DB = FakeDB(_conn)
@@ -482,6 +492,19 @@ ALTER TABLE public.gl_entries
 	ADD COLUMN IF NOT EXISTS source_id bigint;
 """
 
+# 0.7.40, Customer payment's Discounts / cashback. Its own block, see
+# PAYMENT_ADJUSTMENT_SCHEMA_PROBE. Needed because every customer balance now
+# reads payments_incoming.discount_cash_back - the invoice window's among them,
+# so any test that opens an invoice for a customer fails on a copy that has not
+# had the upgrade. The REFERENCES is left off, as in the blocks above
+PENDING_PAYMENT_ADJUSTMENT_SCHEMA = """
+ALTER TABLE public.payments_incoming
+	ADD COLUMN IF NOT EXISTS discount_cash_back numeric(12,2)
+		DEFAULT 0.00 NOT NULL;
+ALTER TABLE public.payments_incoming
+	ADD COLUMN IF NOT EXISTS gl_entries_discount_cash_back_id bigint;
+"""
+
 class DBTestCase(unittest.TestCase):
 	def setUp(self):
 		if _conn is None:
@@ -507,8 +530,11 @@ class DBTestCase(unittest.TestCase):
 			self.cursor.execute(PENDING_SETTINGS_SCHEMA)
 		if _gl_source_schema_pending:
 			self.cursor.execute(PENDING_GL_SOURCE_SCHEMA)
+		if _payment_adjustment_schema_pending:
+			self.cursor.execute(PENDING_PAYMENT_ADJUSTMENT_SCHEMA)
 		if _schema_pending or _settings_schema_pending \
-							or _gl_source_schema_pending:
+							or _gl_source_schema_pending \
+							or _payment_adjustment_schema_pending:
 			# move the savepoint past the DDL. FakeDB.rollback () returns to
 			# test_sp, which was taken at import, so a window doing the usual
 			# DB.rollback () after a read would otherwise undo the columns just

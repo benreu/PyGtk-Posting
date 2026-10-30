@@ -88,8 +88,8 @@ class GUI:
 		previous_position = 25.0
 		c.execute("SELECT * FROM "
 					"(SELECT "
-					"'Payment '||payment_info(id)||' '||format_date(date_inserted)||' '||amount::money, "
-					"amount::float, "
+					"'Payment '||payment_info(id)||' '||format_date(date_inserted)||' '||(amount - discount_cash_back)::money, "
+					"(amount - discount_cash_back)::float, "
 					"id, "
 					"date_inserted AS dated "
 					"FROM payments_incoming "

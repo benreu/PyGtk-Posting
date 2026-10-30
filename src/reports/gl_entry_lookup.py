@@ -126,6 +126,14 @@ SOURCE_BRANCHES = [
 	"JOIN wanted AS w ON w.id = p.gl_entries_id "
 	"JOIN contacts AS c ON c.id = p.customer_id",
 
+	# the Discounts / cashback line posted alongside it, from 0.7.40
+	"SELECT 'payment_discount_cash_back', 'Payment discount / cashback', "
+		"w.id, p.id, p.customer_id, 'Payment ' || p.id::text, "
+		"payment_info(p.id), c.name "
+	"FROM payments_incoming AS p "
+	"JOIN wanted AS w ON w.id = p.gl_entries_discount_cash_back_id "
+	"JOIN contacts AS c ON c.id = p.customer_id",
+
 	# One deposit slip banks many payments at once - deposits.py stamps the one
 	# entry Deposit.bank returned onto every payment in the batch - so this is
 	# many documents to one entry and has to aggregate. Listing a row per
@@ -390,7 +398,7 @@ def open_source (source_type, source_id, aux_id):
 	elif source_type in ('incoming_invoice', 'incoming_invoice_expense'):
 		import incoming_invoice_edit
 		incoming_invoice_edit.EditIncomingInvoiceGUI(source_id)
-	elif source_type in ('payment', 'deposit'):
+	elif source_type in ('payment', 'payment_discount_cash_back', 'deposit'):
 		if aux_id == 0:
 			return False # the window ignores a payment without its customer
 		from reports import payments_received

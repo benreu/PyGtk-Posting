@@ -63,8 +63,29 @@
   <gui>Apply discount</gui>, then type what the invoice should come to. You
   can also type a lower <gui>Amount due</gui> straight into the list. Neither
   can raise an invoice above its total.</p>
-  <note><p>The <gui>Discounts / cashback</gui> box is not saved with the
-  payment.</p></note>
+  </section>
+
+  <section id="cash_back">
+  <title>Discounts and cash back</title>
+  <p>Open <gui>Discounts / cashback</gui> to settle the invoices for a
+  different amount than was paid, and type the difference in
+  <gui>Amount</gui>:</p>
+  <list>
+    <item><p><em>Below zero</em> is a discount. The customer paid less, and
+    you choose the expense account under <gui>Account</gui> that the shortfall
+    is charged to. A check for 95.00 with <gui>Amount</gui> -5.00 settles 100.00
+    of invoices.</p></item>
+    <item><p><em>Above zero</em> is cash handed back. The customer paid more
+    and got change, and you choose the cash account it came out of. A check for
+    120.00 with <gui>Amount</gui> 20.00 settles 100.00 of invoices.</p></item>
+  </list>
+  <p>The payment then counts as the payment amount less the cash back, or plus
+  the discount. That figure is the one matched against the invoices. It is
+  also what statements, finance charges and the customer's balance show.
+  <gui>Post payment</gui> reads <gui>No discount / cashback account</gui>
+  until an account is chosen, and <gui>Parent account selected</gui> if the
+  account has sub accounts. The check is still deposited for its full
+  amount.</p>
   </section>
 
 </page>

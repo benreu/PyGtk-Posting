@@ -311,6 +311,11 @@ class GUI:
 			dialog.hide()
 			if response != Gtk.ResponseType.OK:
 				return
+		adjustment = self.builder.get_object('spinbutton2').get_text()
+		adjustment = Decimal(adjustment)
+		adjustment_account = self.builder.get_object('combobox2').get_active_id()
+		if adjustment != Decimal('0.00') and adjustment_account == None:
+			return # the button already says so
 		comments = 	self.builder.get_object('entry2').get_text()
 		payment_text = self.payment_method.get_payment_text()
 		self.payment = transactor.CustomerInvoicePayment(self.date, total)
@@ -354,6 +359,9 @@ class GUI:
 			self.payment_id = cursor.fetchone()[0]
 			self.payment.cash (self.payment_id)
 		cursor.close()
+		if adjustment != Decimal('0.00'):
+			self.payment.discount_cash_back (self.payment_id,
+												adjustment_account, adjustment)
 		if self.builder.get_object('fifo_payment_checkbutton').get_active():
 			self.pay_invoices_fifo()
 		else:
@@ -379,7 +387,7 @@ class GUI:
 								"(True, False, %s)"
 							") it, "
 							"(SELECT amount + amount_owed AS payment_total FROM "
-									"(SELECT COALESCE(SUM(amount), 0.0) "
+									"(SELECT COALESCE(SUM(amount - discount_cash_back), 0.0) "
 										"AS amount "
 									"FROM payments_incoming "
 									"WHERE (customer_id, misc_income) = "
@@ -508,15 +516,16 @@ class GUI:
 		DB.commit()
 		
 	def discount_cash_back_amount_changed (self, spinbutton):
-		self.check_amount_totals_validity ()
 		amount  = spinbutton.get_value()
 		combobox = self.builder.get_object('combobox2')
-		if amount == 0.00:
-			return
-		elif amount < 0.00:
+		if amount < 0.00: # a discount, charged to an expense account
 			combobox.set_model(self.expense_trees)
-		elif amount > 0.00:
+		elif amount > 0.00: # cash handed back, paid from a cash account
 			combobox.set_model(self.cash_account_store)
+		self.check_amount_totals_validity () # last: set_model unsets the account
+
+	def discount_cash_back (self):
+		return self.builder.get_object('spinbutton2').get_value()
 
 	def check_amount_totals_validity (self):
 		button = self.builder.get_object('button1')
@@ -533,6 +542,15 @@ class GUI:
 		if self.payment_method.credit_card_account_missing():
 			button.set_label('No deposit account selected')
 			return # no credit card deposit account selected
+		if self.discount_cash_back() != 0.00:
+			combobox = self.builder.get_object('combobox2')
+			tree_iter = combobox.get_active_iter()
+			if tree_iter == None:
+				button.set_label('No discount / cashback account')
+				return
+			if combobox.get_model().iter_has_child(tree_iter):
+				button.set_label('Parent account selected')
+				return # expense_tree lists the parents too
 		if self.exact_payment:
 			self.check_amount_totals_absolute ()
 		else:
@@ -550,7 +568,8 @@ class GUI:
 		for row in path:
 			invoice_amount_due_totals += model[row][6]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
-		if float(invoice_amount_due_totals) == payment :
+		applied = round(payment - self.discount_cash_back(), 2)
+		if float(invoice_amount_due_totals) == applied :
 			label.set_visible (False) #hide the off balance alert
 		button.set_sensitive (True)
 		button.set_label('Post payment')
@@ -568,7 +587,8 @@ class GUI:
 		for row in path:
 			invoice_amount_due_totals += model[row][6]
 		self.builder.get_object('label23').set_label ('{:,.2f}'.format(payment))
-		if float(invoice_amount_due_totals) != payment :
+		applied = round(payment - self.discount_cash_back(), 2)
+		if float(invoice_amount_due_totals) != applied :
 			button.set_label ("Totals do not match")
 			return
 		button.set_label ('Post payment')
