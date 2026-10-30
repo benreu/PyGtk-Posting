@@ -1,7 +1,9 @@
 import unittest
+from unittest import mock
 from datetime import date
 from decimal import Decimal
 from harness import DBTestCase
+from gi.repository import Gtk
 
 DAY = date(2026, 6, 15)
 
@@ -107,6 +109,40 @@ class IncomingInvoicesPaidWithTest(DBTestCase):
 		self.assertEqual(set(self.listed()), {self.card_bill})
 		combo.set_active_id('0')
 		self.assertEqual(set(self.listed()), set(self.ours))
+
+	def edit_mode(self):
+		with mock.patch('admin_utils.check_admin', return_value = True):
+			self.gui.get_object('edit_mode_checkbutton').set_active(True)
+
+	def view_path(self, invoice_id):
+		"the path a cell renderer hands its handler: the sorted, searched view's"
+		for row in self.gui.get_object('incoming_invoices_sort'):
+			if row[0] == invoice_id:
+				return str(row.path)
+
+	def reconciled(self, invoice_id):
+		return self.one("SELECT ge.reconciled FROM incoming_invoices AS i "
+						"JOIN gl_entries AS ge ON ge.id = i.gl_entry_id "
+						"WHERE i.id = %s", (invoice_id,))
+
+	def test_unchecking_reconciled_on_a_sorted_list_hits_that_bill(self):
+		self.cursor.execute("UPDATE gl_entries SET reconciled = True "
+							"WHERE id IN (SELECT gl_entry_id FROM "
+							"incoming_invoices WHERE id IN %s)",
+							((self.card_bill, self.cash_bill),))
+		self.DB.commit()
+		self.gui.populate_incoming_invoice_store()
+		self.edit_mode()
+		# newest first puts this test's bills at the top of the view, while the
+		# store keeps them among the real bills dated after DAY
+		sort = self.gui.get_object('incoming_invoices_sort')
+		sort.set_sort_column_id(0, Gtk.SortType.DESCENDING)
+		path = self.view_path(self.cash_bill)
+		store = self.gui.incoming_invoice_store
+		self.assertNotEqual(store[path][0], self.cash_bill)
+		self.gui.reconciled_toggled(None, path)
+		self.assertFalse(self.reconciled(self.cash_bill))
+		self.assertTrue(self.reconciled(self.card_bill))
 
 if __name__ == '__main__':
 	unittest.main()

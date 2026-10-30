@@ -380,7 +380,9 @@ class IncomingInvoiceGUI(Gtk.Builder):
 	def reconciled_toggled (self, cellrenderertoggle, path):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
-		model = self.get_object('incoming_invoices_store')
+		# path is the view's, so sorted and searched; the store's would be
+		# another bill's whenever the list is sorted or a search hides a row
+		model = self.get_object('incoming_invoices_sort')
 		row_id = model[path][0]
 		reconciled = model[path][8]
 		if reconciled == True:
@@ -391,7 +393,6 @@ class IncomingInvoiceGUI(Gtk.Builder):
 						"(False, NULL) WHERE id = (SELECT id FROM cte)", (row_id,))
 			c.close()
 			DB.commit()
-			model[path][8] = False
 			self.populate_incoming_invoice_store()
 
 	def populate_payment_accounts (self):
