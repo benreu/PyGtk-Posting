@@ -58,7 +58,7 @@
     xref="assembled_products"/></title>
     <p><key>F2</key> new line, <key>F3</key> delete line.</p></item>
     <item><title><link xref="job_sheet"/></title>
-    <p><key>F2</key> new line.</p></item>
+    <p><key>F2</key> new line, <key>F3</key> delete line.</p></item>
     <item><title><link xref="contacts"/></title>
     <p><keyseq><key>Ctrl</key><key>N</key></keyseq> new,
     <keyseq><key>Ctrl</key><key>E</key></keyseq> edit,

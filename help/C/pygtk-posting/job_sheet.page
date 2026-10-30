@@ -42,7 +42,8 @@
   <p>Choose the job under <gui>Existing jobs</gui>. Click <gui>New</gui>, or
   press <key>F2</key>, for a new line, then type the <gui>Qty</gui>, choose the
   <gui>Product</gui> and add a <gui>Remark</gui>. Press <key>Tab</key> to move
-  across the line. Right click a line to delete it.</p>
+  across the line. To delete a line, right click it and choose <gui>Delete
+  item</gui>, or select it and press <key>F3</key>.</p>
   <p>Checking or unchecking <gui>Job available in Time Clock</gui> on an
   existing job opens or closes it in the time clock.</p>
   </section>
@@ -50,11 +51,9 @@
   <section id="finish">
   <title>Finishing a job</title>
   <p>Click <gui>Post job to invoice</gui>. The products are added to the
-  customer's draft invoice; if they already have one you are asked whether
-  to add them to it. The job is closed and leaves the time clock.</p>
-  <note><p>Products posted from this window arrive on the invoice at a price
-  of 0.00. Open the invoice and choose <gui>Refresh all prices</gui> from its
-  menu. Posting from <link xref="draft_job_sheets"/> sets the prices.</p></note>
+  customer's draft invoice at the customer's prices; if they already have one
+  you are asked whether to add them to it. The job is closed and leaves the
+  time clock.</p>
   <p><gui>Delete job</gui> deletes the chosen job.</p>
   </section>
 
