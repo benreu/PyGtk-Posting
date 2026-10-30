@@ -22,7 +22,7 @@
 import os, sys, unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FOLDERS = ('inventory', 'connection')
+FOLDERS = ('inventory', 'email', 'connection')
 
 
 def suite ():

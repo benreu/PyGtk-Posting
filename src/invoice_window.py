@@ -158,7 +158,13 @@ class InvoiceGUI:
 		print_direct, email = cursor.fetchone()
 		cursor.close()
 		self.builder.get_object('print_directly_menuitem').set_active(print_direct) #set the direct print checkbox
-		self.builder.get_object('email_invoice_menuitem').set_active(email) #set the email checkbox
+		self.email_when_possible = email
+		# through set_email_sensitivity, not set_active: this runs from an idle
+		# callback, so it lands after the customer has already been loaded and
+		# setting the box directly would tick it again for a customer who has
+		# no address to send to
+		self.set_email_sensitivity (
+						self.builder.get_object('entry_email').get_text())
 		DB.rollback()
 
 	def widget_focus_in_event (self, widget, event):
@@ -698,22 +704,64 @@ class InvoiceGUI:
 			self.show_error_dialog ("The invoice was not posted:\n%s" % 
 									GLib.markup_escape_text(str(e)))
 			return
-		if self.builder.get_object('email_invoice_menuitem').get_active() == True:
-			self.email_posted_invoice (invoice) # only after it is saved
 		if self.fax_number:
 			invoice.fax(self.window, self.fax_number) # only after it is saved
+		if self.builder.get_object('email_invoice_menuitem').get_active() == True:
+			self.email_posted_invoice (invoice) # only after it is saved
 		self.window.destroy()
 
 	def email_posted_invoice (self, invoice):
+		'''Open a message for the invoice that was just posted, with the
+		invoice attached, for the user to look over and send.
+
+		Nothing leaves on its own. What gets written to a customer is theirs
+		to word, and the wording that belongs on one invoice does not belong
+		on the next - a short note about a part being back-ordered, or that
+		this one supersedes the last. An invoice posted to the wrong contact
+		can still be caught here too, before anything has gone out.
+
+		The attachment is read back out of invoices.pdf_data rather than taken
+		off the path invoice_create wrote it to. That path is keyed on the
+		invoice name, so two windows open on the same customer write the same
+		file and the second overwrites the first; the column cannot be the
+		wrong invoice, and it is the copy that was archived.'''
+		import email_window, emailing
 		email = self.builder.get_object('entry_email').get_text().strip()
-		if email == "":
-			return
+		if not emailing.valid_address(email):
+			return False
 		cursor = DB.cursor()
-		cursor.execute("SELECT name FROM contacts WHERE id = %s", (self.customer_id,))
-		name = cursor.fetchone()[0]
+		cursor.execute("SELECT c.name, i.name, i.pdf_data FROM invoices AS i "
+							"JOIN contacts AS c ON c.id = i.customer_id "
+							"WHERE i.id = %s", (self.invoice_id,))
+		row = cursor.fetchone()
 		cursor.close()
 		DB.rollback()
-		invoice.email("%s < %s >" % (name, email), invoice.total)
+		if row == None:
+			return False
+		customer_name, invoice_name, pdf_data = row
+		if pdf_data == None:
+			return False
+		total = invoice.total
+		total = '${:.2f}'.format(float(total)) if total is not None else ''
+		name = invoice_name or str(self.invoice_id)
+		cursor = DB.cursor()
+		cursor.execute("SELECT name FROM company_info")
+		company = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		# the wording is settings.email_messages, edited in Settings, Mail
+		# accounts, Invoice message - not written here, where only changing
+		# the source could change it and every customer got the same four
+		# lines whatever this business's terms or sign-off actually are
+		subject, body = emailing.filled_message('invoice',
+						{'customer': customer_name, 'invoice': name,
+							'total': total,
+							'company': company[0] if company else ''})
+		email_window.EmailGUI(contact_id = self.customer_id, to = email,
+						subject = subject, body = body,
+						attachments = [("%s.pdf" % name, bytes(pdf_data))],
+						links = [('invoice_id', self.invoice_id)])
+		return True
 
 	def fax_invoice_activated (self, menuitem):
 		'''the number is settled here, while the invoice can still be checked
@@ -994,6 +1042,7 @@ class InvoiceGUI:
 			address, phone, city, state, zip_code, email = row
 			self.builder.get_object('phone_entry').set_text(phone)
 			self.builder.get_object('entry_email').set_text(email or '')
+			self.set_email_sensitivity (email or '')
 			formatted_address = "{}\n{}, {} {}".format(
 				address, city, state, zip_code)
 			self.builder.get_object('address_box').get_buffer().set_text(
@@ -1053,11 +1102,26 @@ class InvoiceGUI:
 		DB.rollback()
 		self.show_creation_date ()
 
+	def set_email_sensitivity (self, email):
+		'''Only offer to email the invoice when there is an address to email
+		it to. contacts.email is '' when nobody filled it in, never null, and
+		the send used to be skipped silently after the invoice had already
+		posted - so nobody found out until the customer asked where it was.
+		The menu item goes back to what the setting asks for as soon as a
+		customer with an address is chosen.'''
+		import emailing
+		menuitem = self.builder.get_object('email_invoice_menuitem')
+		usable = emailing.valid_address(email)
+		menuitem.set_sensitive(usable)
+		menuitem.set_active(usable and getattr(self, 'email_when_possible', False))
+		menuitem.set_tooltip_text(None if usable else
+									"This customer has no email address")
+
 	def email_button_clicked (self, button):
-		email = self.builder.get_object('entry_email').get_text()
-		if email == "":
-			return
-		subprocess.Popen(["thunderbird", "-compose", "to=" + email])
+		"a message to this customer with nothing of the invoice attached"
+		import email_window
+		email_window.EmailGUI(contact_id = self.customer_id,
+						to = self.builder.get_object('entry_email').get_text())
 
 	################## start qty
 

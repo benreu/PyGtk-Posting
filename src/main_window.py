@@ -110,6 +110,7 @@ class MainGUI :
 			broadcaster.connect("resources_changed", self.resources_changed)
 			GLib.timeout_add_seconds(3600, self.check_date_reminders_timer)
 			self.start_fax_watcher ()
+			self.start_mail_watcher()
 
 	def start_fax_watcher (self):
 		'''jobs printed to the fax queue from any program are held there, and
@@ -250,6 +251,22 @@ class MainGUI :
 	def contact_history (self, menuitem):
 		from reports import contact_history
 		contact_history.ContactHistoryGUI()
+
+	def start_mail_watcher (self):
+		'''Read the mail server in the background, on the workstations that
+		can. Everything about whether this workstation is one of them is
+		decided inside imap_sync, quietly: no account, no IMAP server, or no
+		password in this computer's keyring and nothing starts.'''
+		try:
+			import imap_sync
+			imap_sync.start_mail_watcher()
+		except Exception as e:
+			# a mail server is not a reason for the program not to open
+			print("start_mail_watcher: %s" % e)
+
+	def correspondence_activated (self, menuitem):
+		import correspondence_window
+		correspondence_window.CorrespondenceGUI()
 
 	def send_fax_activated (self, menuitem):
 		import fax_window
@@ -737,6 +754,10 @@ class MainGUI :
 	def data_import_activated (self, widget):
 		from admin import data_import
 		data_import.DataImportUI()
+
+	def mail_archive_import_activated (self, widget):
+		import mbox_import_window
+		mbox_import_window.MboxImportGUI()
 
 	def data_export_activated (self, widget):
 		from admin import data_export

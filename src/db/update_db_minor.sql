@@ -1428,6 +1428,325 @@ UPDATE public.gl_entries SET source_type = 'voided_check'
    document's own and so can repair them one at a time with the account chosen
    each time. */
 
+--0.7.35
+/* Mail accounts, so an invoice or a document goes out from Posting itself
+   instead of through xdg-email or thunderbird -compose. Those handed the job
+   to whichever client the desktop happened to have and then knew nothing: not
+   whether the message was sent, not whether the address was usable, and not
+   whether the attachment they named still existed. A failed send looked
+   exactly like a successful one, and nothing recorded that anything went out.
+
+   There is deliberately no password column here. The mail password lives in
+   the workstation's login keyring through libsecret, keyed on service, host
+   and user - see credentials.py. A password in this table would be a password
+   in every pg_dump of it, in every restore copy somebody made to try
+   something out, and in reach of the SQL window. The cost of keeping it out
+   is that mail is sent only from workstations where someone has entered it
+   once; reading correspondence will need no password at all, because the sync
+   writes the headers here.
+
+   imap_host and smtp_host are varchar, not the inet that settings.zebra_printers
+   uses for a label printer on the LAN. A mail server is named, not numbered:
+   inet would refuse imap.emypeople.net outright, and so would the
+   ipaddress.ip_address check that the Zebra printer form does its validating
+   with. */
+CREATE TABLE IF NOT EXISTS settings.mail_accounts (
+	id serial PRIMARY KEY,
+	name varchar NOT NULL,
+	imap_host varchar NOT NULL DEFAULT '',
+	imap_port int NOT NULL DEFAULT 993,
+	imap_user varchar NOT NULL DEFAULT '',
+	smtp_host varchar NOT NULL DEFAULT '',
+	smtp_port int NOT NULL DEFAULT 587,
+	smtp_user varchar NOT NULL DEFAULT '',
+	smtp_security varchar NOT NULL DEFAULT 'starttls',
+	from_name varchar NOT NULL DEFAULT '',
+	from_address varchar NOT NULL DEFAULT '',
+	sent_folder varchar NOT NULL DEFAULT '',
+	active boolean NOT NULL DEFAULT True,
+	date_created date NOT NULL DEFAULT now()
+);
+
+/* 993 and 465 are implicit TLS, 143, 587 and 25 are STARTTLS, and guessing
+   from the port is right nearly everywhere - but 'nearly' is a password sent
+   in clear when it is wrong, so the choice is recorded rather than inferred.
+   Dropped and re-added by name because this file re-runs from the top on
+   every upgrade. */
+DO $$
+BEGIN
+	ALTER TABLE settings.mail_accounts
+		DROP CONSTRAINT IF EXISTS mail_accounts_smtp_security_known;
+	ALTER TABLE settings.mail_accounts
+		ADD CONSTRAINT mail_accounts_smtp_security_known
+			CHECK (smtp_security IN ('starttls', 'tls', 'none'));
+END
+$$;
+
+/* One account at a time, so no send site has to ask which one to use. The
+   UPDATE comes first and is not optional: this file re-runs from the top, so
+   on a database where two rows had somehow been left active the index below
+   would fail, abort the whole upgrade transaction, and leave the user on an
+   old version with nothing said about why. Lifting the restriction later is
+   one DROP INDEX. */
+UPDATE settings.mail_accounts SET active = False
+	WHERE active AND id <> (SELECT min(id) FROM settings.mail_accounts
+								WHERE active);
+CREATE UNIQUE INDEX IF NOT EXISTS mail_accounts_one_active
+	ON settings.mail_accounts (active) WHERE active;
+
+--0.7.36
+/* The wording of the message an invoice is emailed with, so it can be said
+   the way this business says it rather than the way it was written here. The
+   message was built in invoice_window and could only be changed by editing
+   the source; every customer got the same four lines, and a business with a
+   different payment term, a different sign-off or no "please pay at your
+   earliest convenience" in it had no way to say so.
+
+   The text is a template. A token in braces is replaced when the message is
+   opened - {customer}, {invoice}, {total}, {company} - and anything else in
+   braces is left exactly as typed, so a message cannot be broken by writing
+   one that does not exist. Nothing here is formatted by Python: a stray brace
+   in somebody's wording would raise where it was used, long after it was
+   typed, and the window that typed it would be long closed.
+
+   Keyed by name rather than given a column of its own, so the quote and the
+   unpaid invoices summary can have their own wording later without a schema
+   change.
+
+   The whole block is gated on the table not already existing, rather than
+   each statement guarded on its own. This file re-runs from the top on every
+   upgrade, and a per-row guard would put the standard wording back under
+   somebody who had deliberately rewritten or emptied it - the same trap
+   0.7.27 documents for the unit relationships. Once the table is here this
+   block never runs again, so what is in it is theirs. */
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM information_schema.tables
+					WHERE (table_schema, table_name) =
+							('settings', 'email_messages')) THEN
+		CREATE TABLE settings.email_messages (
+			id serial PRIMARY KEY,
+			name varchar NOT NULL UNIQUE,
+			subject varchar NOT NULL DEFAULT '',
+			body varchar NOT NULL DEFAULT '',
+			date_created date NOT NULL DEFAULT now()
+		);
+		/* the same wording emailing.DEFAULT_MESSAGES holds, which is what the
+		   window's "Restore the standard message" button puts back */
+		INSERT INTO settings.email_messages (name, subject, body) VALUES
+			('invoice', 'Invoice {invoice}',
+			'Hi {customer},' || chr(10) || chr(10) ||
+			'Your invoice {invoice} for the amount of {total} is attached. '
+			'Please pay at your earliest convenience.' || chr(10) || chr(10) ||
+			'CONFIDENTIALITY NOTICE: This email and any attachments are '
+			'confidential and intended solely for the named recipient(s). '
+			'They may contain private or legally privileged information. If '
+			'you have received this message in error, please notify the '
+			'sender immediately by reply email and permanently delete it, '
+			'along with any attachments, from your system. Any review, use, '
+			'copying, or distribution of this message by anyone other than '
+			'the intended recipient is strictly prohibited.');
+	END IF;
+END
+$$;
+
+--0.7.37
+/* A row for every message Posting sends, so that what went out to a customer
+   is answerable from the database instead of from whichever workstation the
+   person who sent it was sitting at. Until now the only trace of a sent
+   invoice was the copy filed in the server's Sent folder, which nobody else
+   in the company can see and nothing in Posting can show.
+
+   This is the table the correspondence window reads and the IMAP sync will
+   write into, which is why it carries columns nothing fills in yet: an
+   incoming message has a folder, a uid and a uidvalidity, and a sent one has
+   those too once the copy has been filed in Sent. Written now rather than
+   added later so the sync is an insert into a shape already proven by the
+   send path.
+
+   message_id is indexed and deliberately NOT unique. The same message
+   legitimately sits in two folders at once, in INBOX and in Sent for anything
+   self addressed, so a unique index would make the second folder's row a
+   constraint violation and abort the sync transaction on every pass. It is
+   also not a header a sender is obliged to set, so it can be ''.
+
+   The idempotency key is the partial unique index on (account_id, folder,
+   uidvalidity, uid), which is what lets the sync insert a slice with ON
+   CONFLICT DO NOTHING and re enumerate a folder as often as it likes.
+   Partial because a message composed here has no server uid until the copy is
+   filed, and because NULLs are distinct to a plain unique index: a plain one
+   would admit the duplicates it claimed to prevent.
+
+   raw_message is left empty by the send path. The document that went out is
+   already in the database, in invoices.pdf_data or documents.pdf_data, on the
+   record the message is about, and the server's Sent copy holds the message
+   itself; keeping a second copy of every attachment here would put the whole
+   mailbox in Postgres and in every pg_dump of it. The column is here for the
+   one case that needs it, an incoming message deliberately attached to a
+   record, where the bytes must survive the server's copy being deleted.
+
+   There is deliberately no NOTIFY trigger, unlike the twelve tables that have
+   one. The initial sync inserts around 12,000 rows, and a trigger firing per
+   row with a distinct payload is 12,000 notifies Postgres cannot collapse,
+   which floods process_notifies. The sync issues one pg_notify per committed
+   slice instead. Please do not add the trigger here for consistency.
+
+   account_id goes to NULL rather than refusing the delete when an account is
+   removed. The correspondence is the point of the table and outlives the
+   account it was sent through; a RESTRICT here would mean an account row that
+   can never be deleted once anything has been sent from it. */
+CREATE TABLE IF NOT EXISTS public.mail_messages (
+	id bigserial PRIMARY KEY,
+	message_id varchar NOT NULL DEFAULT '',
+	account_id integer REFERENCES settings.mail_accounts(id)
+		ON UPDATE RESTRICT ON DELETE SET NULL,
+	folder varchar NOT NULL DEFAULT '',
+	uid bigint,
+	uidvalidity bigint,
+	date_sent timestamptz,
+	subject varchar NOT NULL DEFAULT '',
+	from_address varchar NOT NULL DEFAULT '',
+	from_name varchar NOT NULL DEFAULT '',
+	to_addresses varchar NOT NULL DEFAULT '',
+	cc_addresses varchar NOT NULL DEFAULT '',
+	outgoing boolean NOT NULL DEFAULT False,
+	has_attachments boolean NOT NULL DEFAULT False,
+	raw_message bytea,
+	body_text varchar NOT NULL DEFAULT '',
+	date_inserted timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS mail_messages_server_copy
+	ON public.mail_messages (account_id, folder, uidvalidity, uid)
+	WHERE uid IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_messages_message_id
+	ON public.mail_messages (message_id);
+CREATE INDEX IF NOT EXISTS mail_messages_from_address
+	ON public.mail_messages (from_address);
+CREATE INDEX IF NOT EXISTS mail_messages_date_sent
+	ON public.mail_messages (date_sent DESC);
+
+--0.7.38
+/* What a message is about. Until now a sent message was a row in a flat log:
+   the compose window knew which customer and which invoice it was for,
+   because somebody had chosen them, and then threw both away. So the record
+   of what had been sent to a customer could not be asked for by customer,
+   and the attachment could not be got back even though the document was
+   still in the database on the record the message was about.
+
+   One row per target, which is why the CHECK insists on exactly one. A
+   message about an invoice gets two rows, the invoice and the customer,
+   because those are two separate questions and each row answers one of them.
+   Pressed twice, Attach is still one link: the partial unique indexes below
+   see to that.
+
+   Nullable foreign keys rather than a (record_type, record_id) pair. Here
+   every target has a table to point at, so real foreign keys can protect the
+   rows; gl_entries could not have them, which is why it carries a source
+   type instead.
+
+   Every id is bigint, because every table it points at is a bigserial. It is
+   worth saying because files.contact_id is a smallint against one
+   (create_db.sql), which stops working at contact 32,768.
+
+   Deleting a message takes its links with it: a link to nothing is not a
+   record of anything. Deleting a target is refused instead. No invoice is
+   ever deleted anywhere in this program, so that costs nothing and means
+   correspondence cannot be quietly orphaned. A contact is deleted in one
+   place, the duplicate contact merger, which moves every reference to the
+   surviving contact first and has been taught about this table.
+
+   The seam for jobs is here: one ADD COLUMN job_id, and one more term in the
+   CHECK below. Nothing else needs to change, and send_and_report already
+   takes the pairs that would carry it. */
+CREATE TABLE IF NOT EXISTS public.mail_links (
+	id bigserial PRIMARY KEY,
+	mail_messages_id bigint NOT NULL REFERENCES public.mail_messages(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE,
+	contact_id bigint REFERENCES public.contacts(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	invoice_id bigint REFERENCES public.invoices(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	purchase_order_id bigint REFERENCES public.purchase_orders(id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	date_linked timestamptz NOT NULL DEFAULT now(),
+	linked_by varchar NOT NULL DEFAULT CURRENT_USER
+);
+
+/* Dropped and re-added by name, because this file re-runs from the top on
+   every upgrade and a CHECK cannot be added twice. Maintained the way
+   gl_entries_source_type_known is. */
+DO $$
+BEGIN
+	ALTER TABLE public.mail_links
+		DROP CONSTRAINT IF EXISTS mail_links_exactly_one_target;
+	ALTER TABLE public.mail_links
+		ADD CONSTRAINT mail_links_exactly_one_target
+			CHECK ((contact_id IS NOT NULL)::int
+					+ (invoice_id IS NOT NULL)::int
+					+ (purchase_order_id IS NOT NULL)::int = 1);
+END
+$$;
+
+/* One link per message per target. Partial, because NULLs are distinct to a
+   plain unique index: a plain one on (mail_messages_id, contact_id) would
+   admit every invoice link as another row with contact_id NULL and so admit
+   the duplicates it claimed to prevent. */
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_contact
+	ON public.mail_links (mail_messages_id, contact_id)
+	WHERE contact_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_invoice
+	ON public.mail_links (mail_messages_id, invoice_id)
+	WHERE invoice_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mail_links_one_purchase_order
+	ON public.mail_links (mail_messages_id, purchase_order_id)
+	WHERE purchase_order_id IS NOT NULL;
+
+/* The way the correspondence window reads it: every message for this
+   contact, newest first. Without these it is a scan of the whole table for
+   every customer opened. */
+CREATE INDEX IF NOT EXISTS mail_links_contact
+	ON public.mail_links (contact_id) WHERE contact_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_invoice
+	ON public.mail_links (invoice_id) WHERE invoice_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mail_links_purchase_order
+	ON public.mail_links (purchase_order_id) WHERE purchase_order_id IS NOT NULL;
+
+--0.7.39
+/* Which folders on the server are read, and how far. The row is the resume
+   point: it lives in the database rather than in the workstation's sqlite
+   file, so whichever workstation takes a pass carries on where the last one
+   stopped instead of each keeping a private idea of what it has seen.
+
+   sync defaults to False, so adding this table reads nothing. The initial
+   pass over a folder fetches every message in it, around 12,000 in this
+   account, and that is not something an upgrade should start on its own.
+   Settings, Mail accounts is where a folder is turned on.
+
+   last_uid is a high water mark and only ever moves up, which is what lets a
+   pass that was interrupted resume with no other state: the fetch runs
+   ascending in slices and the mark advances per slice committed.
+
+   uidvalidity is kept because the server is entitled to renumber a folder.
+   When it does, the mark goes back to 0 and the folder is read again, and
+   the rows already stored are deliberately left alone: they are the
+   correspondence, some of it attached to invoices, and message_id is what
+   ties the old numbering to the new.
+
+   ON DELETE CASCADE, unlike mail_messages.account_id which goes to NULL.
+   This table is not a record of anything that happened; it is only where to
+   resume, and an account that is gone has nowhere to resume. */
+CREATE TABLE IF NOT EXISTS settings.mail_folders (
+	id serial PRIMARY KEY,
+	account_id integer NOT NULL REFERENCES settings.mail_accounts(id)
+		ON UPDATE RESTRICT ON DELETE CASCADE,
+	folder varchar NOT NULL,
+	uidvalidity bigint,
+	last_uid bigint NOT NULL DEFAULT 0,
+	sync boolean NOT NULL DEFAULT False,
+	last_synced timestamptz,
+	UNIQUE (account_id, folder)
+);
+
 --0.7.40
 /* Customer payment's Discounts / cashback box, which was never posted. Below
    zero it is a discount charged to an expense account; above zero it is cash
@@ -1438,8 +1757,8 @@ UPDATE public.gl_entries SET source_type = 'voided_check'
 
    The pointer is the payment's claim on the adjustment's ledger line, the same
    way gl_entries_id claims the line the payment itself posts. 0.7.35 to 0.7.39
-   are taken by the mail work, which has not merged yet; skipping them keeps the
-   markers unique whichever lands first. */
+   are the mail work's, which was still on its own branch when this was
+   written; skipping them kept the markers unique whichever merged first. */
 ALTER TABLE public.payments_incoming
 	ADD COLUMN IF NOT EXISTS discount_cash_back numeric(12,2)
 		DEFAULT 0.00 NOT NULL;
@@ -1447,3 +1766,10 @@ ALTER TABLE public.payments_incoming
 	ADD COLUMN IF NOT EXISTS gl_entries_discount_cash_back_id bigint
 		REFERENCES public.gl_entries(id)
 		ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+/* 0.7.41 has no block of its own: it is the version the mail work and 0.7.40
+   merged at. A database upgraded to 7.39 by the mail branch alone has never run
+   0.7.40, and one upgraded to 7.40 without the mail work has never run 0.7.35
+   to 0.7.39. Only a version above both makes either of them run this file
+   again, and every block in it is guarded, so running it again is what applies
+   the half each one is missing. */

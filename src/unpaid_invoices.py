@@ -578,6 +578,7 @@ class GUI (Gtk.Builder):
 		progress_window.show_all()
 
 		pdf_result = [None]
+		pdf_bytes = [None]
 
 		def log(msg):
 			def _append():
@@ -598,20 +599,37 @@ class GUI (Gtk.Builder):
 			subprocess.Popen(["xdg-open", pdf_result[0]])
 
 		def on_email_clicked(_):
+			import emailing
 			c = DB.cursor()
 			c.execute("SELECT name, email FROM contacts WHERE id = %s",
 						(self.contact_id,))
 			row = c.fetchone()
 			c.close()
 			DB.rollback()
-			if row is not None and row[1]:
-				name, addr = row
-				to = "%s <%s>" % (name, addr)
-			else:
-				to = ""
-			subprocess.Popen(["thunderbird", "-compose",
-								"to=%s,subject=Unpaid invoices,attachment=%s"
-								% (to, pdf_result[0])])
+			if row is None:
+				return
+			name, addr = row
+			if not emailing.valid_address(addr):
+				emailing.show_message(progress_window,
+							Gtk.MessageType.WARNING,
+							"%s has no email address." % name)
+				return
+			body = ("Hi %s,\n\n"
+					"A summary of your unpaid invoices is attached.\n\n"
+					"CONFIDENTIALITY NOTICE: This email and any attachments are "
+					"confidential and intended solely for the named recipient(s). "
+					"They may contain private or legally privileged information. If "
+					"you have received this message in error, please notify the "
+					"sender immediately by reply email and permanently delete it, "
+					"along with any attachments, from your system. Any review, use, "
+					"copying, or distribution of this message by anyone other than "
+					"the intended recipient is strictly prohibited."
+					% name)
+			import email_window
+			email_window.EmailGUI(contact_id = self.contact_id, to = addr,
+						subject = "Unpaid invoices", body = body,
+						attachments = [(os.path.basename(pdf_result[0]),
+										pdf_bytes[0])])
 
 		view_button.connect("clicked", on_view_clicked)
 		email_button.connect("clicked", on_email_clicked)
@@ -679,8 +697,14 @@ class GUI (Gtk.Builder):
 									for ch in customer_name).strip()
 				output_path = "/tmp/%s_unpaid_invoices.pdf" % safe_name
 				log("Saving PDF...")
+				# kept in memory as well as on disk: View PDF wants a path to
+				# hand to xdg-open, and the email takes the bytes, so nothing
+				# depends on the file still being there when Send is pressed
+				pdf_buffer = _io.BytesIO()
+				writer.write(pdf_buffer)
+				pdf_bytes[0] = pdf_buffer.getvalue()
 				with open(output_path, 'wb') as f:
-					writer.write(f)
+					f.write(pdf_bytes[0])
 				pdf_result[0] = output_path
 				log("Done.")
 			except Exception as e:

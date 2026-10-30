@@ -258,6 +258,7 @@ class ContactHistoryGUI (Gtk.Builder):
 		self.populate_warranty_store ()
 		self.populate_incoming_invoice_store ()
 		self.populate_contact_shipping()
+		self.populate_correspondence()
 		self.get_object('resource_buffer').set_text('')
 		DB.rollback()
 
@@ -552,6 +553,47 @@ class ContactHistoryGUI (Gtk.Builder):
 			label = "<span weight='bold'>Shipping (%s)</span>" % count
 			self.get_object('label11').set_markup(label)
 		c.close()
+
+	def populate_correspondence (self):
+		'''What has been emailed to this contact, found by the links recorded
+		when each message was sent rather than by matching an address: a
+		shared or retyped email address would otherwise put one customer's
+		mail under another's name.
+
+		A list only. Reading a message needs the body and whatever it was
+		about beside it, which does not fit a tab that Report hub requires to
+		be one treeview, so opening a row hands it to the correspondence
+		window.'''
+		correspondence_store = self.get_object('correspondence_store')
+		correspondence_store.clear()
+		count = 0
+		c = DB.cursor()
+		c.execute("SELECT m.id, "
+						"COALESCE(m.date_sent, m.date_inserted)::text, "
+						"format_timestamp(COALESCE(m.date_sent, "
+												"m.date_inserted)), "
+						"CASE WHEN m.outgoing THEN 'Sent' "
+												"ELSE 'Received' END, "
+						"m.subject, "
+						"CASE WHEN m.has_attachments THEN 'Yes' ELSE '' END "
+					"FROM mail_messages AS m "
+					"JOIN mail_links AS ml ON ml.mail_messages_id = m.id "
+					"WHERE ml.contact_id = %s "
+					"ORDER BY COALESCE(m.date_sent, m.date_inserted) DESC",
+					(self.contact_id,))
+		for row in c.fetchall():
+			count += 1
+			correspondence_store.append(row)
+		if count == 0:
+			self.get_object('label12').set_label('Correspondence')
+		else:
+			label = "<span weight='bold'>Correspondence (%s)</span>" % count
+			self.get_object('label12').set_markup(label)
+		c.close()
+
+	def correspondence_row_activated (self, treeview, path, column):
+		import correspondence_window
+		correspondence_window.CorrespondenceGUI(int(self.contact_id))
 
 	def resource_selection_changed (self, selection):
 		model, path = selection.get_selected_rows()

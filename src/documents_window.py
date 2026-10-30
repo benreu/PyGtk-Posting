@@ -169,19 +169,57 @@ class DocumentGUI:
 		else:
 			d.print_dialog(self.window)
 		d.post(self.document_id)
-		if self.builder.get_object('menuitem4').get_active() == True:
-			cursor = DB.cursor()
-			cursor.execute("SELECT name, email FROM contacts "
-								"WHERE id = %s", (self.contact_id, ))
-			for row in cursor.fetchall():
-				name = row[0]
-				email = row[1]
-				if email != "":
-					email = "%s '< %s >'" % (name, email)
-					d.email(email)
-			cursor.close()
 		DB.commit()
+		if self.builder.get_object('menuitem4').get_active() == True:
+			# after the commit, so what is attached is the copy post() stored
+			self.email_posted_document ()
 		self.window.destroy()
+
+	def email_posted_document (self):
+		'''Open a message for the document just posted, with it attached, for
+		the user to look over and send. A quote especially is rarely sent
+		bare: what is worth saying alongside it is different every time.
+
+		What this replaces built the address as "%s \'< %s >\'" - spaces
+		inside the angle brackets, and shell quotes that never reached a shell
+		- attached a pdf that only existed if a print had already run, and
+		skipped the whole step silently when contacts.email was '', which it
+		is whenever nobody filled it in.'''
+		import email_window, emailing
+		cursor = DB.cursor()
+		cursor.execute("SELECT c.name, c.email, d.name, d.pdf_data "
+							"FROM documents AS d "
+							"JOIN contacts AS c ON c.id = d.contact_id "
+							"WHERE d.id = %s", (self.document_id,))
+		row = cursor.fetchone()
+		cursor.close()
+		DB.rollback()
+		if row == None:
+			return False
+		contact_name, email, document_name, pdf_data = row
+		if not emailing.valid_address(email):
+			emailing.show_message(self.window, Gtk.MessageType.WARNING,
+						"The %s was posted, but not emailed: %s has no email "
+						"address." % (self.document_type.lower(), contact_name))
+			return False
+		if pdf_data == None:
+			return False
+		body = ("Hi %s,\n\n"
+				"Your %s is attached.\n\n"
+				"CONFIDENTIALITY NOTICE: This email and any attachments are "
+				"confidential and intended solely for the named recipient(s). "
+				"They may contain private or legally privileged information. If "
+				"you have received this message in error, please notify the "
+				"sender immediately by reply email and permanently delete it, "
+				"along with any attachments, from your system. Any review, use, "
+				"copying, or distribution of this message by anyone other than "
+				"the intended recipient is strictly prohibited."
+				% (contact_name, self.document_type.lower()))
+		email_window.EmailGUI(contact_id = self.contact_id, to = email,
+						subject = self.document_type, body = body,
+						attachments = [("%s.pdf" % document_name,
+										bytes(pdf_data))])
+		return True
 
 	################## start customer
 	def populate_customer_store (self, m=None, i=None):
