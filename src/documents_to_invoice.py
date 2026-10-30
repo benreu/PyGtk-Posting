@@ -106,7 +106,15 @@ Do you want to append the document items?" % customer_name)
 								"CASE WHEN %s "
 									"THEN customer_product_price"
 										"(d.contact_id, di.product_id) "
-									"ELSE di.price END "
+									"ELSE di.price END, "
+								# the customer's newest exemption, the one the
+								# invoice window starts on; the a_check_tax_rate_id
+								# trigger swaps in the product's own rate when it
+								# is not exemptible or this is null
+								"(SELECT tax_rate_id "
+									"FROM customer_tax_exemptions AS cte "
+									"WHERE cte.customer_id = d.contact_id "
+									"ORDER BY cte.id DESC LIMIT 1) "
 							"FROM document_items AS di "
 							"JOIN documents AS d ON d.id = di.document_id "
 							"WHERE di.document_id = %s ORDER BY di.id",
@@ -116,9 +124,10 @@ Do you want to append the document items?" % customer_name)
 			product_id = row[1]
 			remark = row[2]
 			price = row[3]
+			tax_rate_id = row[4]
 			ext_price = qty * price
 			ext_price = round(ext_price, 2)
-			cursor.execute("INSERT INTO invoice_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price))
+			cursor.execute("INSERT INTO invoice_items (invoice_id, qty, product_id, remark, price, tax, ext_price, canceled, imported, tax_rate_id) VALUES (%s, %s, %s, %s, %s, %s, %s, False, True, %s)", (invoice_id, qty, product_id, remark, price, 0.00, ext_price, tax_rate_id))
 		cursor.execute("UPDATE documents SET invoiced = True WHERE id = %s", (document_id,))
 		cursor.close()
 		DB.commit()

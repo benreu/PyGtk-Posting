@@ -464,12 +464,19 @@ class JobSheetGUI(Gtk.Builder):
 				return # cancel posting to invoice altogether
 		else: # create new invoice
 			invoice_id = create_new_invoice (self.customer_id)
-		# only the job's lines are priced, not those already on the invoice;
-		# the invoice_items triggers fill in tax_rate_id, ext_price and tax
+		# only the job's lines are priced, not those already on the invoice.
+		# They take the customer's newest tax exemption, the one the invoice
+		# window starts on; the invoice_items triggers swap in the product's
+		# own rate when it is not exemptible or there is no exemption, then
+		# fill in ext_price and tax
 		c.execute("INSERT INTO invoice_items "
-						"(qty, product_id, remark, price, invoice_id) "
+						"(qty, product_id, remark, price, tax_rate_id, "
+						"invoice_id) "
 					"SELECT qty, product_id, remark, "
-						"customer_product_price(%s, product_id), %s "
+						"customer_product_price(%s, product_id), "
+						"(SELECT tax_rate_id FROM customer_tax_exemptions "
+							"WHERE customer_id = %s ORDER BY id DESC LIMIT 1), "
+						"%s "
 					"FROM job_sheet_items AS jsi "
 						"WHERE jsi.job_sheet_id = %s; "
 					"UPDATE job_sheets SET (invoiced, completed) "
@@ -477,8 +484,8 @@ class JobSheetGUI(Gtk.Builder):
 					"UPDATE time_clock_projects "
 					"SET (stop_date, active) = (%s, False) "
 					"WHERE job_sheet_id = %s",
-					(self.customer_id, invoice_id, self.job_id, self.job_id,
-					datetime.today(), self.job_id))
+					(self.customer_id, self.customer_id, invoice_id,
+					self.job_id, self.job_id, datetime.today(), self.job_id))
 		DB.commit()
 		self.job_store.clear()
 		self.get_object('comboboxtext2').set_active(-1)

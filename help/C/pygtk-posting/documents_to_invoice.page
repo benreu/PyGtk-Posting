@@ -32,6 +32,8 @@
   <gui>Use document prices</gui> brings each line in at the price on the
   document. Click it to switch to <gui>Refresh prices</gui>, which brings each
   line in at the customer's current price for the product, the price a new
-  invoice line would get. The choice is remembered.</p>
+  invoice line would get. The choice is remembered. Either way the lines are
+  taxed with the customer's <link xref="invoice#tax">tax exemption</link>, if
+  they have one.</p>
 
 </page>

@@ -313,7 +313,9 @@ class InvoiceGUI:
 	def import_time_clock_window(self, widget):
 		self.check_invoice_id ()
 		from invoice import import_time_clock_entries as itce
-		self.time_clock_import = itce.ImportGUI(self.window, self.customer_id, self.invoice_id)
+		tax_rate_id = self.builder.get_object('tax_exemption_combo').get_active_id()
+		self.time_clock_import = itce.ImportGUI(self.window, self.customer_id,
+												self.invoice_id, tax_rate_id)
 
 	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
 		list_ = data.get_text().split(' ')
@@ -950,7 +952,10 @@ class InvoiceGUI:
 							"JOIN tax_rates "
 							"ON customer_tax_exemptions.tax_rate_id = "
 							"tax_rates.id "
-							"WHERE customer_tax_exemptions.customer_id = (%s)",
+							"WHERE customer_tax_exemptions.customer_id = (%s) "
+							# the last is chosen: the newest, as posting a job or
+							# a document picks
+							"ORDER BY customer_tax_exemptions.id",
 							(self.customer_id,))
 		for row in cursor.fetchall():
 			exemption_combo.append(str(row[0]), row[1])
