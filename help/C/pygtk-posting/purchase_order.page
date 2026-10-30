@@ -36,12 +36,19 @@
   <p>If you choose a product already on the order, you are asked whether to
   <gui>Update qty</gui> of the existing line, <gui>Add again</gui> as a second
   line, or <gui>Cancel</gui>.</p>
-  <p>You can also scan a product's barcode into <gui>Scan barcode</gui>.
-  Barcodes that match no product are collected in the <gui>Barcode
-  error!</gui> window. Scanning a product already on the order does not work
-  yet; change its <gui>Qty</gui> instead.</p>
-  <p>Right click a line to <gui>Delete item</gui>, <gui>Move up</gui> or
-  <gui>Move down</gui> (<keyseq><key>Ctrl</key><key>Up</key></keyseq>,
+  <p>You can also scan a product's barcode into <gui>Scan barcode</gui>. Each
+  scan adds one of the product, on its existing line if the order already has
+  one. Barcodes that match no product are collected in the <gui>Barcode
+  error!</gui> window.</p>
+  <list>
+    <item><p><keyseq><key>Shift</key><key>Enter</key></keyseq> after a scan
+    takes one off that product's line instead.</p></item>
+    <item><p><keyseq><key>Ctrl</key><key>Enter</key></keyseq> after a scan
+    changes the selected line to that product.</p></item>
+  </list>
+  <p>Right click a line to <gui>Delete item</gui> (<key>F3</key>),
+  <gui>Move up</gui> or <gui>Move down</gui>
+  (<keyseq><key>Ctrl</key><key>Up</key></keyseq>,
   <keyseq><key>Ctrl</key><key>Down</key></keyseq>), or open its <gui>Product
   hub</gui> (<keyseq><key>Ctrl</key><key>H</key></keyseq>).</p>
   </section>
@@ -85,9 +92,12 @@
   window menu, and is closed. It then waits in <link xref="unprocessed_po"/>
   for the vendor's invoice. <gui>Post and process</gui> in the window menu
   posts it and opens that window at once.</p>
-  <note><p>Cancelling the print dialog does not stop the posting, even with
-  <gui>Cancel printing and posting</gui> checked. Use <gui>View purchase
-  order</gui> to check it first.</p></note>
+  <p>To change your mind, check <gui>Cancel printing and posting</gui> on the
+  <gui>PyGtk Posting</gui> tab of the print dialog, then click
+  <gui>Print</gui>. Nothing is printed or posted, and the order stays open.
+  Closing the print dialog with <gui>Cancel</gui> instead still posts the
+  order, without printing it. <gui>Direct print</gui> skips the dialog, so
+  check the order with <gui>View purchase order</gui> first.</p>
   <p>An order already invoiced cannot be posted again from here; correct it
   in <link xref="vendor_payment"/>.</p>
   </section>

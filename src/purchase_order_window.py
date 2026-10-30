@@ -18,6 +18,7 @@
 
 from gi.repository import Gtk, Gdk, GLib
 from datetime import datetime
+from decimal import Decimal
 import re, os, psycopg2
 from dateutils import DateTimeCalendar
 import purchase_ordering
@@ -578,7 +579,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 		purchase_order.view()
 
 	def post_and_process(self, widget):
-		self.post_purchase_order ()	
+		if self.post_purchase_order () != True:
+			return # not posted
 		import unprocessed_po
 		unprocessed_po.GUI ()
 
@@ -610,6 +612,14 @@ class PurchaseOrderGUI(Gtk.Builder):
 			result = purchase_order.print_directly(self.window)
 		else:
 			result = purchase_order.print_dialog(self.window)
+		if result == "user canceled":
+			# the order stays open, so give back the lock taken above; left held
+			# it hides this PO from select_vendor on other computers
+			cursor.execute("SELECT pg_advisory_unlock(id) FROM purchase_orders "
+							"WHERE id = %s", (self.purchase_order_id, ))
+			cursor.close()
+			DB.rollback()
+			return # "Cancel printing and posting" was checked
 		purchase_order.post(self.purchase_order_id, self.vendor_id,
 												self.datetime)
 		hold = False
@@ -632,6 +642,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 			DB.commit()
 			self.window.destroy ()
 		cursor.close()
+		return True
 
 	def vendor_match_selected(self, completion, model, iter):
 		vendor_id = model[iter][0]
@@ -1061,7 +1072,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 								"COALESCE(vendor_sku, '') AS vendor_sku "
 							"FROM products AS p "
 							"LEFT JOIN vendor_product_numbers AS vpn "
-							"ON vpn.product_id = p.id AND vendor_id = %s"
+							"ON vpn.product_id = p.id AND vendor_id = %s "
 							"WHERE p.id = %s), "
 						"poi_update AS "
 						"(UPDATE purchase_order_items "
@@ -1350,7 +1361,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		elif keyname == 'F2':
 			self.add_entry()
 		elif keyname == 'F3':
-			self.delete_entry_activated ()
+			self.delete_item_activated ()
 
 	def barcode_entry_key_released (self, entry, event):
 		keyname = Gdk.keyval_name(event.keyval)
@@ -1379,11 +1390,7 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor.close()
 		if event.get_state() & Gdk.ModifierType.SHIFT_MASK: #shift held down
 			entry.select_region(0,-1)
-			for index, row in enumerate(self.p_o_store):
-				if row[2] == product_id:
-					row[1] -= 1
-					self.save_purchase_order_line (index)
-					break
+			self.change_scanned_line_qty (product_id, -1)
 		elif event.get_state() & Gdk.ModifierType.CONTROL_MASK: #ctrl held down
 			entry.select_region(0,-1)
 			selection = self.get_object('treeview-selection')
@@ -1410,15 +1417,19 @@ class PurchaseOrderGUI(Gtk.Builder):
 		barcode_error_dialog.hide()
 
 	def add_product (self, product_id):
-		for index, row in enumerate(self.p_o_store):
-			if row[2] == product_id:
-				row[1] += 1
-				self.save_purchase_order_line (index)
-				break
-			continue
-		else:
+		if not self.change_scanned_line_qty (product_id, 1):
 			_iter = self.add_entry ()
 			self.save_product (_iter, product_id)
+
+	def change_scanned_line_qty (self, product_id, change):
+		"add change to the qty of the product's line on this PO, False if none"
+		for row in self.p_o_store:
+			# View all lists other vendors' orders too, leave their lines alone
+			if (row[2], row[13]) == (product_id, self.purchase_order_id):
+				qty = str(Decimal(row[1]) + change)
+				self.qty_edited (None, row.path, qty) # saves to the database
+				return True
+		return False
 
 	def calendar_day_selected (self, calendar):
 		self.datetime = calendar.get_date()
