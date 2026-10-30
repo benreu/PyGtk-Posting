@@ -433,7 +433,7 @@ class IncomingInvoiceGUI(Gtk.Builder):
 		if self.get_object('edit_mode_checkbutton').get_active() == False:
 			return
 		store = self.get_object('incoming_invoices_sort')
-		if text == store[path][4]:
+		if text == store[path][5]:
 			return
 		incoming_invoice_id = store[path][0]
 		c = DB.cursor()

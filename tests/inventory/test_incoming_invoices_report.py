@@ -144,5 +144,18 @@ class IncomingInvoicesPaidWithTest(DBTestCase):
 		self.assertFalse(self.reconciled(self.cash_bill))
 		self.assertTrue(self.reconciled(self.card_bill))
 
+	def test_an_unchanged_description_is_not_saved_again(self):
+		self.gui.populate_incoming_invoice_store()
+		self.edit_mode()
+		path = self.view_path(self.cash_bill)
+		with mock.patch.object(self.gui, 'populate_incoming_invoice_store') \
+																	as reload:
+			self.gui.incoming_invoice_description_edited(None, path,
+																'paid with')
+		reload.assert_not_called()
+		self.gui.incoming_invoice_description_edited(None, path, 'renamed')
+		self.assertEqual(self.one("SELECT description FROM incoming_invoices "
+								"WHERE id = %s", (self.cash_bill,)), 'renamed')
+
 if __name__ == '__main__':
 	unittest.main()
