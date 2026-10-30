@@ -17,7 +17,8 @@ DAY = date(2026, 6, 15)
 class LoanPaymentTest(DBTestCase):
 	'''Accounting > Loan payment's Print button posted the check payment and
 	printed nothing, and wrote the amount in words from a float total, so
-	1.15 + 2.30 came out as 44 cents'''
+	1.15 + 2.30 came out as 44 cents. Every payment, check or not, gave its
+	transaction the loan's id as its contact'''
 	def setUp(self):
 		super().setUp()
 		import loan_payment
@@ -33,6 +34,7 @@ class LoanPaymentTest(DBTestCase):
 									"RETURNING id")
 		# top level accounts with no children, so the window takes them
 		self.bank = self.new_account('Loan test bank', 1, bank_account = True)
+		self.cash = self.new_account('Loan test cash', 1, cash_account = True)
 		self.liability = self.new_account('Loan test liability', 5)
 		self.interest = self.new_account('Loan test interest', 3)
 		transaction_id = self.one("INSERT INTO gl_transactions (date_inserted) "
@@ -49,13 +51,15 @@ class LoanPaymentTest(DBTestCase):
 								(self.lender_id, DAY, entry_id, DAY))
 		self.DB.commit()
 
-	def new_account(self, name, type_, bank_account = False):
+	def new_account(self, name, type_, bank_account = False,
+						cash_account = False):
 		number = self.one("SELECT COALESCE(MAX(number), %s) + 1 "
 							"FROM gl_accounts WHERE number BETWEEN %s AND %s",
 							(type_ * 1000, type_ * 1000, type_ * 1000 + 999))
 		return self.one("INSERT INTO gl_accounts (name, type, number, "
-							"bank_account) VALUES (%s, %s, %s, %s) "
-						"RETURNING number", (name, type_, number, bank_account))
+							"bank_account, cash_account) "
+						"VALUES (%s, %s, %s, %s, %s) RETURNING number",
+						(name, type_, number, bank_account, cash_account))
 
 	def window(self):
 		'''the window opened on the test loan with everything filled in, ready
@@ -170,6 +174,23 @@ class LoanPaymentTest(DBTestCase):
 		self.assertEqual(self.payments(),
 						[(self.bank, Decimal('3.45'), 5150)])
 		destroy.assert_called_once()
+
+	def test_every_payment_is_the_lenders_transaction(self):
+		for handler in ('cash_payment_clicked', 'transfer_payment_clicked',
+						'print_check_clicked',
+						'post_check_without_printing_clicked'):
+			gui = self.window()
+			gui.builder.get_object('combobox3').set_active_id(str(self.cash))
+			gui.builder.get_object('entry3').set_text('TR-1')
+			self.click(gui, handler)
+		self.cursor.execute("SELECT gt.contact_id FROM loan_payments AS lp "
+							"JOIN gl_entries AS ge "
+								"ON ge.id = lp.gl_entries_total_id "
+							"JOIN gl_transactions AS gt "
+								"ON gt.id = ge.gl_transaction_id "
+							"WHERE lp.loan_id = %s", (self.loan_id,))
+		self.assertEqual([row[0] for row in self.cursor.fetchall()],
+						[self.lender_id] * 4)
 
 
 if __name__ == '__main__':

@@ -274,8 +274,8 @@ class LoanPaymentGUI:
 		self.window.destroy()
 
 	def principal_and_interest_payment (self):
-		self.loan_payment = transactor.LoanPayment(self.date, 
-													self.total, self.loan_id)
+		self.loan_payment = transactor.LoanPayment(self.date,
+													self.total, self.contact_id)
 		#### interest
 		interest = self.builder.get_object('spinbutton2').get_value()
 		interest_selection = self.builder.get_object('treeview-selection3')

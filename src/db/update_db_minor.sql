@@ -1781,3 +1781,19 @@ ALTER TABLE public.payments_incoming
    it, which is why it is not a real DELETE (job_sheets references it). */
 ALTER TABLE public.job_types
 	ADD COLUMN IF NOT EXISTS deleted boolean NOT NULL DEFAULT False;
+
+--0.7.43
+/* The loan payment window gave every payment's transaction the loan's id as
+   its contact, where transactor.LoanPayment takes the lender's, so the
+   transaction named whichever contact had that id (and the payment could not
+   post at all if none did). The lender has always been recorded in
+   loan_payments.contact_id. Only a transaction still holding its loan's id is
+   changed, which is exactly what the bug wrote: a contact set any other way is
+   left alone, and running the file again changes nothing. */
+UPDATE public.gl_transactions AS gt
+	SET contact_id = lp.contact_id
+	FROM public.loan_payments AS lp
+	JOIN public.gl_entries AS ge ON ge.id = lp.gl_entries_total_id
+	WHERE gt.id = ge.gl_transaction_id
+		AND gt.contact_id = lp.loan_id
+		AND gt.contact_id <> lp.contact_id;

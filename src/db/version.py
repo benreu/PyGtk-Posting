@@ -23,7 +23,7 @@ from constants import ui_directory
 UI_FILE = ui_directory + "/db/version.ui"
 
 VERSION_MAJOR = 7
-VERSION_MINOR = 42
+VERSION_MINOR = 43
 
 def run_as_database_owner (cursor):
 	'''Make what an upgrade creates belong to the database's owner, whoever
