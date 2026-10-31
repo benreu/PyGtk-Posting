@@ -343,6 +343,25 @@ class PostedInvoiceLedgerTest(InvoiceWindowStockTest):
 		self.assertEqual(self.revenue_of(self.line_id), ext_price)
 		self.assertReceivableCarriesTheInvoice()
 
+	def test_refreshing_a_price_shows_the_new_extension(self):
+		# the trigger reworks ext_price and tax in the database; the row on
+		# screen has to be read back or it keeps the typed price's figures
+		gui = self.window()
+		path = self.path_of(gui, self.product_id)
+		gui.price_edited(None, path, '9')
+		from pricing import get_customer_product_price
+		if get_customer_product_price(gui.customer_id, self.product_id) == 9:
+			self.skipTest('the customer price is 9 already')
+		gui.builder.get_object('invoice_selection').select_path(path)
+		gui.refresh_price_activated (None)
+		self.errored.assert_not_called()
+		self.cursor.execute("SELECT price::text, tax::text, ext_price::text "
+							"FROM invoice_items WHERE id = %s", (self.line_id,))
+		row = gui.invoice_store[path]
+		self.assertEqual((row[6], row[7], row[8]), self.cursor.fetchone())
+		self.assertNotEqual(row[8], '36.00')
+		self.assertReceivableCarriesTheInvoice()
+
 	def test_a_new_line_gets_a_revenue_entry(self):
 		gui = self.window()
 		gui.new_item_clicked (None)

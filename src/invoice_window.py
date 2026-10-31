@@ -1506,11 +1506,18 @@ class InvoiceGUI:
 	def set_product_price (self, iter_):
 		product_id = self.invoice_store[iter_][2]
 		price = get_customer_product_price (self.customer_id, product_id)
-		self.invoice_store[iter_][6] = str(price)
 		line_id = self.invoice_store[iter_][0]
 		cursor = DB.cursor()
+		# the trigger works out ext_price and tax after the update, so read them back
 		cursor.execute("UPDATE invoice_items SET price = %s "
-							"WHERE id = %s", (price, line_id))
+							"WHERE id = %s;"
+							"SELECT price::text, ext_price::text, tax::text "
+							"FROM invoice_items WHERE id = %s",
+							(price, line_id, line_id))
+		for row in cursor.fetchall():
+			self.invoice_store[iter_][6] = row[0]
+			self.invoice_store[iter_][7] = row[2]
+			self.invoice_store[iter_][8] = row[1]
 		cursor.close()
 		DB.commit()
 
