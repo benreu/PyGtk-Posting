@@ -44,6 +44,8 @@
   <gui>Product</gui> and add a <gui>Remark</gui>. Press <key>Tab</key> to move
   across the line. To delete a line, right click it and choose <gui>Delete
   item</gui>, or select it and press <key>F3</key>.</p>
+  <p>The <gui>Qty</gui> can be a sum such as <input>2x12</input>; see
+  <link xref="qty_arithmetic"/>.</p>
   <p>Checking or unchecking <gui>Job available in Time Clock</gui> on an
   existing job opens or closes it in the time clock.</p>
   </section>

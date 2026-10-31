@@ -259,6 +259,19 @@ class UnitsWindowTest(DBTestCase):
 		show_message.assert_called_once()
 		self.assertEqual(self.relationship(unit_id), ('Inch', Decimal('1')))
 
+	def test_a_ratio_can_be_a_sum(self):
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Inch'))
+		self.gui.parent_qty_edited(None, self.path_of(unit_id), '12x3')
+		self.assertEqual(self.relationship(unit_id), ('Inch', Decimal('36')))
+
+	def test_a_ratio_sum_is_rounded_to_four_places(self):
+		unit_id = self.new_unit('Reel')
+		self.set_parent(unit_id, self.named('Foot'))
+		self.gui.parent_qty_edited(None, self.path_of(unit_id), '1/3')
+		self.assertEqual(self.relationship(unit_id), ('Foot', Decimal('0.3333')))
+		self.assertEqual(self.gui.unit_store[self.path_of(unit_id)][4], '0.3333')
+
 	def test_a_unit_cannot_be_measured_in_itself(self):
 		unit_id = self.new_unit('Reel')
 		with mock.patch.object(self.gui, 'show_message') as show_message:

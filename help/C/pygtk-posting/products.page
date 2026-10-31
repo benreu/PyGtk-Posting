@@ -51,7 +51,9 @@
   <p>A product can be bought from several vendors, each with its own order
   number. Click <gui>New row</gui>, choose the <gui>Vendor</gui> and type their
   <gui>Order number</gui>, the <gui>Barcode</gui> on their package, and any
-  <gui>Buy qty</gui> and <gui>Price</gui>. <gui>Delete row</gui> removes the
+  <gui>Buy qty</gui> and <gui>Price</gui>. The <gui>Buy qty</gui> can be a sum
+  such as <input>2x12</input>; see <link xref="qty_arithmetic"/>.
+  <gui>Delete row</gui> removes the
   selected one. <gui>Save</gui> keeps the changes; <gui>Cancel</gui> discards
   them. Only one person can change a product's order numbers at a time.</p>
   <p>A purchase order fills in the order number for its vendor, and a

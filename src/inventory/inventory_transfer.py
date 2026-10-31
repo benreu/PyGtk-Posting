@@ -19,6 +19,7 @@ from gi.repository import Gtk, GLib
 from db_connection import DB
 from constants import ui_directory
 import user_manual
+import calculator
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/inventory/inventory_transfer.ui"
@@ -194,7 +195,7 @@ class InventoryTransferGUI(Gtk.Builder):
 
 	def transfer_qty_edited (self, cellrenderertext, path, qty):
 		try: # the store column is an integer, so reject anything else up front
-			qty = int(qty)
+			qty = calculator.whole(qty) # a sum like 2x12 is its result
 		except ValueError:
 			return
 		if qty <= 0: # removing a line is what the right click menu is for

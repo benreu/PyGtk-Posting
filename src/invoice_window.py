@@ -24,6 +24,7 @@ from db import transactor
 from dateutils import DateTimeCalendar
 from pricing import get_customer_product_price
 import spell_check
+import calculator
 from db_connection import DB, broadcaster
 from constants import ui_directory
 import user_manual
@@ -1144,28 +1145,28 @@ class InvoiceGUI:
 		DB.rollback()
 		return inventory_enabled
 
-	def whole_quantity_message (self, path, text):
-		'''returns a message when the typed quantity cannot be used, or None. A
-		fraction gets its own wording, the user is not reading a cast error'''
-		try:
-			number = Decimal(text)
-			whole = number == int(number)
-		except Exception:
-			return "'%s' is not a quantity" % text # not a number at all, or nan
-		if not whole:
+	def whole_quantity_message (self, path, text, qty):
+		'''returns a message when the quantity is a fraction, or None. It names
+		what was typed, which may be a sum like 3/2'''
+		if qty != qty.to_integral_value():
 			return ("'%s' is counted in whole units, so its quantity cannot be %s"
 					% (self.invoice_store[path][3], text))
 		return None
 
 	def qty_edited(self, widget, path, text):
+		try:
+			qty = calculator.evaluate (text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_error_dialog (GLib.markup_escape_text(str(e)))
+			return False
 		# read before check_invoice_item_id, the lookup ends in a rollback
 		whole_only = self.whole_quantity_required (path)
 		if whole_only:
-			message = self.whole_quantity_message (path, text)
+			message = self.whole_quantity_message (path, text, qty)
 			if message != None:
-				self.show_error_dialog (message)
+				self.show_error_dialog (GLib.markup_escape_text(message))
 				return False
-			text = int(Decimal(text)) # only whole numbers for inventory
+			qty = int(qty) # only whole numbers for inventory
 		iter_ = self.invoice_store.get_iter (path)
 		self.check_invoice_item_id (iter_)
 		line_id = self.invoice_store[iter_][0]
@@ -1176,7 +1177,7 @@ class InvoiceGUI:
 								"SELECT qty::text, price::text, "
 									"ext_price::text, tax::text "
 								"FROM invoice_items WHERE id = %s",
-								(text, line_id, line_id))
+								(qty, line_id, line_id))
 			DB.commit()
 		except psycopg2.DataError as e:
 			self.show_error_dialog (str(e))

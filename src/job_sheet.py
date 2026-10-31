@@ -24,6 +24,7 @@ from db_connection import DB, broadcaster
 from constants import ui_directory, template_dir
 import user_manual
 import printing
+import calculator
 
 UI_FILE = ui_directory + "/job_sheet.ui"
 
@@ -146,15 +147,23 @@ class JobSheetGUI(Gtk.Builder):
 		c = treeview.get_column(2)
 		GLib.idle_add(treeview.set_cursor, path, c, True)
 
-	def qty_edited (self, spin, path, text):
-		iter_ = self.job_store.get_iter(path) 
+	def qty_edited (self, renderer, path, text):
+		try:
+			qty = calculator.evaluate (text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
+		if qty < 0:
+			self.show_message ("A job sheet line cannot be less than none.")
+			return
+		iter_ = self.job_store.get_iter(path)
 		line_id = self.job_store[iter_][0]
 		cursor = DB.cursor()
 		cursor.execute("UPDATE job_sheet_items "
 							"SET qty = %s WHERE id = %s; "
 							"SELECT qty FROM job_sheet_items "
 							"WHERE id = %s",
-							(text, line_id, line_id))
+							(qty, line_id, line_id))
 		DB.commit()
 		self.job_store[iter_][1] = cursor.fetchone()[0]
 		cursor.close()
@@ -225,7 +234,9 @@ class JobSheetGUI(Gtk.Builder):
 		self.populate_existing_job_combobox ()
 
 	def qty_cell_func(self, column, cellrenderer, model, iter1, data):
-		qty = '{:,.1f}'.format(model.get_value(iter1, 1))
+		# no thousands comma: editing starts from this text, and the calculator
+		# takes 1,000 for a mistake
+		qty = '{:.1f}'.format(model.get_value(iter1, 1))
 		cellrenderer.set_property("text" , qty)
 
 	def job_combobox_populate (self):

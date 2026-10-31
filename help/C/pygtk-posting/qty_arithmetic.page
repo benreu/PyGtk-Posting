@@ -1,0 +1,53 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="qty_arithmetic">
+
+  <info>
+  <link type="guide" xref="index#basics"/>
+  <link type="seealso" xref="invoice#lines"/>
+  <desc>Type a sum like 2x12 into a quantity and the window works it
+  out.</desc>
+    <credit type="author">
+      <name>Reuben Rissler</name>
+      <email>pygtk.posting@gmail.com</email>
+    </credit>
+  </info>
+
+  <title>Arithmetic in quantity cells</title>
+
+  <p>A quantity cell takes a sum as well as a number. Type the sum and press
+  <key>Enter</key> or <key>Tab</key>: the cell shows the result, and the result
+  is what is saved. The sum itself is not kept.</p>
+
+  <terms>
+    <item><title><input>2x12</input></title><p>24</p></item>
+    <item><title><input>3*12+4</input></title><p>40</p></item>
+    <item><title><input>(3+4)*6</input></title><p>42</p></item>
+    <item><title><input>10/4</input></title><p>2.5</p></item>
+    <item><title><input>=2*3</input></title><p>6</p></item>
+  </terms>
+
+  <list>
+    <item><p><key>+</key> adds and <key>-</key> subtracts. <key>*</key>,
+    <key>x</key> and <key>×</key> multiply. <key>/</key> and <key>÷</key>
+    divide.</p></item>
+    <item><p>Multiplying and dividing come before adding and subtracting, so
+    <input>2+3*4</input> is 14. Use brackets to change the order.</p></item>
+    <item><p>A leading <key>=</key> is allowed, as in a spreadsheet.</p></item>
+    <item><p>Numbers are plain digits with an optional decimal point. Leave out
+    commas: <input>1,000</input> is refused, so type <input>1000</input>.</p>
+    </item>
+  </list>
+
+  <p>The result is rounded to the places the window keeps. An invoice keeps two
+  decimal places, so <input>10/3</input> is saved as 3.33. A credit memo keeps
+  one, and a purchase order only whole units. Cells that only hold whole
+  numbers refuse a sum that comes out as a fraction. These are an invoice line
+  for a product counted in inventory or serial numbered, an inventory count, an
+  inventory transfer, a manufacturing project's quantities, an assembled
+  product's parts, a resource and a vendor's buy quantity.</p>
+
+  <p>A sum that cannot be worked out, such as <input>2*</input>, a word, or a
+  division by zero, leaves the quantity as it was. Most windows also say why.</p>
+
+</page>

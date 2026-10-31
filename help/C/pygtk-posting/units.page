@@ -25,7 +25,8 @@
     length or weight.</p></item>
     <item><p>To record how it relates to a smaller unit, choose that unit in
     <gui>Of unit</gui> and type how many in <gui>Equals</gui>: a yard equals 3
-    of foot.</p></item>
+    of foot. <gui>Equals</gui> takes a sum as well, so a mile can equal
+    <input>5280/3</input> of yard; see <link xref="qty_arithmetic"/>.</p></item>
   </steps>
 
   <p>The list keeps each category together, smallest unit first, worked out

@@ -21,6 +21,7 @@ from dateutils import DateTimeCalendar
 from db_connection import DB, broadcaster
 from constants import ui_directory
 import user_manual
+import calculator
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/credit_memo.ui"
@@ -180,6 +181,14 @@ class CreditMemoGUI:
 		self.calculate_totals ()
 
 	def qty_edited (self, cellrenderertext, path, text):
+		try:
+			qty = calculator.evaluate (text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
+		if qty < 0:
+			self.show_message ("A credit memo cannot return less than none.")
+			return
 		c = DB.cursor()
 		iter_ = self.credit_items_store.get_iter(path)
 		self.check_row_id (iter_)
@@ -202,8 +211,8 @@ class CreditMemoGUI:
 							"%s*price, "
 							"%s*price*(SELECT rate FROM tax_cte)) "
 						"WHERE id = %s "
-						"RETURNING qty::text, ext_price::text", 
-						(invoice_item_id, text, text, text, row_id))
+						"RETURNING qty::text, ext_price::text",
+						(invoice_item_id, qty, qty, qty, row_id))
 		except psycopg2.DataError as e:
 			self.show_message(str(e))
 			DB.rollback()

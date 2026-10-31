@@ -26,6 +26,7 @@ from db_connection import DB, broadcaster
 from db.transactor import create_draft_purchase_order
 from constants import ui_directory
 import user_manual
+import calculator
 
 items = list()
 
@@ -751,6 +752,11 @@ class PurchaseOrderGUI(Gtk.Builder):
 		cursor.close()
 
 	def qty_edited(self, widget, path, text):
+		try:
+			qty = calculator.evaluate (text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
 		cursor = DB.cursor()
 		_iter = self.p_o_store.get_iter (path)
 		self.check_po_item_id (_iter)
@@ -759,8 +765,8 @@ class PurchaseOrderGUI(Gtk.Builder):
 			cursor.execute("UPDATE purchase_order_items "
 								"SET (qty, ext_price) = (%s, %s * price) "
 								"WHERE id = %s "
-								"RETURNING qty::text, ext_price::text", 
-								(text, text, line_id))
+								"RETURNING qty::text, ext_price::text",
+								(qty, qty, line_id))
 		except psycopg2.DataError as e:
 			self.show_message (str(e))
 			DB.rollback()

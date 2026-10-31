@@ -152,5 +152,23 @@ class JobSheetTest(DBTestCase):
 						(self.product_id, Decimal('3.00'), '',
 						PRICE, PRICE * 3, self.tax(PRICE * 3))])
 
+	def job_qty(self, line_id):
+		return self.one("SELECT qty FROM job_sheet_items WHERE id = %s",
+						(line_id,))
+
+	def test_a_qty_sum_is_saved_as_its_result(self):
+		line_id = self.add_line(1)
+		gui = self.window()
+		gui.qty_edited(None, '0', '2x2.5')
+		self.assertEqual(self.job_qty(line_id), Decimal(5))
+
+	def test_a_negative_qty_is_refused(self):
+		line_id = self.add_line(1)
+		gui = self.window()
+		with mock.patch.object(gui, 'show_message') as show_message:
+			gui.qty_edited(None, '0', '1-2')
+		show_message.assert_called_once()
+		self.assertEqual(self.job_qty(line_id), 1)
+
 if __name__ == '__main__':
 	unittest.main()

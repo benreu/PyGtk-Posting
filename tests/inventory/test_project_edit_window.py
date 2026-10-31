@@ -117,5 +117,21 @@ class ProjectEditWindowTest(DBTestCase):
 		self.assertEqual(row[5], 0)
 		self.assertEqual(row[8], self.needed + 2)
 
+	def test_a_needed_qty_can_be_a_sum(self):
+		gui = self.open_window()
+		row = self.row_for(gui, self.component_id)
+		gui.needed_qty_edited(None, row.path.to_string(),
+								'%s+1x2' % self.needed)
+		self.assertEqual(row[1], self.needed + 2)
+		self.assertEqual(row[8], self.needed + 2)
+
+	def test_an_order_qty_can_be_a_sum(self):
+		gui = self.open_window()
+		row = self.row_for(gui, self.component_id)
+		gui.order_qty_edited(None, row.path.to_string(), '2x5')
+		self.assertEqual(row[8], 10)
+		gui.order_qty_edited(None, row.path.to_string(), '5/2')
+		self.assertEqual(row[8], 10) # whole parts only
+
 if __name__ == '__main__':
 	unittest.main()

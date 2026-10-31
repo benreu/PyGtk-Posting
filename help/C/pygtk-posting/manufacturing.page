@@ -48,7 +48,9 @@
   <p>Each part shows the <gui>Needed qty</gui>, how many are <gui>On
   hand</gui> at its <gui>Source</gui> location, and in <gui>All
   locations</gui>. Only stock at the source counts: stock elsewhere has to be
-  moved there first. <gui>Order qty</gui> is the shortfall.</p>
+  moved there first. <gui>Order qty</gui> is the shortfall. Click either qty
+  to change it; a sum such as <input>2x12</input> works too (see
+  <link xref="qty_arithmetic"/>).</p>
   <list>
     <item><p>Click a part's <gui>Part</gui> to use a substitute, its
     <gui>Source</gui> to take it from another location, or its

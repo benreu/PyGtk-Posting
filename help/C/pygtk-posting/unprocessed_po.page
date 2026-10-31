@@ -28,7 +28,8 @@
     <item><p>Type the vendor's <gui>Invoice number</gui>, or another
     description of their invoice.</p></item>
     <item><p>Change each line's <gui>Qty</gui> and <gui>Price</gui> to what
-    the vendor actually invoiced.</p></item>
+    the vendor actually invoiced. A sum such as <input>2x12</input> works in
+    <gui>Qty</gui>; see <link xref="qty_arithmetic"/>.</p></item>
     <item><p>Choose an <gui>Expense Account</gui> for any line that has none.
     Until every line has one, the save button reads <gui>Missing expense
     account</gui>.</p></item>

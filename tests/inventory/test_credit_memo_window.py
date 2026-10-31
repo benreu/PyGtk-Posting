@@ -152,5 +152,25 @@ class CreditMemoWindowTest(DBTestCase):
 									"WHERE id > %s", (high_water,)), 0)
 		self.assertEqual(gui.builder.get_object('button1').get_sensitive(), True)
 
+	# ---------------- a quantity can be a sum ----------------
+
+	def memo_line(self):
+		self.cursor.execute("SELECT qty, ext_price FROM credit_memo_items "
+							"WHERE credit_memo_id = %s", (self.credit_memo_id,))
+		return self.cursor.fetchone()
+
+	def test_a_qty_sum_is_saved_as_its_result(self):
+		gui = self.window()
+		gui.qty_edited(None, '0', '1+2')
+		self.messaged.assert_not_called()
+		self.assertEqual(self.memo_line(), (Decimal(3), Decimal('15.00')))
+		self.assertEqual(gui.credit_items_store[0][1], '3.0')
+
+	def test_a_negative_qty_is_refused(self):
+		gui = self.window()
+		gui.qty_edited(None, '0', '1-3')
+		self.messaged.assert_called_once()
+		self.assertEqual(self.memo_line()[0], 2)
+
 if __name__ == '__main__':
 	unittest.main()

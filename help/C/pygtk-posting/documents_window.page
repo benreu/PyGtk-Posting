@@ -32,7 +32,9 @@
     to carry on with one of this customer's unposted documents of this
     type. The button shows how many there are.</p></item>
     <item><p>Click <gui>New Item</gui>, or press <key>F2</key>, for each line,
-    and fill in the <gui>Qty</gui> and <gui>Product</gui>. Choosing the product
+    and fill in the <gui>Qty</gui> and <gui>Product</gui>. The <gui>Qty</gui>
+    can be a sum such as <input>2x12</input>; see
+    <link xref="qty_arithmetic"/>. Choosing the product
     fills in the customer's <gui>Price</gui> for it, which you can change.
     <gui>Delete Item</gui>, or <key>F3</key>, removes the selected line.</p>
     <p>You can also scan or type a barcode into <gui>Scan or Type in +

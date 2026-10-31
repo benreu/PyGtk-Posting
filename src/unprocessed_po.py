@@ -34,6 +34,7 @@ from db.transactor import create_draft_purchase_order
 from db_connection import DB
 from constants import ui_directory
 import user_manual
+import calculator
 
 UI_FILE = ui_directory + "/unprocessed_po.ui"
 
@@ -586,7 +587,12 @@ class GUI(Gtk.Builder):
 		cellrenderer.set_property("text" , str(ext_price))
 
 	def qty_edited(self, widget, path, text):
-		t = Decimal(text).quantize(self.qty_places, rounding = ROUND_HALF_UP)
+		try:
+			qty = calculator.evaluate (text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
+		t = qty.quantize(self.qty_places, rounding = ROUND_HALF_UP)
 		self.purchase_order_items_store[path][1] = t
 		self.calculate_row_amounts (path)
 

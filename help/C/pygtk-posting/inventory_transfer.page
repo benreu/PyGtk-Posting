@@ -23,7 +23,9 @@
     <item><p>Choose a product; how many are on hand at the source is shown.
     Click <gui>Add</gui>. Adding a product already listed adds to its
     line.</p></item>
-    <item><p>Click a line's <gui>Quantity</gui> to change how many move. Right
+    <item><p>Click a line's <gui>Quantity</gui> to change how many move; a sum
+    such as <input>2x12</input> works too (see
+    <link xref="qty_arithmetic"/>). Right
     click a line to remove it or open its <gui>Product hub</gui>.</p></item>
     <item><p>Type <gui>Notes</gui> on why the stock is moving, and click
     <gui>Transfer</gui>.</p></item>

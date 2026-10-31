@@ -20,6 +20,7 @@ from pricing import product_retail_price
 from db_connection import DB, broadcaster
 from constants import ui_directory
 import user_manual
+import calculator
 
 UI_FILE = ui_directory + "/inventory/inventory_count.ui"
 
@@ -144,8 +145,10 @@ class InventoryCountGUI(Gtk.Builder):
 		store = self.get_object('inventory_rows_store')
 		product_id = store[path][1]
 		try: # the store column is an integer, so reject anything else up front
-			qty = int(qty)
+			qty = calculator.whole(qty) # a sum like 2x12 is its result
 		except ValueError:
+			return
+		if qty < 0:
 			return
 		c = DB.cursor()
 		c.execute("UPDATE inventory.count_rows SET qty = %s "

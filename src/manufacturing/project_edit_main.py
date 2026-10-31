@@ -20,6 +20,7 @@ from gi.repository import Gtk, Gdk, GLib
 from db_connection import DB, broadcaster
 from constants import ui_directory, MANUFACTURING_PROJECT_LOCK_CLASSID
 import user_manual
+import calculator
 from inventory import inventorying
 
 UI_FILE = ui_directory + "/manufacturing/project_edit_main.ui"
@@ -616,7 +617,7 @@ class ProjectEditGUI(Gtk.Builder):
 
 	def order_qty_edited (self, widget, path, text):
 		try:
-			value = int(text)
+			value = calculator.whole(text) # a sum like 2x12 is its result
 		except ValueError:
 			return
 		self.parts_needed_store[path][8] = max(value, 0)
@@ -839,7 +840,7 @@ class ProjectEditGUI(Gtk.Builder):
 
 	def needed_qty_edited (self, widget, path, text):
 		try:
-			qty = int(text)
+			qty = calculator.whole(text) # a sum like 2x12 is its result
 		except ValueError:
 			return
 		if qty <= 0:

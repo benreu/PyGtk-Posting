@@ -25,6 +25,7 @@ from pricing import get_customer_product_price
 from db_connection import DB, broadcaster
 from constants import ui_directory
 import user_manual
+import calculator
 
 UI_FILE = ui_directory + "/documents_window.ui"
 
@@ -278,6 +279,11 @@ class DocumentGUI:
 	################## start qty
 
 	def qty_edited(self, widget, path, text):
+		try:
+			qty = calculator.evaluate (text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return False
 		row_id = self.documents_store[path][0]
 		cursor = DB.cursor()
 		try:
@@ -286,7 +292,7 @@ class DocumentGUI:
 								"(%s, (%s * price)) "
 								"WHERE id = %s "
 								"RETURNING qty::text, ext_price::text",
-								(text, text, row_id))
+								(qty, qty, row_id))
 			for row in cursor.fetchall():
 				self.documents_store[path][1] = row[0]
 				self.documents_store[path][14] = row[1]

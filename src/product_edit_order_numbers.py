@@ -15,11 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 import psycopg2
 from db_connection import DB
 from constants import ui_directory, ORDER_NUMBER_LOCK_CLASSID
 import user_manual
+import calculator
 
 UI_FILE = ui_directory + "/product_edit_order_numbers.ui"
 
@@ -143,12 +144,26 @@ class ProductsEditOrderNumbersGUI (Gtk.Builder):
 		self.select_row (row_id)
 
 	def buy_qty_edited (self, cellrenderertext, path, text):
+		try:
+			qty = calculator.whole(text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
+		if qty < 0:
+			self.show_message ("A buy quantity cannot be less than none.")
+			return
 		c = DB.cursor()
 		store = self.get_object('order_number_store')
 		row_id = store[path][0]
-		c.execute("UPDATE vendor_product_numbers "
-					"SET qty = %s WHERE id = %s", 
-					(text, row_id))
+		try:
+			c.execute("UPDATE vendor_product_numbers "
+						"SET qty = %s WHERE id = %s",
+						(qty, row_id))
+		except psycopg2.DataError as e: # the column is a smallint
+			c.close()
+			DB.rollback()
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
 		self.populate_product_order_numbers ()
 		self.select_row (row_id)
 		c.close()

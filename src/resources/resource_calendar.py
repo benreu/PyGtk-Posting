@@ -22,6 +22,7 @@ from dateutils import calendar_to_datetime, \
 from db_connection import DB
 from constants import ui_directory
 import user_manual
+import calculator
 from sqlite_utils import get_apsw_connection
 try:
 	import holidays
@@ -217,11 +218,19 @@ class ResourceCalendarGUI:
 		DB.commit()
 
 	def qty_edited (self, cellrenderertext, path, text):
+		try:
+			qty = calculator.whole(text) # a sum like 2x12 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
+			return
+		if qty < 0:
+			self.show_message ("A quantity cannot be less than none.")
+			return
 		row_id = self.day_detail_store[path][0]
-		self.day_detail_store[path][2] = int(text)
+		self.day_detail_store[path][2] = qty
 		cursor = DB.cursor()
 		cursor.execute("UPDATE resources SET qty = %s "
-							"WHERE id = %s", (text, row_id))
+							"WHERE id = %s", (qty, row_id))
 		cursor.close()
 		DB.commit()
 

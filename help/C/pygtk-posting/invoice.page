@@ -49,7 +49,8 @@
   <steps>
     <item><p>Click <gui>New Item</gui>, or press <key>F2</key>.</p></item>
     <item><p>Type the quantity and press <key>Tab</key> to move to the
-    product.</p></item>
+    product. A sum such as <input>2x12</input> works too; see
+    <link xref="qty_arithmetic"/>.</p></item>
     <item><p>Pick the product from the list, or type part of its name. Only
     products marked as sellable are listed. The price is the customer's price
     for that product.</p></item>

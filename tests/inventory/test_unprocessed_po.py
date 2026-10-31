@@ -163,5 +163,18 @@ class SaveAndPayTest(DBTestCase):
 									"WHERE id = %s", (self.po_id,)),
 						Decimal('12.00'))
 
+	def test_a_qty_sum_is_used_as_its_result(self):
+		gui = self.window()
+		gui.qty_edited(None, '0', '2x2')
+		self.messaged.assert_not_called()
+		self.assertEqual(gui.purchase_order_items_store[0][1], 4)
+		self.assertEqual(gui.purchase_order_items_store[0][6], Decimal('12.00'))
+
+	def test_a_qty_that_is_not_a_sum_is_refused(self):
+		gui = self.window()
+		gui.qty_edited(None, '0', '4/')
+		self.messaged.assert_called_once()
+		self.assertEqual(gui.purchase_order_items_store[0][1], 5)
+
 if __name__ == '__main__':
 	unittest.main()

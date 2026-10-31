@@ -54,6 +54,16 @@ class CountQtyEditedTest(DBTestCase):
 		self.gui.qty_edited(None, '0', 'abc')
 		self.assertEqual(self.stored_qty(), 3)
 
+	def test_a_sum_is_saved_as_its_result(self):
+		self.gui.qty_edited(None, '0', '2x12+1')
+		self.assertEqual(self.stored_qty(), 25)
+		self.assertEqual(self.store[0][0], 25)
+
+	def test_a_fraction_or_a_negative_sum_is_rejected(self):
+		for bad in ('3/2', '2-5'):
+			self.gui.qty_edited(None, '0', bad)
+			self.assertEqual(self.stored_qty(), 3)
+
 class CloseButtonTest(DBTestCase):
 	'''the button itself: the confirmation it asks for, and the state it has to
 	leave the window in so the next scan cannot count into a closed count'''

@@ -26,7 +26,9 @@
     <item><p>Click <gui>New Item</gui>, or press <key>F2</key>, and type the
     <gui>Qty</gui>, choose the <gui>Product</gui> and add a
     <gui>Remark</gui>. If the part is already on the list you are asked
-    whether to update its quantity or add it again.</p></item>
+    whether to update its quantity or add it again. The <gui>Qty</gui> can be
+    a sum such as <input>2x12</input>; see
+    <link xref="qty_arithmetic"/>.</p></item>
     <item><p><gui>Delete Item</gui>, or <key>F3</key>, removes the selected
     part.</p></item>
   </steps>

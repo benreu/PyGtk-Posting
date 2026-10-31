@@ -27,7 +27,8 @@
     <item><p>Scan each item into <gui>Product barcode</gui>: each scan adds one
     to that product's <gui>Qty</gui>. Or choose a product under
     <gui>Product</gui> and type its quantity. Click a <gui>Qty</gui> to correct
-    it.</p></item>
+    it. A sum such as <input>4x12</input> works too, as long as it comes to a
+    whole number; see <link xref="qty_arithmetic"/>.</p></item>
     <item><p>Barcodes that match no product are listed under <gui>Missing
     barcodes</gui>, with how many times each was scanned, to sort out
     later.</p></item>

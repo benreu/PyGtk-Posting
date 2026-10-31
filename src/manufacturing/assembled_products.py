@@ -20,6 +20,7 @@ import os, sys
 from db_connection import DB, broadcaster
 from constants import ui_directory
 import user_manual
+import calculator
 
 UI_FILE = ui_directory + "/manufacturing/assembled_products.ui"
 
@@ -232,7 +233,11 @@ class AssembledProductsGUI:
 		products_overview.ProductsOverviewGUI()
 
 	def qty_edited(self, widget, path, text):
-		self.assembly_store[path][1] = int(text) # update all values related to the price and quantity
+		try:
+			qty = calculator.whole(text) # a sum like 2x12 is its result
+		except ValueError:
+			return
+		self.assembly_store[path][1] = qty # update all values related to the price and quantity
 		iter = self.assembly_store.get_iter(path)
 		self.save_assembly_product_line (iter)
 		self.calculate_row_total (iter)

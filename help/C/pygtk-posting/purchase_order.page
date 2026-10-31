@@ -28,7 +28,8 @@
   <steps>
     <item><p>Choose the vendor.</p></item>
     <item><p>Click <gui>New</gui>, or press <key>F2</key>.</p></item>
-    <item><p>Type the quantity and press <key>Tab</key>.</p></item>
+    <item><p>Type the quantity and press <key>Tab</key>. A sum such as
+    <input>2x12</input> works too; see <link xref="qty_arithmetic"/>.</p></item>
     <item><p>Choose the product from the list or by typing part of its name.
     Its vendor order number, <gui>Stock</gui> and cost are filled
     in.</p></item>

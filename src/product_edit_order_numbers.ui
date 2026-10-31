@@ -141,9 +141,8 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">5</property>
                     <child>
-                      <object class="GtkCellRendererSpin">
+                      <object class="GtkCellRendererText">
                         <property name="editable">True</property>
-                        <property name="adjustment">qty_adjustment</property>
                         <signal name="edited" handler="buy_qty_edited" swapped="no"/>
                       </object>
                       <attributes>

@@ -26,7 +26,9 @@
     with the invoice number and date beside each, so the credit is at the price
     they paid and the tax they were charged.</p></item>
     <item><p>Type the <gui>Qty</gui> returned, and change the <gui>Price</gui>
-    or <gui>Tax</gui> if the credit should differ.</p></item>
+    or <gui>Tax</gui> if the credit should differ. A sum such as
+    <input>2x12</input> works in <gui>Qty</gui>; see
+    <link xref="qty_arithmetic"/>.</p></item>
     <item><p>Click in <gui>Date returned</gui> to choose the day it came
     back.</p></item>
     <item><p>Check the <gui>Date</gui> of the memo and click <gui>Post Credit

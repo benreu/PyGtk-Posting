@@ -171,6 +171,40 @@ class InvoiceWindowStockTest(DBTestCase):
 		self.errored.assert_not_called()
 		self.assertEqual(self.qty_of(untracked_line), Decimal('1.50'))
 
+	# ---------------- a sum is saved as its result ----------------
+
+	def test_a_sum_is_saved_as_its_result(self):
+		gui = self.window()
+		gui.qty_edited(None, self.path_of(gui, self.product_id), '2*3+1')
+		self.errored.assert_not_called()
+		self.assertEqual(self.qty_of(self.line_id), 7)
+		self.assertEqual(gui.invoice_store[self.path_of(gui, self.product_id)][1],
+							'7')
+		self.assertEqual(self.ledger(), [(self.line_id, 7, self.location_id)])
+
+	def test_a_sum_that_comes_to_a_fraction_is_refused_for_whole_units(self):
+		gui = self.window()
+		gui.qty_edited(None, self.path_of(gui, self.product_id), '3/2')
+		self.errored.assert_called_once()
+		self.assertIn('3/2', self.errored.call_args[0][0])
+		self.assertEqual(self.qty_of(self.line_id), 4)
+
+	def test_a_sum_is_rounded_to_the_places_the_line_keeps(self):
+		untracked_line = self.invoice_line(2, self.untracked_id)
+		self.DB.commit()
+		gui = self.window()
+		gui.qty_edited(None, self.path_of(gui, self.untracked_id), '10/3')
+		self.errored.assert_not_called()
+		self.assertEqual(self.qty_of(untracked_line), Decimal('3.33'))
+
+	def test_a_sum_that_cannot_be_worked_out_is_refused(self):
+		gui = self.window()
+		gui.qty_edited(None, self.path_of(gui, self.product_id), '2<3')
+		self.errored.assert_called_once()
+		# the dialog reads markup, so what was typed is escaped
+		self.assertIn('2&lt;3', self.errored.call_args[0][0])
+		self.assertEqual(self.qty_of(self.line_id), 4)
+
 
 class PostedInvoiceLedgerTest(InvoiceWindowStockTest):
 	'''the same window edits, followed into the general ledger. The base class

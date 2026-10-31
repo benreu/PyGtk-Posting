@@ -297,9 +297,8 @@
                     <property name="resizable">True</property>
                     <property name="title" translatable="yes">Quantity</property>
                     <child>
-                      <object class="GtkCellRendererSpin" id="transfer_qty_cell">
+                      <object class="GtkCellRendererText" id="transfer_qty_cell">
                         <property name="editable">True</property>
-                        <property name="adjustment">transfer_qty_adjustment</property>
                         <signal name="edited" handler="transfer_qty_edited" swapped="no"/>
                       </object>
                       <attributes>

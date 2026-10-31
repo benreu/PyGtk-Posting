@@ -228,5 +228,13 @@ class DocumentsTest(DBTestCase):
 						[(self.product_id, Decimal('2.0'), PRICE,
 						PRICE * 2)])
 
+	def test_a_qty_sum_is_saved_as_its_result(self):
+		self.add_line(self.product_id, 1, PRICE)
+		gui = self.window()
+		gui.qty_edited(None, '0', '(2+1)*4')
+		self.messaged.assert_not_called()
+		self.assertEqual(self.lines(),
+						[(self.product_id, Decimal(12), PRICE, 12 * PRICE)])
+
 if __name__ == '__main__':
 	unittest.main()

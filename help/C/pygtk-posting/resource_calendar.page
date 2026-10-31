@@ -24,7 +24,8 @@
   <gui>Subject</gui>, <gui>Qty</gui>, <gui>Type</gui>, <gui>Contact</gui> and
   <gui>Category</gui>. Right click a day to open it in a small window of its
   own, where entries can be changed, added with <gui>New</gui> or removed with
-  <gui>Delete</gui>.</p>
+  <gui>Delete</gui>. An entry's <gui>Qty</gui> can be typed as a sum such as
+  <input>2x12</input>; see <link xref="qty_arithmetic"/>.</p>
 
   <p>The window menu sets the <gui>Row width</gui> and <gui>Row height</gui>
   of the days, whether to <gui>Show details</gui>, and has <gui>Save window

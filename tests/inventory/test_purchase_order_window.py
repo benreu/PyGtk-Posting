@@ -155,5 +155,20 @@ class PurchaseOrderWindowTest(DBTestCase):
 		unprocessed.assert_called_once()
 		destroy.assert_called_once()
 
+	def test_a_qty_sum_is_saved_as_its_result(self):
+		gui = self.window()
+		self.scan(gui)
+		gui.qty_edited(None, '0', '2x6')
+		self.messaged.assert_not_called()
+		self.assertEqual(self.lines(gui), [(Decimal(12), Decimal('36.00'))])
+		self.assertEqual([row[1] for row in gui.p_o_store], ['12'])
+
+	def test_a_qty_that_is_not_a_sum_is_refused(self):
+		gui = self.window()
+		self.scan(gui)
+		gui.qty_edited(None, '0', '2x')
+		self.messaged.assert_called_once()
+		self.assertEqual(self.lines(gui), [(Decimal(1), Decimal('3.00'))])
+
 if __name__ == '__main__':
 	unittest.main()

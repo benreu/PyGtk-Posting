@@ -328,6 +328,16 @@ class TransferWindowTest(TransferBase):
 		self.gui.transfer_qty_edited(None, '0', '7')
 		self.assertEqual(self.gui.lines_store[0][1], 7)
 
+	def test_a_quantity_can_be_a_sum(self):
+		self.stock(self.product_id, 10)
+		self.DB.commit()
+		self.add(self.product_id, 4)
+		self.gui.transfer_qty_edited(None, '0', '2x3')
+		self.assertEqual(self.gui.lines_store[0][1], 6)
+		for bad in ('3/2', '2-2', '2*'):
+			self.gui.transfer_qty_edited(None, '0', bad)
+			self.assertEqual(self.gui.lines_store[0][1], 6)
+
 	def test_the_lines_show_on_hand_at_the_source(self):
 		self.stock(self.product_id, 10)
 		self.DB.commit()

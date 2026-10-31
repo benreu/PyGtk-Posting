@@ -15,11 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
-from decimal import Decimal, InvalidOperation
+from gi.repository import Gtk, GLib
+from decimal import Decimal, ROUND_HALF_UP
 from db_connection import DB
 from constants import ui_directory
 import user_manual
+import calculator
 
 UI_FILE = ui_directory + "/units.ui"
 
@@ -162,17 +163,19 @@ class UnitsGUI:
 		self.unit_store[path][7] = text.strip()
 		self.save (iter_)
 
-	def parent_qty_edited (self, spin_renderer, path, text):
+	def parent_qty_edited (self, renderer, path, text):
 		if self.unit_store[path][6] == '':
 			#parent_qty without a parent is what unit_parent_qty_together
 			#refuses, and a number on its own says nothing anyway
 			self.show_message ("Choose the unit this one is measured in first.")
 			return
 		try:
-			qty = Decimal(text)
-		except InvalidOperation:
-			self.show_message ("'%s' is not a number." % text)
+			qty = calculator.evaluate (text) # a sum like 5280/3 is its result
+		except ValueError as e:
+			self.show_message (GLib.markup_escape_text(str(e)))
 			return
+		# parent_qty is numeric(12,4), which rounds a tie away from zero too
+		qty = qty.quantize(Decimal('0.0001'), rounding = ROUND_HALF_UP)
 		if qty <= 0:
 			self.show_message ("A unit cannot be worth none of another one.")
 			return

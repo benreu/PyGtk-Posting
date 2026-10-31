@@ -136,11 +136,6 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="qty_adjustment">
-    <property name="upper">100000</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
   <object class="GtkListStore" id="serial_number_store">
     <columns>
       <!-- column-name invoice_item_id -->
@@ -298,10 +293,8 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">1</property>
                     <child>
-                      <object class="GtkCellRendererSpin" id="qty_renderer">
+                      <object class="GtkCellRendererText" id="qty_renderer">
                         <property name="editable">True</property>
-                        <property name="adjustment">qty_adjustment</property>
-                        <property name="digits">1</property>
                         <signal name="edited" handler="qty_edited" swapped="no"/>
                       </object>
                       <attributes>

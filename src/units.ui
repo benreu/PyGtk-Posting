@@ -36,11 +36,6 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkAdjustment" id="parent_qty_adjustment">
-    <property name="upper">100000000</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
   <object class="GtkListStore" id="reassign_store">
     <columns>
       <!-- column-name unit_id -->
@@ -159,10 +154,8 @@
                     <property name="reorderable">True</property>
                     <property name="sort_column_id">4</property>
                     <child>
-                      <object class="GtkCellRendererSpin" id="cellrendererspin1">
+                      <object class="GtkCellRendererText" id="cellrendererspin1">
                         <property name="editable">True</property>
-                        <property name="adjustment">parent_qty_adjustment</property>
-                        <property name="digits">4</property>
                         <signal name="edited" handler="parent_qty_edited" swapped="no"/>
                       </object>
                       <attributes>
