@@ -27,7 +27,7 @@ from check_writing import get_check_number, get_written_check_amount_text
 from decimal import Decimal							
 import printing
 from db_connection import DB
-from constants import ui_directory
+from constants import ui_directory, template_dir
 import user_manual
 
 UI_FILE = ui_directory + "/payroll/pay_stub.ui"
@@ -372,7 +372,7 @@ class PayStubGUI:
 		self.check_name = "/tmp/pay_check" + self.name.split()[0]
 		self.check_file_odt = self.check_name +".odt"
 		self.check_file_pdf = self.check_name +".pdf"
-		t = Template("./templates/pay_check.odt", self.check_file_odt , True)
+		t = Template(template_dir+"/pay_check.odt", self.check_file_odt , True)
 		t.render(self.data) #the self.data holds all the info to be passed to the template
 		subprocess.call("odt2pdf " + self.check_file_odt, shell = True)
 		p = printing.Operation(settings_file = 'pay_check', file_to_print = self.check_file_pdf, parent = self.window)
@@ -396,7 +396,7 @@ class PayStubGUI:
 		self.time_card_pdf = self.time_card_name + ".pdf"
 		
 		#self.tmp_timecard_file = "/tmp/" + self.document_odt
-		t = Template("./templates/time_card_template.odt", self.time_card_odt , True)
+		t = Template(template_dir+"/time_card_template.odt", self.time_card_odt , True)
 		t.render(self.data) #the self.data holds all the info to be passed to the template
 
 		subprocess.call("odt2pdf " + self.time_card_odt, shell = True)

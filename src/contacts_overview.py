@@ -385,7 +385,7 @@ class ContactsOverviewGUI(Gtk.Builder):
 		data = dict(contact = contact, company = company)
 		from py3o.template import Template
 		label_file = "/tmp/shipping_label_template.odt"
-		t = Template("./templates/shipping_label_template.odt", 
+		t = Template(template_dir+"/shipping_label_template.odt", 
 												label_file, 
 												True)
 		t.render(data) 

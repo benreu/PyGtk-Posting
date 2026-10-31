@@ -19,7 +19,7 @@ from gi.repository import Gtk, GdkPixbuf, Gdk, GLib
 import os, sys, subprocess
 from datetime import datetime
 from db_connection import DB
-from constants import ui_directory
+from constants import ui_directory, template_dir
 import user_manual
 
 UI_FILE = ui_directory + "/customer_tax_exemptions.ui"
@@ -117,7 +117,7 @@ class CustomerTaxExemptionsGUI:
 			cursor.close()
 			return # no template set
 		template_file_name = template_path.split("/")[-1]
-		exemption_template = "./templates/%s" % template_file_name
+		exemption_template = os.path.join(template_dir, template_file_name)
 		cursor.execute("SELECT * FROM contacts WHERE id = (%s)",
 													[self.customer_id])
 		customer = Item()

@@ -42,6 +42,8 @@
 
   <note><p>This window is not finished. <gui>Cash Advance</gui> does nothing
   yet, the items of the <gui>File</gui> and <gui>Edit</gui> menus do nothing,
-  and the pay is posted even if the print dialog is cancelled.</p></note>
+  and the pay is posted even if the print dialog is cancelled. There is no
+  pay check template yet, so <gui>Pay &amp; Close</gui> stops with an error
+  instead of printing the check.</p></note>
 
 </page>
