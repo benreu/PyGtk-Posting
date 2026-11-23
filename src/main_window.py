@@ -477,10 +477,6 @@ class MainGUI :
 		import receive_orders
 		receive_orders.ReceiveOrdersGUI()
 
-	def employee_time (self, widget):
-		import employee_payment
-		employee_payment.EmployeePaymentGUI ()
-
 	def pay_stub_clicked (self, button):
 		from payroll import pay_stub
 		pay_stub.PayStubGUI()

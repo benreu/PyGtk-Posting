@@ -896,15 +896,6 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="menuitem57">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Employee payment</property>
-                        <property name="use-underline">True</property>
-                        <signal name="activate" handler="employee_time" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkMenuItem" id="menuitem39">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
