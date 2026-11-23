@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from gi.repository import Gtk
 from db_connection import DB
 
 def get_customer_product_price (customer_id, product_id):
@@ -59,3 +60,111 @@ def product_retail_price (product_id):
 	return price
 
 		
+class MarkupPriceGrid:
+	'''A markup % and a sell price for every markup level
+	(customer_markup_percent), kept in step with each other and with a cost
+	spinbutton. Changing the cost keeps each level's markup % and moves its
+	price; changing a markup % moves its price; changing a price moves its
+	markup %. As in the product edit window, a price cannot go below the cost.
+	The rows are attached to a Gtk.Grid under its header row (row 0).
+	product_edit_main and unprocessed_po still build their own copies of this.'''
+	def __init__ (self, grid, cost_spin):
+		self.cost_spin = cost_spin
+		#set while one handler writes a spinbutton, so the others do not
+		#answer it and round the value the user typed back and forth
+		self.updating = False
+		self.rows = list() #(markup_id, default markup %, markup spin, sell spin)
+		cursor = DB.cursor()
+		cursor.execute("SELECT id, name, markup_percent "
+						"FROM customer_markup_percent ORDER BY name")
+		for top, (markup_id, name, percent) in enumerate(cursor.fetchall(), 1):
+			label = Gtk.Label(label = name, xalign = 0, hexpand = True)
+			markup_spin = Gtk.SpinButton.new_with_range(0.00, 5000.00, 1.00)
+			markup_spin.set_digits(2)
+			sell_spin = Gtk.SpinButton.new_with_range(0.00, 100000.00, 1.00)
+			sell_spin.set_digits(2)
+			markup_spin.connect('value-changed', self.markup_changed, sell_spin)
+			sell_spin.connect('value-changed', self.sell_changed, markup_spin)
+			grid.attach(label, 0, top, 1, 1)
+			grid.attach(markup_spin, 1, top, 1, 1)
+			grid.attach(sell_spin, 2, top, 1, 1)
+			self.rows.append((markup_id, float(percent), markup_spin, sell_spin))
+		cursor.close()
+		DB.rollback()
+		cost_spin.connect('value-changed', self.cost_changed)
+		grid.show_all()
+
+	def cost_changed (self, cost_spin):
+		if self.updating:
+			return
+		cost = cost_spin.get_value()
+		self.updating = True
+		for markup_id, default, markup_spin, sell_spin in self.rows:
+			sell_spin.get_adjustment().set_lower(cost)
+			markup = markup_spin.get_value()
+			sell_spin.set_value(cost + cost * markup / 100)
+		self.updating = False
+
+	def markup_changed (self, markup_spin, sell_spin):
+		if self.updating:
+			return
+		cost = self.cost_spin.get_value()
+		self.updating = True
+		sell_spin.set_value(cost + cost * markup_spin.get_value() / 100)
+		self.updating = False
+
+	def sell_changed (self, sell_spin, markup_spin):
+		if self.updating:
+			return
+		cost = self.cost_spin.get_value()
+		if cost == 0.00:
+			return # a markup % of nothing means nothing
+		self.updating = True
+		markup_spin.set_value((sell_spin.get_value() - cost) / cost * 100)
+		self.updating = False
+
+	def load (self, product_id):
+		'''Each level's saved price for the product, and the markup % that price
+		makes on the cost spinbutton's cost. A level with no saved price, or a
+		cost of 0 where a percentage means nothing, gets the level's own
+		markup %.'''
+		cost = self.cost_spin.get_value()
+		cursor = DB.cursor()
+		self.updating = True
+		for markup_id, default, markup_spin, sell_spin in self.rows:
+			sell_spin.get_adjustment().set_lower(cost)
+			cursor.execute("SELECT price FROM products_markup_prices "
+							"WHERE (product_id, markup_id) = (%s, %s)",
+							(product_id, markup_id))
+			row = cursor.fetchone()
+			if row is not None and cost != 0.00:
+				price = float(row[0])
+				markup = (price - cost) / cost * 100
+			else:
+				markup = default
+				price = cost + cost * markup / 100
+			markup_spin.set_value(markup)
+			sell_spin.set_value(price)
+		self.updating = False
+		cursor.close()
+		DB.rollback()
+
+	def save (self, cursor, product_id):
+		'''Write every level's price for the product on the caller's cursor; the
+		caller commits. Update, or insert when there is no row yet, rather than
+		ON CONFLICT: no update block creates products_markup_prices_unique, so an
+		upgraded database may not have it.'''
+		self.cost_spin.update() # a value still being typed
+		for markup_id, default, markup_spin, sell_spin in self.rows:
+			markup_spin.update()
+			sell_spin.update()
+		for markup_id, default, markup_spin, sell_spin in self.rows:
+			price = sell_spin.get_value()
+			cursor.execute("UPDATE products_markup_prices SET price = %s "
+							"WHERE (product_id, markup_id) = (%s, %s)",
+							(price, product_id, markup_id))
+			if cursor.rowcount == 0:
+				cursor.execute("INSERT INTO products_markup_prices "
+								"(product_id, markup_id, price) "
+								"VALUES (%s, %s, %s)",
+								(product_id, markup_id, price))

@@ -18,15 +18,19 @@
 from gi.repository import Gtk, Gdk, GLib
 import os, sys
 from db_connection import DB, broadcaster
-from constants import ui_directory
+from constants import ui_directory, PRODUCT_LOCK_CLASSID
 import user_manual
 import calculator
+from pricing import MarkupPriceGrid
 
 UI_FILE = ui_directory + "/manufacturing/assembled_products.ui"
 
 
 class AssembledProductsGUI:
 	timeout_id = None
+	manufactured_product_id = None
+	version_id = None
+	total = 0.00
 	def __init__(self):
 		
 		self.builder = Gtk.Builder()
@@ -58,14 +62,31 @@ class AssembledProductsGUI:
 		version_completion.set_match_func(self.version_match_func)
 		assembled_completion = self.builder.get_object('assembled_product_completion')
 		assembled_completion.set_match_func(self.assembled_product_match_func)
+		for column_id, store_column in (('treeviewcolumn5', 5),
+										('treeviewcolumn6', 6),
+										('retail_column', 7),
+										('ext_retail_column', 8)):
+			column = self.builder.get_object(column_id)
+			column.set_cell_data_func(column.get_cells()[0],
+										self.money_cell_func, store_column)
+		self.update_cost_spin = self.builder.get_object('update_cost_spin')
+		self.markup_prices = MarkupPriceGrid(
+									self.builder.get_object('markup_price_grid'),
+									self.update_cost_spin)
 
 		self.populate_stores ()
-		
+
 		self.window = self.builder.get_object('window1')
 		user_manual.bind_f1(self.window, "assembled_products")
 		user_manual.bind_f1(self.builder.get_object('duplicate_product_window'),
 							"assembled_products")
+		user_manual.bind_f1(self.builder.get_object('cost_update_dialog'),
+							"assembled_products")
 		self.window.show_all()
+
+	def money_cell_func (self, column, renderer, model, tree_iter, store_column):
+		renderer.set_property('text',
+							'{:,.2f}'.format(model[tree_iter][store_column]))
 
 	def on_drag_data_received(self, widget, drag_context, x,y, data,info, time):
 		list_ = data.get_text().split(' ')
@@ -80,8 +101,10 @@ class AssembledProductsGUI:
 		for row in c.fetchall():
 			name = row[0]
 			price = row[1]
-			iter_ = self.assembly_store.append([0, int(qty), int(product_id), 
-												name, "", price, 0.00])
+			#save_assembly_product_line fills in the extension and retail
+			iter_ = self.assembly_store.append([0, int(qty), int(product_id),
+												name, "", price, 0.00,
+												0.00, 0.00])
 			self.save_assembly_product_line(iter_)
 			path = self.assembly_store.get_path(iter_)
 			column = self.assembly_treeview.get_column(0)
@@ -207,6 +230,7 @@ class AssembledProductsGUI:
 
 	def focus (self, widget, event):
 		self.populate_stores ()
+		self.show_assembled_product_prices () # may have been changed elsewhere
 
 	def populate_stores(self):
 		c = DB.cursor()
@@ -324,11 +348,13 @@ class AssembledProductsGUI:
 		qty = self.assembly_store[tree_iter][1]
 		product_id = self.assembly_store[tree_iter][2]
 		remark = self.assembly_store[tree_iter][4]
-		c.execute("SELECT cost FROM products WHERE id = %s", ( product_id, ))
-		for row in c.fetchall():
-			cost = row[0]
+		c.execute("SELECT cost, COALESCE(product_retail_price(id), 0.00) "
+					"FROM products WHERE id = %s", ( product_id, ))
+		for cost, retail in c.fetchall():
 			self.assembly_store[tree_iter][5] = cost
 			self.assembly_store[tree_iter][6] = float(cost) * qty
+			self.assembly_store[tree_iter][7] = retail
+			self.assembly_store[tree_iter][8] = float(retail) * qty
 		if line_id == 0:
 			c.execute("INSERT INTO product_assembly_items "
 									"(manufactured_product_id, "
@@ -359,18 +385,24 @@ class AssembledProductsGUI:
 
 	def calculate_totals(self, widget = None):
 		self.total = 0
+		retail_total = 0
 		for item in self.assembly_store:
 			self.total = self.total + item[6]
+			retail_total += item[8]
 		total = '${:,.2f}'.format(self.total)
 		line_items = len(self.assembly_store)
 		self.builder.get_object('label4').set_label(str(line_items))
 		self.builder.get_object('label5').set_label(total)
+		self.builder.get_object('parts_retail_label').set_label(
+										'${:,.2f}'.format(retail_total))
 
 	def calculate_row_total(self, tree_iter):
 		cost = float(self.assembly_store[tree_iter][5])
 		qty = float(self.assembly_store[tree_iter][1])
 		ext_price = cost * qty
 		self.assembly_store[tree_iter][6] = round(ext_price, 2)
+		retail = float(self.assembly_store[tree_iter][7])
+		self.assembly_store[tree_iter][8] = round(retail * qty, 2)
 
 	def delete_entry(self):
 		c = DB.cursor()
@@ -416,6 +448,9 @@ class AssembledProductsGUI:
 		self.save_notes()
 		self.builder.get_object('version_combobox').set_active(-1)
 		self.assembly_store.clear()
+		self.calculate_totals ()
+		#the parts list it would price is gone until a version is chosen
+		self.builder.get_object('update_prices_button').set_sensitive(False)
 		self.version_store.clear()
 		c = DB.cursor()
 		c.execute("SELECT id::text, version_name "
@@ -427,6 +462,91 @@ class AssembledProductsGUI:
 			self.version_store.append(row)
 		c.close()
 		self.builder.get_object('version_button').set_sensitive(True)
+		self.show_assembled_product_prices ()
+
+	def show_assembled_product_prices (self):
+		'''the assembled product's own saved cost and retail price, beside what
+		its parts add up to'''
+		if self.manufactured_product_id is None:
+			return
+		c = DB.cursor()
+		c.execute("SELECT cost, product_retail_price(id) "
+					"FROM products WHERE id = %s",
+					(self.manufactured_product_id,))
+		for cost, retail in c.fetchall():
+			self.builder.get_object('product_cost_label').set_label(
+											'${:,.2f}'.format(cost))
+			if retail is None: # no standard markup level to price it at
+				retail = 'N/A'
+			else:
+				retail = '${:,.2f}'.format(retail)
+			self.builder.get_object('product_retail_label').set_label(retail)
+		c.close()
+		DB.rollback()
+
+	def update_prices_clicked (self, button):
+		'''Set the assembled product's cost from this version's parts, and its
+		price at every markup level. The cost starts at the parts total, priced
+		at the parts' costs now, and can be changed to cover labor. Each level
+		keeps the markup % its saved price makes on the old cost, so the prices
+		move with the cost, the same as a purchase order's cost update.'''
+		c = DB.cursor()
+		c.execute("SELECT p.id, p.name, p.cost, pav.version_name, "
+						"(SELECT COALESCE(SUM(part.cost * pai.qty), 0.00) "
+						"FROM product_assembly_items AS pai "
+						"JOIN products AS part "
+							"ON part.id = pai.assembly_product_id "
+						"WHERE pai.version_id = pav.id) "
+					"FROM product_assembly_versions AS pav "
+					"JOIN products AS p ON p.id = pav.product_id "
+					"WHERE pav.id = %s", (self.version_id,))
+		product_id, name, cost, version_name, parts_total = c.fetchone()
+		#the same lock the product edit window holds while a product is open,
+		#so another workstation's edit window does not save over this
+		c.execute("SELECT pg_try_advisory_lock(%s, %s)",
+					(PRODUCT_LOCK_CLASSID, product_id))
+		if c.fetchone()[0] == False:
+			c.close()
+			DB.rollback()
+			self.show_message("Somebody else is editing %s, so its cost and "
+								"prices cannot be changed now." % name)
+			return
+		DB.rollback() # a session lock, it outlives the transaction
+		try:
+			self.builder.get_object('update_product_label').set_label(
+							"Current cost of {} is ${:,.2f}".format(name, cost))
+			self.builder.get_object('update_parts_total_label').set_label(
+							"Parts total for {} is ${:,.2f}".format(
+												version_name, parts_total))
+			#the saved prices are read against the cost they were set on, and
+			#moving to the new cost then carries each level's markup % along
+			self.update_cost_spin.set_value(float(cost))
+			self.markup_prices.load(product_id)
+			self.update_cost_spin.set_value(float(parts_total))
+			dialog = self.builder.get_object('cost_update_dialog')
+			result = dialog.run()
+			dialog.hide()
+			if result == Gtk.ResponseType.ACCEPT:
+				self.update_cost_spin.update() # a value still being typed
+				c.execute("UPDATE products SET cost = %s WHERE id = %s",
+							(self.update_cost_spin.get_value(), product_id))
+				self.markup_prices.save(c, product_id)
+				DB.commit()
+		finally:
+			DB.rollback()
+			c.execute("SELECT pg_advisory_unlock(%s, %s)",
+						(PRODUCT_LOCK_CLASSID, product_id))
+			c.close()
+			DB.rollback()
+		self.show_assembled_product_prices()
+
+	def show_message (self, message):
+		dialog = Gtk.MessageDialog(	message_type = Gtk.MessageType.ERROR,
+									buttons = Gtk.ButtonsType.CLOSE)
+		dialog.set_transient_for(self.window)
+		dialog.set_markup (GLib.markup_escape_text(message))
+		dialog.run()
+		dialog.destroy()
 
 	def version_match_func (self, completion, key, tree_iter):
 		split_search_text = key.split()
@@ -451,14 +571,18 @@ class AssembledProductsGUI:
 		c = DB.cursor()
 		self.assembly_store.clear()
 		c.execute("SELECT pai.id, qty, assembly_product_id, name, "
-					"remark, cost, cost*qty "
+					"remark, cost, cost*qty, retail, retail*qty "
 					"FROM product_assembly_items AS pai "
 					"JOIN products ON products.id = "
 					"pai.assembly_product_id "
+					"CROSS JOIN LATERAL (SELECT COALESCE("
+						"product_retail_price(products.id), 0.00) AS retail"
+					") AS r "
 					"WHERE version_id = %s",
 					(self.version_id,))
 		for row in c.fetchall():
 			self.assembly_store.append(row)
+		self.builder.get_object('update_prices_button').set_sensitive(True)
 		self.populating = True
 		c.execute ("SELECT assembly_notes "
 					"FROM product_assembly_versions WHERE id = %s", 
@@ -505,7 +629,8 @@ class AssembledProductsGUI:
 	def add_entry(self):
 		treeview = self.builder.get_object('treeview2')
 		c = treeview.get_column(0)
-		row = self.assembly_store.append([0, 1, 0, "Select a product", "", 0.00, 0.00])
+		row = self.assembly_store.append([0, 1, 0, "Select a product", "",
+											0.00, 0.00, 0.00, 0.00])
 		path = self.assembly_store.get_path(row)
 		treeview.set_cursor(path, c, True)
 

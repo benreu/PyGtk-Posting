@@ -33,10 +33,37 @@
     part.</p></item>
   </steps>
 
-  <p><gui>Total items :</gui> and <gui>Total Cost :</gui> add up the list at
-  the parts' current costs. <gui>Notes</gui> are kept with the version.
-  Right click a part for its <gui>Product hub</gui>. You can also drag
-  products onto the list.</p>
+  <p>Each part shows its <gui>Cost</gui> and <gui>Retail</gui> price, and
+  each multiplied by its quantity in <gui>Ext cost</gui> and <gui>Ext
+  retail</gui>. Retail is the part's price at the standard markup level (see
+  <link xref="customer_markup_percent"/>). Under the list, <gui>Total items
+  :</gui>, <gui>Total Cost :</gui> and <gui>Parts retail :</gui> add up the
+  list at the parts' current prices, and <gui>Product cost :</gui> and
+  <gui>Product retail :</gui> are what the assembled product itself is saved
+  at. <gui>Notes</gui> are kept with the version. Right click a part for its
+  <gui>Product hub</gui>. You can also drag products onto the list.</p>
+
+  <section id="update_prices">
+  <title>Updating the product's cost and prices</title>
+  <p>Once a version is chosen, <gui>Update cost &amp; prices</gui> sets the
+  assembled product's cost and its selling prices, without opening the product
+  itself.</p>
+  <steps>
+    <item><p>The <gui>Cost &amp; prices</gui> window shows the product's
+    current cost and the parts total of the chosen version, and starts
+    <gui>Update the cost to</gui> at that parts total. Change it to cover
+    labor or anything else the parts do not.</p></item>
+    <item><p>Each markup level keeps the markup its price makes now, so its
+    <gui>Sell price</gui> follows the cost as you change it. A level with no
+    price of its own yet starts at the level's markup. Type a <gui>Markup
+    %</gui> or a <gui>Sell price</gui> to set a level yourself; a price cannot
+    go below the cost.</p></item>
+    <item><p>Click <gui>Update</gui> to save the cost and every level's price,
+    or <gui>Cancel</gui> to change nothing.</p></item>
+  </steps>
+  <p>If the product is open in the product window on another computer, it
+  cannot be updated until that window is closed.</p>
+  </section>
 
   <section id="versions">
   <title>Versions</title>

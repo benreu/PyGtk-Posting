@@ -50,6 +50,10 @@
       <column type="gfloat"/>
       <!-- column-name ext_cost -->
       <column type="gfloat"/>
+      <!-- column-name retail -->
+      <column type="gfloat"/>
+      <!-- column-name ext_retail -->
+      <column type="gfloat"/>
     </columns>
   </object>
   <object class="GtkAdjustment" id="duplicate_qty_adjustment">
@@ -273,7 +277,7 @@
               </packing>
             </child>
             <child>
-              <!-- n-columns=3 n-rows=3 -->
+              <!-- n-columns=2 n-rows=5 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -286,6 +290,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Total items : </property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -297,6 +302,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">0</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -305,9 +311,11 @@
                 </child>
                 <child>
                   <object class="GtkLabel" id="label3">
+                    <property name="height-request">25</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Total Cost : </property>
+                    <property name="xalign">1</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -319,6 +327,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">$0.00</property>
+                    <property name="xalign">0</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -326,25 +335,101 @@
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="parts_retail_name_label">
+                    <property name="height-request">25</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Parts retail : </property>
+                    <property name="xalign">1</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="parts_retail_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">$0.00</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="product_cost_name_label">
+                    <property name="height-request">25</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Product cost : </property>
+                    <property name="xalign">1</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">3</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="product_cost_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">$0.00</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">3</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="product_retail_name_label">
+                    <property name="height-request">25</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Product retail : </property>
+                    <property name="xalign">1</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="product_retail_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">$0.00</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">4</property>
+                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="update_prices_button">
+                <property name="label" translatable="yes">Update cost &amp; prices</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Set the assembled product's cost from this version's parts, and its selling prices</property>
+                <signal name="clicked" handler="update_prices_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
               </packing>
             </child>
           </object>
@@ -430,28 +515,52 @@
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn5">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Price</property>
+                        <property name="title" translatable="yes">Cost</property>
                         <property name="reorderable">True</property>
                         <property name="sort-column-id">5</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext4"/>
-                          <attributes>
-                            <attribute name="text">5</attribute>
-                          </attributes>
+                          <object class="GtkCellRendererText" id="cellrenderertext4">
+                            <property name="xalign">1</property>
+                          </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                         <property name="resizable">True</property>
-                        <property name="title" translatable="yes">Ext price</property>
+                        <property name="title" translatable="yes">Ext cost</property>
                         <property name="reorderable">True</property>
                         <property name="sort-column-id">6</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderertext5"/>
-                          <attributes>
-                            <attribute name="text">6</attribute>
-                          </attributes>
+                          <object class="GtkCellRendererText" id="cellrenderertext5">
+                            <property name="xalign">1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="retail_column">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Retail</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">7</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="retail_renderer">
+                            <property name="xalign">1</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="ext_retail_column">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Ext retail</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">8</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="ext_retail_renderer">
+                            <property name="xalign">1</property>
+                          </object>
                         </child>
                       </object>
                     </child>
@@ -775,5 +884,232 @@ Do you want to update the quantity to </property>
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkAdjustment" id="update_cost_adjustment">
+    <property name="upper">100000</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="cost_update_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Cost &amp; prices</property>
+    <property name="modal">True</property>
+    <property name="window-position">center-on-parent</property>
+    <property name="default-width">450</property>
+    <property name="default-height">350</property>
+    <property name="icon-name">pygtk-posting</property>
+    <property name="type-hint">dialog</property>
+    <property name="transient-for">window1</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="update_cancel_button">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="update_accept_button">
+                <property name="label" translatable="yes">Update</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="can-default">True</property>
+                <property name="has-default">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-left">10</property>
+            <property name="margin-right">10</property>
+            <property name="margin-top">10</property>
+            <property name="vexpand">True</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkLabel" id="update_product_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Current cost of product is $0.00</property>
+                <property name="wrap">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="update_parts_total_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Parts total for version is $0.00</property>
+                <property name="wrap">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Update the cost to</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="update_cost_spin">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Starts at the parts total; add labor or anything else the parts do not cover</property>
+                    <property name="xalign">1</property>
+                    <property name="adjustment">update_cost_adjustment</property>
+                    <property name="climb-rate">1</property>
+                    <property name="digits">2</property>
+                    <property name="numeric">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="margin-top">5</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="shadow-type">in</property>
+                <child>
+                  <object class="GtkViewport">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <!-- the rows under the header are added by pricing.MarkupPriceGrid -->
+                      <object class="GtkGrid" id="markup_price_grid">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-left">5</property>
+                        <property name="margin-right">5</property>
+                        <property name="margin-top">5</property>
+                        <property name="margin-bottom">5</property>
+                        <property name="row-spacing">3</property>
+                        <property name="column-spacing">10</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Markup level</property>
+                            <property name="xalign">0</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Markup %</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Sell price</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-6">update_cancel_button</action-widget>
+      <action-widget response="-3">update_accept_button</action-widget>
+    </action-widgets>
   </object>
 </interface>
