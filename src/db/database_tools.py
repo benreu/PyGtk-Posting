@@ -408,8 +408,11 @@ class GUI:
 		test_password = self.builder.get_object("password_entry").get_text()
 		test_db_name = self.builder.get_object('entry6').get_text()
 		try:
-			self.db = psycopg2.connect( host = test_host, 
-										user = test_user, 
+			# named, because left out libpq picks the database named after the
+			# login, which exists for postgres and for no other login
+			self.db = psycopg2.connect( database = "postgres",
+										host = test_host,
+										user = test_user,
 										password = test_password, 
 										port = test_port)
 		except Exception as e:

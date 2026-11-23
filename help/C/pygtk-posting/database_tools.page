@@ -40,12 +40,19 @@
   <steps>
     <item><p>On the <gui>Connection</gui> tab, type the <gui>Server</gui>,
     <gui>Port</gui>, <gui>Username</gui> and <gui>Password</gui> of the
-    PostgreSQL server, and click <gui>Test connection</gui>.</p></item>
+    PostgreSQL server, and click <gui>Test connection</gui>. The rest of the
+    tab can be used once the test succeeds.</p></item>
     <item><p>To use a company that already exists, choose it under
-    <gui>Existing database</gui> and click <gui>Save connection</gui>. To start
-    new books, type a name under <gui>New database</gui> and click
-    <gui>Create</gui>.</p></item>
+    <gui>Existing database</gui> and click <gui>Save connection</gui>. Only
+    the companies this login may open are listed. To start new books, type a
+    name under <gui>New database</gui> and click <gui>Create</gui>. That needs
+    a user allowed to create databases, usually <input>postgres</input>, not
+    the one PyGtk Posting logs in as day to day.</p></item>
   </steps>
+  <p>A saved connection's server and user name cannot be changed. To log in
+  as another user, add the connection again with that user name, choose
+  <gui>Set as default</gui> on the new one if it should open at start, and
+  delete the old one.</p>
   <p>Check <gui>Mobile</gui> for a connection over a slow link: less data is
   loaded, so some windows show less.</p>
   </section>
