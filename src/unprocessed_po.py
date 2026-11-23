@@ -35,6 +35,7 @@ from db_connection import DB
 from constants import ui_directory
 import user_manual
 import calculator
+from pricing import MarkupPriceGrid
 
 UI_FILE = ui_directory + "/unprocessed_po.ui"
 
@@ -96,7 +97,8 @@ class GUI(Gtk.Builder):
 		ext_price_column = self.get_object('treeviewcolumn5')
 		ext_price_column.set_cell_data_func(ext_price_renderer, self.ext_price_cell_func)
 
-		self.populate_terms_listbox()
+		self.markup_prices = MarkupPriceGrid(self.get_object('markup_price_grid'),
+										self.get_object('spinbutton1'))
 		self.populate_expense_products ()
 		self.window = self.get_object('window')
 		user_manual.bind_f1(self.window, "unprocessed_po")
@@ -698,7 +700,7 @@ class GUI(Gtk.Builder):
 		#check if cost went up by any amount, or down by set percentage
 		if new_cost > current_cost or \
 			new_cost < (current_cost - (current_cost * self.cost_decrease)) :
-			self.load_product_terms_prices()
+			self.markup_prices.load(self.product_id)
 			self.get_object('spinbutton1').set_value(new_cost)
 			# set the new cost afterwards to update all the selling prices
 			dialog = self.get_object('cost_update_dialog')
@@ -732,136 +734,13 @@ class GUI(Gtk.Builder):
 		self.get_object('entry4').set_text(total)
 		self.check_all_entries_completed ()
 
-	def populate_terms_listbox (self):
-		listbox = self.get_object('listbox2')
-		cost_spinbutton = self.get_object('spinbutton1')
-		cost = cost_spinbutton.get_text()
-		cursor = DB.cursor()
-		cursor.execute("SELECT id, name, markup_percent "
-							"FROM customer_markup_percent ORDER BY name")
-		for row in cursor.fetchall():
-			terms_id = row[0]
-			terms_name = row[1]
-			terms_markup = row[2]
-			terms_id_label = Gtk.Label(label = str(terms_id), xalign=0)
-			terms_id_label.set_no_show_all(True)
-			terms_name_label = Gtk.Label(label = terms_name, xalign=1)
-			markup_spinbutton = Gtk.SpinButton.new_with_range(0.00, 5000.00, 1.00)
-			markup_spinbutton.set_digits(2)
-			markup_spinbutton.set_value(terms_markup)
-			margin = (float(terms_markup) / 100) * float(cost)
-			sell_price = margin + float(cost)
-			sell_spinbutton = Gtk.SpinButton.new_with_range(0.00, 100000.00, 1.00)
-			sell_spinbutton.set_digits(2)
-			sell_spinbutton.set_value(sell_price)
-			cost_spinbutton.connect('value-changed', self.cost_changed, markup_spinbutton, sell_spinbutton, terms_id)
-			markup_spinbutton.connect('value-changed', self.markup_changed, sell_spinbutton, terms_id)
-			sell_spinbutton.connect('value-changed', self.sell_changed, markup_spinbutton, terms_id)
-			hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-			hbox.pack_start(terms_id_label, False, False, 5)
-			hbox.pack_start(terms_name_label, True, False, 5)
-			hbox.pack_end(sell_spinbutton, False, False, 5)
-			hbox.pack_end(markup_spinbutton, False, False, 5)
-			list_box_row = Gtk.ListBoxRow()
-			list_box_row.add(hbox)
-			listbox.add(list_box_row)
-		cursor.close()
-		listbox.show_all()
-		DB.rollback()
-
-	def cost_changed (self, cost_spin, markup_spin, sell_spin, terms_id):
-		cost = self.get_object('spinbutton1').get_text()
-		cost = float(cost)
-		markup_percent = markup_spin.get_value()
-		markup = cost * (markup_percent / 100)
-		selling_price = cost + markup
-		sell_adjustment = sell_spin.get_adjustment()
-		sell_adjustment.set_lower(cost)
-		sell_spin.set_value(selling_price)
-
-	def sell_changed (self, sell_spin, markup_spin, markup_id):
-		cost = self.get_object('spinbutton1').get_text()
-		cost = float(cost)
-		sell_price = sell_spin.get_value ()
-		margin = sell_price - cost
-		markup = (margin / cost) * 100
-		markup_spin.set_value(markup)
-		
-	def markup_changed(self, markup_spin, sell_spin, terms_id):
-		cost = self.get_object('spinbutton1').get_text()
-		cost = float(cost)
-		markup = markup_spin.get_value()
-		margin = (markup / 100) * cost
-		sell_price = margin + cost
-		sell_spin.set_value(sell_price)
-
-	def load_product_terms_prices (self):
-		cost = self.get_object('spinbutton1').get_text()
-		cost = float(cost)
-		listbox = self.get_object('listbox2')
-		for list_box_row in listbox:
-			if list_box_row.get_index() == 0:
-				continue # skip the header
-			box = list_box_row.get_child()
-			widget_list = box.get_children()
-			terms_id_label = widget_list[0]
-			terms_id = terms_id_label.get_label()
-			markup_spin = widget_list[2]
-			sell_spin = widget_list[3]
-			sell_adjustment = sell_spin.get_adjustment()
-			sell_adjustment.set_lower(cost)
-			cursor = DB.cursor()
-			cursor.execute("SELECT price FROM products_markup_prices "
-								"WHERE (product_id, markup_id) = (%s, %s)",
-								(self.product_id, terms_id))
-			for row in cursor.fetchall():
-				sell_price = float(row[0])
-				sell_spin.set_value(sell_price)
-				margin = sell_price - cost
-				markup = (margin / cost) * 100
-				markup_spin.set_value(markup)
-				break
-			else:
-				cursor.execute("SELECT markup_percent "
-									"FROM customer_markup_percent "
-									"WHERE id = %s", (terms_id,))
-				markup = float(cursor.fetchone()[0])
-				markup_spin.set_value(markup)
-				margin = (markup / 100) * cost
-				sell_price = margin + cost
-				sell_spin.set_value(sell_price)
-			cursor.close()
-		DB.rollback()
-
 	def save_product_terms_prices (self):
-		cost = self.get_object('spinbutton1').get_value()
+		cost_spin = self.get_object('spinbutton1')
+		cost_spin.update() # a value still being typed
 		cursor = DB.cursor()
 		cursor.execute("UPDATE products SET cost = %s "
-							"WHERE id = %s", (cost, self.product_id))
-		listbox = self.get_object('listbox2')
-		for list_box_row in listbox:
-			if list_box_row.get_index() == 0:
-				continue # skip the header
-			box = list_box_row.get_child()
-			widget_list = box.get_children()
-			terms_id_label = widget_list[0]
-			terms_id = terms_id_label.get_label()
-			sell_spin = widget_list[3]
-			sell_price = sell_spin.get_value()
-			cursor.execute("SELECT id FROM products_markup_prices "
-								"WHERE (product_id, markup_id) = (%s, %s)",
-								(self.product_id, terms_id))
-			for row in cursor.fetchall():
-				_id_ = row[0]
-				cursor.execute("UPDATE products_markup_prices "
-									"SET price = %s WHERE id = %s",
-									(sell_price, _id_))
-				break
-			else:
-				cursor.execute("INSERT INTO products_markup_prices "
-									"(product_id, markup_id, price) "
-									"VALUES (%s, %s, %s)",
-									(self.product_id, terms_id, sell_price))
+							"WHERE id = %s", (cost_spin.get_value(), self.product_id))
+		self.markup_prices.save(cursor, self.product_id)
 		cursor.close()
 		DB.commit()
 

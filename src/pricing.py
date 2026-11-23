@@ -65,30 +65,38 @@ class MarkupPriceGrid:
 	(customer_markup_percent), kept in step with each other and with a cost
 	spinbutton. Changing the cost keeps each level's markup % and moves its
 	price; changing a markup % moves its price; changing a price moves its
-	markup %. As in the product edit window, a price cannot go below the cost.
-	The rows are attached to a Gtk.Grid under its header row (row 0).
-	product_edit_main and unprocessed_po still build their own copies of this.'''
+	markup %. A price cannot go below the cost.
+	The rows are attached to a Gtk.Grid under its header row (row 0), and start
+	at each level's own markup % on the cost the spinbutton holds, which is
+	what a new product shows until load() reads a saved one. Used by the
+	product edit window, the purchase order's cost update and assembled
+	products.'''
 	def __init__ (self, grid, cost_spin):
 		self.cost_spin = cost_spin
 		#set while one handler writes a spinbutton, so the others do not
 		#answer it and round the value the user typed back and forth
 		self.updating = False
 		self.rows = list() #(markup_id, default markup %, markup spin, sell spin)
+		cost = cost_spin.get_value()
 		cursor = DB.cursor()
 		cursor.execute("SELECT id, name, markup_percent "
 						"FROM customer_markup_percent ORDER BY name")
 		for top, (markup_id, name, percent) in enumerate(cursor.fetchall(), 1):
+			percent = float(percent)
 			label = Gtk.Label(label = name, xalign = 0, hexpand = True)
 			markup_spin = Gtk.SpinButton.new_with_range(0.00, 5000.00, 1.00)
 			markup_spin.set_digits(2)
+			markup_spin.set_value(percent)
 			sell_spin = Gtk.SpinButton.new_with_range(0.00, 100000.00, 1.00)
 			sell_spin.set_digits(2)
+			sell_spin.get_adjustment().set_lower(cost)
+			sell_spin.set_value(cost + cost * percent / 100)
 			markup_spin.connect('value-changed', self.markup_changed, sell_spin)
 			sell_spin.connect('value-changed', self.sell_changed, markup_spin)
 			grid.attach(label, 0, top, 1, 1)
 			grid.attach(markup_spin, 1, top, 1, 1)
 			grid.attach(sell_spin, 2, top, 1, 1)
-			self.rows.append((markup_id, float(percent), markup_spin, sell_spin))
+			self.rows.append((markup_id, percent, markup_spin, sell_spin))
 		cursor.close()
 		DB.rollback()
 		cost_spin.connect('value-changed', self.cost_changed)
@@ -125,9 +133,10 @@ class MarkupPriceGrid:
 
 	def load (self, product_id):
 		'''Each level's saved price for the product, and the markup % that price
-		makes on the cost spinbutton's cost. A level with no saved price, or a
-		cost of 0 where a percentage means nothing, gets the level's own
-		markup %.'''
+		makes on the cost spinbutton's cost. A level with no saved price gets
+		the level's own markup %. A product that costs 0, like labor, keeps its
+		saved prices; its markup % shows the level's own, since a percentage of
+		nothing means nothing.'''
 		cost = self.cost_spin.get_value()
 		cursor = DB.cursor()
 		self.updating = True
@@ -137,12 +146,15 @@ class MarkupPriceGrid:
 							"WHERE (product_id, markup_id) = (%s, %s)",
 							(product_id, markup_id))
 			row = cursor.fetchone()
-			if row is not None and cost != 0.00:
-				price = float(row[0])
-				markup = (price - cost) / cost * 100
-			else:
+			if row is None:
 				markup = default
 				price = cost + cost * markup / 100
+			elif cost == 0.00:
+				markup = default
+				price = float(row[0])
+			else:
+				price = float(row[0])
+				markup = (price - cost) / cost * 100
 			markup_spin.set_value(markup)
 			sell_spin.set_value(price)
 		self.updating = False
