@@ -15,7 +15,4 @@
 
   <p>The <gui>Accounting</gui> menu works on the general ledger directly: reconciling the bank and credit cards, depositing payments, paying bills and loans, and entering transactions by hand.</p>
 
-  <note><p><gui>Employee payment</gui> cannot open in this version; pay
-  employees from <link xref="pay_stub"/> instead.</p></note>
-
 </page>
